@@ -12,7 +12,6 @@ aside.menu {
   width: 100px;
   height: 100px;
   transform-style: preserve-3d;
-  transition: transform 1.5s;
   margin: 50px auto;
 }
 
