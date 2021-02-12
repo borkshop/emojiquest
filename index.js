@@ -4,6 +4,7 @@
 
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
+import {easeInOutQuint, easeInOutQuad} from './easing.js';
 import {identity, multiply, rotateX, rotateY, rotateZ} from './matrix.js';
 
 const $cube = mustFind('#cube');
@@ -73,61 +74,67 @@ function transition(duration, axis, angle, ease) {
   })
 }
 
-// https://gist.github.com/gre/1650294
-/** @type {Object<string, (progress: number) => number>} */
-const easing = {
-  // no easing, no acceleration
-  linear: t => t,
-  // accelerating from zero velocity
-  easeInQuad: t => t*t,
-  // decelerating to zero velocity
-  easeOutQuad: t => t*(2-t),
-  // acceleration until halfway, then deceleration
-  easeInOutQuad: t => t<.5 ? 2*t*t : -1+(4-2*t)*t,
-  // accelerating from zero velocity
-  easeInCubic: t => t*t*t,
-  // decelerating to zero velocity
-  easeOutCubic: t => (--t)*t*t+1,
-  // acceleration until halfway, then deceleration
-  easeInOutCubic: t => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
-  // accelerating from zero velocity
-  easeInQuart: t => t*t*t*t,
-  // decelerating to zero velocity
-  easeOutQuart: t => 1-(--t)*t*t*t,
-  // acceleration until halfway, then deceleration
-  easeInOutQuart: t => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
-  // accelerating from zero velocity
-  easeInQuint: t => t*t*t*t*t,
-  // decelerating to zero velocity
-  easeOutQuint: t => 1+(--t)*t*t*t*t,
-  // acceleration until halfway, then deceleration
-  easeInOutQuint: t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
-};
+const no = 0; // steady
+const af = Math.PI; // about face
+const cw = -Math.PI/2; // clockwise
+const cc = Math.PI/2; // counter clockwise
 
-const ease = easing.easeInOutQuint;
+const neighbors = [
+// n, e, s, w
+  [3, 1, 2, 4], // 0
+  [3, 5, 2, 0], // 1
+  [0, 1, 5, 4], // 2
+  [0, 4, 5, 1], // 3
+  [3, 0, 2, 5], // 4
+  [3, 4, 2, 1], // 5
+];
+
+const rotations = [
+// n,  e,  s,  w
+  [af, no, no, no], // 0
+  [cw, no, cw, no], // 1
+  [no, cc, af, cw], // 2
+  [af, cw, no, cc], // 3
+  [cc, no, cc, no], // 4
+  [no, no, af, no], // 5
+];
+
+let at = 0;
+
+/**
+ * @param {number} dir
+ */
+function rotate(dir) {
+  const to = neighbors[at][dir];
+  const angle = rotations[at][dir];
+  transition(500, rotateZ, angle, easeInOutQuad);
+  at = to;
+}
+
+const ease = easeInOutQuint;
 
 window.addEventListener('keyup', event => {
   const {key} = event;
   switch (key) {
-    case 'h':
+    case 'ArrowLeft':
+    case 'h': // west
       transition(500, rotateY, Math.PI/2, ease);
+      rotate(3);
       break;
-    case 'l':
+    case 'ArrowRight':
+    case 'l': // east
       transition(500, rotateY, -Math.PI/2, ease);
+      rotate(1);
       break;
+    case 'ArrowDown':
     case 'j':
       transition(500, rotateX, Math.PI/2, ease);
+      rotate(2); // south
       break;
+    case 'ArrowUp':
     case 'k':
       transition(500, rotateX, -Math.PI/2, ease);
-      break;
-    case 'u':
-    case 'y':
-      transition(500, rotateZ, Math.PI/2, ease);
-      break;
-    case 'i':
-    case 'o':
-      transition(500, rotateZ, -Math.PI/2, ease);
+      rotate(0); // north
       break;
     default:
       console.log(key);

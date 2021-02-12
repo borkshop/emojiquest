@@ -1,3 +1,9 @@
+
+body {
+  height: 100%;
+  width: 100%;
+}
+
 aside.menu {
   overflow: auto;
   max-height: 100%;
@@ -12,7 +18,9 @@ aside.menu {
   width: 100px;
   height: 100px;
   transform-style: preserve-3d;
-  margin: 50px auto;
+  top: calc(50% - 50px);
+  left: calc(50% - 50px);
+  position: absolute;
 }
 
 /* #cube:hover, #cube:focus { */
@@ -53,7 +61,7 @@ aside.menu {
 
 .top {
   background: rgba(210,210,0,.7);
-  transform: rotateX(90deg) translateZ(50px);
+  transform: rotateX(90deg) translateZ(50px) rotateZ(180deg);
 }
 
 .bottom {
