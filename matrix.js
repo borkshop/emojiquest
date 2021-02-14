@@ -85,6 +85,14 @@ export function multiply(m, n) {
 }
 
 /**
+ * @param {...Matrix} matrixes
+ * @returns {Matrix}
+ */
+export function compose(...matrixes) {
+  return matrixes.reduce(multiply, identity);
+}
+
+/**
  * @param {Point} point
  * @param {Matrix} matrix
  * @returns {Point}
@@ -156,4 +164,18 @@ export function rotateZ(a) {
     a3: 0,         b3: 0,       c3: 1,  d3: 0,
     a4: 0,         b4: 0,       c4: 0,  d4: 1,
   };
+}
+
+/**
+ * @param {Matrix} matrix
+ * @returns {string}
+ */
+export function matrix3dStyle(matrix) {
+  const {
+    a1, b1, c1, d1,
+    a2, b2, c2, d2,
+    a3, b3, c3, d3,
+    a4, b4, c4, d4,
+  } = matrix;
+  return `matrix3d(${a1}, ${a2}, ${a3}, ${a4}, ${b1}, ${b2}, ${b3}, ${b4}, ${c1}, ${c2}, ${c3}, ${c4}, ${d1}, ${d2}, ${d3}, ${d4})`;
 }

@@ -27,44 +27,14 @@ aside.menu {
 /*   transform: rotate3d(1, 1, 1, 30deg) matrix3d(1,0,0,0,0,1,6,0,0,0,1,0,50,100,0,1.1); */
 /* } */
 
-.face {
+.tile {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
   position: absolute;
-  backface-visibility: inherit;
+  backface-visibility: hidden;
   font-size: 60px;
-  color: #fff;
-}
-
-.front {
-  background: magenta;
-  transform: translateZ(50px);
-}
-
-.back {
-  background: green;
-  transform: rotateY(180deg) translateZ(50px);
-}
-
-.right {
-  background: yellow;
-  transform: rotateY(90deg) translateZ(50px);
-}
-
-.left {
-  background: blue;
-  transform: rotateY(-90deg) translateZ(50px);
-}
-
-.top {
-  background: red;
-  transform: rotateX(90deg) translateZ(50px) rotateZ(180deg);
-}
-
-.bottom {
-  background: cyan;
-  transform: rotateX(-90deg) translateZ(50px);
+  background: #eee;
 }
