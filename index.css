@@ -1,7 +1,22 @@
 
+*,
+::before,
+::after {
+  margin: 0;
+  box-sizing: border-box;
+}
+
 body {
   height: 100%;
   width: 100%;
+  margin: 0;
+}
+
+#container {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  perspective: 500px;
 }
 
 aside.menu {
@@ -14,7 +29,7 @@ aside.menu {
   width: 40%;
 }
 
-#cube {
+#context {
   width: 100px;
   height: 100px;
   transform-style: preserve-3d;
@@ -22,10 +37,6 @@ aside.menu {
   left: calc(50% - 50px);
   position: absolute;
 }
-
-/* #cube:hover, #cube:focus { */
-/*   transform: rotate3d(1, 1, 1, 30deg) matrix3d(1,0,0,0,0,1,6,0,0,0,1,0,50,100,0,1.1); */
-/* } */
 
 .tile {
   display: flex;

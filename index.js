@@ -52,8 +52,21 @@
 
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
+import {count} from './iteration.js';
 import {easeInOutQuint, easeInOutQuad} from './easing.js';
-import {identity, compose, multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix.js';
+import {compose, multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix.js';
+
+const {min, max} = Math;
+
+/**
+ * @param {number} lo
+ * @param {number} hi
+ * @param {number} value
+ * @returns {number}
+ */
+function clamp(lo, hi, value) {
+  return max(lo, min(hi, value));
+}
 
 const faceSize = 3;
 const tileSize = 100;
@@ -61,73 +74,20 @@ const tileSize = 100;
 const faceArea = faceSize * faceSize;
 const worldSize = tileSize * faceSize;
 
-const $cube = mustFind('#cube');
-
-/**
- * @typedef {{
- *   start: number,
- *   end: number,
- *   ease(progress: number): number,
- *   matrix(time: number): Matrix,
- * }} Transition
- */
-
-let transform = identity;
-/** @type {Array<Transition>} */
-let transitions = [];
-
-async function animate() {
-  for (;;) {
-    await nextFrame();
-    const now = Date.now();
-    let current = transform;
-    transitions = transitions.filter(({start, end, ease, matrix}) => {
-      const progress = (now - start) / (end - start);
-      current = multiply(matrix(ease(progress)), current);
-      if (progress > 1) {
-        transform = multiply(matrix(1), transform);
-        return false;
-      }
-      return true;
-    });
-    $cube.style.transform = matrix3dStyle(current);
-  }
-}
-
-animate();
-
-/**
- * @param {number} duration
- * @param {(angle: number) => Matrix} axis
- * @param {number} angle
- * @param {(progress: number) => number} ease
- */
-function transition(duration, axis, angle, ease) {
-  const now = Date.now();
-  transitions.push({
-    start: now,
-    end: now + duration,
-    ease,
-    matrix(progress) {
-      return axis(angle * progress);
-    },
-  })
-}
-
 const no = 0; // steady as she goes
 const af = Math.PI; // about face
 const cw = -Math.PI/2; // clockwise
 const cc = Math.PI/2; // counter clockwise
 
-const faceNeighbors = [
-// n, e, s, w
-  [3, 1, 2, 4], // 0
-  [3, 5, 2, 0], // 1
-  [1, 5, 4, 0], // 2
-  [1, 0, 4, 5], // 3
-  [3, 0, 2, 5], // 4
-  [3, 4, 2, 1], // 5
-];
+// const faceNeighbors = [
+// // n, e, s, w
+//   [3, 1, 2, 4], // 0
+//   [3, 5, 2, 0], // 1
+//   [1, 5, 4, 0], // 2
+//   [1, 0, 4, 5], // 3
+//   [3, 0, 2, 5], // 4
+//   [3, 4, 2, 1], // 5
+// ];
 
 const faceRotations = [
 // n,  e,  s,  w
@@ -139,12 +99,6 @@ const faceRotations = [
   [cw, no, cw, no], // 5
 ];
 
-const pop = translate({
-  x: -worldSize / 2 + tileSize / 2,
-  y: -worldSize / 2 + tileSize / 2,
-  z: worldSize / 2
-});
-
 const faceTransforms = [
   [], // 0 front
   [rotateY(Math.PI/2)], // 1 right
@@ -152,10 +106,73 @@ const faceTransforms = [
   [rotateX(Math.PI/2), rotateZ(-Math.PI/2)], // 3 top
   [rotateY(-Math.PI/2)], // 4 left
   [rotateY(Math.PI)], // 5 back
-].map(matrixes => compose(...matrixes, pop));
+].map(matrixes => compose(...matrixes));
+
+const cornerTransform = translate({
+  x: -worldSize / 2 + tileSize / 2,
+  y: -worldSize / 2 + tileSize / 2,
+  z: worldSize / 2,
+});
+
+const originTransform = translate({
+  x: worldSize / 2 - tileSize / 2,
+  y: worldSize / 2 - tileSize / 2,
+  z: -worldSize / 2 + tileSize / 2,
+});
+
+const faceCorners = faceTransforms.map(matrix => multiply(matrix, cornerTransform));
+const faceOrigins = faceTransforms.map(matrix => multiply(matrix, originTransform));
+
+const $context = mustFind('#context');
+
+/**
+ * @typedef {{
+ *   start: number,
+ *   end: number,
+ *   matrix(progress: number): Matrix,
+ * }} Transition
+ */
+
+let cameraTransform = faceOrigins[0];
+/** @type {Array<Transition>} */
+let transitions = [];
+
+async function animate() {
+  for (;;) {
+    await nextFrame();
+    const now = Date.now();
+    let current = cameraTransform;
+    transitions = transitions.filter(({start, end, matrix}) => {
+      const progress = clamp(0, 1, (now - start) / (end - start));
+      current = multiply(matrix(progress), current);
+      if (progress >= 1) {
+        cameraTransform = multiply(matrix(1), cameraTransform);
+        return false;
+      }
+      return true;
+    });
+    $context.style.transform = matrix3dStyle(current);
+  }
+}
+
+animate();
+
+/**
+ * @param {number} duration
+ * @param {(progress: number) => Matrix} matrix
+ */
+function transition(duration, matrix) {
+  const now = Date.now();
+  transitions.push({
+    start: now,
+    end: now + duration,
+    matrix,
+  })
+}
 
 /**
  * @typedef {Object} TileCoordinate
+ * @prop {number} t - tile number
  * @prop {number} f - face number of tile
  * @prop {number} n - row major index of tile on face
  * @prop {number} x - horizontal position on face
@@ -171,13 +188,13 @@ function tileCoordinate(t) {
   const n = t % faceArea;
   const y = Math.floor(n / faceSize);
   const x = n % faceSize;
-  return {f, n, x, y};
+  return {t, f, n, x, y};
 }
 
 for (let t = 0; t < 6 * faceArea; t += 1) {
   const {f, y, x} = tileCoordinate(t);
   const $tile = document.createElement('div');
-  const transform = compose(faceTransforms[f], translate({
+  const transform = compose(faceCorners[f], translate({
     x: tileSize * x,
     y: tileSize * y,
     z: 0,
@@ -185,19 +202,135 @@ for (let t = 0; t < 6 * faceArea; t += 1) {
   $tile.className = 'tile';
   $tile.style.transform = matrix3dStyle(transform);
   $tile.innerText = `${t}`;
-  $cube.appendChild($tile);
+  $context.appendChild($tile);
 }
 
-let onFace = 0;
+const [north, east, south, west, same] = count();
 
 /**
- * @param {number} dir
+ * @param {{x: number, y: number}} position
+ * @param {number} direction
+ * @returns {number}
  */
-function rotate(dir) {
-  const to = faceNeighbors[onFace][dir];
-  const angle = faceRotations[onFace][dir];
-  transition(500, rotateZ, angle, easeInOutQuad);
-  onFace = to;
+function transitCase({x, y}, direction) {
+  if (y === 0 && direction === north) return north;
+  if (x === faceSize - 1 && direction === east) return east;
+  if (y === faceSize - 1 && direction === south) return south;
+  if (x === 0 && direction === west) return west;
+  return same;
+}
+
+/**
+ * @type {Array<Array<(coord: TileCoordinate) => number>>}
+ */
+const seams = [
+  [ // 0, front, dysia
+    (/** @type {TileCoordinate} */{x}) => 4 * faceArea - 1 - x * faceSize, // K northward
+    (/** @type {TileCoordinate} */{y}) => faceArea + y * faceSize, // A eastward
+    (/** @type {TileCoordinate} */{x}) => 3 * faceArea - faceSize - faceSize * x, // G southward
+    (/** @type {TileCoordinate} */{y}) => 4 * faceArea + faceSize - 1 + y * faceSize, // D westward
+  ],
+  [ // 1, right, oria
+    (/** @type {TileCoordinate} */{x}) => 3 * faceArea + faceSize - 1 - x, // L northward
+    (/** @type {TileCoordinate} */{y}) => 5 * faceArea + faceSize * y, // B eastward
+    (/** @type {TileCoordinate} */{x}) => 2 * faceArea + x, // H southward
+    (/** @type {TileCoordinate} */{y}) => 1 * faceSize * y + faceSize - 1, // A westward
+  ],
+  [ // 2, bottom, infra
+    (/** @type {TileCoordinate} */{x}) => 2 * faceArea - faceSize + x, // H northward
+    (/** @type {TileCoordinate} */{y}) => 6 * faceArea - faceSize + y, // E eastward
+    (/** @type {TileCoordinate} */{x}) => 5 * faceArea - 1 - x, // F southward
+    (/** @type {TileCoordinate} */{y}) => 1 * faceArea - 1 - y, // G westward
+  ],
+  [ // 3, top, borea
+    (/** @type {TileCoordinate} */{x}) => faceArea + faceSize - 1 - x, // L northward
+    (/** @type {TileCoordinate} */{y}) => faceSize - y - 1, // K eastward
+    (/** @type {TileCoordinate} */{x}) => 4 * faceArea + x, // J southward
+    (/** @type {TileCoordinate} */{y}) => 5 * faceArea + y, // I westward
+  ],
+  [ // 4, left, occia
+    (/** @type {TileCoordinate} */{x}) => 4 * faceArea - faceSize + x, // J northward
+    (/** @type {TileCoordinate} */{y}) => faceSize * y, // D eastward
+    (/** @type {TileCoordinate} */{x}) => 3 * faceArea - 1 - x, // F southward
+    (/** @type {TileCoordinate} */{y}) => 5 * faceArea + faceSize - 1 + faceSize * y, // C westward
+  ],
+  [ // 5, back, euia
+    (/** @type {TileCoordinate} */{x}) => 3 * faceArea + faceSize * x, // I northward
+    (/** @type {TileCoordinate} */{y}) => 4 * faceArea + faceSize * y, // C eastward
+    (/** @type {TileCoordinate} */{x}) => 2 * faceArea + faceSize - 1 + faceSize * x, // E southward
+    (/** @type {TileCoordinate} */{y}) => 1 * faceArea + faceSize - 1 + faceSize * y, // B westward
+  ],
+];
+
+const knits = [
+  (/** @type {number} */ t) => t - faceSize, // north
+  (/** @type {number} */ t) => t + 1, // west
+  (/** @type {number} */ t) => t + faceSize, // south
+  (/** @type {number} */ t) => t - 1, // east
+];
+
+/**
+ * @param {number} t
+ * @param {number} direction
+ * @returns {number}
+ */
+function neighbor(t, direction) {
+  const coord = tileCoordinate(t);
+  const {f} = coord;
+  const c = transitCase(coord, direction);
+  if (c === same) {
+    return knits[direction](t);
+  } else {
+    return seams[f][c](coord);
+  }
+}
+
+const directionVectors = [
+  {x:  0, y: -1}, // north
+  {x:  1, y:  0}, // east
+  {x:  0, y:  1}, // south
+  {x: -1, y:  0}, // west
+];
+
+let at = 0;
+
+/**
+ * @param {number} direction
+ */
+function go(direction) {
+  const to = neighbor(at, direction);
+  const atCoord = tileCoordinate(at);
+  const toCoord = tileCoordinate(to);
+  if (atCoord.f !== toCoord.f) {
+
+    // rotations
+    if (direction === west) {
+      transition(500, p => rotateY(Math.PI/2 * ease(p)));
+    } else if (direction === east) {
+      transition(500, p => rotateY(-Math.PI/2 * ease(p)));
+    } else if (direction === south) {
+      transition(500, p => rotateX(Math.PI/2 * ease(p)));
+    } else if (direction === north) {
+      transition(500, p => rotateX(-Math.PI/2 * ease(p)));
+    }
+
+    // translations
+    const angle = faceRotations[atCoord.f][direction];
+    transition(500, p => rotateZ(angle * easeInOutQuad(p)));
+
+  } else {
+    const {x: dx, y: dy} = directionVectors[direction];
+    transition(500, p => {
+      const e = ease(p);
+      return translate({
+        x: -dx * tileSize * e,
+        y: -dy * tileSize * e,
+        z: 0,
+      })
+    });
+  }
+
+  at = to;
 }
 
 const ease = easeInOutQuint;
@@ -205,29 +338,26 @@ const ease = easeInOutQuint;
 window.addEventListener('keyup', event => {
   const {key} = event;
   switch (key) {
-    case 'ArrowLeft':
-    case 'h': // west
-      transition(500, rotateY, Math.PI/2, ease);
-      rotate(3);
+    case 'ArrowUp':
+    case 'k':
+      go(north);
       break;
     case 'ArrowRight':
     case 'l': // east
-      transition(500, rotateY, -Math.PI/2, ease);
-      rotate(1);
+      go(east);
       break;
     case 'ArrowDown':
     case 'j':
-      transition(500, rotateX, Math.PI/2, ease);
-      rotate(2); // south
+      go(south);
       break;
-    case 'ArrowUp':
-    case 'k':
-      transition(500, rotateX, -Math.PI/2, ease);
-      rotate(0); // north
+    case 'ArrowLeft':
+    case 'h': // west
+      go(west);
       break;
     default:
       console.log(key);
   }
-  $cube.style.transform = matrix3dStyle(transform);
+  $context.style.transform = matrix3dStyle(cameraTransform);
 });
 
+$context.style.transform = matrix3dStyle(cameraTransform);
