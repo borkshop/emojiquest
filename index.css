@@ -17,6 +17,7 @@ body {
   height: 100%;
   width: 100%;
   perspective: 500px;
+  overflow: hidden;
 }
 
 aside.menu {
@@ -46,6 +47,6 @@ aside.menu {
   height: 100%;
   position: absolute;
   backface-visibility: hidden;
-  font-size: 60px;
+  font-size: 20px;
   background: #eee;
 }
