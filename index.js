@@ -71,7 +71,7 @@ function transition(duration, matrix) {
  * @param {Element} $context
  * @param {number} capacity
  */
-function prepareContext($context, capacity = 500) {
+function prepareContext($context, capacity = 512) {
   let age = 0;
   const elements = new Map();
   const stamps = new Map();
@@ -125,12 +125,12 @@ const {touch} = prepareContext($context);
  * @param {number} r
  */
 function touchQuadrant(t, major, minor, r) {
-  let u = t;
+  let u = neighbor(t, minor);
   const r2 = r * r;
   for (let x = 0; x < r; x++) {
     const x2 = x*x;
     let v = u;
-    for (let y = 0; x2 + y*y < r2; y++) {
+    for (let y = 0; x2 + (y+1)*(y+1) < r2; y++) {
       touch(v);
       v = neighbor(v, minor);
     }
@@ -145,10 +145,10 @@ const radius = 10;
  */
 function touchArea(t) {
   touch(t);
-  touchQuadrant(neighbor(t, east), north, east, radius);
-  touchQuadrant(neighbor(t, south), east, south, radius);
-  touchQuadrant(neighbor(t, west), south, west, radius);
-  touchQuadrant(neighbor(t, north), west, north, radius);
+  touchQuadrant(t, north, east, radius);
+  touchQuadrant(t, east, south, radius);
+  touchQuadrant(t, south, west, radius);
+  touchQuadrant(t, west, north, radius);
 }
 
 let at = 0;
