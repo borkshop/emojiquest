@@ -48,10 +48,10 @@
  *                + ←F +
  */
 
-/** @typedef {import('./matrix.js').Matrix} Matrix */
+/** @typedef {import('./matrix3d.js').Matrix} Matrix */
 
 import {count} from './iteration.js';
-import {compose, multiply, translate, rotateX, rotateY, rotateZ} from './matrix.js';
+import {compose, multiply, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
 
 export const faceSize = 72;
 export const tileSize = 100;

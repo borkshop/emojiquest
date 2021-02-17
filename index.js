@@ -1,11 +1,11 @@
 // @ts-check
 
-/** @typedef {import('./matrix.js').Matrix} Matrix */
+/** @typedef {import('./matrix3d.js').Matrix} Matrix */
 
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint, easeInOutQuad} from './easing.js';
-import {multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix.js';
+import {multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
 import {tileSize, faceRotations, faceOrigins, north, south, east, west, directionVectors, neighbor, tileCoordinate, tileTransform} from './daia.js';
 
 const {min, max} = Math;
