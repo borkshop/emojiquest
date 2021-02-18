@@ -60,9 +60,22 @@
  */
 
 /**
+ * @typedef {Object} TileQuery
+ * @prop {number} f - face number of tile
+ * @prop {number} x - horizontal position on face
+ * @prop {number} y - vertical position on face
+ */
+
+/**
  * @callback TileCoordinateFn
  * @param {number} t - tile index
  * @returns {TileCoordinate}
+ */
+
+/**
+ * @callback TileNumberFn
+ * @param {TileQuery} coord - tile coordinate
+ * @returns {number}
  */
 
 /**
@@ -74,6 +87,12 @@
 
 /**
  * @callback TileTransformFn
+ * @param {number} t
+ * @returns {Matrix}
+ */
+
+/**
+ * @callback CameraTransformFn
  * @param {number} t
  * @returns {Matrix}
  */
@@ -124,11 +143,11 @@ const faceTransforms = [
  *   tileSize: number,
  *   faceArea: number,
  *   worldSize: number,
- *   faceCorners: Array<Matrix>,
- *   faceOrigins: Array<Matrix>,
  *   neighbor: NeighborFn,
  *   tileCoordinate: TileCoordinateFn,
+ *   tileNumber: TileNumberFn,
  *   tileTransform: TileTransformFn,
+ *   cameraTransform: CameraTransformFn,
  * }}
  */
 export function makeDaia({faceSize, tileSize}) {
@@ -221,6 +240,11 @@ export function makeDaia({faceSize, tileSize}) {
     return {t, f, n, x, y};
   }
 
+  /** @type {TileNumberFn} */
+  function tileNumber({x, y, f}) {
+    return f * faceArea + y * faceSize + x;
+  }
+
   /** @type {NeighborFn} */
   function neighbor(t, direction) {
     const coord = tileCoordinate(t);
@@ -243,15 +267,25 @@ export function makeDaia({faceSize, tileSize}) {
     }));
   }
 
+  /** @type {CameraTransformFn} */
+  function cameraTransform(t) {
+    const {f, y, x} = tileCoordinate(t);
+    return multiply(faceOrigins[f], translate({
+      x: -tileSize * x,
+      y: -tileSize * y,
+      z: 0,
+    }));
+  }
+
   return {
     faceSize,
     tileSize,
     faceArea,
     worldSize,
-    faceCorners,
-    faceOrigins,
     tileCoordinate,
+    tileNumber,
     neighbor,
     tileTransform,
+    cameraTransform,
   }
 }

@@ -11,12 +11,14 @@ import {makeDaia, faceRotations} from './daia.js';
 import {circle} from './topology.js';
 import {makeCamera} from './camera.js';
 
+let at = 731;
+
 const {
   tileSize,
-  faceOrigins,
   neighbor,
   tileCoordinate,
-  tileTransform
+  tileTransform,
+  cameraTransform,
 } = makeDaia({
   tileSize: 100,
   faceSize: 72,
@@ -24,7 +26,7 @@ const {
 
 const $context = mustFind('#context');
 
-const camera = makeCamera($context, faceOrigins[0]);
+const camera = makeCamera($context, cameraTransform(at));
 
 async function animate() {
   for (;;) {
@@ -94,8 +96,6 @@ function renderAround(at) {
   }
   [nextTiles, prevTiles] = [prevTiles, nextTiles];
 }
-
-let at = 0;
 
 /**
  * @param {number} direction
