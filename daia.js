@@ -60,11 +60,6 @@
  */
 
 /**
- * @template T
- * @typedef {{0: T, 1: T, 2: T, 3: T}} CardinalArray
- */
-
-/**
  * @callback TileCoordinateFn
  * @param {number} t - tile index
  * @returns {TileCoordinate}
@@ -83,17 +78,8 @@
  * @returns {Matrix}
  */
 
-import {count} from './iteration.js';
+import {north, east, south, west, same} from './geometry2d.js';
 import {compose, multiply, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
-
-export const [north, east, south, west, same] = count();
-
-export const directionVectors = [
-  {x:  0, y: -1}, // north
-  {x:  1, y:  0}, // east
-  {x:  0, y:  1}, // south
-  {x: -1, y:  0}, // west
-];
 
 const no = 0; // steady as she goes
 const af = Math.PI; // about face

@@ -6,7 +6,8 @@ import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint, easeInOutQuad} from './easing.js';
 import {multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
-import {makeDaia, faceRotations, north, south, east, west, directionVectors} from './daia.js';
+import {north, south, east, west, turnVectors} from './geometry2d.js';
+import {makeDaia, faceRotations} from './daia.js';
 
 const {
   tileSize,
@@ -93,7 +94,7 @@ function prepareContext($context, capacity = 512) {
   /**
    * @param {number} t
    */
-  function touch(t) {
+  function wake(t) {
     age++;
     if (elements.has(t)) {
       stamps.set(t, age);
@@ -124,10 +125,10 @@ function prepareContext($context, capacity = 512) {
     stamps.set(t, age);
   }
 
-  return {touch};
+  return {wake};
 }
 
-const {touch} = prepareContext($context);
+const {wake} = prepareContext($context);
 
 /**
  * @param {number} t
@@ -135,14 +136,14 @@ const {touch} = prepareContext($context);
  * @param {number} minor
  * @param {number} r
  */
-function touchQuadrant(t, major, minor, r) {
+function wakeQuadrant(t, major, minor, r) {
   let u = neighbor(t, minor);
   const r2 = r * r;
   for (let x = 0; x < r; x++) {
     const x2 = x*x;
     let v = u;
     for (let y = 0; x2 + (y+1)*(y+1) < r2; y++) {
-      touch(v);
+      wake(v);
       v = neighbor(v, minor);
     }
     u = neighbor(u, major);
@@ -154,12 +155,12 @@ const radius = 10;
 /**
  * @param {number} t
  */
-function touchArea(t) {
-  touch(t);
-  touchQuadrant(t, north, east, radius);
-  touchQuadrant(t, east, south, radius);
-  touchQuadrant(t, south, west, radius);
-  touchQuadrant(t, west, north, radius);
+function wakeSurounds(t) {
+  wake(t);
+  wakeQuadrant(t, north, east, radius);
+  wakeQuadrant(t, east, south, radius);
+  wakeQuadrant(t, south, west, radius);
+  wakeQuadrant(t, west, north, radius);
 }
 
 let at = 0;
@@ -189,7 +190,7 @@ function go(direction) {
     transition(500, p => rotateZ(angle * easeInOutQuad(p)));
 
   } else {
-    const {x: dx, y: dy} = directionVectors[direction];
+    const {x: dx, y: dy} = turnVectors[direction];
     transition(500, p => {
       const e = ease(p);
       return translate({
@@ -201,7 +202,7 @@ function go(direction) {
   }
 
   at = to;
-  touchArea(at);
+  wakeSurounds(at);
 }
 
 const ease = easeInOutQuint;
@@ -231,5 +232,5 @@ window.addEventListener('keyup', event => {
   $context.style.transform = matrix3dStyle(cameraTransform);
 });
 
-touchArea(at);
+wakeSurounds(at);
 $context.style.transform = matrix3dStyle(cameraTransform);
