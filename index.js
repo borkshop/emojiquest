@@ -8,6 +8,7 @@ import {easeInOutQuint, easeInOutQuad} from './easing.js';
 import {multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
 import {north, south, east, west, turnVectors} from './geometry2d.js';
 import {makeDaia, faceRotations} from './daia.js';
+import {circle} from './topology.js';
 
 const {
   tileSize,
@@ -79,88 +80,63 @@ function transition(duration, matrix) {
   })
 }
 
-/**
- * @param {Element} $context
- * @param {number} capacity
- */
-function prepareContext($context, capacity = 512) {
-  let age = 0;
-  const elements = new Map();
-  const stamps = new Map();
-
-  // TODO use a more mindful datastructure and algorithm
-  // for FoV collection.
-
-  /**
-   * @param {number} t
-   */
-  function wake(t) {
-    age++;
-    if (elements.has(t)) {
-      stamps.set(t, age);
-      return;
-    }
-    while (elements.size >= capacity) {
-      let eldestTile = null;
-      let eldestStamp = Infinity;
-      for (const [tile, stamp] of stamps.entries()) {
-        if (stamp < eldestStamp) {
-          eldestTile = tile;
-          eldestStamp = stamp;
-        }
-      }
-      console.log({eldestTile});
-      const element = elements.get(eldestTile);
-      $context.removeChild(element);
-      stamps.delete(eldestTile);
-      elements.delete(eldestTile);
-    }
-    const transform = tileTransform(t);
-    const $tile = document.createElement('div');
-    $tile.className = 'tile';
-    $tile.style.transform = matrix3dStyle(transform);
-    $tile.innerText = `${t}`;
-    $context.appendChild($tile);
-    elements.set(t, $tile);
-    stamps.set(t, age);
-  }
-
-  return {wake};
-}
-
-const {wake} = prepareContext($context);
-
-/**
- * @param {number} t
- * @param {number} major
- * @param {number} minor
- * @param {number} r
- */
-function wakeQuadrant(t, major, minor, r) {
-  let u = neighbor(t, minor);
-  const r2 = r * r;
-  for (let x = 0; x < r; x++) {
-    const x2 = x*x;
-    let v = u;
-    for (let y = 0; x2 + (y+1)*(y+1) < r2; y++) {
-      wake(v);
-      v = neighbor(v, minor);
-    }
-    u = neighbor(u, major);
-  }
-}
-
 const radius = 10;
 
+const $tiles = new Map();
+let nextTiles = new Set();
+let prevTiles = new Set();
+
 /**
  * @param {number} t
  */
-function wakeSurounds(t) {
-  wake(t);
-  wakeQuadrant(t, north, east, radius);
-  wakeQuadrant(t, east, south, radius);
-  wakeQuadrant(t, south, west, radius);
-  wakeQuadrant(t, west, north, radius);
+function tileEnters(t) {
+  const transform = tileTransform(t);
+  const $tile = document.createElement('div');
+  $tile.className = 'tile';
+  $tile.style.transform = matrix3dStyle(transform);
+  $tile.innerText = `${t}`;
+  $context.appendChild($tile);
+  $tiles.set(t, $tile);
+}
+
+/**
+ * @param {number} t
+ */
+function tileExits(t) {
+  const $tile = $tiles.get(t);
+  if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
+  $context.removeChild($tile);
+}
+
+/**
+ * @template T
+ * @param {Set<T>} a
+ * @param {Set<T>} b
+ * @returns {Iterable<T>}
+ */
+function *setDifference(a, b) {
+  for (const v of a) {
+    if (!b.has(v)) {
+      yield v;
+    }
+  }
+}
+
+/**
+ * @param {number} at
+ */
+function renderAround(at) {
+  nextTiles.clear();
+  for (const t of circle(at, neighbor, radius)) {
+    nextTiles.add(t);
+  }
+  for (const t of setDifference(prevTiles, nextTiles)) {
+    tileExits(t);
+  }
+  for (const t of setDifference(nextTiles, prevTiles)) {
+    tileEnters(t);
+  }
+  [nextTiles, prevTiles] = [prevTiles, nextTiles];
 }
 
 let at = 0;
@@ -202,7 +178,7 @@ function go(direction) {
   }
 
   at = to;
-  wakeSurounds(at);
+  renderAround(at);
 }
 
 const ease = easeInOutQuint;
@@ -232,5 +208,5 @@ window.addEventListener('keyup', event => {
   $context.style.transform = matrix3dStyle(cameraTransform);
 });
 
-wakeSurounds(at);
+renderAround(at);
 $context.style.transform = matrix3dStyle(cameraTransform);
