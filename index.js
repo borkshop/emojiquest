@@ -6,7 +6,18 @@ import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint, easeInOutQuad} from './easing.js';
 import {multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
-import {tileSize, faceRotations, faceOrigins, north, south, east, west, directionVectors, neighbor, tileCoordinate, tileTransform} from './daia.js';
+import {makeDaia, faceRotations, north, south, east, west, directionVectors} from './daia.js';
+
+const {
+  tileSize,
+  faceOrigins,
+  neighbor,
+  tileCoordinate,
+  tileTransform
+} = makeDaia({
+  tileSize: 100,
+  faceSize: 72,
+});
 
 const {min, max} = Math;
 
