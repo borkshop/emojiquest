@@ -5,10 +5,11 @@
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint, easeInOutQuad} from './easing.js';
-import {multiply, translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
+import {translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
 import {north, south, east, west, turnVectors} from './geometry2d.js';
 import {makeDaia, faceRotations} from './daia.js';
 import {circle} from './topology.js';
+import {makeCamera} from './camera.js';
 
 const {
   tileSize,
@@ -21,64 +22,19 @@ const {
   faceSize: 72,
 });
 
-const {min, max} = Math;
-
-/**
- * @param {number} lo
- * @param {number} hi
- * @param {number} value
- * @returns {number}
- */
-function clamp(lo, hi, value) {
-  return max(lo, min(hi, value));
-}
-
 const $context = mustFind('#context');
 
-/**
- * @typedef {{
- *   start: number,
- *   end: number,
- *   matrix(progress: number): Matrix,
- * }} Transition
- */
-
-let cameraTransform = faceOrigins[0];
-/** @type {Array<Transition>} */
-let transitions = [];
+const camera = makeCamera($context, faceOrigins[0]);
 
 async function animate() {
   for (;;) {
     await nextFrame();
     const now = Date.now();
-    let current = cameraTransform;
-    transitions = transitions.filter(({start, end, matrix}) => {
-      const progress = clamp(0, 1, (now - start) / (end - start));
-      current = multiply(matrix(progress), current);
-      if (progress >= 1) {
-        cameraTransform = multiply(matrix(1), cameraTransform);
-        return false;
-      }
-      return true;
-    });
-    $context.style.transform = matrix3dStyle(current);
+    camera.animate(now);
   }
 }
 
 animate();
-
-/**
- * @param {number} duration
- * @param {(progress: number) => Matrix} matrix
- */
-function transition(duration, matrix) {
-  const now = Date.now();
-  transitions.push({
-    start: now,
-    end: now + duration,
-    matrix,
-  })
-}
 
 const radius = 10;
 
@@ -152,22 +108,22 @@ function go(direction) {
 
     // rotations
     if (direction === west) {
-      transition(500, p => rotateY(Math.PI/2 * ease(p)));
+      camera.transition(500, p => rotateY(Math.PI/2 * ease(p)));
     } else if (direction === east) {
-      transition(500, p => rotateY(-Math.PI/2 * ease(p)));
+      camera.transition(500, p => rotateY(-Math.PI/2 * ease(p)));
     } else if (direction === south) {
-      transition(500, p => rotateX(Math.PI/2 * ease(p)));
+      camera.transition(500, p => rotateX(Math.PI/2 * ease(p)));
     } else if (direction === north) {
-      transition(500, p => rotateX(-Math.PI/2 * ease(p)));
+      camera.transition(500, p => rotateX(-Math.PI/2 * ease(p)));
     }
 
     // translations
     const angle = faceRotations[atCoord.f][direction];
-    transition(500, p => rotateZ(angle * easeInOutQuad(p)));
+    camera.transition(500, p => rotateZ(angle * easeInOutQuad(p)));
 
   } else {
     const {x: dx, y: dy} = turnVectors[direction];
-    transition(500, p => {
+    camera.transition(500, p => {
       const e = ease(p);
       return translate({
         x: -dx * tileSize * e,
@@ -205,8 +161,6 @@ window.addEventListener('keyup', event => {
     default:
       console.log(key);
   }
-  $context.style.transform = matrix3dStyle(cameraTransform);
 });
 
 renderAround(at);
-$context.style.transform = matrix3dStyle(cameraTransform);
