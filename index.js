@@ -148,8 +148,8 @@ const underworld = makeDaia({
 
 const overworld = makeDaia({
   tileSize: 100,
-  faceSize: 3,
-  magnify: 72,
+  faceSize: 9,
+  magnify: 24,
 });
 
 
