@@ -4,30 +4,63 @@
 
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
-import {easeInOutQuint, easeInOutQuad} from './easing.js';
-import {translate, rotateX, rotateY, rotateZ, matrix3dStyle} from './matrix3d.js';
-import {north, south, east, west, turnVectors} from './geometry2d.js';
-import {makeDaia, faceRotations} from './daia.js';
+import {easeInOutQuint} from './easing.js';
+import {matrix3dStyle} from './matrix3d.js';
+import {north, south, east, west} from './geometry2d.js';
+import {makeDaia} from './daia.js';
 import {circle} from './topology.js';
 import {makeCamera} from './camera.js';
+import {makeCameraController} from './camera-controller.js';
 
-let at = 731;
+/** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 
-const {
-  tileSize,
-  neighbor,
-  advance,
-  tileCoordinate,
-  tileTransform,
-  cameraTransform,
-} = makeDaia({
-  tileSize: 100,
-  faceSize: 72,
-});
+/**
+ * @callback TileEntersFn
+ * @param {number} tile
+ */
 
-const $context = mustFind('#context');
+/**
+ * @callback TileExitsFn
+ * @param {number} tile
+ */
 
-const camera = makeCamera($context, cameraTransform(at));
+/**
+ * @typedef {Object} TileRenderer
+ * @prop {TileEntersFn} tileEnters
+ * @prop {TileExitsFn} tileExits
+ */
+
+/**
+ * @param {HTMLElement} $context
+ * @param {TileTransformFn} tileTransform
+ * @param {(tile: number) => HTMLElement} createElement
+ * @return {TileRenderer}
+ */
+function makeTileRenderer($context, tileTransform, createElement) {
+  const $tiles = new Map()
+
+  /**
+   * @param {number} t
+   */
+  function tileEnters(t) {
+    const transform = tileTransform(t);
+    const $tile = createElement(t);
+    $tile.style.transform = matrix3dStyle(transform);
+    $context.appendChild($tile);
+    $tiles.set(t, $tile);
+  }
+
+  /**
+   * @param {number} t
+   */
+  function tileExits(t) {
+    const $tile = $tiles.get(t);
+    if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
+    $context.removeChild($tile);
+  }
+
+  return {tileEnters, tileExits};
+}
 
 async function animate() {
   for (;;) {
@@ -35,36 +68,6 @@ async function animate() {
     const now = Date.now();
     camera.animate(now);
   }
-}
-
-animate();
-
-const radius = 10;
-
-const $tiles = new Map();
-let nextTiles = new Set();
-let prevTiles = new Set();
-
-/**
- * @param {number} t
- */
-function tileEnters(t) {
-  const transform = tileTransform(t);
-  const $tile = document.createElement('div');
-  $tile.className = 'tile';
-  $tile.style.transform = matrix3dStyle(transform);
-  $tile.innerText = `${t}`;
-  $context.appendChild($tile);
-  $tiles.set(t, $tile);
-}
-
-/**
- * @param {number} t
- */
-function tileExits(t) {
-  const $tile = $tiles.get(t);
-  if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
-  $context.removeChild($tile);
 }
 
 /**
@@ -82,86 +85,163 @@ function *setDifference(a, b) {
 }
 
 /**
- * @param {number} at
+ * @callback RenderAroundFn
+ * @param {number} tile
  */
-function renderAround(at) {
-  nextTiles.clear();
-  for (const t of circle(at, advance, radius)) {
-    nextTiles.add(t);
+
+/**
+ * @typedef {Object} TileKeeper
+ * @prop {RenderAroundFn} renderAround
+ */
+
+/**
+ * @param {TileRenderer} renderer
+ * @param {number} radius
+ * @returns {TileKeeper}
+ */
+function makeTileKeeper(renderer, radius) {
+  let nextTiles = new Set();
+  let prevTiles = new Set();
+
+  /**
+   * @param {number} at
+   */
+  function renderAround(at) {
+    nextTiles.clear();
+    for (const t of circle(at, advance, radius)) {
+      nextTiles.add(t);
+    }
+    for (const t of setDifference(prevTiles, nextTiles)) {
+      renderer.tileExits(t);
+    }
+    for (const t of setDifference(nextTiles, prevTiles)) {
+      renderer.tileEnters(t);
+    }
+    [nextTiles, prevTiles] = [prevTiles, nextTiles];
   }
-  for (const t of setDifference(prevTiles, nextTiles)) {
-    tileExits(t);
-  }
-  for (const t of setDifference(nextTiles, prevTiles)) {
-    tileEnters(t);
-  }
-  [nextTiles, prevTiles] = [prevTiles, nextTiles];
+
+  return {renderAround}
+}
+
+const radius = 10;
+let at = 731;
+
+const $context = mustFind('#context');
+
+const {
+  tileSize,
+  neighbor,
+  advance,
+  tileCoordinate,
+  tileTransform,
+  cameraTransform,
+} = makeDaia({
+  tileSize: 100,
+  faceSize: 72,
+});
+
+const underworld = makeDaia({
+  tileSize: 100,
+  faceSize: 3,
+  magnify: 23.99,
+});
+
+const overworld = makeDaia({
+  tileSize: 100,
+  faceSize: 3,
+  magnify: 72,
+});
+
+
+/**
+ * @param {number} t
+ * @returns {HTMLElement}
+ */
+function createUnderworldTile(t) {
+  const $tile = document.createElement('div');
+  $tile.className = 'tile underworld';
+  $tile.innerText = `${t}`;
+  return $tile;
 }
 
 /**
- * @param {number} direction
+ * @param {number} _t
+ * @returns {HTMLElement}
  */
-function go(direction) {
-  const to = neighbor(at, direction);
-  const atCoord = tileCoordinate(at);
-  const toCoord = tileCoordinate(to);
-  if (atCoord.f !== toCoord.f) {
-
-    // rotations
-    if (direction === west) {
-      camera.transition(500, p => rotateY(Math.PI/2 * ease(p)));
-    } else if (direction === east) {
-      camera.transition(500, p => rotateY(-Math.PI/2 * ease(p)));
-    } else if (direction === south) {
-      camera.transition(500, p => rotateX(Math.PI/2 * ease(p)));
-    } else if (direction === north) {
-      camera.transition(500, p => rotateX(-Math.PI/2 * ease(p)));
-    }
-
-    // translations
-    const turn = faceRotations[atCoord.f][direction];
-    camera.transition(500, p => rotateZ(-Math.PI/2 * turn * easeInOutQuad(p)));
-
-  } else {
-    const {x: dx, y: dy} = turnVectors[direction];
-    camera.transition(500, p => {
-      const e = ease(p);
-      return translate({
-        x: -dx * tileSize * e,
-        y: -dy * tileSize * e,
-        z: 0,
-      })
-    });
-  }
-
-  at = to;
-  renderAround(at);
+function createOverworldTile(_t) {
+  const $tile = document.createElement('div');
+  $tile.className = 'tile overworld';
+  $tile.innerText = `⭐️`;
+  return $tile;
 }
 
-const ease = easeInOutQuint;
+const underworldRenderer = makeTileRenderer($context, underworld.tileTransform, createUnderworldTile);
+const overworldRenderer = makeTileRenderer($context, overworld.tileTransform, createOverworldTile);
+
+for (let t = 0; t < underworld.worldArea; t++) {
+  underworldRenderer.tileEnters(t);
+}
+for (let t = 0; t < overworld.worldArea; t++) {
+  overworldRenderer.tileEnters(t);
+}
+
+/**
+ * @param {number} t
+ * @returns {HTMLElement}
+ */
+function createGridTile(t) {
+  const $tile = document.createElement('div');
+  $tile.className = 'tile';
+  $tile.innerText = `${t}`;
+  return $tile;
+}
+
+const gridRenderer = makeTileRenderer($context, tileTransform, createGridTile);
+
+const camera = makeCamera($context, cameraTransform(at));
+
+const {go} = makeCameraController({
+  camera,
+  neighbor,
+  tileSize,
+  tileCoordinate,
+  ease: easeInOutQuint,
+});
+
+const gridKeeper = makeTileKeeper(gridRenderer, radius);
+
+animate();
+
+function draw() {
+  gridKeeper.renderAround(at);
+}
 
 window.addEventListener('keyup', event => {
   const {key} = event;
   switch (key) {
     case 'ArrowUp':
     case 'k':
-      go(north);
+      at = go(at, north);
+      draw();
       break;
     case 'ArrowRight':
     case 'l': // east
-      go(east);
+      at = go(at, east);
+      draw();
       break;
     case 'ArrowDown':
     case 'j':
-      go(south);
+      at = go(at, south);
+      draw();
       break;
     case 'ArrowLeft':
     case 'h': // west
-      go(west);
+      at = go(at, west);
+      draw();
       break;
     default:
       console.log(key);
   }
 });
 
-renderAround(at);
+draw();

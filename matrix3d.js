@@ -179,3 +179,16 @@ export function matrix3dStyle(matrix) {
   } = matrix;
   return `matrix3d(${a1}, ${a2}, ${a3}, ${a4}, ${b1}, ${b2}, ${b3}, ${b4}, ${c1}, ${c2}, ${c3}, ${c4}, ${d1}, ${d2}, ${d3}, ${d4})`;
 }
+
+/**
+ * @param {number} s
+ * @returns {Matrix}
+ */
+export function scale(s) {
+  return {
+    a1: s,  b1: 0,  c1: 0,  d1: 0,
+    a2: 0,  b2: s,  c2: 0,  d2: 0,
+    a3: 0,  b3: 0,  c3: s,  d3: 0,
+    a4: 0,  b4: 0,  c4: 0,  d4: 1,
+  };
+}

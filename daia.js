@@ -110,7 +110,7 @@
  */
 
 import {north, east, south, west, same} from './geometry2d.js';
-import {compose, multiply, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
+import {compose, multiply, translate, rotateX, rotateY, rotateZ, scale} from './matrix3d.js';
 
 const no =  0; // steady as she goes
 const cw =  1; // clockwise
@@ -147,24 +147,30 @@ const faceTransforms = [
 ].map(matrixes => compose(...matrixes));
 
 /**
- * @param {Object} options
- * @param {number} options.faceSize
- * @param {number} options.tileSize
- * @returns {{
- *   faceSize: number,
- *   tileSize: number,
- *   faceArea: number,
- *   worldSize: number,
- *   neighbor: NeighborFn,
- *   advance: AdvanceFn,
- *   tileCoordinate: TileCoordinateFn,
- *   tileNumber: TileNumberFn,
- *   tileTransform: TileTransformFn,
- *   cameraTransform: CameraTransformFn,
- * }}
+ * @typedef {Object} Daia
+ * @prop {number} faceSize
+ * @prop {number} tileSize
+ * @prop {number} faceArea
+ * @prop {number} worldSize
+ * @prop {number} worldArea
+ * @prop {NeighborFn} neighbor
+ * @prop {AdvanceFn} advance
+ * @prop {TileCoordinateFn} tileCoordinate
+ * @prop {TileNumberFn} tileNumber
+ * @prop {TileTransformFn} tileTransform
+ * @prop {CameraTransformFn} cameraTransform
  */
-export function makeDaia({faceSize, tileSize}) {
+
+/**
+ * @param {Object} options
+ * @param {number} [options.faceSize]
+ * @param {number} [options.tileSize]
+ * @param {number} [options.magnify]
+ * @returns {Daia}
+ */
+export function makeDaia({faceSize = 1, tileSize = 100, magnify = 1}) {
   const faceArea = faceSize * faceSize;
+  const worldArea = 6 * faceArea;
   const worldSize = tileSize * faceSize;
 
   const cornerTransform = translate({
@@ -291,27 +297,36 @@ export function makeDaia({faceSize, tileSize}) {
   /** @type {TileTransformFn} */
   function tileTransform(t) {
     const {f, y, x} = tileCoordinate(t);
-    return multiply(faceCorners[f], translate({
-      x: tileSize * x,
-      y: tileSize * y,
-      z: 0,
-    }));
+    return compose(
+      scale(magnify),
+      faceCorners[f],
+      translate({
+        x: tileSize * x,
+        y: tileSize * y,
+        z: 0,
+      }),
+    );
   }
 
   /** @type {CameraTransformFn} */
   function cameraTransform(t) {
     const {f, y, x} = tileCoordinate(t);
-    return multiply(faceOrigins[f], translate({
-      x: -tileSize * x,
-      y: -tileSize * y,
-      z: 0,
-    }));
+    return compose(
+      scale(magnify),
+      faceOrigins[f],
+      translate({
+        x: -tileSize * x,
+        y: -tileSize * y,
+        z: 0,
+      }),
+    );
   }
 
   return {
     faceSize,
     tileSize,
     faceArea,
+    worldArea,
     worldSize,
     tileCoordinate,
     tileNumber,

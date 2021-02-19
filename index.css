@@ -7,6 +7,7 @@
 }
 
 body {
+  background-color: rebeccapurple;
   height: 100%;
   width: 100%;
   margin: 0;
@@ -39,6 +40,13 @@ aside.menu {
   position: absolute;
 }
 
+.facet {
+  outline: dotted black 10px;
+  background-color: #eee;
+  position: absolute;
+  backface-visibility: hidden;
+}
+
 .tile {
   display: flex;
   align-items: center;
@@ -49,4 +57,15 @@ aside.menu {
   backface-visibility: hidden;
   font-size: 20px;
   background: #eee;
+}
+
+.underworld {
+  background-color: #eee;
+  color: white;
+}
+
+.overworld {
+  background-color: rebeccapurple;
+  color: white;
+  backface-visibility: visible;
 }

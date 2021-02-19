@@ -24,18 +24,29 @@ function clamp(lo, hi, value) {
  * }} Transition
  */
 
+
+/**
+ * @callback TransitionFn
+ * @param {number} duration
+ * @param {(progress: number) => Matrix} matrix
+ */
+
+/**
+ * @typedef {Object} Camera
+ * @prop {TransitionFn} transition
+ * @prop {(now: number) => void} animate
+ */
+
 /**
  * @param {HTMLElement} $context - camera context element
  * @param {Matrix} transform - initial orientation of the camera
+ * @returns {Camera}
  */
 export function makeCamera($context, transform) {
   /** @type {Array<Transition>} */
   let transitions = [];
 
-  /**
-   * @param {number} duration
-   * @param {(progress: number) => Matrix} matrix
-   */
+  /** @type {TransitionFn} */
   function transition(duration, matrix) {
     const now = Date.now();
     transitions.push({
