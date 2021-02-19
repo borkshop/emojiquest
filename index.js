@@ -19,15 +19,13 @@ async function animate() {
 }
 
 const radius = 10;
-let at = 731;
+let cursor = {position: 731, direction: north};
 
 const $context = mustFind('#context');
 
 const {
   tileSize,
-  neighbor,
   advance,
-  tileCoordinate,
   tileTransform,
   cameraTransform,
 } = makeDaia({
@@ -113,13 +111,12 @@ function createGridTile(t) {
 
 const gridRenderer = makeTileRenderer($context, tileTransform, createGridTile);
 
-const camera = makeCamera($context, cameraTransform(at));
+const camera = makeCamera($context, cameraTransform(cursor.position));
 
 const {go} = makeCameraController({
   camera,
-  neighbor,
+  advance,
   tileSize,
-  tileCoordinate,
   ease: easeInOutQuint,
 });
 
@@ -128,7 +125,7 @@ const gridKeeper = makeTileKeeper(gridRenderer, advance, radius);
 animate();
 
 function draw() {
-  gridKeeper.renderAround(at);
+  gridKeeper.renderAround(cursor.position);
 }
 
 window.addEventListener('keyup', event => {
@@ -136,22 +133,22 @@ window.addEventListener('keyup', event => {
   switch (key) {
     case 'ArrowUp':
     case 'k':
-      at = go(at, north);
+      cursor = go({position: cursor.position, direction: north});
       draw();
       break;
     case 'ArrowRight':
     case 'l': // east
-      at = go(at, east);
+      cursor = go({position: cursor.position, direction: east});
       draw();
       break;
     case 'ArrowDown':
     case 'j':
-      at = go(at, south);
+      cursor = go({position: cursor.position, direction: south});
       draw();
       break;
     case 'ArrowLeft':
     case 'h': // west
-      at = go(at, west);
+      cursor = go({position: cursor.position, direction: west});
       draw();
       break;
     default:

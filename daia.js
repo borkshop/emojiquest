@@ -92,9 +92,18 @@
  */
 
 /**
+ * @typedef {Object} CursorChange
+ * @prop {number} position
+ * @prop {number} direction
+ * @prop {number} turn
+ * @prop {boolean} transit
+ */
+
+
+/**
  * @callback AdvanceFn
  * @param {Cursor} cursor
- * @returns {Cursor}
+ * @returns {CursorChange}
  */
 
 /**
@@ -285,11 +294,16 @@ export function makeDaia({faceSize = 1, tileSize = 100, magnify = 1}) {
       return {
         position: knits[direction](position),
         direction,
+        turn: 0,
+        transit: false,
       };
     } else {
+      const turn = faceRotations[f][direction];
       return {
         position: seams[f][c](coord),
-        direction: (direction + faceRotations[f][direction] + 4) % 4,
+        direction: (direction + turn + 4) % 4,
+        turn,
+        transit: true,
       };
     }
   }

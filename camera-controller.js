@@ -1,10 +1,14 @@
-import {translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
-import {faceRotations} from './daia.js';
-import {north, south, east, west, turnVectors} from './geometry2d.js';
+// @ts-check
 
+import {translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
+import {turnVectors} from './geometry2d.js';
+
+/** @typedef {import('./matrix3d.js').Matrix} Matrix */
 /** @typedef {import('./camera.js').Camera} Camera */
-/** @typedef {import('./daia.js').NeighborFn} NeighborFn */
+/** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
+/** @typedef {import('./daia.js').Cursor} Cursor */
+/** @typedef {import('./daia.js').CursorChange} CursorChange */
 
 /**
  * @callback EaseFn
@@ -12,42 +16,47 @@ import {north, south, east, west, turnVectors} from './geometry2d.js';
  * @returns {number}
  */
 
+/** @type {EaseFn} */
+const linear = (/** @type {number} */p) => p;
+
+/**
+ * @typedef {(p: number) => Matrix} Roll
+ */
+
 /**
  * @param {Object} options
  * @param {Camera} options.camera
- * @param {EaseFn} options.ease
  * @param {number} options.tileSize
- * @param {NeighborFn} options.neighbor
- * @param {TileCoordinateFn} options.tileCoordinate
+ * @param {AdvanceFn} options.advance
+ * @param {EaseFn} [options.ease]
  * @param {number} [options.slow]
  * @param {number} [options.fast]
  *
  */
-export function makeCameraController({camera, ease, tileSize, neighbor, tileCoordinate, fast = 500, slow = 1500}) {
+export function makeCameraController({camera, tileSize, advance, ease = linear, fast = 500, slow = 1500}) {
   /**
-   * @param {number} at
-   * @param {number} direction
+   * @type {Array<Roll>}
    */
-  function go(at, direction) {
-    const to = neighbor(at, direction);
-    const atCoord = tileCoordinate(at);
-    const toCoord = tileCoordinate(to);
-    if (atCoord.f !== toCoord.f) {
+  const rolls = [
+    (/** @type {number} */ p) => rotateX(-Math.PI/2 * ease(p)),
+    (/** @type {number} */ p) => rotateY(-Math.PI/2 * ease(p)),
+    (/** @type {number} */ p) => rotateX(Math.PI/2 * ease(p)),
+    (/** @type {number} */ p) => rotateY(Math.PI/2 * ease(p)),
+  ];
+
+  /**
+   * @param {Cursor} at
+   * @returns {CursorChange}
+   */
+  function go(at) {
+    const {direction} = at;
+    const to = advance(at);
+    if (to.transit) {
 
       // rotations
-      if (direction === west) {
-        camera.transition(slow, (/** @type {number} */ p) => rotateY(Math.PI/2 * ease(p)));
-      } else if (direction === east) {
-        camera.transition(slow, (/** @type {number} */ p) => rotateY(-Math.PI/2 * ease(p)));
-      } else if (direction === south) {
-        camera.transition(slow, (/** @type {number} */ p) => rotateX(Math.PI/2 * ease(p)));
-      } else if (direction === north) {
-        camera.transition(slow, (/** @type {number} */ p) => rotateX(-Math.PI/2 * ease(p)));
-      }
-
+      camera.transition(slow, rolls[direction]);
       // translations
-      const turn = faceRotations[atCoord.f][direction];
-      camera.transition(slow, (/** @type {number} */ p) => rotateZ(-Math.PI/2 * turn * ease(p)));
+      camera.transition(slow, (/** @type {number} */ p) => rotateZ(-Math.PI/2 * to.turn * ease(p)));
 
     } else {
       const {x: dx, y: dy} = turnVectors[direction];

@@ -56,7 +56,7 @@ aside.menu {
   position: absolute;
   backface-visibility: hidden;
   font-size: 20px;
-  background: #eee;
+  background: transparent;
 }
 
 .underworld {
