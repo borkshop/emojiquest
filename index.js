@@ -1,66 +1,14 @@
 // @ts-check
 
-/** @typedef {import('./matrix3d.js').Matrix} Matrix */
-
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint} from './easing.js';
-import {matrix3dStyle} from './matrix3d.js';
 import {north, south, east, west} from './geometry2d.js';
 import {makeDaia} from './daia.js';
-import {circle} from './topology.js';
 import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
-
-/** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
-
-/**
- * @callback TileEntersFn
- * @param {number} tile
- */
-
-/**
- * @callback TileExitsFn
- * @param {number} tile
- */
-
-/**
- * @typedef {Object} TileRenderer
- * @prop {TileEntersFn} tileEnters
- * @prop {TileExitsFn} tileExits
- */
-
-/**
- * @param {HTMLElement} $context
- * @param {TileTransformFn} tileTransform
- * @param {(tile: number) => HTMLElement} createElement
- * @return {TileRenderer}
- */
-function makeTileRenderer($context, tileTransform, createElement) {
-  const $tiles = new Map()
-
-  /**
-   * @param {number} t
-   */
-  function tileEnters(t) {
-    const transform = tileTransform(t);
-    const $tile = createElement(t);
-    $tile.style.transform = matrix3dStyle(transform);
-    $context.appendChild($tile);
-    $tiles.set(t, $tile);
-  }
-
-  /**
-   * @param {number} t
-   */
-  function tileExits(t) {
-    const $tile = $tiles.get(t);
-    if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
-    $context.removeChild($tile);
-  }
-
-  return {tileEnters, tileExits};
-}
+import {makeTileRenderer} from './tile-renderer.js';
+import {makeTileKeeper} from './tile-keeper.js';
 
 async function animate() {
   for (;;) {
@@ -68,59 +16,6 @@ async function animate() {
     const now = Date.now();
     camera.animate(now);
   }
-}
-
-/**
- * @template T
- * @param {Set<T>} a
- * @param {Set<T>} b
- * @returns {Iterable<T>}
- */
-function *setDifference(a, b) {
-  for (const v of a) {
-    if (!b.has(v)) {
-      yield v;
-    }
-  }
-}
-
-/**
- * @callback RenderAroundFn
- * @param {number} tile
- */
-
-/**
- * @typedef {Object} TileKeeper
- * @prop {RenderAroundFn} renderAround
- */
-
-/**
- * @param {TileRenderer} renderer
- * @param {number} radius
- * @returns {TileKeeper}
- */
-function makeTileKeeper(renderer, radius) {
-  let nextTiles = new Set();
-  let prevTiles = new Set();
-
-  /**
-   * @param {number} at
-   */
-  function renderAround(at) {
-    nextTiles.clear();
-    for (const t of circle(at, advance, radius)) {
-      nextTiles.add(t);
-    }
-    for (const t of setDifference(prevTiles, nextTiles)) {
-      renderer.tileExits(t);
-    }
-    for (const t of setDifference(nextTiles, prevTiles)) {
-      renderer.tileEnters(t);
-    }
-    [nextTiles, prevTiles] = [prevTiles, nextTiles];
-  }
-
-  return {renderAround}
 }
 
 const radius = 10;
@@ -157,7 +52,6 @@ const overworld = makeDaia({
   faceSize: 9,
   magnify: 24,
 });
-
 
 /**
  * @param {number} t
@@ -229,7 +123,7 @@ const {go} = makeCameraController({
   ease: easeInOutQuint,
 });
 
-const gridKeeper = makeTileKeeper(gridRenderer, radius);
+const gridKeeper = makeTileKeeper(gridRenderer, advance, radius);
 
 animate();
 
