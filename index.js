@@ -16,6 +16,7 @@ let at = 731;
 const {
   tileSize,
   neighbor,
+  advance,
   tileCoordinate,
   tileTransform,
   cameraTransform,
@@ -85,7 +86,7 @@ function *setDifference(a, b) {
  */
 function renderAround(at) {
   nextTiles.clear();
-  for (const t of circle(at, neighbor, radius)) {
+  for (const t of circle(at, advance, radius)) {
     nextTiles.add(t);
   }
   for (const t of setDifference(prevTiles, nextTiles)) {
@@ -118,8 +119,8 @@ function go(direction) {
     }
 
     // translations
-    const angle = faceRotations[atCoord.f][direction];
-    camera.transition(500, p => rotateZ(angle * easeInOutQuad(p)));
+    const turn = faceRotations[atCoord.f][direction];
+    camera.transition(500, p => rotateZ(-Math.PI/2 * turn * easeInOutQuad(p)));
 
   } else {
     const {x: dx, y: dy} = turnVectors[direction];

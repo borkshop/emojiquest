@@ -3,38 +3,49 @@
 import {north, south, east, west} from './geometry2d.js';
 
 /**
- * @param {number} t
- * @param {(tile: number, direction: number) => number} neighbor
- * @param {number} major
- * @param {number} minor
+ * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
+ */
+
+/**
+ * @param {number} direction
+ * @param {number} angle
+ * @returns {number}
+ */
+function turn(direction, angle) {
+  return (direction + 4 + angle) % 4;
+}
+
+/**
+ * @param {number} position
+ * @param {AdvanceFn} advance
+ * @param {number} direction
  * @param {number} r
  * @returns {Generator<number>}
  */
-function *arc(t, neighbor, major, minor, r) {
-  let u = neighbor(t, minor);
+function *arc(position, advance, direction, r) {
+  let major = advance({position, direction: turn(direction, 1)});
   const r2 = r * r;
   for (let x = 0; x < r; x++) {
-    const x2 = x*x;
-    let v = u;
-    for (let y = 0; x2 + (y+1)*(y+1) < r2; y++) {
-      yield v;
-      v = neighbor(v, minor);
-      // TODO need transformation of the axis vector
+    const x2 = (x+1)*(x+1);
+    let minor = {position: major.position, direction: turn(major.direction, -1)};
+    for (let y = 0; x2 + y*y < r2; y++) {
+      yield minor.position;
+      minor = advance(minor);
     }
-    u = neighbor(u, major);
+    major = advance(major);
   }
 }
 
 /**
  * @param {number} t
- * @param {(tile: number, direction: number) => number} neighbor
+ * @param {AdvanceFn} advance
  * @param {number} radius
  * @returns {Generator<number>}
  */
-export function *circle(t, neighbor, radius) {
+export function *circle(t, advance, radius) {
   yield t;
-  yield *arc(t, neighbor, north, east, radius);
-  yield *arc(t, neighbor, east, south, radius);
-  yield *arc(t, neighbor, south, west, radius);
-  yield *arc(t, neighbor, west, north, radius);
+  yield *arc(t, advance, north, radius);
+  yield *arc(t, advance, east, radius);
+  yield *arc(t, advance, south, radius);
+  yield *arc(t, advance, west, radius);
 }

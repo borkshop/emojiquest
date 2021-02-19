@@ -86,6 +86,18 @@
  */
 
 /**
+ * @typedef {Object} Cursor
+ * @prop {number} position
+ * @prop {number} direction
+ */
+
+/**
+ * @callback AdvanceFn
+ * @param {Cursor} cursor
+ * @returns {Cursor}
+ */
+
+/**
  * @callback TileTransformFn
  * @param {number} t
  * @returns {Matrix}
@@ -100,10 +112,10 @@
 import {north, east, south, west, same} from './geometry2d.js';
 import {compose, multiply, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
 
-const no = 0; // steady as she goes
-const af = Math.PI; // about face
-const cw = -Math.PI/2; // clockwise
-const cc = Math.PI/2; // counter clockwise
+const no =  0; // steady as she goes
+const cw =  1; // clockwise
+const af =  2; // about face
+const cc = -1; // counter clockwise
 
 // const faceNeighbors = [
 // // n, e, s, w
@@ -144,6 +156,7 @@ const faceTransforms = [
  *   faceArea: number,
  *   worldSize: number,
  *   neighbor: NeighborFn,
+ *   advance: AdvanceFn,
  *   tileCoordinate: TileCoordinateFn,
  *   tileNumber: TileNumberFn,
  *   tileTransform: TileTransformFn,
@@ -257,6 +270,24 @@ export function makeDaia({faceSize, tileSize}) {
     }
   }
 
+  /** @type {AdvanceFn} */
+  function advance({position, direction}) {
+    const coord = tileCoordinate(position);
+    const {f} = coord;
+    const c = transitCase(coord, direction);
+    if (c === same) {
+      return {
+        position: knits[direction](position),
+        direction,
+      };
+    } else {
+      return {
+        position: seams[f][c](coord),
+        direction: (direction + faceRotations[f][direction] + 4) % 4,
+      };
+    }
+  }
+
   /** @type {TileTransformFn} */
   function tileTransform(t) {
     const {f, y, x} = tileCoordinate(t);
@@ -285,6 +316,7 @@ export function makeDaia({faceSize, tileSize}) {
     tileCoordinate,
     tileNumber,
     neighbor,
+    advance,
     tileTransform,
     cameraTransform,
   }
