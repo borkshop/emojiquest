@@ -61,11 +61,20 @@ aside.menu {
 
 .underworld {
   background-color: #eee;
+  font-size: 40px;
   color: white;
 }
 
 .overworld {
   background-color: rebeccapurple;
   color: white;
+  font-size: 20px;
+  backface-visibility: visible;
+}
+
+.sky {
+  background-color: transparent;
+  color: yellow;
+  font-size: 60px;
   backface-visibility: visible;
 }

@@ -146,6 +146,12 @@ const underworld = makeDaia({
   magnify: 23.99,
 });
 
+const sky = makeDaia({
+  tileSize: 100,
+  faceSize: 9,
+  magnify: 12,
+});
+
 const overworld = makeDaia({
   tileSize: 100,
   faceSize: 9,
@@ -168,21 +174,36 @@ function createUnderworldTile(t) {
  * @param {number} _t
  * @returns {HTMLElement}
  */
+function createSkyTile(_t) {
+  const $tile = document.createElement('div');
+  $tile.className = 'tile sky';
+  $tile.innerText = Math.random() < 0.25 ? `☁️` : '';
+  return $tile;
+}
+
+/**
+ * @param {number} _t
+ * @returns {HTMLElement}
+ */
 function createOverworldTile(_t) {
   const $tile = document.createElement('div');
   $tile.className = 'tile overworld';
-  $tile.innerText = `⭐️`;
+  $tile.innerText = Math.random() < 0.75 ? `⭐️` : '';
   return $tile;
 }
 
 const underworldRenderer = makeTileRenderer($context, underworld.tileTransform, createUnderworldTile);
 const overworldRenderer = makeTileRenderer($context, overworld.tileTransform, createOverworldTile);
+const skyRenderer = makeTileRenderer($context, sky.tileTransform, createSkyTile);
 
 for (let t = 0; t < underworld.worldArea; t++) {
   underworldRenderer.tileEnters(t);
 }
 for (let t = 0; t < overworld.worldArea; t++) {
   overworldRenderer.tileEnters(t);
+}
+for (let t = 0; t < sky.worldArea; t++) {
+  skyRenderer.tileEnters(t);
 }
 
 /**
