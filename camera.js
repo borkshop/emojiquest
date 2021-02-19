@@ -60,16 +60,32 @@ export function makeCamera($context, transform) {
    * @param {number} now
    */
   function animate(now) {
+
+    // Consolidate completed transitions
+    let completed = 0;
+    for (const transition of transitions) {
+      const {start, end, matrix} = transition;
+      const progress = clamp(0, 1, (now - start) / (end - start));
+      if (progress < 1) {
+        break;
+      }
+      transform = multiply(matrix(progress), transform);
+      completed++;
+    }
+
+    // Shift the complted transitions off.
+    transitions.copyWithin(0, completed);
+    transitions.length -= completed;
+
+    // Apply all remaining transitions, including completed transitions that
+    // follow an incomplete transition.
     let current = transform;
-    transitions = transitions.filter(({start, end, matrix}) => {
+    for (const transition of transitions) {
+      const {start, end, matrix} = transition;
       const progress = clamp(0, 1, (now - start) / (end - start));
       current = multiply(matrix(progress), current);
-      if (progress >= 1) {
-        transform = multiply(matrix(1), transform);
-        return false;
-      }
-      return true;
-    });
+    }
+
     $context.style.transform = matrix3dStyle(current);
   }
 
