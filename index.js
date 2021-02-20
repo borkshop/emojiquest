@@ -4,51 +4,52 @@ import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint} from './easing.js';
 import {north, south, east, west} from './geometry2d.js';
+import {scale} from './matrix3d.js';
 import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
 import {makeTileRenderer} from './tile-renderer.js';
 import {makeTileKeeper} from './tile-keeper.js';
 
-async function animate() {
-  for (;;) {
-    await nextFrame();
-    const now = Date.now();
-    camera.animate(now);
-  }
-}
-
-const radius = 10;
-let cursor = {position: 731, direction: north};
-
 const $context = mustFind('#context');
 
+const radius = 10;
+const tileSize = 100;
+const faceSize = 72;
+const facetSize = 8;
+
+let cursor = {position: 731, direction: north};
+
 const {
-  tileSize,
   advance,
   tileTransform,
   cameraTransform,
 } = makeDaia({
-  tileSize: 100,
-  faceSize: 72,
+  tileSize,
+  faceSize,
+});
+
+const facets = makeDaia({
+  tileSize: tileSize * faceSize / facetSize,
+  faceSize: facetSize,
 });
 
 const underworld = makeDaia({
-  tileSize: 100,
+  tileSize,
   faceSize: 3,
-  magnify: 23.99,
+  transform: scale(1 / 3),
 });
 
 const sky = makeDaia({
   tileSize: 100,
   faceSize: 9,
-  magnify: 12,
+  transform: scale(12),
 });
 
 const overworld = makeDaia({
   tileSize: 100,
   faceSize: 9,
-  magnify: 24,
+  transform: scale(24),
 });
 
 /**
@@ -84,9 +85,21 @@ function createOverworldTile(_t) {
   return $tile;
 }
 
+/**
+ * @param {number} t
+ * @returns {HTMLElement}
+ */
+function createFacet(t) {
+  const $tile = document.createElement('div');
+  $tile.className = 'tile facet';
+  $tile.innerText = `${t}`;
+  return $tile;
+}
+
 const underworldRenderer = makeTileRenderer($context, underworld.tileTransform, createUnderworldTile);
 const overworldRenderer = makeTileRenderer($context, overworld.tileTransform, createOverworldTile);
 const skyRenderer = makeTileRenderer($context, sky.tileTransform, createSkyTile);
+const facetsRenderer = makeTileRenderer($context, facets.tileTransform, createFacet);
 
 for (let t = 0; t < underworld.worldArea; t++) {
   underworldRenderer.tileEnters(t);
@@ -97,6 +110,9 @@ for (let t = 0; t < overworld.worldArea; t++) {
 for (let t = 0; t < sky.worldArea; t++) {
   skyRenderer.tileEnters(t);
 }
+for (let t = 0; t < facets.worldArea; t++) {
+  facetsRenderer.tileEnters(t);
+}
 
 /**
  * @param {number} t
@@ -104,7 +120,7 @@ for (let t = 0; t < sky.worldArea; t++) {
  */
 function createGridTile(t) {
   const $tile = document.createElement('div');
-  $tile.className = 'tile';
+  $tile.className = 'tile world';
   $tile.innerText = `${t}`;
   return $tile;
 }
@@ -122,11 +138,20 @@ const {go} = makeCameraController({
 
 const gridKeeper = makeTileKeeper(gridRenderer, advance, radius);
 
-animate();
+async function animate() {
+  for (;;) {
+    await nextFrame();
+    const now = Date.now();
+    camera.animate(now);
+  }
+}
 
 function draw() {
   gridKeeper.renderAround(cursor.position);
 }
+
+animate();
+draw();
 
 window.addEventListener('keyup', event => {
   const {key} = event;
@@ -155,5 +180,3 @@ window.addEventListener('keyup', event => {
       console.log(key);
   }
 });
-
-draw();

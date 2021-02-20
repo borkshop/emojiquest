@@ -119,7 +119,7 @@
  */
 
 import {north, east, south, west, same} from './geometry2d.js';
-import {compose, multiply, translate, rotateX, rotateY, rotateZ, scale} from './matrix3d.js';
+import {compose, identity, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
 
 const no =  0; // steady as she goes
 const cw =  1; // clockwise
@@ -174,10 +174,10 @@ const faceTransforms = [
  * @param {Object} options
  * @param {number} [options.faceSize]
  * @param {number} [options.tileSize]
- * @param {number} [options.magnify]
+ * @param {Matrix} [options.transform]
  * @returns {Daia}
  */
-export function makeDaia({faceSize = 1, tileSize = 100, magnify = 1}) {
+export function makeDaia({faceSize = 1, tileSize = 100, transform = identity}) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
   const worldSize = tileSize * faceSize;
@@ -188,14 +188,20 @@ export function makeDaia({faceSize = 1, tileSize = 100, magnify = 1}) {
     z: worldSize / 2,
   });
 
-  const originTransform = translate({
+  const adjustment = translate({
+    x: - tileSize / 2,
+    y: - tileSize / 2,
+    z: 0,
+  });
+
+  const centerTransform = translate({
     x: worldSize / 2 - tileSize / 2,
     y: worldSize / 2 - tileSize / 2,
     z: -worldSize / 2 + tileSize / 2,
   });
 
-  const faceCorners = faceTransforms.map(matrix => multiply(matrix, cornerTransform));
-  const faceOrigins = faceTransforms.map(matrix => multiply(matrix, originTransform));
+  const faceCorners = faceTransforms.map(matrix => compose(adjustment, matrix, cornerTransform));
+  const faceOrigins = faceTransforms.map(matrix => compose(matrix, centerTransform));
 
   /**
    * @param {{x: number, y: number}} position
@@ -312,7 +318,7 @@ export function makeDaia({faceSize = 1, tileSize = 100, magnify = 1}) {
   function tileTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
-      scale(magnify),
+      transform,
       faceCorners[f],
       translate({
         x: tileSize * x,
@@ -326,7 +332,7 @@ export function makeDaia({faceSize = 1, tileSize = 100, magnify = 1}) {
   function cameraTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
-      scale(magnify),
+      transform,
       faceOrigins[f],
       translate({
         x: -tileSize * x,

@@ -13,14 +13,6 @@ body {
   margin: 0;
 }
 
-#container {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  perspective: 500px;
-  overflow: hidden;
-}
-
 aside.menu {
   overflow: auto;
   max-height: 100%;
@@ -31,41 +23,77 @@ aside.menu {
   width: 40%;
 }
 
-#context {
-  width: 100px;
-  height: 100px;
-  transform-style: preserve-3d;
-  top: calc(50% - 50px);
-  left: calc(50% - 50px);
+#container {
   position: absolute;
+  height: 100%;
+  width: 100%;
+  perspective: 500px;
+  overflow: hidden;
 }
 
-.facet {
-  outline: dotted black 10px;
-  background-color: #eee;
+#retical {
   position: absolute;
-  backface-visibility: hidden;
+  width: 100px;
+  height: 100px;
+  top: calc(50% - 50px);
+  left: calc(50% - 50px);
+  border: solid red 3px;
+}
+
+#context {
+  top: 50%;
+  left: 50%;
+  width: 0px;
+  height: 0px;
+  transform-style: preserve-3d;
+  position: absolute;
 }
 
 .tile {
+  position: absolute;
+}
+
+.world {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  backface-visibility: hidden;
+  height: 100px;
+  width: 100px;
   font-size: 20px;
-  background: transparent;
+  backface-visibility: hidden;
 }
 
 .underworld {
+  height: 100px;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #eee;
   font-size: 40px;
   color: white;
 }
 
+.facet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 900px;
+  width: 900px;
+  background-color: #eee;
+  color: white;
+  border: dotted black 10px;
+  backface-visibility: hidden;
+  font-size: 450px;
+}
+
 .overworld {
+  height: 100px;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: rebeccapurple;
   color: white;
   font-size: 20px;
@@ -73,6 +101,11 @@ aside.menu {
 }
 
 .sky {
+  height: 100px;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: transparent;
   color: yellow;
   font-size: 60px;
