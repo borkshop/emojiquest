@@ -5,19 +5,14 @@ import {matrix3dStyle} from './matrix3d.js';
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 
 /**
- * @callback TileEntersFn
- * @param {number} tile
- */
-
-/**
- * @callback TileExitsFn
+ * @callback TouchEntityFn
  * @param {number} tile
  */
 
 /**
  * @typedef {Object} TileRenderer
- * @prop {TileEntersFn} tileEnters
- * @prop {TileExitsFn} tileExits
+ * @prop {TouchEntityFn} enter
+ * @prop {TouchEntityFn} exit
  */
 
 /**
@@ -32,7 +27,7 @@ export function makeTileRenderer($context, tileTransform, createElement) {
   /**
    * @param {number} t
    */
-  function tileEnters(t) {
+  function enter(t) {
     const transform = tileTransform(t);
     const $tile = createElement(t);
     $tile.style.transform = matrix3dStyle(transform);
@@ -43,12 +38,12 @@ export function makeTileRenderer($context, tileTransform, createElement) {
   /**
    * @param {number} t
    */
-  function tileExits(t) {
+  function exit(t) {
     const $tile = $tiles.get(t);
     if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
     $context.removeChild($tile);
   }
 
-  return {tileEnters, tileExits};
+  return {enter, exit};
 }
 

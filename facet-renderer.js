@@ -45,13 +45,13 @@ export function makeFacetRenderer({
   /**
    * @param {number} t
    */
-  function tileEnters(t) {
+  function enter(t) {
     const f = translateFacetToTileNumber(t);
     let facet = facetTiles.get(f);
     if (facet == null) {
       facet = new Set();
       facetTiles.set(f, facet);
-      facetRenderer.tileEnters(f);
+      facetRenderer.enter(f);
     }
     facet.add(t);
   }
@@ -59,7 +59,7 @@ export function makeFacetRenderer({
   /**
    * @param {number} t
    */
-  function tileExits(t) {
+  function exit(t) {
     const f = translateFacetToTileNumber(t);
     const facet = facetTiles.get(f);
     if (facet == null) {
@@ -68,10 +68,10 @@ export function makeFacetRenderer({
     facet.delete(t);
     if (facet.size === 0) {
       facetTiles.delete(f);
-      facetRenderer.tileExits(f);
+      facetRenderer.exit(f);
     }
   }
 
-  return {tileEnters, tileExits};
+  return {enter, exit};
 }
 

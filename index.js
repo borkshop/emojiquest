@@ -100,13 +100,13 @@ const overworldRenderer = makeTileRenderer($context, overworld.tileTransform, cr
 const skyRenderer = makeTileRenderer($context, sky.tileTransform, createSkyTile);
 
 for (let t = 0; t < underworld.worldArea; t++) {
-  underworldRenderer.tileEnters(t);
+  underworldRenderer.enter(t);
 }
 for (let t = 0; t < overworld.worldArea; t++) {
-  overworldRenderer.tileEnters(t);
+  overworldRenderer.enter(t);
 }
 for (let t = 0; t < sky.worldArea; t++) {
-  skyRenderer.tileEnters(t);
+  skyRenderer.enter(t);
 }
 
 // /**

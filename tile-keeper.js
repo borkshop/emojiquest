@@ -48,10 +48,10 @@ export function makeTileKeeper(renderer, advance, radius) {
       nextTiles.add(t);
     }
     for (const t of setDifference(prevTiles, nextTiles)) {
-      renderer.tileExits(t);
+      renderer.exit(t);
     }
     for (const t of setDifference(nextTiles, prevTiles)) {
-      renderer.tileEnters(t);
+      renderer.enter(t);
     }
     [nextTiles, prevTiles] = [prevTiles, nextTiles];
   }
