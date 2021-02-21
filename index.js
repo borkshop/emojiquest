@@ -10,21 +10,20 @@ import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
 import {makeTileRenderer} from './tile-renderer.js';
 import {makeTileKeeper} from './tile-keeper.js';
+import {makeFacetRenderer} from './facet-renderer.js';
 
 const $context = mustFind('#context');
 
 const radius = 10;
 const tileSize = 100;
-const faceSize = 72;
-const facetSize = 8;
+const facetSize = 9;
+const faceSize = 9 * facetSize;
 
-let cursor = {position: 731, direction: north};
+const position = 0;
 
-const {
-  advance,
-  tileTransform,
-  cameraTransform,
-} = makeDaia({
+let cursor = {position, direction: north};
+
+const world = makeDaia({
   tileSize,
   faceSize,
 });
@@ -36,20 +35,20 @@ const facets = makeDaia({
 
 const underworld = makeDaia({
   tileSize,
-  faceSize: 3,
-  transform: scale(1 / 3),
+  faceSize: 1,
+  transform: scale(faceSize*0.999),
 });
 
 const sky = makeDaia({
-  tileSize: 100,
-  faceSize: 9,
-  transform: scale(12),
+  tileSize: tileSize,
+  faceSize: 3,
+  transform: scale(faceSize*2/3),
 });
 
 const overworld = makeDaia({
   tileSize: 100,
-  faceSize: 9,
-  transform: scale(24),
+  faceSize: 3,
+  transform: scale(faceSize*3/3),
 });
 
 /**
@@ -99,7 +98,6 @@ function createFacet(t) {
 const underworldRenderer = makeTileRenderer($context, underworld.tileTransform, createUnderworldTile);
 const overworldRenderer = makeTileRenderer($context, overworld.tileTransform, createOverworldTile);
 const skyRenderer = makeTileRenderer($context, sky.tileTransform, createSkyTile);
-const facetsRenderer = makeTileRenderer($context, facets.tileTransform, createFacet);
 
 for (let t = 0; t < underworld.worldArea; t++) {
   underworldRenderer.tileEnters(t);
@@ -110,33 +108,39 @@ for (let t = 0; t < overworld.worldArea; t++) {
 for (let t = 0; t < sky.worldArea; t++) {
   skyRenderer.tileEnters(t);
 }
-for (let t = 0; t < facets.worldArea; t++) {
-  facetsRenderer.tileEnters(t);
-}
 
-/**
- * @param {number} t
- * @returns {HTMLElement}
- */
-function createGridTile(t) {
-  const $tile = document.createElement('div');
-  $tile.className = 'tile world';
-  $tile.innerText = `${t}`;
-  return $tile;
-}
+// /**
+//  * @param {number} t
+//  * @returns {HTMLElement}
+//  */
+// function createGridTile(t) {
+//   const $tile = document.createElement('div');
+//   $tile.className = 'tile world';
+//   $tile.innerText = `${t}`;
+//   return $tile;
+// }
 
-const gridRenderer = makeTileRenderer($context, tileTransform, createGridTile);
+// const gridRenderer = makeTileRenderer($context, tileTransform, createGridTile);
 
-const camera = makeCamera($context, cameraTransform(cursor.position));
+const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
 const {go} = makeCameraController({
   camera,
-  advance,
+  advance: world.advance,
   tileSize,
   ease: easeInOutQuint,
 });
 
-const gridKeeper = makeTileKeeper(gridRenderer, advance, radius);
+const facetRenderer = makeFacetRenderer({
+  context: $context,
+  createFacet,
+  ratio: world.faceSize / facets.faceSize,
+  facetTransform: facets.tileTransform,
+  facetNumber: facets.tileNumber,
+  tileCoordinate: world.tileCoordinate,
+});
+
+const gridKeeper = makeTileKeeper(facetRenderer, world.advance, radius);
 
 async function animate() {
   for (;;) {

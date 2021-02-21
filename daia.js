@@ -188,7 +188,7 @@ export function makeDaia({faceSize = 1, tileSize = 100, transform = identity}) {
     z: worldSize / 2,
   });
 
-  const adjustment = translate({
+  const cornerAdjustment = translate({
     x: - tileSize / 2,
     y: - tileSize / 2,
     z: 0,
@@ -200,7 +200,7 @@ export function makeDaia({faceSize = 1, tileSize = 100, transform = identity}) {
     z: -worldSize / 2 + tileSize / 2,
   });
 
-  const faceCorners = faceTransforms.map(matrix => compose(adjustment, matrix, cornerTransform));
+  const faceCorners = faceTransforms.map(matrix => compose(cornerAdjustment, transform, matrix, cornerTransform));
   const faceOrigins = faceTransforms.map(matrix => compose(matrix, centerTransform));
 
   /**
@@ -318,7 +318,6 @@ export function makeDaia({faceSize = 1, tileSize = 100, transform = identity}) {
   function tileTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
-      transform,
       faceCorners[f],
       translate({
         x: tileSize * x,
@@ -332,7 +331,6 @@ export function makeDaia({faceSize = 1, tileSize = 100, transform = identity}) {
   function cameraTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
-      transform,
       faceOrigins[f],
       translate({
         x: -tileSize * x,
