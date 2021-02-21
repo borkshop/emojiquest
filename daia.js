@@ -177,7 +177,11 @@ const faceTransforms = [
  * @param {Matrix} [options.transform]
  * @returns {Daia}
  */
-export function makeDaia({faceSize = 1, tileSize = 100, transform = identity}) {
+export function makeDaia({
+  faceSize = 1,
+  tileSize = 100,
+  transform = identity
+}) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
   const worldSize = tileSize * faceSize;

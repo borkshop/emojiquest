@@ -134,7 +134,8 @@ const {go} = makeCameraController({
 const facetRenderer = makeFacetRenderer({
   context: $context,
   createFacet,
-  ratio: world.faceSize / facets.faceSize,
+  worldSize: world.faceSize,
+  facetSize: facets.faceSize,
   facetTransform: facets.tileTransform,
   facetNumber: facets.tileNumber,
   tileCoordinate: world.tileCoordinate,

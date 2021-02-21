@@ -9,7 +9,8 @@ import {makeTileRenderer} from './tile-renderer.js';
 /**
  * @param {Object} options
  * @param {HTMLElement} options.context
- * @param {number} options.ratio The number of tiles per facet along an edge
+ * @param {number} options.worldSize
+ * @param {number} options.facetSize
  * @param {TileTransformFn} options.facetTransform
  * @param {TileNumberFn} options.facetNumber
  * @param {TileCoordinateFn} options.tileCoordinate
@@ -18,18 +19,21 @@ import {makeTileRenderer} from './tile-renderer.js';
 export function makeFacetRenderer({
   context,
   createFacet,
-  ratio,
+  worldSize,
+  facetSize,
   facetTransform,
   facetNumber,
   tileCoordinate
 }) {
-  const facetTileRenderer = makeTileRenderer(context, facetTransform, createFacet);
+  const facetRenderer = makeTileRenderer(context, facetTransform, createFacet);
   const facetTiles = new Map();
+
+  const ratio = worldSize / facetSize;
 
   /**
    * @param {number} t
    */
-  function translateTileNumber(t) {
+  function translateFacetToTileNumber(t) {
     const {f, x, y} = tileCoordinate(t);
     return facetNumber({
       f,
@@ -42,12 +46,12 @@ export function makeFacetRenderer({
    * @param {number} t
    */
   function tileEnters(t) {
-    const f = translateTileNumber(t);
+    const f = translateFacetToTileNumber(t);
     let facet = facetTiles.get(f);
     if (facet == null) {
       facet = new Set();
       facetTiles.set(f, facet);
-      facetTileRenderer.tileEnters(f);
+      facetRenderer.tileEnters(f);
     }
     facet.add(t);
   }
@@ -56,7 +60,7 @@ export function makeFacetRenderer({
    * @param {number} t
    */
   function tileExits(t) {
-    const f = translateTileNumber(t);
+    const f = translateFacetToTileNumber(t);
     const facet = facetTiles.get(f);
     if (facet == null) {
       throw new Error(`Assertion failed: tile exits from absent facet, tile ${t} facet ${f}`);
@@ -64,7 +68,7 @@ export function makeFacetRenderer({
     facet.delete(t);
     if (facet.size === 0) {
       facetTiles.delete(f);
-      facetTileRenderer.tileExits(f);
+      facetRenderer.tileExits(f);
     }
   }
 
