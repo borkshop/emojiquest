@@ -22,6 +22,7 @@ function *setDifference(a, b) {
 /**
  * @callback RenderAroundFn
  * @param {number} tile
+ * @param {number} radius
  */
 
 /**
@@ -32,17 +33,17 @@ function *setDifference(a, b) {
 /**
  * @param {TileRenderer} renderer
  * @param {AdvanceFn} advance
- * @param {number} radius
  * @returns {TileKeeper}
  */
-export function makeTileKeeper(renderer, advance, radius) {
+export function makeTileKeeper(renderer, advance) {
   let nextTiles = new Set();
   let prevTiles = new Set();
 
   /**
    * @param {number} at
+   * @param {number} radius
    */
-  function renderAround(at) {
+  function renderAround(at, radius) {
     nextTiles.clear();
     for (const t of circle(at, advance, radius)) {
       nextTiles.add(t);

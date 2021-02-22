@@ -1,9 +1,5 @@
 // @ts-check
 
-import {matrix3dStyle} from './matrix3d.js';
-
-/** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
-
 /**
  * @callback TouchEntityFn
  * @param {number} tile
@@ -15,22 +11,27 @@ import {matrix3dStyle} from './matrix3d.js';
  * @prop {TouchEntityFn} exit
  */
 
+const noop = () => {};
+
 /**
+ * @template Matrix
  * @param {HTMLElement} $context
- * @param {TileTransformFn} tileTransform
+ * @param {(tile: number) => Matrix} tileTransform
+ * @param {(matrix: Matrix) => string} matrixStyle
  * @param {(tile: number) => HTMLElement} createElement
+ * @param {(tile: number) => void} [collectElement]
  * @return {TileRenderer}
  */
-export function makeTileRenderer($context, tileTransform, createElement) {
+export function makeTileRenderer($context, tileTransform, matrixStyle, createElement, collectElement = noop) {
   const $tiles = new Map()
 
   /**
    * @param {number} t
    */
   function enter(t) {
-    const transform = tileTransform(t);
     const $tile = createElement(t);
-    $tile.style.transform = matrix3dStyle(transform);
+    const transform = tileTransform(t);
+    $tile.style.transform = matrixStyle(transform);
     $context.appendChild($tile);
     $tiles.set(t, $tile);
   }
@@ -42,8 +43,8 @@ export function makeTileRenderer($context, tileTransform, createElement) {
     const $tile = $tiles.get(t);
     if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
     $context.removeChild($tile);
+    collectElement(t);
   }
 
   return {enter, exit};
 }
-

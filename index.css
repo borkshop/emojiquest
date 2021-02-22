@@ -49,22 +49,8 @@ aside.menu {
   position: absolute;
 }
 
-.tile {
+.foundation {
   position: absolute;
-}
-
-.world {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100px;
-  width: 100px;
-  font-size: 20px;
-  backface-visibility: hidden;
-}
-
-.underworld {
   height: 100px;
   width: 100px;
   display: flex;
@@ -75,31 +61,37 @@ aside.menu {
   color: #aaa;
 }
 
-.facet {
+.facile {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 900px;
   width: 900px;
   color: white;
-  border: dotted black 10px;
+  border: 0;
+  margin: 0;
+  padding: 0;
   backface-visibility: hidden;
   font-size: 450px;
 }
 
-.overworld {
-  height: 100px;
-  width: 100px;
+.tile {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rebeccapurple;
-  color: white;
+  height: 100px;
+  width: 100px;
   font-size: 20px;
-  backface-visibility: visible;
+  color: black;
+  overflow: hidden;
+  top: 0;
+  left: 0;
 }
 
-.sky {
+.atmosquare {
+  position: absolute;
   height: 100px;
   width: 100px;
   display: flex;
@@ -108,5 +100,18 @@ aside.menu {
   background-color: transparent;
   color: yellow;
   font-size: 60px;
+  backface-visibility: visible;
+}
+
+.firmament-tile {
+  position: absolute;
+  height: 100px;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rebeccapurple;
+  color: white;
+  font-size: 20px;
   backface-visibility: visible;
 }

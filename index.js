@@ -4,11 +4,10 @@ import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {easeInOutQuint} from './easing.js';
 import {north, south, east, west} from './geometry2d.js';
-import {scale} from './matrix3d.js';
+import {scale, matrix3dStyle} from './matrix3d.js';
 import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
-import {makeTileRenderer} from './tile-renderer.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
 
@@ -33,19 +32,19 @@ const facets = makeDaia({
   faceSize: facetSize,
 });
 
-const underworld = makeDaia({
+const foundation = makeDaia({
   tileSize,
   faceSize: 1,
-  transform: scale(faceSize*0.999),
+  transform: scale(faceSize*0.9999),
 });
 
-const sky = makeDaia({
+const atmosquare = makeDaia({
   tileSize: tileSize,
   faceSize: 3,
   transform: scale(faceSize*2/3),
 });
 
-const overworld = makeDaia({
+const firmament = makeDaia({
   tileSize: 100,
   faceSize: 3,
   transform: scale(faceSize*3/3),
@@ -55,9 +54,9 @@ const overworld = makeDaia({
  * @param {number} t
  * @returns {HTMLElement}
  */
-function createUnderworldTile(t) {
+function createFoundationTile(t) {
   const $tile = document.createElement('div');
-  $tile.className = 'tile underworld';
+  $tile.className = 'foundation';
   $tile.innerText = `${t}`;
   return $tile;
 }
@@ -66,9 +65,9 @@ function createUnderworldTile(t) {
  * @param {number} _t
  * @returns {HTMLElement}
  */
-function createSkyTile(_t) {
+function createAtmosquare(_t) {
   const $tile = document.createElement('div');
-  $tile.className = 'tile sky';
+  $tile.className = 'atmosquare';
   $tile.innerText = Math.random() < 0.25 ? `☁️` : '';
   return $tile;
 }
@@ -77,10 +76,21 @@ function createSkyTile(_t) {
  * @param {number} _t
  * @returns {HTMLElement}
  */
-function createOverworldTile(_t) {
+function createFirmamentTile(_t) {
   const $tile = document.createElement('div');
-  $tile.className = 'tile overworld';
+  $tile.className = 'firmament-tile';
   $tile.innerText = Math.random() < 0.75 ? `⭐️` : '';
+  return $tile;
+}
+
+/**
+ * @param {number} f
+ * @returns {HTMLElement}
+ */
+function createFacet(f) {
+  const $tile = document.createElement('div');
+  $tile.className = 'facile';
+  $tile.innerText = `${f}`;
   return $tile;
 }
 
@@ -88,39 +98,40 @@ function createOverworldTile(_t) {
  * @param {number} t
  * @returns {HTMLElement}
  */
-function createFacet(t) {
+function createTile(t) {
   const $tile = document.createElement('div');
-  $tile.className = 'tile facet';
+  $tile.className = 'tile';
   $tile.innerText = `${t}`;
   return $tile;
 }
 
-const underworldRenderer = makeTileRenderer($context, underworld.tileTransform, createUnderworldTile);
-const overworldRenderer = makeTileRenderer($context, overworld.tileTransform, createOverworldTile);
-const skyRenderer = makeTileRenderer($context, sky.tileTransform, createSkyTile);
+/**
+ * @typedef {import('./matrix3d.js').Matrix} Matrix
+ */
 
-for (let t = 0; t < underworld.worldArea; t++) {
-  underworldRenderer.enter(t);
-}
-for (let t = 0; t < overworld.worldArea; t++) {
-  overworldRenderer.enter(t);
-}
-for (let t = 0; t < sky.worldArea; t++) {
-  skyRenderer.enter(t);
+/**
+ * @typedef Cube
+ * @prop {number} worldArea
+ * @prop {(tile: number) => Matrix} tileTransform
+ */
+
+/**
+ * @param {HTMLElement} context
+ * @param {Cube} cube
+ * @param {(tile: number) => HTMLElement} createTile
+ */
+function createAllTiles3d(context, cube, createTile) {
+  for (let t = 0; t < cube.worldArea; t++) {
+    const $tile = createTile(t);
+    const transform = cube.tileTransform(t);
+    $tile.style.transform = matrix3dStyle(transform);
+    context.appendChild($tile);
+  }
 }
 
-// /**
-//  * @param {number} t
-//  * @returns {HTMLElement}
-//  */
-// function createGridTile(t) {
-//   const $tile = document.createElement('div');
-//   $tile.className = 'tile world';
-//   $tile.innerText = `${t}`;
-//   return $tile;
-// }
-
-// const gridRenderer = makeTileRenderer($context, tileTransform, createGridTile);
+createAllTiles3d($context, foundation, createFoundationTile);
+createAllTiles3d($context, firmament, createFirmamentTile);
+createAllTiles3d($context, atmosquare, createAtmosquare);
 
 const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
@@ -134,14 +145,18 @@ const {go} = makeCameraController({
 const facetRenderer = makeFacetRenderer({
   context: $context,
   createFacet,
+  createTile,
   worldSize: world.faceSize,
   facetSize: facets.faceSize,
   facetTransform: facets.tileTransform,
+  tileNumber: world.tileNumber,
   facetNumber: facets.tileNumber,
+  facetCoordinate: facets.tileCoordinate,
   tileCoordinate: world.tileCoordinate,
+  tileSize: world.tileSize,
 });
 
-const gridKeeper = makeTileKeeper(facetRenderer, world.advance, radius);
+const tileKeeper = makeTileKeeper(facetRenderer, world.advance);
 
 async function animate() {
   for (;;) {
@@ -152,7 +167,7 @@ async function animate() {
 }
 
 function draw() {
-  gridKeeper.renderAround(cursor.position);
+  tileKeeper.renderAround(cursor.position, radius);
 }
 
 animate();
