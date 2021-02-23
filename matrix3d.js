@@ -192,3 +192,62 @@ export function scale(s) {
     a4: 0,  b4: 0,  c4: 0,  d4: 1,
   };
 }
+
+/**
+ * @param {Matrix} matrix
+ * @returns {Matrix}
+ */
+export function inverse(matrix) {
+  const {
+    a1, b1, c1, d1,
+    a2, b2, c2, d2,
+    a3, b3, c3, d3,
+    a4, b4, c4, d4,
+  } = matrix;
+
+  const i = {
+    a1:  b2*c3*d4 - b2*c4*d3 - c2*b3*d4 + c2*b4*d3 + d2*b3*c4 - d2*b4*c3,
+    b1: -b1*c3*d4 + b1*c4*d3 + c1*b3*d4 - c1*b4*d3 - d1*b3*c4 + d1*b4*c3,
+    c1:  b1*c2*d4 - b1*c4*d2 - c1*b2*d4 + c1*b4*d2 + d1*b2*c4 - d1*b4*c2,
+    d1: -b1*c2*d3 + b1*c3*d2 + c1*b2*d3 - c1*b3*d2 - d1*b2*c3 + d1*b3*c2,
+
+    a2: -a2*c3*d4 + a2*c4*d3 + c2*a3*d4 - c2*a4*d3 - d2*a3*c4 + d2*a4*c3,
+    b2:  a1*c3*d4 - a1*c4*d3 - c1*a3*d4 + c1*a4*d3 + d1*a3*c4 - d1*a4*c3,
+    c2: -a1*c2*d4 + a1*c4*d2 + c1*a2*d4 - c1*a4*d2 - d1*a2*c4 + d1*a4*c2,
+    d2:  a1*c2*d3 - a1*c3*d2 - c1*a2*d3 + c1*a3*d2 + d1*a2*c3 - d1*a3*c2,
+
+    a3:  a2*b3*d4 - a2*b4*d3 - b2*a3*d4 + b2*a4*d3 + d2*a3*b4 - d2*a4*b3,
+    b3: -a1*b3*d4 + a1*b4*d3 + b1*a3*d4 - b1*a4*d3 - d1*a3*b4 + d1*a4*b3,
+    c3:  a1*b2*d4 - a1*b4*d2 - b1*a2*d4 + b1*a4*d2 + d1*a2*b4 - d1*a4*b2,
+    d3: -a1*b2*d3 + a1*b3*d2 + b1*a2*d3 - b1*a3*d2 - d1*a2*b3 + d1*a3*b2,
+
+    a4: -a2*b3*c4 + a2*b4*c3 + b2*a3*c4 - b2*a4*c3 - c2*a3*b4 + c2*a4*b3,
+    b4:  a1*b3*c4 - a1*b4*c3 - b1*a3*c4 + b1*a4*c3 + c1*a3*b4 - c1*a4*b3,
+    c4: -a1*b2*c4 + a1*b4*c2 + b1*a2*c4 - b1*a4*c2 - c1*a2*b4 + c1*a4*b2,
+    d4:  a1*b2*c3 - a1*b3*c2 - b1*a2*c3 + b1*a3*c2 + c1*a2*b3 - c1*a3*b2,
+  };
+
+  const determinant = a1*i.a1 + b1*i.a2 + c1*i.a3 + d1*i.a4;
+
+  return {
+    a1: i.a1 / determinant,
+    b1: i.b1 / determinant,
+    c1: i.c1 / determinant,
+    d1: i.d1 / determinant,
+
+    a2: i.a2 / determinant,
+    b2: i.b2 / determinant,
+    c2: i.c2 / determinant,
+    d2: i.d2 / determinant,
+
+    a3: i.a3 / determinant,
+    b3: i.b3 / determinant,
+    c3: i.c3 / determinant,
+    d3: i.d3 / determinant,
+
+    a4: i.a4 / determinant,
+    b4: i.b4 / determinant,
+    c4: i.c4 / determinant,
+    d4: i.d4 / determinant,
+  };
+}
