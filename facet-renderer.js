@@ -10,6 +10,46 @@ import {translate, matrixStyle} from './matrix2d.js';
 
 /**
  * @param {Object} options
+ * @param {number} options.worldSize
+ * @param {number} options.facetSize
+ * @param {TileNumberFn} options.tileNumber
+ * @param {TileCoordinateFn} options.facetCoordinate
+ */
+function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate}) {
+  const ratio = worldSize / facetSize;
+
+  /**
+   * @param {number} f
+   * @returns {Map<number, {x: number, y: number}>}
+   */
+  function tilesForFacet(f) {
+    const {f: face, x, y} = facetCoordinate(f);
+    const origin = {
+      x: x * ratio,
+      y: y * ratio,
+    };
+
+    const tilesForFacet = new Map();
+
+    for (let dy = 0; dy < facetSize; dy++) {
+      for (let dx = 0; dx < facetSize; dx++) {
+        const t = tileNumber({
+          f: face,
+          x: origin.x + dx,
+          y: origin.y + dy,
+        });
+        tilesForFacet.set(t, {x: dx, y: dy});
+      }
+    }
+
+    return tilesForFacet;
+  }
+
+  return tilesForFacet;
+}
+
+/**
+ * @param {Object} options
  * @param {HTMLElement} options.context
  * @param {number} options.worldSize
  * @param {number} options.facetSize
@@ -35,6 +75,13 @@ export function makeFacetRenderer({
   facetCoordinate,
   tileSize,
 }) {
+  const tilesForFacet = makeFacetMapper({
+    worldSize,
+    facetSize,
+    tileNumber,
+    facetCoordinate,
+  });
+
   const renderers = new Map();
 
   /**
@@ -61,30 +108,15 @@ export function makeFacetRenderer({
   function createMappedFacet(f) {
     const facet = createFacet(f);
 
-    const {f: face, x, y} = facetCoordinate(f);
-    const origin = {
-      x: x * ratio,
-      y: y * ratio,
-    };
-
-    const tileMap = new Map();
-
-    for (let dy = 0; dy < facetSize; dy++) {
-      for (let dx = 0; dx < facetSize; dx++) {
-        const t = tileNumber({
-          f: face,
-          x: origin.x + dx,
-          y: origin.y + dy,
-        });
-        tileMap.set(t, {x: dx, y: dy});
-      }
-    }
+    const tileMap = tilesForFacet(f);
 
     /**
      * @param {number} t
      */
     function facetTileTransform(t) {
-      const {x, y} = tileMap.get(t);
+      const coord = tileMap.get(t);
+      if (coord == null) throw new Error(`Assertion failed: coordinate must exist for known tile ${t} of facet ${f}`);
+      const {x, y} = coord;
       return translate({
         x: x * tileSize,
         y: y * tileSize,
