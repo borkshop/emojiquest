@@ -10,6 +10,7 @@ import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
+import {makeEntities} from './entities.js';
 
 const $context = mustFind('#context');
 
@@ -78,30 +79,18 @@ function createAtmosquare(_t) {
  */
 function createFirmamentTile(_t) {
   const $tile = document.createElement('div');
-  $tile.className = 'firmament-tile';
+  $tile.className = 'firmament';
   $tile.innerText = Math.random() < 0.75 ? `⭐️` : '';
   return $tile;
 }
 
 /**
- * @param {number} f
+ * @param {number} _f
  * @returns {HTMLElement}
  */
-function createFacet(f) {
+function createFacet(_f) {
   const $tile = document.createElement('div');
-  $tile.className = 'facile';
-  $tile.innerText = `${f}`;
-  return $tile;
-}
-
-/**
- * @param {number} t
- * @returns {HTMLElement}
- */
-function createTile(t) {
-  const $tile = document.createElement('div');
-  $tile.className = 'tile';
-  $tile.innerText = `${t}`;
+  $tile.className = 'facet';
   return $tile;
 }
 
@@ -142,18 +131,36 @@ const {go} = makeCameraController({
   ease: easeInOutQuint,
 });
 
+/**
+ * @param {number} _e - entity number
+ * @returns {HTMLElement}
+ */
+function createEntity(_e) {
+  const $entity = document.createElement('div');
+  $entity.className = 'agent';
+  $entity.innerText = '😊';
+  return $entity;
+}
+
+const entities = makeEntities();
+
+const agent = entities.create(0);
+entities.put(agent, 0);
+
 const facetRenderer = makeFacetRenderer({
   context: $context,
   createFacet,
-  createTile,
+  createEntity,
   worldSize: world.faceSize,
   facetSize: facets.faceSize,
   facetTransform: facets.tileTransform,
-  tileNumber: world.tileNumber,
   facetNumber: facets.tileNumber,
-  facetCoordinate: facets.tileCoordinate,
+  tileNumber: world.tileNumber,
   tileCoordinate: world.tileCoordinate,
-  tileSize: world.tileSize,
+  facetCoordinate: facets.tileCoordinate,
+  watchEntities: entities.watch,
+  unwatchEntities: entities.unwatch,
+  tileSize,
 });
 
 const tileKeeper = makeTileKeeper(facetRenderer, world.advance);
@@ -199,4 +206,5 @@ window.addEventListener('keyup', event => {
     default:
       console.log(key);
   }
+  entities.move(agent, cursor.position);
 });

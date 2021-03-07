@@ -14,15 +14,33 @@
 const noop = () => {};
 
 /**
- * @template Matrix
- * @param {HTMLElement} $context
- * @param {(tile: number) => Matrix} tileTransform
- * @param {(matrix: Matrix) => string} matrixStyle
- * @param {(tile: number) => HTMLElement} createElement
+ * @template Element
+ * @callback AppendChildFn
+ * @param {Element} child
+ */
+
+/**
+ * @template Element
+ * @callback RemoveChildFn
+ * @param {Element} child
+ */
+
+/**
+ * @template Element
+ * @typedef {Object} ParentElement
+ * @prop {AppendChildFn<Element>} appendChild
+ * @prop {RemoveChildFn<Element>} removeChild
+ */
+
+/**
+ * @template Element
+ * @param {ParentElement<Element>} $context
+ * @param {(element: Element, tile: number) => void} position
+ * @param {(tile: number) => Element} createElement
  * @param {(tile: number) => void} [collectElement]
  * @return {TileRenderer}
  */
-export function makeTileRenderer($context, tileTransform, matrixStyle, createElement, collectElement = noop) {
+export function makeTileRenderer($context, position, createElement, collectElement = noop) {
   const $tiles = new Map()
 
   /**
@@ -30,8 +48,7 @@ export function makeTileRenderer($context, tileTransform, matrixStyle, createEle
    */
   function enter(t) {
     const $tile = createElement(t);
-    const transform = tileTransform(t);
-    $tile.style.transform = matrixStyle(transform);
+    position($tile, t);
     $context.appendChild($tile);
     $tiles.set(t, $tile);
   }

@@ -61,7 +61,7 @@ aside.menu {
   color: #aaa;
 }
 
-.facile {
+.facet {
   position: absolute;
   display: flex;
   align-items: center;
@@ -76,14 +76,14 @@ aside.menu {
   font-size: 450px;
 }
 
-.tile {
+.agent {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100px;
   width: 100px;
-  font-size: 20px;
+  font-size: 80px;
   color: black;
   overflow: hidden;
   top: 0;
@@ -103,7 +103,7 @@ aside.menu {
   backface-visibility: visible;
 }
 
-.firmament-tile {
+.firmament {
   position: absolute;
   height: 100px;
   width: 100px;

@@ -4,20 +4,7 @@
 /** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
 
 import {circle} from './topology.js';
-
-/**
- * @template T
- * @param {Set<T>} a
- * @param {Set<T>} b
- * @returns {Iterable<T>}
- */
-function *setDifference(a, b) {
-  for (const v of a) {
-    if (!b.has(v)) {
-      yield v;
-    }
-  }
-}
+import {setDifference} from './set.js';
 
 /**
  * @callback RenderAroundFn
