@@ -229,25 +229,5 @@ export function inverse(matrix) {
 
   const determinant = a1*i.a1 + b1*i.a2 + c1*i.a3 + d1*i.a4;
 
-  return {
-    a1: i.a1 / determinant,
-    b1: i.b1 / determinant,
-    c1: i.c1 / determinant,
-    d1: i.d1 / determinant,
-
-    a2: i.a2 / determinant,
-    b2: i.b2 / determinant,
-    c2: i.c2 / determinant,
-    d2: i.d2 / determinant,
-
-    a3: i.a3 / determinant,
-    b3: i.b3 / determinant,
-    c3: i.c3 / determinant,
-    d3: i.d3 / determinant,
-
-    a4: i.a4 / determinant,
-    b4: i.b4 / determinant,
-    c4: i.c4 / determinant,
-    d4: i.d4 / determinant,
-  };
+  return multiply(i, scale(determinant));
 }
