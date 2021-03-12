@@ -46,4 +46,3 @@ export function makeTileKeeper(renderer, advance) {
 
   return {renderAround}
 }
-

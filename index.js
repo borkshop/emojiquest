@@ -2,6 +2,7 @@
 
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
+import {delay, defer} from './async.js';
 import {easeInOutQuint} from './easing.js';
 import {north, south, east, west} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
@@ -12,12 +13,19 @@ import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
 import {makeEntities} from './entities.js';
 
+/**
+ * @template T
+ * @typedef {import('./async.js').Deferred<T>} Deferred
+ */
+
 const $context = mustFind('#context');
 
 const radius = 10;
 const tileSize = 100;
 const facetSize = 9;
 const faceSize = 9 * facetSize;
+const animatedTransitionDuration = 100;
+const simulationInterval = 200;
 
 const position = 0;
 
@@ -124,7 +132,7 @@ createAllTiles3d($context, atmosquare, createAtmosquare);
 
 const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
-const {go} = makeCameraController({
+const cameraController = makeCameraController({
   camera,
   advance: world.advance,
   tileSize,
@@ -142,7 +150,7 @@ function createEntity(_e) {
   return $entity;
 }
 
-const entities = makeEntities();
+const entities = makeEntities(animatedTransitionDuration);
 
 const agent = entities.create(0);
 entities.put(agent, 0);
@@ -170,8 +178,49 @@ async function animate() {
     await nextFrame();
     const now = Date.now();
     camera.animate(now);
+    entities.animate(now);
   }
 }
+
+function makeSimulation() {
+  /** @type {Deferred<void>} */
+  let sync = defer();
+  /** @type {Array<number>} */
+  const commands = [];
+
+  async function flush() {
+    sync = defer();
+    for (
+      let direction = commands.shift();
+      direction !== undefined;
+      direction = commands.shift()
+    ) {
+      const cursorChange = cameraController.go({position: cursor.position, direction});
+      cursor = cursorChange;
+      entities.reset(Date.now());
+      entities.transition(agent, direction, cursorChange.turn);
+      await delay(simulationInterval);
+      entities.reset(Date.now());
+      entities.move(agent, cursor.position);
+      draw();
+    }
+    sync.promise.then(flush);
+  }
+
+  /**
+   * @param {number} direction
+   */
+  function go(direction) {
+    commands.push(direction);
+    sync.resolve();
+  }
+
+  sync.promise.then(flush);
+
+  return {go};
+}
+
+const simulation = makeSimulation();
 
 function draw() {
   tileKeeper.renderAround(cursor.position, radius);
@@ -185,26 +234,21 @@ window.addEventListener('keyup', event => {
   switch (key) {
     case 'ArrowUp':
     case 'k':
-      cursor = go({position: cursor.position, direction: north});
-      draw();
+      simulation.go(north);
       break;
     case 'ArrowRight':
     case 'l': // east
-      cursor = go({position: cursor.position, direction: east});
-      draw();
+      simulation.go(east);
       break;
     case 'ArrowDown':
     case 'j':
-      cursor = go({position: cursor.position, direction: south});
-      draw();
+      simulation.go(south);
       break;
     case 'ArrowLeft':
     case 'h': // west
-      cursor = go({position: cursor.position, direction: west});
-      draw();
+      simulation.go(west);
       break;
     default:
       console.log(key);
   }
-  entities.move(agent, cursor.position);
 });

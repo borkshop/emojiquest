@@ -118,6 +118,18 @@ export function rotate(a) {
 }
 
 /**
+ * @param {number} s
+ * @returns {Matrix}
+ */
+export function scale(s) {
+  return {
+    a1: s,  b1: 0,  c1: 0,
+    a2: 0,  b2: s,  c2: 0,
+    a3: 0,  b3: 0,  c3: 1,
+  };
+}
+
+/**
  * @param {Matrix} matrix
  * @returns {string}
  */

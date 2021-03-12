@@ -2,30 +2,46 @@
 
 import {makeTileRenderer} from './tile-renderer.js';
 import {matrix3dStyle} from './matrix3d.js';
-import {translate, matrixStyle} from './matrix2d.js';
+import {turnVectors} from './geometry2d.js';
+import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
 /** @typedef {import('./daia.js').TileNumberFn} TileNumberFn */
 
 /**
+ * @typedef {Object} Coord
+ * @prop {number} x - integer in the coordinate space of tiles.
+ * @prop {number} y - integer in the coordinate space of tiles.
+ * @prop {number} a - angle, in increments of 90 degrees clockwise from due
+ * north.
+ */
+
+/**
  * @callback EntityWatchFn
- * @param {Map<number, Point>} tiles - tile number to coordinate
+ * @param {Map<number, Coord>} tiles - tile number to coordinate
  * @param {Watcher} watcher - notified when a tile enters, exits, or moves
  * within a region
+ */
+
+/**
+ * @callback PlaceFn
+ * @param {number} entity
+ * @param {Coord} coord - position in the origin coordinate plane, including
+ * any inherent rotation angle relative to that plane due to transition over
+ * the edge of the world to another face.
+ * @param {number} progress - in the range [0, 1]
+ * @param {number} direction - direction in quarter turns clockwise from north
+ * that the entity is moving in the relative to the orientation of its original
+ * plane, 0 if not animated.
+ * @param {number} rotation - in quarter turns clockwise, positive or negative.
  */
 
 /**
  * @typedef {Object} Watcher
  * @prop {(entity: number) => void} enter
  * @prop {(entity: number) => void} exit
- * @prop {(entity: number, coord: Point) => void} place
- */
-
-/**
- * @typedef {Object} Point
- * @prop {number} x
- * @prop {number} y
+ * @prop {PlaceFn} place
  */
 
 /**
@@ -40,7 +56,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate}) {
 
   /**
    * @param {number} f
-   * @returns {Map<number, Point>}
+   * @returns {Map<number, Coord>}
    */
   function tilesForFacet(f) {
     const tileMap = new Map();
@@ -128,16 +144,28 @@ export function makeFacetRenderer({
 
       /**
        * @param {number} e - entity number
-       * @param {Point} coord - position of the entity within the facet's coordinate space
+       * @param {Coord} coord - position of the entity within the facet's coordinate space
+       * @param {number} progress - in the range [0, 1], which will always
+       * be 0 for non-animated placement.
+       * @param {number} direction - direction of animation in quarter turns
+       * clockwise from north, or 0 if not animated.
+       * @param {number} rotation - rotation to move, in quarter turns
+       * clockwise.
        */
-      place(e, coord) {
+      place(e, coord, progress, direction, rotation) {
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
-        const {x, y} = coord;
-        const transform = translate({
-          x: x * tileSize,
-          y: y * tileSize,
-        });
+        const {x: dx, y: dy} = turnVectors[direction];
+        // TODO incorporate rotation
+        const transform = compose(
+          scale(tileSize),
+          translate({x: 0.5, y: 0.5}),
+          translate({x: dx * progress, y: dy * progress}),
+          translate(coord),
+          translate({x: -0.5, y: -0.5}),
+          scale(1/tileSize),
+          rotate(-Math.PI/2*rotation*progress),
+        );
         $entity.style.transform = matrixStyle(transform);
       },
 
@@ -153,11 +181,7 @@ export function makeFacetRenderer({
     };
 
     watchEntities(tilesForFacet(f), watcher);
-
     watchers.set(f, watcher);
-
-    // const renderer = makeTileRenderer($facet, placeTile, createTile);
-    // renderers.set(f, renderer);
     return $facet;
   }
 

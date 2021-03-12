@@ -74,6 +74,7 @@ aside.menu {
   padding: 0;
   backface-visibility: hidden;
   font-size: 450px;
+  overflow: hidden;
 }
 
 .agent {

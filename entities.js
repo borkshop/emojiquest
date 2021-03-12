@@ -2,6 +2,18 @@
 
 import {setDifference} from './set.js';
 
+const {min, max} = Math;
+
+/**
+ * @param {number} lo
+ * @param {number} hi
+ * @param {number} value
+ * @returns {number}
+ */
+function clamp(lo, hi, value) {
+  return max(lo, min(hi, value));
+}
+
 /**
  * @typedef {Object} Point
  * @prop {number} x
@@ -9,20 +21,52 @@ import {setDifference} from './set.js';
  */
 
 /**
+ * @typedef {Object} Animation
+ * @prop {number} direction - in quarter turns clockwise from north.
+ * @prop {number} rotation - in quarter turns clockwise, positive or negative.
+ */
+
+/**
+ * @typedef {Object} Coord
+ * @prop {number} x - integer in the coordinate space of tiles.
+ * @prop {number} y - integer in the coordinate space of tiles.
+ * @prop {number} a - angle, in increments of quarter turns clockwise from due
+ * north.
+ */
+
+/**
  * @callback EntityWatchFn
- * @param {Map<number, Point>} tiles - tile number to coordinate
+ * @param {Map<number, Coord>} tiles - tile number to coordinate
  * @param {Watcher} watcher - notified when a tile enters, exits, or moves
  * within a region
+ */
+
+/**
+ * @callback PlaceFn
+ * @param {number} entity
+ * @param {Coord} coord - position in the origin coordinate plane, including
+ * any inherent rotation angle relative to that plane due to transition over
+ * the edge of the world to another face.
+ * @param {number} progress - in the range [0, 1]
+ * @param {number} direction - direction in quarter turns clockwise from north
+ * that the entity is moving in the relative to the orientation of its original
+ * plane, 0 if not animated.
+ * @param {number} rotation - rotation in quarter turns clockwise, positive or
+ * negative.
  */
 
 /**
  * @typedef {Object} Watcher
  * @prop {(entity: number) => void} enter
  * @prop {(entity: number) => void} exit
- * @prop {(entity: number, coord: Point) => void} place
+ * @prop {PlaceFn} place
  */
 
-export function makeEntities() {
+/**
+ * @param {number} duration
+ */
+export function makeEntities(duration) {
+  let start = 0;
   let next = 0;
 
   /** @type {Map<number, number>} */
@@ -42,9 +86,16 @@ export function makeEntities() {
 
   /**
    * Tile number to watchers.
-   * @type {Map<number, Map<Watcher, Point>>}
+   * @type {Map<number, Map<Watcher, Coord>>}
    */
   const watchers = new Map();
+
+  /**
+   * From entity number to direction of motion in quarter turns clockwise from
+   * north.
+   * @type {Map<number, Animation>}
+   */
+  const animating = new Map();
 
   /**
    * @param {number} type
@@ -86,7 +137,6 @@ export function makeEntities() {
   function move(e, to) {
     const from = locations.get(e);
     if (from == null) throw new Error(`Assertion failed: cannot move absent entity ${e}`);
-    console.log('move from', from, 'to', to);
     if (from === to) {
       return;
     }
@@ -95,6 +145,8 @@ export function makeEntities() {
     locations.set(e, to);
     entityEntersTile(e, to);
 
+    // The representation of the entity moves within each watcher
+    // that observes it either before or after the transition.
     const before = watchers.get(from);
     const after = watchers.get(to);
     const beforeSet = new Set(before?.keys());
@@ -109,7 +161,7 @@ export function makeEntities() {
     }
     if (after) {
       for (const [watcher, coord] of after.entries()) {
-        watcher.place(e, coord);
+        watcher.place(e, coord, 0, 0, 0);
       }
     }
   }
@@ -117,41 +169,62 @@ export function makeEntities() {
   /** @type {EntityWatchFn} */
   function watch(tiles, watcher) {
     for (const [t, coord] of tiles.entries()) {
-      let tileWatchers = watchers.get(t);
-      if (tileWatchers) {
-        tileWatchers.set(watcher, coord);
-      } else {
-        tileWatchers = new Map();
-        tileWatchers.set(watcher, coord);
-        watchers.set(t, tileWatchers);
-      }
-
-      const entities = colocated.get(t);
-      if (entities) {
-        for (const e of entities) {
-          watcher.enter(e);
-          watcher.place(e, coord);
-        }
-      }
+      watcherEntersTile(watcher, t, coord);
     }
   }
 
   /** @type {EntityWatchFn} */
   function unwatch(tiles, watcher) {
     for (const t of tiles.keys()) {
-      const entities = colocated.get(t);
-      if (entities) {
-        for (const e of entities) {
-          watcher.exit(e);
-        }
-      }
+      watcherExitsTile(watcher, t);
+    }
+  }
 
-      const tileWatchers = watchers.get(t);
-      if (!tileWatchers) throw new Error(`Assertion failed`);
-      tileWatchers.delete(watcher);
-      if (tileWatchers.size === 0) {
-        watchers.delete(t);
+  /**
+   * @param {Watcher} watcher - watcher
+   * @param {number} t - tile number
+   * @param {Coord} coord - coordinate of tile
+   */
+  function watcherEntersTile(watcher, t, coord) {
+    // Register watcher.
+    let tileWatchers = watchers.get(t);
+    if (tileWatchers) {
+      tileWatchers.set(watcher, coord);
+    } else {
+      tileWatchers = new Map();
+      tileWatchers.set(watcher, coord);
+      watchers.set(t, tileWatchers);
+    }
+
+    // Initial notification.
+    const entities = colocated.get(t);
+    if (entities) {
+      for (const e of entities) {
+        watcher.enter(e);
+        watcher.place(e, coord, 0, 0, 0);
       }
+    }
+  }
+
+  /**
+   * @param {Watcher} watcher - watcher
+   * @param {number} t - tile number
+   */
+  function watcherExitsTile(watcher, t) {
+    // Final notification.
+    const entities = colocated.get(t);
+    if (entities) {
+      for (const e of entities) {
+        watcher.exit(e);
+      }
+    }
+
+    // Unregister watcher.
+    const tileWatchers = watchers.get(t);
+    if (!tileWatchers) throw new Error(`Assertion failed`);
+    tileWatchers.delete(watcher);
+    if (tileWatchers.size === 0) {
+      watchers.delete(t);
     }
   }
 
@@ -187,6 +260,56 @@ export function makeEntities() {
     return colocated.get(t);
   }
 
-  return { create, move, type, put, entitiesAtTile, watch, unwatch };
-}
+  /**
+   * @param {number} e - entity number
+   * @param {number} direction - direction to move, in quarter turns clockwise
+   * from north.
+   * @param {number} rotation - rotation to move, in quarter turns clockwise.
+   */
+  function transition(e, direction, rotation) {
+    const location = locations.get(e);
+    if (location === undefined) {
+      throw new Error(`Assertion failed: no location for entity ${e}`);
+    }
+    animating.set(e, {direction, rotation});
+  }
 
+  /**
+   * @param {number} now
+   */
+  function animate(now) {
+    const progress = clamp(0, 1, (now - start) / duration);
+    for (const [e, {direction, rotation}] of animating.entries()) {
+      const t = locations.get(e);
+      if (t !== undefined) {
+        const tileWatchers = watchers.get(t);
+        if (tileWatchers !== undefined) {
+          for (const [watcher, coord] of tileWatchers.entries()) {
+            watcher.place(e, coord, progress, direction, rotation);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * @param {number} now
+   */
+  function reset(now) {
+    start = now;
+    animating.clear();
+  }
+
+  return {
+    create,
+    move,
+    type,
+    put,
+    entitiesAtTile,
+    watch,
+    unwatch,
+    animate,
+    transition,
+    reset,
+  };
+}
