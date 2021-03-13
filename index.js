@@ -24,8 +24,11 @@ const radius = 10;
 const tileSize = 100;
 const facetSize = 9;
 const faceSize = 9 * facetSize;
-const animatedTransitionDuration = 100;
-const simulationInterval = 200;
+
+const animatedTransitionDuration = 400;
+const slowCameraTransitionDuration = 800;
+const fastCameraTransitionDuration = 400;
+const simulationInterval = 400;
 
 const position = 0;
 
@@ -137,6 +140,8 @@ const cameraController = makeCameraController({
   advance: world.advance,
   tileSize,
   ease: easeInOutQuint,
+  slow: slowCameraTransitionDuration,
+  fast: fastCameraTransitionDuration,
 });
 
 /**
