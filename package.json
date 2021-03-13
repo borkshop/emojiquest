@@ -10,7 +10,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/borkshop/js.git",
-    "directory": "cdom-template"
+    "directory": "cube"
   },
 
   "private": true,
