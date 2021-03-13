@@ -12,6 +12,7 @@ import {makeCameraController} from './camera-controller.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
 import {makeEntities} from './entities.js';
+import {faceColors} from './brand.js';
 
 /**
  * @template T
@@ -25,10 +26,9 @@ const tileSize = 100;
 const facetSize = 9;
 const faceSize = 9 * facetSize;
 
-const animatedTransitionDuration = 400;
+const animatedTransitionDuration = 200;
 const slowCameraTransitionDuration = 800;
-const fastCameraTransitionDuration = 400;
-const simulationInterval = 400;
+const fastCameraTransitionDuration = 200;
 
 const position = 0;
 
@@ -69,7 +69,7 @@ const firmament = makeDaia({
 function createFoundationTile(t) {
   const $tile = document.createElement('div');
   $tile.className = 'foundation';
-  $tile.innerText = `${t}`;
+  $tile.style.backgroundColor = faceColors[t];
   return $tile;
 }
 
@@ -188,7 +188,11 @@ async function animate() {
   }
 }
 
-function makeSimulation() {
+/**
+ * @param {number} animatedTransitionDuration - the delay in miliseconds between the
+ * submission of a turn and the time the next turn can begin.
+ */
+function makeController(animatedTransitionDuration) {
   /** @type {Deferred<void>} */
   let sync = defer();
   /** @type {Array<number>} */
@@ -205,7 +209,7 @@ function makeSimulation() {
       cursor = cursorChange;
       entities.reset(Date.now());
       entities.transition(agent, direction, cursorChange.turn);
-      await delay(simulationInterval);
+      await delay(animatedTransitionDuration);
       entities.reset(Date.now());
       entities.move(agent, cursor.position);
       draw();
@@ -226,7 +230,7 @@ function makeSimulation() {
   return {go};
 }
 
-const simulation = makeSimulation();
+const controller = makeController(animatedTransitionDuration);
 
 function draw() {
   tileKeeper.renderAround(cursor.position, radius);
@@ -240,19 +244,19 @@ window.addEventListener('keyup', event => {
   switch (key) {
     case 'ArrowUp':
     case 'k':
-      simulation.go(north);
+      controller.go(north);
       break;
     case 'ArrowRight':
     case 'l': // east
-      simulation.go(east);
+      controller.go(east);
       break;
     case 'ArrowDown':
     case 'j':
-      simulation.go(south);
+      controller.go(south);
       break;
     case 'ArrowLeft':
     case 'h': // west
-      simulation.go(west);
+      controller.go(west);
       break;
     default:
       console.log(key);
