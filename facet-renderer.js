@@ -2,12 +2,13 @@
 
 import {makeTileRenderer} from './tile-renderer.js';
 import {matrix3dStyle} from './matrix3d.js';
-import {turnVectors} from './geometry2d.js';
+import {north, east, south, west, turnVectors} from './geometry2d.js';
 import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
 /** @typedef {import('./daia.js').TileNumberFn} TileNumberFn */
+/** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
 
 /**
  * @typedef {Object} Coord
@@ -50,8 +51,9 @@ import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
  * @param {number} options.facetSize
  * @param {TileNumberFn} options.tileNumber
  * @param {TileCoordinateFn} options.facetCoordinate
+ * @param {AdvanceFn} options.advance
  */
-function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate}) {
+function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, advance}) {
   const ratio = worldSize / facetSize;
 
   /**
@@ -64,6 +66,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate}) {
     const {f: face, x: originX, y: originY} = facetCoordinate(f);
     const origin = { x: originX * ratio, y: originY * ratio };
 
+    // body
     for (let y = 0; y < facetSize; y++) {
       for (let x = 0; x < facetSize; x++) {
         const t = tileNumber({
@@ -71,9 +74,70 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate}) {
           x: origin.x + x,
           y: origin.y + y,
         });
-        tileMap.set(t, {x, y});
+        tileMap.set(t, {x, y, a: 0});
       }
     }
+
+    // west flap
+    for (let y = 0; y < facetSize; y++) {
+      const position = tileNumber({
+        f: face,
+        x: origin.x,
+        y: origin.y + y,
+      });
+      const flap = advance({position, direction: west});
+      tileMap.set(flap.position, {
+        x: -1,
+        y,
+        a: flap.turn
+      });
+    }
+
+    // east flap
+    for (let y = 0; y < facetSize; y++) {
+      const position = tileNumber({
+        f: face,
+        x: origin.x + facetSize - 1,
+        y: origin.y + y,
+      });
+      const flap = advance({position, direction: east});
+      tileMap.set(flap.position, {
+        x: facetSize,
+        y,
+        a: flap.turn
+      });
+    }
+
+    // north flap
+    for (let x = 0; x < facetSize; x++) {
+      const position = tileNumber({
+        f: face,
+        x: origin.x + x,
+        y: origin.y,
+      });
+      const flap = advance({position, direction: north});
+      tileMap.set(flap.position, {
+        x,
+        y: -1,
+        a: flap.turn
+      });
+    }
+
+    // south flap
+    for (let x = 0; x < facetSize; x++) {
+      const position = tileNumber({
+        f: face,
+        x: origin.x + x,
+        y: origin.y + facetSize - 1,
+      });
+      const flap = advance({position, direction: south});
+      tileMap.set(flap.position, {
+        x,
+        y: facetSize,
+        a: flap.turn
+      });
+    }
+
     return tileMap;
   }
 
@@ -94,6 +158,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate}) {
  * @param {EntityWatchFn} options.watchEntities
  * @param {EntityWatchFn} options.unwatchEntities
  * @param {(entity:number) => HTMLElement} options.createEntity
+ * @param {AdvanceFn} options.advance
  * @param {number} options.tileSize
  */
 export function makeFacetRenderer({
@@ -110,6 +175,7 @@ export function makeFacetRenderer({
   watchEntities,
   unwatchEntities,
   tileSize,
+  advance,
 }) {
 
   const tilesForFacet = makeFacetMapper({
@@ -117,6 +183,7 @@ export function makeFacetRenderer({
     facetSize,
     tileNumber,
     facetCoordinate,
+    advance,
   });
 
   /** @type {Map<number, Watcher>} */
@@ -155,8 +222,7 @@ export function makeFacetRenderer({
       place(e, coord, progress, direction, rotation) {
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
-        const {x: dx, y: dy} = turnVectors[direction];
-        // TODO incorporate rotation
+        const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
         const transform = compose(
           scale(tileSize),
           translate({x: 0.5, y: 0.5}),
@@ -164,7 +230,7 @@ export function makeFacetRenderer({
           translate(coord),
           translate({x: -0.5, y: -0.5}),
           scale(1/tileSize),
-          rotate(-Math.PI/2*rotation*progress),
+          rotate(-Math.PI/2 * (coord.a + (rotation * progress))),
         );
         $entity.style.transform = matrixStyle(transform);
       },

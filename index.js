@@ -165,6 +165,7 @@ const facetRenderer = makeFacetRenderer({
   facetNumber: facets.tileNumber,
   tileNumber: world.tileNumber,
   tileCoordinate: world.tileCoordinate,
+  advance: world.advance,
   facetCoordinate: facets.tileCoordinate,
   watchEntities: entities.watch,
   unwatchEntities: entities.unwatch,
