@@ -5,6 +5,32 @@ import {setDifference} from './set.js';
 const {min, max} = Math;
 
 /**
+ * @callback PutFn
+ * @param {number} e - entity number
+ * @param {number} t - tile number
+ */
+
+/**
+ * @callback MoveFn
+ * @param {number} e - entity number
+ * @param {number} to - tile number
+ */
+
+/**
+ * @callback TransitionFn
+ * @param {number} e - entity number
+ * @param {number} direction - direction to move, in quarter turns clockwise
+ * from north.
+ * @param {number} rotation - rotation to move, in quarter turns clockwise.
+ */
+
+/**
+ * @callback CreateFn
+ * @param {number} type
+ * @returns {number} the allocated entitiy number
+ */
+
+/**
  * @param {number} lo
  * @param {number} hi
  * @param {number} value
@@ -97,9 +123,7 @@ export function makeEntities(duration) {
    */
   const animating = new Map();
 
-  /**
-   * @param {number} type
-   */
+  /** @type {CreateFn} */
   function create(type) {
     const e = next;
     types.set(e, type);
@@ -114,10 +138,7 @@ export function makeEntities(duration) {
     return types.get(e);
   }
 
-  /**
-   * @param {number} e - entity number
-   * @param {number} t - tile number
-   */
+  /** @type {PutFn} */
   function put(e, t) {
     locations.set(e, t);
     let entities = colocated.get(t);
@@ -130,10 +151,7 @@ export function makeEntities(duration) {
     }
   }
 
-  /**
-   * @param {number} e - entity number
-   * @param {number} to - tile number
-   */
+  /** @type {MoveFn} */
   function move(e, to) {
     const from = locations.get(e);
     if (from == null) throw new Error(`Assertion failed: cannot move absent entity ${e}`);
@@ -260,12 +278,7 @@ export function makeEntities(duration) {
     return colocated.get(t);
   }
 
-  /**
-   * @param {number} e - entity number
-   * @param {number} direction - direction to move, in quarter turns clockwise
-   * from north.
-   * @param {number} rotation - rotation to move, in quarter turns clockwise.
-   */
+  /** @type {TransitionFn} */
   function transition(e, direction, rotation) {
     const location = locations.get(e);
     if (location === undefined) {

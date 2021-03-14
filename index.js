@@ -3,7 +3,7 @@
 import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {delay, defer} from './async.js';
-import {easeInOutQuint} from './easing.js';
+import {linear} from './easing.js';
 import {north, south, east, west} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
 import {makeDaia} from './daia.js';
@@ -13,6 +13,7 @@ import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
 import {makeEntities} from './entities.js';
 import {faceColors} from './brand.js';
+import {makeSimulation} from './simulation.js';
 
 /**
  * @template T
@@ -26,9 +27,9 @@ const tileSize = 100;
 const facetSize = 9;
 const faceSize = 9 * facetSize;
 
-const animatedTransitionDuration = 200;
-const slowCameraTransitionDuration = 800;
-const fastCameraTransitionDuration = 200;
+const animatedTransitionDuration = 300;
+const slowCameraTransitionDuration = 900;
+const fastCameraTransitionDuration = 300;
 
 const position = 0;
 
@@ -139,26 +140,29 @@ const cameraController = makeCameraController({
   camera,
   advance: world.advance,
   tileSize,
-  ease: easeInOutQuint,
+  ease: linear,
   slow: slowCameraTransitionDuration,
   fast: fastCameraTransitionDuration,
 });
 
 /**
- * @param {number} _e - entity number
+ * @param {number} e - entity number
  * @returns {HTMLElement}
  */
-function createEntity(_e) {
+function createEntity(e) {
   const $entity = document.createElement('div');
-  $entity.className = 'agent';
-  $entity.innerText = '😊';
+  const type = entities.type(e);
+  if (type === 0) { // agent
+    $entity.className = 'agent';
+    $entity.innerText = '😊';
+  } else if (type === 1) { // tree
+    $entity.className = 'agent';
+    $entity.innerText = '🌲';
+  }
   return $entity;
 }
 
 const entities = makeEntities(animatedTransitionDuration);
-
-const agent = entities.create(0);
-entities.put(agent, 0);
 
 const facetRenderer = makeFacetRenderer({
   context: $context,
@@ -205,13 +209,12 @@ function makeController(animatedTransitionDuration) {
       direction !== undefined;
       direction = commands.shift()
     ) {
-      const cursorChange = cameraController.go({position: cursor.position, direction});
-      cursor = cursorChange;
       entities.reset(Date.now());
-      entities.transition(agent, direction, cursorChange.turn);
+      simulation.intend(agent, direction);
+      simulation.tick();
       await delay(animatedTransitionDuration);
       entities.reset(Date.now());
-      entities.move(agent, cursor.position);
+      simulation.tock();
       draw();
     }
     sync.promise.then(flush);
@@ -231,6 +234,36 @@ function makeController(animatedTransitionDuration) {
 }
 
 const controller = makeController(animatedTransitionDuration);
+
+/**
+ * @typedef {import('./camera-controller.js').CursorChange} CursorChange
+ */
+
+/**
+ * @callback FollowFn
+ * @param {number} e - entity that moved
+ * @param {CursorChange} change
+ */
+
+/** @type {FollowFn} */
+function follow(e, change) {
+  if (e === agent) {
+    cameraController.go(change);
+    cursor = change;
+  }
+}
+
+const simulation = makeSimulation({
+  size: world.worldArea,
+  advance: world.advance,
+  create: entities.create,
+  transition: entities.transition,
+  move: entities.move,
+  put: entities.put,
+  follow,
+});
+
+const agent = simulation.init();
 
 function draw() {
   tileKeeper.renderAround(cursor.position, radius);
