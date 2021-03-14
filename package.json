@@ -16,7 +16,8 @@
   "private": true,
   "scripts": {
     "lint": "tsc",
-    "test": "npm run lint",
+    "test": "true",
+    "ci": "npm run lint && npm run test",
     "start": "snowpack dev",
     "build": "snowpack build --clean"
   },
