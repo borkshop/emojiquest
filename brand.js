@@ -60,6 +60,15 @@ export const palette = [
 export const faceColors = [
   lightPurple,  // 1: M
   lightOrange,  // 2: Y
+  lightBlue,    // 3: C (water is primary)
+  white,        // 4: R
+  lightBlue,    // 5: B (water is primary)
+  darkGreen,    // 6: G
+];
+
+export const earthColors = [
+  lightPurple,  // 1: M
+  lightOrange,  // 2: Y
   white,        // 3: C (water is primary)
   white,        // 4: R
   lightOrange,  // 5: B (water is primary)
