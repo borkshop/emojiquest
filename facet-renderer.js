@@ -78,6 +78,28 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
       }
     }
 
+    // Here follows a buggy but mostly working attempt to replace
+    // the four hand-rolled cases below:
+    // // flaps
+    // for (let direction = 0; direction < 4; direction++) {
+    //   const across = (direction + 1) % 4;
+    //   let edge = transform(corners[direction], scale(ratio - 1));
+    //   edge = transform(edge, translate(origin));
+    //   for (let distance = 0; distance < facetSize; distance++) {
+    //     const position = tileNumber({
+    //       f: face,
+    //       ...edge
+    //     });
+    //     const next = advance({position, direction});
+    //     const flap = transform(edge, translate(turnVectors[direction]));
+    //     tileMap.set(next.position, {
+    //       ...flap,
+    //       a: next.turn
+    //     });
+    //     edge = transform(edge, translate(turnVectors[across]));
+    //   }
+    // }
+
     // west flap
     for (let y = 0; y < facetSize; y++) {
       const position = tileNumber({
