@@ -3,7 +3,7 @@
 import {makeTileRenderer} from './tile-renderer.js';
 import {matrix3dStyle} from './matrix3d.js';
 import {north, east, south, west, turnVectors} from './geometry2d.js';
-import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
+import {compose, translate, rotate, matrixStyle} from './matrix2d.js';
 
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
@@ -146,7 +146,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
 
 /**
  * @param {Object} options
- * @param {HTMLElement} options.context
+ * @param {Element} options.context
  * @param {number} options.worldSize
  * @param {number} options.facetSize
  * @param {TileTransformFn} options.facetTransform
@@ -154,12 +154,11 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
  * @param {TileNumberFn} options.tileNumber
  * @param {TileCoordinateFn} options.tileCoordinate
  * @param {TileCoordinateFn} options.facetCoordinate
- * @param {(tile:number) => HTMLElement} options.createFacet
+ * @param {(tile:number) => SVGElement} options.createFacet
  * @param {EntityWatchFn} options.watchEntities
  * @param {EntityWatchFn} options.unwatchEntities
- * @param {(entity:number) => HTMLElement} options.createEntity
+ * @param {(entity:number) => SVGElement} options.createEntity
  * @param {AdvanceFn} options.advance
- * @param {number} options.tileSize
  */
 export function makeFacetRenderer({
   context,
@@ -174,7 +173,6 @@ export function makeFacetRenderer({
   facetCoordinate,
   watchEntities,
   unwatchEntities,
-  tileSize,
   advance,
 }) {
 
@@ -224,15 +222,12 @@ export function makeFacetRenderer({
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
         const transform = compose(
-          scale(tileSize),
           translate({x: 0.5, y: 0.5}),
           translate({x: dx * progress, y: dy * progress}),
           translate(coord),
-          translate({x: -0.5, y: -0.5}),
-          scale(1/tileSize),
           rotate(-Math.PI/2 * (coord.a + (rotation * progress))),
         );
-        $entity.style.transform = matrixStyle(transform);
+        $entity.setAttributeNS(null, 'transform', matrixStyle(transform));
       },
 
       /**
@@ -264,11 +259,12 @@ export function makeFacetRenderer({
   }
 
   /**
-   * @param {HTMLElement} $facet
+   * @param {SVGElement} $facet
    * @param {number} f
    */
   function placeFacet($facet, f) {
     const transform = facetTransform(f);
+    // Placed using HTML transform, not SVG transform.
     $facet.style.transform = matrix3dStyle(transform);
   }
 

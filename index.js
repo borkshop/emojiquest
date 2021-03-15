@@ -96,13 +96,18 @@ function createFirmamentTile(_t) {
   return $tile;
 }
 
+const svgNS = "http://www.w3.org/2000/svg";
+
 /**
  * @param {number} _f
- * @returns {HTMLElement}
+ * @returns {SVGElement}
  */
 function createFacet(_f) {
-  const $tile = document.createElement('div');
-  $tile.className = 'facet';
+  const $tile = document.createElementNS(svgNS, 'svg');
+  $tile.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
+  $tile.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
+  $tile.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
+  $tile.setAttributeNS(null, 'class', 'facet');
   return $tile;
 }
 
@@ -147,17 +152,16 @@ const cameraController = makeCameraController({
 
 /**
  * @param {number} e - entity number
- * @returns {HTMLElement}
+ * @returns {SVGElement}
  */
 function createEntity(e) {
-  const $entity = document.createElement('div');
+  const $entity = document.createElementNS(svgNS, 'text');
   const type = entities.type(e);
+  $entity.setAttributeNS(null, 'class', 'moji');
   if (type === 0) { // agent
-    $entity.className = 'agent';
-    $entity.innerText = '😊';
+    $entity.appendChild(document.createTextNode('🙂'));
   } else if (type === 1) { // tree
-    $entity.className = 'agent';
-    $entity.innerText = '🌲';
+    $entity.appendChild(document.createTextNode('🌲'));
   }
   return $entity;
 }
@@ -178,7 +182,6 @@ const facetRenderer = makeFacetRenderer({
   facetCoordinate: facets.tileCoordinate,
   watchEntities: entities.watch,
   unwatchEntities: entities.unwatch,
-  tileSize,
 });
 
 const tileKeeper = makeTileKeeper(facetRenderer, world.advance);

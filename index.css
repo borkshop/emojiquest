@@ -116,3 +116,11 @@ aside.menu {
   font-size: 20px;
   backface-visibility: visible;
 }
+
+text.moji {
+  font-size: 0.7px;
+  height: 1;
+  width: 1;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
