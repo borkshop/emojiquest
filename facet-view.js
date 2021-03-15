@@ -1,6 +1,6 @@
 // @ts-check
 
-import {makeTileRenderer} from './tile-renderer.js';
+import {makeTileView} from './tile-view.js';
 import {matrix3dStyle} from './matrix3d.js';
 import {north, east, south, west, turnVectors} from './geometry2d.js';
 import {compose, translate, rotate, matrixStyle} from './matrix2d.js';
@@ -182,7 +182,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
  * @param {(entity:number) => SVGElement} options.createEntity
  * @param {AdvanceFn} options.advance
  */
-export function makeFacetRenderer({
+export function makeFacetView({
   context,
   createFacet,
   createEntity,
@@ -290,7 +290,7 @@ export function makeFacetRenderer({
     $facet.style.transform = matrix3dStyle(transform);
   }
 
-  const facetRenderer = makeTileRenderer(context, placeFacet, createMappedFacet, collectMappedFacet);
+  const facetView = makeTileView(context, placeFacet, createMappedFacet, collectMappedFacet);
 
   /**
    * Tracks numbered tiles in the numbered facets.
@@ -321,7 +321,7 @@ export function makeFacetRenderer({
     if (facet == null) {
       facet = new Set();
       facetTiles.set(f, facet);
-      facetRenderer.enter(f);
+      facetView.enter(f);
     }
     facet.add(t);
   }
@@ -338,7 +338,7 @@ export function makeFacetRenderer({
     tiles.delete(t);
     if (tiles.size === 0) {
       facetTiles.delete(f);
-      facetRenderer.exit(f);
+      facetView.exit(f);
     }
   }
 

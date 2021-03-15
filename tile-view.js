@@ -6,7 +6,7 @@
  */
 
 /**
- * @typedef {Object} TileRenderer
+ * @typedef {Object} TileView
  * @prop {TouchEntityFn} enter
  * @prop {TouchEntityFn} exit
  */
@@ -38,9 +38,9 @@ const noop = () => {};
  * @param {(element: Element, tile: number) => void} position
  * @param {(tile: number) => Element} createElement
  * @param {(tile: number) => void} [collectElement]
- * @return {TileRenderer}
+ * @return {TileView}
  */
-export function makeTileRenderer($context, position, createElement, collectElement = noop) {
+export function makeTileView($context, position, createElement, collectElement = noop) {
   const $tiles = new Map()
 
   /**

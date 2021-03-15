@@ -11,7 +11,7 @@ import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
 import {makeTileKeeper} from './tile-keeper.js';
-import {makeFacetRenderer} from './facet-renderer.js';
+import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeModel} from './model.js';
 
@@ -168,7 +168,7 @@ function createEntity(e) {
 
 const viewModel = makeViewModel(animatedTransitionDuration);
 
-const facetRenderer = makeFacetRenderer({
+const facetView = makeFacetView({
   context: $context,
   createFacet,
   createEntity,
@@ -185,8 +185,8 @@ const facetRenderer = makeFacetRenderer({
 });
 
 const {keepTilesAround} = makeTileKeeper({
-  enter: facetRenderer.enter,
-  exit: facetRenderer.exit,
+  enter: facetView.enter,
+  exit: facetView.exit,
   advance: world.advance
 });
 
