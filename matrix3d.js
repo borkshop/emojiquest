@@ -89,7 +89,7 @@ export function multiply(m, n) {
  * @returns {Matrix}
  */
 export function compose(...matrixes) {
-  return matrixes.reduce(multiply, identity);
+  return matrixes.reduceRight(multiply, identity);
 }
 
 /**

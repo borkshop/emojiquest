@@ -149,8 +149,8 @@ export const faceRotations = [
 const faceTransforms = [
   [], // 0 front
   [rotateY(Math.PI/2)], // 1 right
-  [rotateX(-Math.PI/2), rotateZ(-Math.PI/2)], // 2 bottom
-  [rotateX(Math.PI/2), rotateZ(-Math.PI/2)], // 3 top
+  [rotateZ(-Math.PI/2), rotateX(-Math.PI/2)], // 2 bottom
+  [rotateZ(-Math.PI/2), rotateX(Math.PI/2)], // 3 top
   [rotateY(-Math.PI/2)], // 4 left
   [rotateY(Math.PI)], // 5 back
 ].map(matrixes => compose(...matrixes));
@@ -204,8 +204,16 @@ export function makeDaia({
     z: -worldSize / 2 + tileSize / 2,
   });
 
-  const faceCorners = faceTransforms.map(matrix => compose(cornerAdjustment, transform, matrix, cornerTransform));
-  const faceOrigins = faceTransforms.map(matrix => compose(matrix, centerTransform));
+  const faceCorners = faceTransforms.map(matrix => compose(
+    cornerTransform,
+    matrix,
+    transform,
+    cornerAdjustment,
+  ));
+  const faceOrigins = faceTransforms.map(matrix => compose(
+    centerTransform,
+    matrix,
+  ));
 
   /**
    * @param {{x: number, y: number}} position
@@ -322,12 +330,12 @@ export function makeDaia({
   function tileTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
-      faceCorners[f],
       translate({
         x: tileSize * x,
         y: tileSize * y,
         z: 0,
       }),
+      faceCorners[f],
     );
   }
 
@@ -335,12 +343,12 @@ export function makeDaia({
   function cameraTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
-      faceOrigins[f],
       translate({
         x: -tileSize * x,
         y: -tileSize * y,
         z: 0,
       }),
+      faceOrigins[f],
     );
   }
 

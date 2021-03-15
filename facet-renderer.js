@@ -244,10 +244,10 @@ export function makeFacetRenderer({
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
         const transform = compose(
-          translate({x: 0.5, y: 0.5}),
-          translate({x: dx * progress, y: dy * progress}),
-          translate(coord),
           rotate(-Math.PI/2 * (coord.a + (rotation * progress))),
+          translate(coord),
+          translate({x: dx * progress, y: dy * progress}),
+          translate({x: 0.5, y: 0.5}),
         );
         $entity.setAttributeNS(null, 'transform', matrixStyle(transform));
       },
