@@ -31,7 +31,7 @@ const [agent, tree] = count();
  * @param {CreateFn} args.create
  * @param {FollowFn} args.follow
  */
-export function makeSimulation({
+export function makeModel({
   size,
   advance,
   create,
@@ -144,7 +144,6 @@ export function makeSimulation({
     targets.clear();
     intents.clear();
   }
-
 
   return {intend, tick, tock, init};
 }

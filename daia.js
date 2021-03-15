@@ -99,7 +99,6 @@
  * @prop {boolean} transit
  */
 
-
 /**
  * @callback AdvanceFn
  * @param {Cursor} cursor

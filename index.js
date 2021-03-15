@@ -13,7 +13,7 @@ import {makeCameraController} from './camera-controller.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
 import {makeViewModel} from './view-model.js';
-import {makeSimulation} from './simulation.js';
+import {makeModel} from './model.js';
 
 /**
  * @template T
@@ -213,11 +213,11 @@ function makeController(animatedTransitionDuration) {
       direction = commands.shift()
     ) {
       viewModel.reset(Date.now());
-      simulation.intend(agent, direction);
-      simulation.tick();
+      model.intend(agent, direction);
+      model.tick();
       await delay(animatedTransitionDuration);
       viewModel.reset(Date.now());
-      simulation.tock();
+      model.tock();
       draw();
     }
     sync.promise.then(flush);
@@ -256,7 +256,7 @@ function follow(e, change) {
   }
 }
 
-const simulation = makeSimulation({
+const model = makeModel({
   size: world.worldArea,
   advance: world.advance,
   create: viewModel.create,
@@ -266,7 +266,7 @@ const simulation = makeSimulation({
   follow,
 });
 
-const agent = simulation.init();
+const agent = model.init();
 
 function draw() {
   tileKeeper.renderAround(cursor.position, radius);
