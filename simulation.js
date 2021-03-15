@@ -1,10 +1,10 @@
 
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
- * @typedef {import('./entities.js').CreateFn} CreateFn
- * @typedef {import('./entities.js').MoveFn} MoveFn
- * @typedef {import('./entities.js').PutFn} PutFn
- * @typedef {import('./entities.js').TransitionFn} TransitionFn
+ * @typedef {import('./view-model.js').CreateFn} CreateFn
+ * @typedef {import('./view-model.js').MoveFn} MoveFn
+ * @typedef {import('./view-model.js').PutFn} PutFn
+ * @typedef {import('./view-model.js').TransitionFn} TransitionFn
  */
 
 import {count} from './iteration.js';

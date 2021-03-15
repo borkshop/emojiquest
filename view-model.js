@@ -91,7 +91,7 @@ function clamp(lo, hi, value) {
 /**
  * @param {number} duration
  */
-export function makeEntities(duration) {
+export function makeViewModel(duration) {
   let start = 0;
   let next = 0;
 

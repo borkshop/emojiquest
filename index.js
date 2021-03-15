@@ -6,13 +6,13 @@ import {delay, defer} from './async.js';
 import {linear} from './easing.js';
 import {north, south, east, west} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
+import {faceColors} from './brand.js';
 import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetRenderer} from './facet-renderer.js';
-import {makeEntities} from './entities.js';
-import {faceColors} from './brand.js';
+import {makeViewModel} from './view-model.js';
 import {makeSimulation} from './simulation.js';
 
 /**
@@ -156,7 +156,7 @@ const cameraController = makeCameraController({
  */
 function createEntity(e) {
   const $entity = document.createElementNS(svgNS, 'text');
-  const type = entities.type(e);
+  const type = viewModel.type(e);
   $entity.setAttributeNS(null, 'class', 'moji');
   if (type === 0) { // agent
     $entity.appendChild(document.createTextNode('🙂'));
@@ -166,7 +166,7 @@ function createEntity(e) {
   return $entity;
 }
 
-const entities = makeEntities(animatedTransitionDuration);
+const viewModel = makeViewModel(animatedTransitionDuration);
 
 const facetRenderer = makeFacetRenderer({
   context: $context,
@@ -180,8 +180,8 @@ const facetRenderer = makeFacetRenderer({
   tileCoordinate: world.tileCoordinate,
   advance: world.advance,
   facetCoordinate: facets.tileCoordinate,
-  watchEntities: entities.watch,
-  unwatchEntities: entities.unwatch,
+  watchEntities: viewModel.watch,
+  unwatchEntities: viewModel.unwatch,
 });
 
 const tileKeeper = makeTileKeeper(facetRenderer, world.advance);
@@ -191,7 +191,7 @@ async function animate() {
     await nextFrame();
     const now = Date.now();
     camera.animate(now);
-    entities.animate(now);
+    viewModel.animate(now);
   }
 }
 
@@ -212,11 +212,11 @@ function makeController(animatedTransitionDuration) {
       direction !== undefined;
       direction = commands.shift()
     ) {
-      entities.reset(Date.now());
+      viewModel.reset(Date.now());
       simulation.intend(agent, direction);
       simulation.tick();
       await delay(animatedTransitionDuration);
-      entities.reset(Date.now());
+      viewModel.reset(Date.now());
       simulation.tock();
       draw();
     }
@@ -259,10 +259,10 @@ function follow(e, change) {
 const simulation = makeSimulation({
   size: world.worldArea,
   advance: world.advance,
-  create: entities.create,
-  transition: entities.transition,
-  move: entities.move,
-  put: entities.put,
+  create: viewModel.create,
+  transition: viewModel.transition,
+  move: viewModel.move,
+  put: viewModel.put,
   follow,
 });
 
