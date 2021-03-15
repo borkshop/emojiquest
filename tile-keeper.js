@@ -1,10 +1,14 @@
 // @ts-check
 
-/** @typedef {import('./tile-renderer.js').TileRenderer} TileRenderer */
+import {circle} from './circle.js';
+import {setDifference} from './set.js';
+
 /** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
 
-import {circle} from './topology.js';
-import {setDifference} from './set.js';
+/**
+ * @callback TileFn
+ * @param {number} tile
+ */
 
 /**
  * @callback RenderAroundFn
@@ -14,15 +18,17 @@ import {setDifference} from './set.js';
 
 /**
  * @typedef {Object} TileKeeper
- * @prop {RenderAroundFn} renderAround
+ * @prop {RenderAroundFn} keepTilesAround
  */
 
 /**
- * @param {TileRenderer} renderer
- * @param {AdvanceFn} advance
+ * @param {Object} args
+ * @param {TileFn} args.enter
+ * @param {TileFn} args.exit
+ * @param {AdvanceFn} args.advance
  * @returns {TileKeeper}
  */
-export function makeTileKeeper(renderer, advance) {
+export function makeTileKeeper({enter, exit, advance}) {
   let nextTiles = new Set();
   let prevTiles = new Set();
 
@@ -30,19 +36,19 @@ export function makeTileKeeper(renderer, advance) {
    * @param {number} at
    * @param {number} radius
    */
-  function renderAround(at, radius) {
+  function keepTilesAround(at, radius) {
     nextTiles.clear();
     for (const t of circle(at, advance, radius)) {
       nextTiles.add(t);
     }
     for (const t of setDifference(prevTiles, nextTiles)) {
-      renderer.exit(t);
+      exit(t);
     }
     for (const t of setDifference(nextTiles, prevTiles)) {
-      renderer.enter(t);
+      enter(t);
     }
     [nextTiles, prevTiles] = [prevTiles, nextTiles];
   }
 
-  return {renderAround}
+  return {keepTilesAround};
 }

@@ -184,7 +184,11 @@ const facetRenderer = makeFacetRenderer({
   unwatchEntities: viewModel.unwatch,
 });
 
-const tileKeeper = makeTileKeeper(facetRenderer, world.advance);
+const {keepTilesAround} = makeTileKeeper({
+  enter: facetRenderer.enter,
+  exit: facetRenderer.exit,
+  advance: world.advance
+});
 
 async function animate() {
   for (;;) {
@@ -269,7 +273,7 @@ const model = makeModel({
 const agent = model.init();
 
 function draw() {
-  tileKeeper.renderAround(cursor.position, radius);
+  keepTilesAround(cursor.position, radius);
 }
 
 animate();
