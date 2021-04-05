@@ -22,6 +22,8 @@ const {min, max} = Math;
  * @param {number} direction - direction to move, in quarter turns clockwise
  * from north.
  * @param {number} rotation - rotation to move, in quarter turns clockwise.
+ * @param {boolean} bump - whether the entity makes an aborted attempt
+ * in the direction, or by default follows through.
  */
 
 /**
@@ -50,6 +52,8 @@ function clamp(lo, hi, value) {
  * @typedef {Object} Animation
  * @prop {number} direction - in quarter turns clockwise from north.
  * @prop {number} rotation - in quarter turns clockwise, positive or negative.
+ * @prop {boolean} bump - whether the entity makes an aborted attempt in the
+ * direction.
  */
 
 /**
@@ -79,6 +83,8 @@ function clamp(lo, hi, value) {
  * plane, 0 if not animated.
  * @param {number} rotation - rotation in quarter turns clockwise, positive or
  * negative.
+ * @param {boolean} bump - whether the entity has made an aborted attempt
+ * to transition in  the direction.
  */
 
 /**
@@ -179,7 +185,7 @@ export function makeViewModel(duration) {
     }
     if (after) {
       for (const [watcher, coord] of after.entries()) {
-        watcher.place(e, coord, 0, 0, 0);
+        watcher.place(e, coord, 0, 0, 0, false);
       }
     }
   }
@@ -219,7 +225,7 @@ export function makeViewModel(duration) {
     if (entities) {
       for (const e of entities) {
         watcher.enter(e);
-        watcher.place(e, coord, 0, 0, 0);
+        watcher.place(e, coord, 0, 0, 0, false);
       }
     }
   }
@@ -279,12 +285,12 @@ export function makeViewModel(duration) {
   }
 
   /** @type {TransitionFn} */
-  function transition(e, direction, rotation) {
+  function transition(e, direction, rotation, bump) {
     const location = locations.get(e);
     if (location === undefined) {
       throw new Error(`Assertion failed: no location for entity ${e}`);
     }
-    animating.set(e, {direction, rotation});
+    animating.set(e, {direction, rotation, bump});
   }
 
   /**
@@ -292,13 +298,13 @@ export function makeViewModel(duration) {
    */
   function animate(now) {
     const progress = clamp(0, 1, (now - start) / duration);
-    for (const [e, {direction, rotation}] of animating.entries()) {
+    for (const [e, {direction, rotation, bump}] of animating.entries()) {
       const t = locations.get(e);
       if (t !== undefined) {
         const tileWatchers = watchers.get(t);
         if (tileWatchers !== undefined) {
           for (const [watcher, coord] of tileWatchers.entries()) {
-            watcher.place(e, coord, progress, direction, rotation);
+            watcher.place(e, coord, progress, direction, rotation, bump);
           }
         }
       }

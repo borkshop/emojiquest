@@ -112,30 +112,41 @@ export function makeModel({
       intend(mobile, Math.floor(Math.random() * 4));
     }
 
+    // Prepare the next generation
     for (let i = 0; i < size; i++) {
       entitiesNext[i] = entitiesPrev[i];
     }
 
     // Auction moves
     for (const [destination, options] of targets.entries()) {
+      const candidates = [...options.keys()].sort(() => Math.random() - 0.5);
       if (entitiesPrev[destination] === undefined) {
         if (location === undefined) throw new Error(`Assertion failed`);
         // TODO: pluck less lazy
-        const candidates = [...options.keys()].sort(() => Math.random() - 0.5);
         const winner = candidates.pop();
         if (winner === undefined) throw new Error(`Assertion failed`);
-        const change = options.get(winner);
+        {
+          const change = options.get(winner);
+          if (change === undefined) throw new Error(`Assertion failed`);
+          const {position: origin, direction, turn} = change;
+          transition(winner, direction, turn, false);
+          follow(winner, change);
+          moves.set(winner, destination);
+          locations.set(winner, destination);
+          entitiesNext[destination] = winner;
+          entitiesNext[origin] = undefined;
+        }
+      }
+      for (const loser of candidates) {
+        const change = options.get(loser);
         if (change === undefined) throw new Error(`Assertion failed`);
-        const {position: origin, direction, turn} = change;
-        transition(winner, direction, turn);
-        follow(winner, change);
-        moves.set(winner, destination);
-        locations.set(winner, destination);
-        entitiesNext[destination] = winner;
-        entitiesNext[origin] = undefined;
+        const {position: origin, direction} = change;
+        transition(loser, direction, 0, true);
+        moves.set(loser, origin);
       }
     }
 
+    // Swap generations
     [entitiesNext, entitiesPrev] = [entitiesPrev, entitiesNext];
   }
 

@@ -36,6 +36,8 @@ import {compose, translate, rotate, matrixStyle} from './matrix2d.js';
  * that the entity is moving in the relative to the orientation of its original
  * plane, 0 if not animated.
  * @param {number} rotation - in quarter turns clockwise, positive or negative.
+ * @param {boolean} bump - whether the entity is in an aborted attempt
+ * to move in the given direction.
  */
 
 /**
@@ -238,15 +240,18 @@ export function makeFacetView({
        * clockwise from north, or 0 if not animated.
        * @param {number} rotation - rotation to move, in quarter turns
        * clockwise.
+       * @param {boolean} bump - whether the entity makes an aborted
+       * motion in the direction instead of a transition to that position.
        */
-      place(e, coord, progress, direction, rotation) {
+      place(e, coord, progress, direction, rotation, bump) {
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
+        const wave = bump ? 0.125 - Math.cos(Math.PI * 2 * progress) * 0.125 : progress;
         const transform = compose(
           rotate(-Math.PI/2 * (coord.a + (rotation * progress))),
           translate(coord),
-          translate({x: dx * progress, y: dy * progress}),
+          translate({x: dx * wave, y: dy * wave}),
           translate({x: 0.5, y: 0.5}),
         );
         $entity.setAttributeNS(null, 'transform', matrixStyle(transform));
