@@ -41,7 +41,8 @@ export function makeModel({
   follow,
 }) {
   /** @type {Array<number | undefined>} */
-  const entities = new Array(size);
+  let entitiesPrev = new Array(size);
+  let entitiesNext = new Array(size);
   // const priorities = new Array(size);
   const intents = new Map();
   const locations = new Map();
@@ -56,7 +57,7 @@ export function makeModel({
     const spawn = 0;
 
     const a = create(agent);
-    entities[spawn] = a;
+    entitiesPrev[spawn] = a;
     locations.set(a, spawn);
     put(a, spawn);
 
@@ -64,7 +65,7 @@ export function makeModel({
       if (Math.random() < 0.25 && t !== spawn) {
         const e = create(tree);
         put(e, t);
-        entities[t] = e;
+        entitiesPrev[t] = e;
         if (Math.random() < 0.25) {
           mobiles.add(e);
           locations.set(e, t);
@@ -111,9 +112,13 @@ export function makeModel({
       intend(mobile, Math.floor(Math.random() * 4));
     }
 
+    for (let i = 0; i < size; i++) {
+      entitiesNext[i] = entitiesPrev[i];
+    }
+
     // Auction moves
     for (const [destination, options] of targets.entries()) {
-      if (entities[destination] === undefined) {
+      if (entitiesPrev[destination] === undefined) {
         if (location === undefined) throw new Error(`Assertion failed`);
         // TODO: pluck less lazy
         const candidates = [...options.keys()].sort(() => Math.random() - 0.5);
@@ -126,10 +131,12 @@ export function makeModel({
         follow(winner, change);
         moves.set(winner, destination);
         locations.set(winner, destination);
-        entities[destination] = winner;
-        entities[origin] = undefined;
+        entitiesNext[destination] = winner;
+        entitiesNext[origin] = undefined;
       }
     }
+
+    [entitiesNext, entitiesPrev] = [entitiesPrev, entitiesNext];
   }
 
   /**
