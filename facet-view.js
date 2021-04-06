@@ -247,11 +247,12 @@ export function makeFacetView({
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
-        const wave = bump ? 0.125 - Math.cos(Math.PI * 2 * progress) * 0.125 : progress;
+        const waveProgress = (1 - Math.cos(Math.PI * progress)) / 2;
+        const shiftProgress = bump ? (1 - Math.cos(Math.PI * 2 * waveProgress)) / 16 : waveProgress;
         const transform = compose(
-          rotate(-Math.PI/2 * (coord.a + (rotation * progress))),
+          rotate(-Math.PI/2 * (coord.a + (rotation * waveProgress))),
           translate(coord),
-          translate({x: dx * wave, y: dy * wave}),
+          translate({x: dx * shiftProgress, y: dy * shiftProgress}),
           translate({x: 0.5, y: 0.5}),
         );
         $entity.setAttributeNS(null, 'transform', matrixStyle(transform));
