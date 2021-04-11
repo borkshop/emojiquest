@@ -204,40 +204,62 @@ async function animate() {
  * submission of a turn and the time the next turn can begin.
  */
 function makeController(animatedTransitionDuration) {
-  /** @type {Deferred<void>} */
+  /** @type {Deferred<number>} */
   let sync = defer();
-  /** @type {Array<number>} */
-  const commands = [];
+  let stop = () => {};
+  /** @type {Set<number>} */
+  const directions = new Set();
+  // TODO const vector = {x: 0, y: 0};
 
-  async function flush() {
-    sync = defer();
-    for (
-      let direction = commands.shift();
-      direction !== undefined;
-      direction = commands.shift()
-    ) {
-      viewModel.reset(Date.now());
-      model.intend(agent, direction);
-      model.tick();
-      await delay(animatedTransitionDuration);
-      viewModel.reset(Date.now());
-      model.tock();
-      draw();
+  /**
+   * @param {number} direction
+   */
+  async function tickTock(direction) {
+    viewModel.reset(Date.now());
+    // TODO: better
+    model.intend(agent, direction);
+    model.tick();
+    // TODO cancel on stop to skip animation
+    await delay(animatedTransitionDuration);
+    viewModel.reset(Date.now());
+    model.tock();
+    draw();
+  }
+
+  async function run() {
+    for (;;) {
+      let stopped = false;
+      stop = () => { stopped = true; };
+      sync = defer();
+      await tickTock(await sync.promise);
+      while (!stopped) {
+        await tickTock([...directions.values()].pop() || 0);
+      }
     }
-    sync.promise.then(flush);
   }
 
   /**
    * @param {number} direction
    */
-  function go(direction) {
-    commands.push(direction);
-    sync.resolve();
+  function down(direction) {
+    directions.add(direction);
+    console.log('down', ...directions);
+    sync.resolve(direction);
   }
 
-  sync.promise.then(flush);
+  /**
+   * @param {number} direction
+   */
+  function up(direction) {
+    directions.delete(direction);
+    if (directions.size === 0) {
+      stop();
+    }
+  }
 
-  return {go};
+  run();
+
+  return {down, up};
 }
 
 const controller = makeController(animatedTransitionDuration);
@@ -279,26 +301,36 @@ function draw() {
 animate();
 draw();
 
-window.addEventListener('keyup', event => {
-  const {key} = event;
-  switch (key) {
-    case 'ArrowUp':
-    case 'k':
-      controller.go(north);
-      break;
-    case 'ArrowRight':
-    case 'l': // east
-      controller.go(east);
-      break;
-    case 'ArrowDown':
-    case 'j':
-      controller.go(south);
-      break;
-    case 'ArrowLeft':
-    case 'h': // west
-      controller.go(west);
-      break;
-    default:
-      console.log(key);
-  }
-});
+/**
+ * @param {(direction: number) => void} direct
+ */
+function director(direct) {
+  /**
+   * @param {KeyboardEvent} event
+   */
+  const handler = event => {
+    const {key} = event;
+    switch (key) {
+      case 'ArrowUp':
+      case 'k':
+        direct(north);
+        break;
+      case 'ArrowRight':
+      case 'l': // east
+        direct(east);
+        break;
+      case 'ArrowDown':
+      case 'j':
+        direct(south);
+        break;
+      case 'ArrowLeft':
+      case 'h': // west
+        direct(west);
+        break;
+    }
+  };
+  return handler;
+}
+
+window.addEventListener('keydown', director(controller.down));
+window.addEventListener('keyup', director(controller.up));
