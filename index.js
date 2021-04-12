@@ -34,6 +34,17 @@ const fastCameraTransitionDuration = 300;
 const position = 0;
 
 let cursor = {position, direction: north};
+/**
+ * The moment preserves the intended heading of the player agent if they
+ * transit from one face of the world to another and suffer a forced
+ * orientation change. For example, transiting over the north edge of the north
+ * polar facet of the world implies a 180 degree rotation, so if the player
+ * continues "north", they would otherwise bounce back and forth between the
+ * top and back face of the world.  Preserving the moment allows northward
+ * travel to translate to southward travel along the back face, until the
+ * player releases the "north" key.
+ */
+let moment = 0;
 
 const world = makeDaia({
   tileSize,
@@ -204,11 +215,14 @@ async function animate() {
  * submission of a turn and the time the next turn can begin.
  */
 function makeController(animatedTransitionDuration) {
-  /** @type {Deferred<number>} */
+  /** @type {Deferred<void>} */
   let sync = defer();
-  let stop = () => {};
-  /** @type {Set<number>} */
-  const directions = new Set();
+  /** @type {Deferred<void>} */
+  let abort = defer();
+  /** @type {Array<number>} */
+  const queue = [];
+  /** @type {Map<number, number>} */
+  const held = new Map();
   // TODO const vector = {x: 0, y: 0};
 
   /**
@@ -219,8 +233,10 @@ function makeController(animatedTransitionDuration) {
     // TODO: better
     model.intend(agent, direction);
     model.tick();
-    // TODO cancel on stop to skip animation
-    await delay(animatedTransitionDuration);
+    await Promise.race([
+      abort.promise,
+      delay(animatedTransitionDuration),
+    ]);
     viewModel.reset(Date.now());
     model.tock();
     draw();
@@ -228,12 +244,28 @@ function makeController(animatedTransitionDuration) {
 
   async function run() {
     for (;;) {
-      let stopped = false;
-      stop = () => { stopped = true; };
       sync = defer();
-      await tickTock(await sync.promise);
-      while (!stopped) {
-        await tickTock([...directions.values()].pop() || 0);
+      await sync.promise;
+
+      let direction;
+      while (direction = queue.shift(), direction !== undefined) {
+        await tickTock((direction + moment) % 4);
+      }
+
+      moment = 0;
+      while (held.size) {
+        const now = Date.now();
+        for (const [heldDirection, start] of held.entries()) {
+          const duration = now - start;
+          if (duration > animatedTransitionDuration) {
+            direction = heldDirection;
+          }
+        }
+        if (direction !== undefined) {
+          await tickTock((direction + moment) % 4);
+        } else {
+          break;
+        }
       }
     }
   }
@@ -242,19 +274,24 @@ function makeController(animatedTransitionDuration) {
    * @param {number} direction
    */
   function down(direction) {
-    directions.add(direction);
-    console.log('down', ...directions);
-    sync.resolve(direction);
+    if (held.size === 0) {
+      abort.resolve();
+      abort = defer();
+      queue.length = 0;
+    }
+    if (!held.has(direction)) {
+      held.set(direction, Date.now());
+    }
+    queue.push(direction);
+    sync.resolve();
+    sync = defer();
   }
 
   /**
    * @param {number} direction
    */
   function up(direction) {
-    directions.delete(direction);
-    if (directions.size === 0) {
-      stop();
-    }
+    held.delete(direction);
   }
 
   run();
@@ -279,6 +316,7 @@ function follow(e, change) {
   if (e === agent) {
     cameraController.go(change);
     cursor = change;
+    moment = (moment + change.turn + 4) % 4;
   }
 }
 
@@ -309,7 +347,8 @@ function director(direct) {
    * @param {KeyboardEvent} event
    */
   const handler = event => {
-    const {key} = event;
+    const {key, repeat} = event;
+    if (repeat) return;
     switch (key) {
       case 'ArrowUp':
       case 'k':
