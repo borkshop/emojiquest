@@ -252,7 +252,6 @@ function makeController(animatedTransitionDuration) {
         await tickTock((direction + moment) % 4);
       }
 
-      moment = 0;
       while (held.size) {
         const now = Date.now();
         for (const [heldDirection, start] of held.entries()) {
@@ -292,6 +291,10 @@ function makeController(animatedTransitionDuration) {
    */
   function up(direction) {
     held.delete(direction);
+    // Clear the momentum heading if the player releases all keys.
+    if (held.size === 0) {
+      moment = 0;
+    }
   }
 
   run();
