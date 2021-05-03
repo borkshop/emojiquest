@@ -21,6 +21,7 @@ import {makeModel} from './model.js';
  */
 
 const $context = mustFind('#context');
+const $debug = mustFind('#debug');
 
 const radius = 10;
 const tileSize = 100;
@@ -312,14 +313,16 @@ const controller = makeController(animatedTransitionDuration);
  * @callback FollowFn
  * @param {number} e - entity that moved
  * @param {CursorChange} change
+ * @param {number} destination
  */
 
 /** @type {FollowFn} */
-function follow(e, change) {
+function follow(e, change, destination) {
   if (e === agent) {
     cameraController.go(change);
     cursor = change;
     moment = (moment + change.turn + 4) % 4;
+    $debug.innerText = world.toponym(destination);
   }
 }
 

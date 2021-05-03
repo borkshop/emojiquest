@@ -42,3 +42,33 @@ export const sliceVectors = [
   {x: -1, y:  0}, // ww
   {x: -1, y: -1}, // nw
 ];
+
+/**
+ * @template T
+ * @typedef {{q: T, r: T}} ModDiv
+ */
+
+/**
+ * @param {number} n
+ * @param {number} d
+ * @returns {ModDiv<number>}
+ */
+function moddiv(n, d) {
+  const q = Math.floor(n / d);
+  const r = n - q * d;
+  return {q, r};
+}
+
+/**
+ * @param {Point} n
+ * @param {Point} d
+ * @returns {ModDiv<Point>}
+ */
+export function moddivpoint({x, y}, {x: dx, y: dy}) {
+  const {q: qx, r: rx} = moddiv(x, dx);
+  const {q: qy, r: ry} = moddiv(y, dy);
+  return {
+    q: {x: qx, y: qy},
+    r: {x: rx, y: ry},
+  };
+}

@@ -19,6 +19,7 @@ const [agent, tree] = count();
  * @callback FollowFn
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
+ * @param {number} destination
  */
 
 /**
@@ -130,7 +131,7 @@ export function makeModel({
           if (change === undefined) throw new Error(`Assertion failed`);
           const {position: origin, direction, turn} = change;
           transition(winner, direction, turn, false);
-          follow(winner, change);
+          follow(winner, change, destination);
           moves.set(winner, destination);
           locations.set(winner, destination);
           entitiesNext[destination] = winner;
