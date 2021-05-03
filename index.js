@@ -52,6 +52,8 @@ const world = makeDaia({
   faceSize,
 });
 
+$debug.innerText = world.toponym(position);
+
 const facets = makeDaia({
   tileSize: tileSize * faceSize / facetSize,
   faceSize: facetSize,
