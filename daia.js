@@ -169,6 +169,8 @@ const faceNames = [
   'Euia',
 ];
 
+const arrows = [['↖', '↑', '↗'], ['←', '·', '→'], ['↙', '↓', '↘']];
+
 /**
  * @typedef {Object} Daia
  * @prop {number} faceSize
@@ -375,7 +377,7 @@ export function makeDaia({
     const {q: {x: qx, y: qy}, r: {x: rx, y: ry}} = moddivpoint({x, y}, {x: faceSize / 3, y: faceSize / 3})
     const {q: {x: sx, y: sy}, r: {x: tx, y: ty}} = moddivpoint({x: rx, y: ry}, {x: faceSize / 9, y: faceSize / 9})
     const {q: {x: ux, y: uy}, r: {x: vx, y: vy}} = moddivpoint({x: tx, y: ty}, {x: faceSize / 27, y: faceSize / 27})
-    return `${faceNames[f]} (${f+1}) / (${qx+1}, ${qy+1}) / (${sx+1}, ${sy+1}) / (${ux+1}, ${uy+1}) / (${vx+1}, ${vy+1}) @${t}`;
+    return `${faceNames[f]} ${arrows[qy][qx]} ${arrows[sy][sx]} ${arrows[uy][ux]} ${arrows[vy][vx]} @${t}`;
   }
 
   return {

@@ -126,6 +126,7 @@ text.moji {
 }
 
 #debug {
+  font-family: monospace;
   position: absolute;
   bottom: 0;
   left: 0;
