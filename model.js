@@ -8,6 +8,7 @@
  */
 
 import {count} from './iteration.js';
+import {same} from './geometry2d.js';
 
 const [agent, tree] = count();
 
@@ -98,6 +99,9 @@ export function makeModel({
   function intend(e, direction) {
     const source = locations.get(e);
     if (source === undefined) throw new Error(`Simulation assertion error: cannot locate entity ${e}`);
+    if (direction === same) {
+      return;
+    }
     const {position: target, turn, transit} = advance({position: source, direction});
     bids(target).set(e, {position: source, direction, turn, transit});
     intents.set(e, direction);

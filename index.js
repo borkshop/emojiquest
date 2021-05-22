@@ -4,7 +4,7 @@ import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {delay, defer} from './async.js';
 import {linear} from './easing.js';
-import {north, south, east, west} from './geometry2d.js';
+import {north, south, east, west, same} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
 import {faceColors} from './brand.js';
 import {makeDaia} from './daia.js';
@@ -252,7 +252,11 @@ function makeController(animatedTransitionDuration) {
 
       let direction;
       while (direction = queue.shift(), direction !== undefined) {
-        await tickTock((direction + moment) % 4);
+        if (direction === same) {
+          await tickTock(same);
+        } else {
+          await tickTock((direction + moment) % 4);
+        }
       }
 
       while (held.size) {
@@ -263,7 +267,9 @@ function makeController(animatedTransitionDuration) {
             direction = heldDirection;
           }
         }
-        if (direction !== undefined) {
+        if (direction === same) {
+          await tickTock(same);
+        } else if (direction !== undefined) {
           await tickTock((direction + moment) % 4);
         } else {
           break;
@@ -373,6 +379,9 @@ function director(direct) {
       case 'ArrowLeft':
       case 'h': // west
         direct(west);
+        break;
+      case '.':
+        direct(same);
         break;
     }
   };
