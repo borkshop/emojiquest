@@ -169,7 +169,11 @@ const faceNames = [
   'Euia',
 ];
 
-const arrows = [['↖', '↑', '↗'], ['←', '·', '→'], ['↙', '↓', '↘']];
+const arrows = [
+  ['↘', '↓', '↙'],
+  ['→', '⨯', '←'],
+  ['↗', '↑', '↖'],
+];
 
 /**
  * @typedef {Object} Daia
