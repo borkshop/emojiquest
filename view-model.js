@@ -29,6 +29,7 @@ const {min, max} = Math;
  * @param {number} rotation - rotation to move, in quarter turns clockwise.
  * @param {boolean} bump - whether the entity makes an aborted attempt
  * in the direction, or by default follows through.
+ * @param {'enter' | 'exit' | 'stay'} stage - whether to pop in or out.
  */
 
 /**
@@ -60,6 +61,7 @@ function clamp(lo, hi, value) {
  * @prop {number} rotation - in quarter turns clockwise, positive or negative.
  * @prop {boolean} bump - whether the entity makes an aborted attempt in the
  * direction.
+ * @prop {'exit' | 'enter' | 'stay'} stage - whether to pop in or pop out.
  */
 
 /**
@@ -91,6 +93,8 @@ function clamp(lo, hi, value) {
  * negative.
  * @param {boolean} bump - whether the entity has made an aborted attempt
  * to transition in  the direction.
+ * @param {'enter' | 'exit' | 'stay'} stage - whether the entity will pop in or
+ * pop out.
  */
 
 /**
@@ -190,7 +194,7 @@ export function makeViewModel(duration) {
     }
     if (after) {
       for (const [watcher, coord] of after.entries()) {
-        watcher.place(e, coord, 0, 0, 0, false);
+        watcher.place(e, coord, 0, 0, 0, false, 'stay');
       }
     }
   }
@@ -230,7 +234,7 @@ export function makeViewModel(duration) {
     if (entities) {
       for (const e of entities) {
         watcher.enter(e);
-        watcher.place(e, coord, 0, 0, 0, false);
+        watcher.place(e, coord, 0, 0, 0, false, 'stay');
       }
     }
   }
@@ -290,12 +294,12 @@ export function makeViewModel(duration) {
   }
 
   /** @type {TransitionFn} */
-  function transition(e, direction, rotation, bump) {
+  function transition(e, direction, rotation, bump, stage) {
     const location = locations.get(e);
     if (location === undefined) {
       throw new Error(`Assertion failed: no location for entity ${e}`);
     }
-    animating.set(e, {direction, rotation, bump});
+    animating.set(e, {direction, rotation, bump, stage});
   }
 
   /**
@@ -303,13 +307,13 @@ export function makeViewModel(duration) {
    */
   function animate(now) {
     const progress = clamp(0, 1, (now - start) / duration);
-    for (const [e, {direction, rotation, bump}] of animating.entries()) {
+    for (const [e, {direction, rotation, bump, stage}] of animating.entries()) {
       const t = locations.get(e);
       if (t !== undefined) {
         const tileWatchers = watchers.get(t);
         if (tileWatchers !== undefined) {
           for (const [watcher, coord] of tileWatchers.entries()) {
-            watcher.place(e, coord, progress, direction, rotation, bump);
+            watcher.place(e, coord, progress, direction, rotation, bump, stage);
           }
         }
       }

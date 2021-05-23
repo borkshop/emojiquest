@@ -3,7 +3,7 @@
 import {makeTileView} from './tile-view.js';
 import {matrix3dStyle} from './matrix3d.js';
 import {north, east, south, west, turnVectors} from './geometry2d.js';
-import {compose, translate, rotate, matrixStyle} from './matrix2d.js';
+import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
@@ -38,6 +38,7 @@ import {compose, translate, rotate, matrixStyle} from './matrix2d.js';
  * @param {number} rotation - in quarter turns clockwise, positive or negative.
  * @param {boolean} bump - whether the entity is in an aborted attempt
  * to move in the given direction.
+ * @param {'enter' | 'exit' | 'stay'} stage - whether to pop in or out.
  */
 
 /**
@@ -242,14 +243,18 @@ export function makeFacetView({
        * clockwise.
        * @param {boolean} bump - whether the entity makes an aborted
        * motion in the direction instead of a transition to that position.
+       * @param {'enter' | 'exit' | 'stay' } stage - whether the
+       * entity will pop in or pop out.
        */
-      place(e, coord, progress, direction, rotation, bump) {
+      place(e, coord, progress, direction, rotation, bump, stage) {
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
         const waveProgress = (1 - Math.cos(Math.PI * progress)) / 2;
         const shiftProgress = bump ? (1 - Math.cos(Math.PI * 2 * waveProgress)) / 16 : waveProgress;
+        const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? 1 - waveProgress : waveProgress;
         const transform = compose(
+          scale(scaleProgress),
           rotate(-Math.PI/2 * (coord.a + (rotation * waveProgress))),
           translate(coord),
           translate({x: dx * shiftProgress, y: dy * shiftProgress}),
