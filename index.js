@@ -230,11 +230,12 @@ function makeController(animatedTransitionDuration) {
 
   /**
    * @param {number} direction
+   * @param {boolean} deliberate
    */
-  async function tickTock(direction) {
+  async function tickTock(direction, deliberate) {
     viewModel.reset(Date.now());
     // TODO: better
-    model.intend(agent, direction);
+    model.intend(agent, direction, deliberate);
     model.tick();
     await Promise.race([
       abort.promise,
@@ -250,12 +251,14 @@ function makeController(animatedTransitionDuration) {
       sync = defer();
       await sync.promise;
 
+      // The user can plan some number of moves ahead by tapping the command
+      // keys sequentially, as opposed to holding them down.
       let direction;
       while (direction = queue.shift(), direction !== undefined) {
         if (direction === same) {
-          await tickTock(same);
+          await tickTock(same, true);
         } else {
-          await tickTock((direction + moment) % 4);
+          await tickTock((direction + moment) % 4, true);
         }
       }
 
@@ -268,9 +271,9 @@ function makeController(animatedTransitionDuration) {
           }
         }
         if (direction === same) {
-          await tickTock(same);
+          await tickTock(same, false);
         } else if (direction !== undefined) {
-          await tickTock((direction + moment) % 4);
+          await tickTock((direction + moment) % 4, false);
         } else {
           break;
         }
@@ -282,15 +285,22 @@ function makeController(animatedTransitionDuration) {
    * @param {number} direction
    */
   function down(direction) {
+    // If a command key goes down during an animated transition for a prior
+    // command, we abort that animation so the next move advances immediately
+    // to the beginning of the next animation.
     if (held.size === 0) {
       abort.resolve();
       abort = defer();
       queue.length = 0;
     }
+    // We add the direction command to both the command queue and the held
+    // commands. We keep the older command if redundant command keys are
+    // pressed.
     if (!held.has(direction)) {
       held.set(direction, Date.now());
     }
     queue.push(direction);
+    // Kick the command processor into gear if it hasn't been provoked already.
     sync.resolve();
     sync = defer();
   }
@@ -339,6 +349,7 @@ const model = makeModel({
   advance: world.advance,
   transition: viewModel.transition,
   move: viewModel.move,
+  remove: viewModel.remove,
   put: viewModel.put,
   follow,
 });

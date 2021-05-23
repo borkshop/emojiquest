@@ -17,6 +17,11 @@ const {min, max} = Math;
  */
 
 /**
+ * @callback RemoveFn
+ * @param {number} e - entity number
+ */
+
+/**
  * @callback TransitionFn
  * @param {number} e - entity number
  * @param {number} direction - direction to move, in quarter turns clockwise
@@ -139,6 +144,21 @@ export function makeViewModel(duration) {
       entities = new Set();
       entities.add(e);
       colocated.set(t, entities);
+    }
+  }
+
+  /** @type {RemoveFn} */
+  function remove(entity) {
+    const tile = locations.get(entity);
+    if (tile === undefined) {
+      throw new Error(`Cannot remove entity with unknown location ${entity}`);
+    }
+    entityExitsTile(entity, tile);
+    const tileWatchers = watchers.get(tile);
+    if (tileWatchers !== undefined) {
+      for (const watcher of tileWatchers.keys()) {
+        watcher.exit(entity);
+      }
     }
   }
 
@@ -307,6 +327,7 @@ export function makeViewModel(duration) {
   return {
     move,
     put,
+    remove,
     entitiesAtTile,
     watch,
     unwatch,
