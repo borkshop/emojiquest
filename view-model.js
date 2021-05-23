@@ -28,6 +28,7 @@ const {min, max} = Math;
 
 /**
  * @callback CreateFn
+ * @param {number} entity
  * @param {number} type
  * @returns {number} the allocated entitiy number
  */
@@ -98,11 +99,10 @@ function clamp(lo, hi, value) {
  * @param {number} duration
  */
 export function makeViewModel(duration) {
+  /**
+   * Current animated transition start time.
+   */
   let start = 0;
-  let next = 0;
-
-  /** @type {Map<number, number>} */
-  const types = new Map();
 
   /**
    * Entity number to tile number.
@@ -128,21 +128,6 @@ export function makeViewModel(duration) {
    * @type {Map<number, Animation>}
    */
   const animating = new Map();
-
-  /** @type {CreateFn} */
-  function create(type) {
-    const e = next;
-    types.set(e, type);
-    next++;
-    return e;
-  }
-
-  /**
-   * @param {number} e
-   */
-  function type(e) {
-    return types.get(e);
-  }
 
   /** @type {PutFn} */
   function put(e, t) {
@@ -320,9 +305,7 @@ export function makeViewModel(duration) {
   }
 
   return {
-    create,
     move,
-    type,
     put,
     entitiesAtTile,
     watch,

@@ -1,7 +1,6 @@
 
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
- * @typedef {import('./view-model.js').CreateFn} CreateFn
  * @typedef {import('./view-model.js').MoveFn} MoveFn
  * @typedef {import('./view-model.js').PutFn} PutFn
  * @typedef {import('./view-model.js').TransitionFn} TransitionFn
@@ -24,19 +23,23 @@ const [agent, tree] = count();
  */
 
 /**
+ * @callback TypeFn
+ * @param {number} entity
+ * @returns {number} type
+ */
+
+/**
  * @param {Object} args
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
  * @param {TransitionFn} args.transition
  * @param {MoveFn} args.move
  * @param {PutFn} args.put
- * @param {CreateFn} args.create
  * @param {FollowFn} args.follow
  */
 export function makeModel({
   size,
   advance,
-  create,
   transition,
   move,
   put,
@@ -54,6 +57,28 @@ export function makeModel({
   const mobiles = new Set();
   /** @type {Map<number, number>} */
   const moves = new Map();
+  /** @type {Map<number, number>} */
+  const types = new Map();
+
+  let next = 0;
+  /**
+   * @param {number} type
+   */
+  function create(type) {
+    const entity = next;
+    next++;
+    types.set(entity, type);
+    return entity;
+  }
+
+  /** @type {TypeFn} */
+  function type(entity) {
+    const type = types.get(entity);
+    if (type === undefined) {
+      throw new Error(`Cannot get type for non-existent entity ${entity}`);
+    }
+    return type;
+  }
 
   function init() {
     const spawn = 0;
@@ -168,5 +193,5 @@ export function makeModel({
     intents.clear();
   }
 
-  return {intend, tick, tock, init};
+  return {intend, type, tick, tock, init};
 }

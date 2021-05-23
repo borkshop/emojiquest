@@ -170,7 +170,7 @@ const cameraController = makeCameraController({
  */
 function createEntity(e) {
   const $entity = document.createElementNS(svgNS, 'text');
-  const type = viewModel.type(e);
+  const type = model.type(e);
   $entity.setAttributeNS(null, 'class', 'moji');
   if (type === 0) { // agent
     $entity.appendChild(document.createTextNode('🙂'));
@@ -337,7 +337,6 @@ function follow(e, change, destination) {
 const model = makeModel({
   size: world.worldArea,
   advance: world.advance,
-  create: viewModel.create,
   transition: viewModel.transition,
   move: viewModel.move,
   put: viewModel.put,
