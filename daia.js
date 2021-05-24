@@ -124,7 +124,7 @@
  */
 
 import {north, east, south, west, same, moddivpoint} from './geometry2d.js';
-import {compose, identity, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
+import {compose, inverse, identity, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
 
 const no =  0; // steady as she goes
 const cw =  1; // clockwise
@@ -231,9 +231,10 @@ export function makeDaia({
     transform,
     cornerAdjustment,
   ));
+
   const faceOrigins = faceTransforms.map(matrix => compose(
+    inverse(matrix),
     centerTransform,
-    matrix,
   ));
 
   /**
@@ -364,12 +365,12 @@ export function makeDaia({
   function cameraTransform(t) {
     const {f, y, x} = tileCoordinate(t);
     return compose(
+      faceOrigins[f],
       translate({
         x: -tileSize * x,
         y: -tileSize * y,
         z: 0,
       }),
-      faceOrigins[f],
     );
   }
 

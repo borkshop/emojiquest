@@ -32,7 +32,7 @@ const animatedTransitionDuration = 300;
 const slowCameraTransitionDuration = 900;
 const fastCameraTransitionDuration = 300;
 
-const position = 0;
+const position = (81 * 81 * 5.5) | 0;
 
 let cursor = {position, direction: north};
 /**
@@ -354,7 +354,7 @@ const model = makeModel({
   follow,
 });
 
-const agent = model.init();
+const agent = model.init(position);
 
 function draw() {
   keepTilesAround(cursor.position, radius);

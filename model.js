@@ -131,9 +131,10 @@ export function makeModel({
     return b;
   }
 
-  function init() {
-    const spawn = 0;
-
+  /**
+   * @param {number} spawn - tile to spawn the agent at
+   */
+  function init(spawn) {
     const a = create(agent);
     entitiesPrev[spawn] = a;
     locations.set(a, spawn);
