@@ -371,8 +371,8 @@ function director(direct) {
    * @param {KeyboardEvent} event
    */
   const handler = event => {
-    const {key, repeat} = event;
-    if (repeat) return;
+    const {key, repeat, metaKey} = event;
+    if (repeat || metaKey) return;
     switch (key) {
       case '8':
       case 'ArrowUp':
