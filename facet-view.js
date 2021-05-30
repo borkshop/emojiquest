@@ -13,6 +13,14 @@ const noTransition = {
   stage: 'stay',
 }
 
+/** @type {Progress} */
+const noProgress = {
+  linear: 0,
+  sinusoidal: 0,
+  sinusoidalQuarterTurn: 0,
+  bounce: 0,
+}
+
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
 /** @typedef {import('./daia.js').TileNumberFn} TileNumberFn */
@@ -34,6 +42,14 @@ const noTransition = {
  */
 
 /**
+ * @typedef {Object} Progress
+ * @prop {number} linear
+ * @prop {number} sinusoidal
+ * @prop {number} sinusoidalQuarterTurn
+ * @prop {number} bounce
+ */
+
+/**
  * @typedef {Object} Transition
  * @prop {number} [direction] - in quarter turns clockwise from north.
  * @prop {number} [rotation] - in quarter turns clockwise, positive or negative.
@@ -48,8 +64,8 @@ const noTransition = {
  * @param {Coord} coord - position in the origin coordinate plane, including
  * any inherent rotation angle relative to that plane due to transition over
  * the edge of the world to another face.
- * @param {number=} progress - in the range [0, 1]
- * @param {Transition=} transition
+ * @param {Progress=} progress - precomputed progress parameters.
+ * @param {Transition=} transition - animated transition parameters.
  */
 
 /**
@@ -244,22 +260,23 @@ export function makeFacetView({
       },
 
       /** @type {PlaceFn} */
-      place(e, coord, progress = 0, transition = noTransition) {
+      place(e, coord, progress = noProgress, transition = noTransition) {
         const {
           direction = 0,
           rotation = 0,
           bump = false,
           stage = 'stay'
         } = transition;
+        const { sinusoidal, sinusoidalQuarterTurn, bounce } = progress;
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
-        const waveProgress = (1 - Math.cos(Math.PI * progress)) / 2;
-        const shiftProgress = bump ? (1 - Math.cos(Math.PI * 2 * waveProgress)) / 16 : waveProgress;
-        const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? 1 - waveProgress : waveProgress;
+        const shiftProgress = bump ? bounce : sinusoidal;
+        const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? 1 - sinusoidal : sinusoidal;
         const transform = compose(
           scale(scaleProgress),
-          rotate(-Math.PI/2 * (coord.a + (rotation * waveProgress))),
+          rotate(sinusoidalQuarterTurn * rotation),
+          rotate(-Math.PI/2 * coord.a),
           translate(coord),
           translate({x: dx * shiftProgress, y: dy * shiftProgress}),
           translate({x: 0.5, y: 0.5}),

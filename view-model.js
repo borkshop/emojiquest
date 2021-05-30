@@ -255,7 +255,17 @@ export function makeViewModel(duration) {
 
   /** @type {AnimateFn} */
   function animate(now) {
-    const progress = clamp(0, 1, (now - start) / duration);
+    const linear = clamp(0, 1, (now - start) / duration);
+    const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
+    const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
+    const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
+    const progress = {
+      linear,
+      sinusoidal,
+      sinusoidalQuarterTurn,
+      bounce,
+    };
+
     for (const [e, transition] of animating.entries()) {
       const t = locations.get(e);
       if (t !== undefined) {
