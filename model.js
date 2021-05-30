@@ -200,7 +200,7 @@ export function makeModel({
       const patient = entitiesPrev[destination];
       if (patient === undefined) {
         // Move
-        transitionView(winner, direction, turn, false, 'stay');
+        transitionView(winner, {direction, rotation: turn});
         follow(winner, change, destination);
         moves.set(winner, destination);
         locations.set(winner, destination);
@@ -208,7 +208,7 @@ export function makeModel({
         entitiesNext[origin] = undefined;
       } else {
         // Bounce
-        transitionView(winner, direction, 0, true, 'stay');
+        transitionView(winner, {direction, bump: true});
         if (deliberate) {
           // Bump
           bumps.push({agent: winner, patient, origin, destination});
@@ -220,7 +220,7 @@ export function makeModel({
         const change = options.get(loser);
         if (change === undefined) throw new Error(`Assertion failed`);
         const {position: origin, direction} = change;
-        transitionView(loser, direction, 0, true, 'stay');
+        transitionView(loser, {direction, bump: true});
         moves.set(loser, origin);
       }
     }
@@ -228,7 +228,11 @@ export function makeModel({
     // Successfully bump an entity that did not move.
     for (const { patient, destination } of bumps) {
       if (!moves.has(patient)) {
-        transitionView(patient, 0, 1, true, 'exit');
+        transitionView(patient, {
+          rotation: 1,
+          bump: true,
+          stage: 'exit'
+        });
         removes.add(patient);
         entitiesNext[destination] = undefined;
       }

@@ -5,6 +5,24 @@ import {setDifference} from './set.js';
 const {min, max} = Math;
 
 /**
+ * @param {number} lo
+ * @param {number} hi
+ * @param {number} value
+ * @returns {number}
+ */
+function clamp(lo, hi, value) {
+  return max(lo, min(hi, value));
+}
+
+/**
+ * @typedef {Object} Coord
+ * @prop {number} x - integer in the coordinate space of tiles.
+ * @prop {number} y - integer in the coordinate space of tiles.
+ * @prop {number} a - angle, in increments of quarter turns clockwise from due
+ * north.
+ */
+
+/**
  * @callback PutFn
  * @param {number} e - entity number
  * @param {number} t - tile number
@@ -24,85 +42,18 @@ const {min, max} = Math;
 /**
  * @callback TransitionFn
  * @param {number} e - entity number
- * @param {number} direction - direction to move, in quarter turns clockwise
- * from north.
- * @param {number} rotation - rotation to move, in quarter turns clockwise.
- * @param {boolean} bump - whether the entity makes an aborted attempt
- * in the direction, or by default follows through.
- * @param {'enter' | 'exit' | 'stay'} stage - whether to pop in or out.
+ * @param {Transition} transition - how to animate the entity's transition into
+ * the next turn.
  */
 
 /**
- * @callback CreateFn
- * @param {number} entity
- * @param {number} type
- * @returns {number} the allocated entitiy number
+ * @callback AnimateFn
+ * @param {number} now
  */
 
-/**
- * @param {number} lo
- * @param {number} hi
- * @param {number} value
- * @returns {number}
- */
-function clamp(lo, hi, value) {
-  return max(lo, min(hi, value));
-}
-
-/**
- * @typedef {Object} Point
- * @prop {number} x
- * @prop {number} y
- */
-
-/**
- * @typedef {Object} Animation
- * @prop {number} direction - in quarter turns clockwise from north.
- * @prop {number} rotation - in quarter turns clockwise, positive or negative.
- * @prop {boolean} bump - whether the entity makes an aborted attempt in the
- * direction.
- * @prop {'exit' | 'enter' | 'stay'} stage - whether to pop in or pop out.
- */
-
-/**
- * @typedef {Object} Coord
- * @prop {number} x - integer in the coordinate space of tiles.
- * @prop {number} y - integer in the coordinate space of tiles.
- * @prop {number} a - angle, in increments of quarter turns clockwise from due
- * north.
- */
-
-/**
- * @callback EntityWatchFn
- * @param {Map<number, Coord>} tiles - tile number to coordinate
- * @param {Watcher} watcher - notified when a tile enters, exits, or moves
- * within a region
- */
-
-/**
- * @callback PlaceFn
- * @param {number} entity
- * @param {Coord} coord - position in the origin coordinate plane, including
- * any inherent rotation angle relative to that plane due to transition over
- * the edge of the world to another face.
- * @param {number} progress - in the range [0, 1]
- * @param {number} direction - direction in quarter turns clockwise from north
- * that the entity is moving in the relative to the orientation of its original
- * plane, 0 if not animated.
- * @param {number} rotation - rotation in quarter turns clockwise, positive or
- * negative.
- * @param {boolean} bump - whether the entity has made an aborted attempt
- * to transition in  the direction.
- * @param {'enter' | 'exit' | 'stay'} stage - whether the entity will pop in or
- * pop out.
- */
-
-/**
- * @typedef {Object} Watcher
- * @prop {(entity: number) => void} enter
- * @prop {(entity: number) => void} exit
- * @prop {PlaceFn} place
- */
+/** @typedef {import('./facet-view.js').Watcher} Watcher */
+/** @typedef {import('./facet-view.js').Transition} Transition */
+/** @typedef {import('./facet-view.js').EntityWatchFn} EntityWatchFn */
 
 /**
  * @param {number} duration
@@ -134,7 +85,7 @@ export function makeViewModel(duration) {
   /**
    * From entity number to direction of motion in quarter turns clockwise from
    * north.
-   * @type {Map<number, Animation>}
+   * @type {Map<number, Transition>}
    */
   const animating = new Map();
 
@@ -194,7 +145,7 @@ export function makeViewModel(duration) {
     }
     if (after) {
       for (const [watcher, coord] of after.entries()) {
-        watcher.place(e, coord, 0, 0, 0, false, 'stay');
+        watcher.place(e, coord);
       }
     }
   }
@@ -234,7 +185,7 @@ export function makeViewModel(duration) {
     if (entities) {
       for (const e of entities) {
         watcher.enter(e);
-        watcher.place(e, coord, 0, 0, 0, false, 'stay');
+        watcher.place(e, coord);
       }
     }
   }
@@ -294,26 +245,24 @@ export function makeViewModel(duration) {
   }
 
   /** @type {TransitionFn} */
-  function transition(e, direction, rotation, bump, stage) {
+  function transition(e, transition) {
     const location = locations.get(e);
     if (location === undefined) {
       throw new Error(`Assertion failed: no location for entity ${e}`);
     }
-    animating.set(e, {direction, rotation, bump, stage});
+    animating.set(e, transition);
   }
 
-  /**
-   * @param {number} now
-   */
+  /** @type {AnimateFn} */
   function animate(now) {
     const progress = clamp(0, 1, (now - start) / duration);
-    for (const [e, {direction, rotation, bump, stage}] of animating.entries()) {
+    for (const [e, transition] of animating.entries()) {
       const t = locations.get(e);
       if (t !== undefined) {
         const tileWatchers = watchers.get(t);
         if (tileWatchers !== undefined) {
           for (const [watcher, coord] of tileWatchers.entries()) {
-            watcher.place(e, coord, progress, direction, rotation, bump, stage);
+            watcher.place(e, coord, progress, transition);
           }
         }
       }

@@ -5,6 +5,14 @@ import {matrix3dStyle} from './matrix3d.js';
 import {north, east, south, west, turnVectors} from './geometry2d.js';
 import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
+/** @type {Transition} */
+const noTransition = {
+  direction: 0,
+  rotation: 0,
+  bump: false,
+  stage: 'stay',
+}
+
 /** @typedef {import('./daia.js').TileTransformFn} TileTransformFn */
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
 /** @typedef {import('./daia.js').TileNumberFn} TileNumberFn */
@@ -26,19 +34,22 @@ import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
  */
 
 /**
+ * @typedef {Object} Transition
+ * @prop {number} [direction] - in quarter turns clockwise from north.
+ * @prop {number} [rotation] - in quarter turns clockwise, positive or negative.
+ * @prop {boolean} [bump] - whether the entity makes an aborted attempt in the
+ * direction.
+ * @prop {'exit' | 'enter' | 'stay'} [stage] - whether to pop in or pop out.
+ */
+
+/**
  * @callback PlaceFn
  * @param {number} entity
  * @param {Coord} coord - position in the origin coordinate plane, including
  * any inherent rotation angle relative to that plane due to transition over
  * the edge of the world to another face.
- * @param {number} progress - in the range [0, 1]
- * @param {number} direction - direction in quarter turns clockwise from north
- * that the entity is moving in the relative to the orientation of its original
- * plane, 0 if not animated.
- * @param {number} rotation - in quarter turns clockwise, positive or negative.
- * @param {boolean} bump - whether the entity is in an aborted attempt
- * to move in the given direction.
- * @param {'enter' | 'exit' | 'stay'} stage - whether to pop in or out.
+ * @param {number=} progress - in the range [0, 1]
+ * @param {Transition=} transition
  */
 
 /**
@@ -232,21 +243,14 @@ export function makeFacetView({
         $facet.appendChild($entity);
       },
 
-      /**
-       * @param {number} e - entity number
-       * @param {Coord} coord - position of the entity within the facet's coordinate space
-       * @param {number} progress - in the range [0, 1], which will always
-       * be 0 for non-animated placement.
-       * @param {number} direction - direction of animation in quarter turns
-       * clockwise from north, or 0 if not animated.
-       * @param {number} rotation - rotation to move, in quarter turns
-       * clockwise.
-       * @param {boolean} bump - whether the entity makes an aborted
-       * motion in the direction instead of a transition to that position.
-       * @param {'enter' | 'exit' | 'stay' } stage - whether the
-       * entity will pop in or pop out.
-       */
-      place(e, coord, progress, direction, rotation, bump, stage) {
+      /** @type {PlaceFn} */
+      place(e, coord, progress = 0, transition = noTransition) {
+        const {
+          direction = 0,
+          rotation = 0,
+          bump = false,
+          stage = 'stay'
+        } = transition;
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
         const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
