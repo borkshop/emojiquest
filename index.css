@@ -131,7 +131,37 @@ text.moji {
   bottom: 0;
   left: 0;
   font-size: 30px;
-  color: white;
-  background-color: black;
+  color: black;
+  backdrop-filter: blur(5px);
   padding: 10px;
+}
+
+#controls {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 30px;
+  color: black;
+  backdrop-filter: blur(5px);
+  padding: 10px;
+}
+
+#health {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 30px;
+  color: black;
+  padding: 10px;
+  backdrop-filter: blur(5px);
+}
+
+#stamina {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 30px;
+  color: black;
+  padding: 10px;
+  backdrop-filter: blur(5px);
 }

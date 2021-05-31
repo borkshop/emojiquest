@@ -14,6 +14,7 @@ import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeModel} from './model.js';
+import {createControls} from './controls.js';
 
 /**
  * @template T
@@ -322,6 +323,8 @@ function makeController(animatedTransitionDuration) {
 }
 
 const controller = makeController(animatedTransitionDuration);
+
+document.body.appendChild(createControls());
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
