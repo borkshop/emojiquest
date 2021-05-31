@@ -2,18 +2,6 @@
 
 import {setDifference} from './set.js';
 
-const {min, max} = Math;
-
-/**
- * @param {number} lo
- * @param {number} hi
- * @param {number} value
- * @returns {number}
- */
-function clamp(lo, hi, value) {
-  return max(lo, min(hi, value));
-}
-
 /**
  * @typedef {Object} Coord
  * @prop {number} x - integer in the coordinate space of tiles.
@@ -48,22 +36,15 @@ function clamp(lo, hi, value) {
 
 /**
  * @callback AnimateFn
- * @param {number} now
+ * @param {Progress} progress
  */
 
 /** @typedef {import('./facet-view.js').Watcher} Watcher */
 /** @typedef {import('./facet-view.js').Transition} Transition */
 /** @typedef {import('./facet-view.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('./facet-view.js').Progress} Progress */
 
-/**
- * @param {number} duration
- */
-export function makeViewModel(duration) {
-  /**
-   * Current animated transition start time.
-   */
-  let start = 0;
-
+export function makeViewModel() {
   /**
    * Entity number to tile number.
    * @type {Map<number, number>}
@@ -254,17 +235,7 @@ export function makeViewModel(duration) {
   }
 
   /** @type {AnimateFn} */
-  function animate(now) {
-    const linear = clamp(0, 1, (now - start) / duration);
-    const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
-    const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
-    const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
-    const progress = {
-      linear,
-      sinusoidal,
-      sinusoidalQuarterTurn,
-      bounce,
-    };
+  function animate(progress) {
 
     for (const [e, transition] of animating.entries()) {
       const t = locations.get(e);
@@ -279,11 +250,7 @@ export function makeViewModel(duration) {
     }
   }
 
-  /**
-   * @param {number} now
-   */
-  function reset(now) {
-    start = now;
+  function reset() {
     animating.clear();
   }
 

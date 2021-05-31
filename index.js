@@ -181,7 +181,7 @@ function createEntity(e) {
   return $entity;
 }
 
-const viewModel = makeViewModel(animatedTransitionDuration);
+const viewModel = makeViewModel();
 
 const facetView = makeFacetView({
   context: $context,
@@ -205,12 +205,38 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
+const {min, max} = Math;
+
+/**
+ * @param {number} lo
+ * @param {number} hi
+ * @param {number} value
+ * @returns {number}
+ */
+function clamp(lo, hi, value) {
+  return max(lo, min(hi, value));
+}
+
+let start = Date.now();
+
 async function animate() {
   for (;;) {
     await nextFrame();
     const now = Date.now();
+
+    const linear = clamp(0, 1, (now - start) / animatedTransitionDuration);
+    const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
+    const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
+    const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
+    const progress = {
+      linear,
+      sinusoidal,
+      sinusoidalQuarterTurn,
+      bounce,
+    };
+
     camera.animate(now);
-    viewModel.animate(now);
+    viewModel.animate(progress);
   }
 }
 
@@ -234,7 +260,8 @@ function makeController(animatedTransitionDuration) {
    * @param {boolean} deliberate
    */
   async function tickTock(direction, deliberate) {
-    viewModel.reset(Date.now());
+    start = Date.now();
+    viewModel.reset();
     // TODO: better
     model.intend(agent, direction, deliberate);
     model.tick();
@@ -242,7 +269,8 @@ function makeController(animatedTransitionDuration) {
       abort.promise,
       delay(animatedTransitionDuration),
     ]);
-    viewModel.reset(Date.now());
+    start = Date.now();
+    viewModel.reset();
     model.tock();
     draw();
   }
