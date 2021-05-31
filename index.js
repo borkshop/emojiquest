@@ -15,6 +15,7 @@ import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeModel} from './model.js';
 import {createControls} from './controls.js';
+import {makeProgress} from './animation.js';
 
 /**
  * @template T
@@ -205,36 +206,13 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
-const {min, max} = Math;
-
-/**
- * @param {number} lo
- * @param {number} hi
- * @param {number} value
- * @returns {number}
- */
-function clamp(lo, hi, value) {
-  return max(lo, min(hi, value));
-}
-
 let start = Date.now();
 
 async function animate() {
   for (;;) {
     await nextFrame();
     const now = Date.now();
-
-    const linear = clamp(0, 1, (now - start) / animatedTransitionDuration);
-    const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
-    const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
-    const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
-    const progress = {
-      linear,
-      sinusoidal,
-      sinusoidalQuarterTurn,
-      bounce,
-    };
-
+    const progress = makeProgress(start, now, animatedTransitionDuration);
     camera.animate(now);
     viewModel.animate(progress);
   }
