@@ -1,5 +1,16 @@
+// @ts-check
 
-import {translate, matrixStyle} from './matrix2d.js';
+import {placeEntity} from './animation2d.js';
+import {makeTileView} from './tile-view.js';
+import {makeViewModel} from './view-model.js';
+import {viewText, viewTypesByName} from './data.js';
+
+/** @typedef {import('./animation.js').AnimateFn} AnimateFn */
+/** @typedef {import('./animation2d.js').Coord} Coord */
+/** @typedef {import('./animation2d.js').Transition} Transition */
+/** @typedef {import('./view-model.js').Watcher} Watcher */
+/** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
+/** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
 
 const svgNS = "http://www.w3.org/2000/svg";
 const tileSize = 75;
@@ -10,33 +21,104 @@ export function createControls() {
   $controls.setAttributeNS(null, 'height', `${3 * tileSize}`);
   $controls.setAttributeNS(null, 'width', `${3 * tileSize}`);
   $controls.setAttributeNS(null, 'id', 'controls');
-
-  const icons = [
-    ['', '👆', ''],
-    ['👈', '⏱', '👉'],
-    ['✋', '👇', '🤚'],
-  ];
-  for (let x = 0; x < 3; x += 1) {
-    for (let y = 0; y < 3; y += 1) {
-      $controls.appendChild(createEntity(x, y, icons[y][x]));
-    }
-  }
-
   return $controls;
 }
 
 /**
- * @param {number} x
- * @param {number} y
- * @param {string} text
+ * @param {Coord} dimensions
  */
-function createEntity(x, y, text) {
-  const $entity = document.createElementNS(svgNS, 'text');
-  $entity.setAttributeNS(null, 'class', 'moji');
-  $entity.appendChild(document.createTextNode(text));
-  $entity.setAttributeNS(null, 'transform', matrixStyle(translate({
-    x: x + 0.5,
-    y: y + 0.5,
-  })));
-  return $entity;
+function makeTileMap({x: w, y: h, a}) {
+  const map = new Map();
+  for (let x = 0; x < w; x += 1) {
+    for (let y = 0; y < h; y += 1) {
+      map.set(y * 3 + x, {x, y, a});
+    }
+  }
+  return map;
+}
+
+const tileMap = makeTileMap({x: 3, y: 3, a: 0});
+
+/**
+ * @param {Element} $parent
+ */
+export function makeControlsController($parent) {
+  const $controls = createControls();
+  $parent.appendChild($controls);
+
+  const elements = new Map();
+  const types = new Map();
+
+  /**
+   * @param {number} entity
+   */
+  function createElement(entity) {
+    const type = types.get(entity);
+    const text = viewText[type];
+    const element = document.createElementNS(svgNS, 'text');
+    element.setAttributeNS(null, 'class', 'moji');
+    element.appendChild(document.createTextNode(text));
+    elements.set(entity, element);
+    return element;
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function collectElement(entity) {
+    elements.delete(entity);
+  }
+
+  const tileView = makeTileView($controls, createElement, collectElement);
+  const {enter, exit} = tileView;
+
+  /** @type {PlaceFn} */
+  function place(entity, coord, progress, transition) {
+    const element = elements.get(entity);
+    placeEntity(element, coord, progress, transition);
+  }
+
+  const viewModel = makeViewModel();
+  const { reset, animate } = viewModel;
+
+  viewModel.watch(tileMap, {enter, exit, place});
+
+  let next = 0;
+  /**
+   * @param {number} location
+   * @param {number} type
+   */
+  function create(location, type) {
+    const entity = next;
+    next += 1;
+
+    types.set(entity, type);
+    viewModel.put(entity, location);
+    return entity;
+  }
+
+  const northEntity = create(1, viewTypesByName.north);
+  const westEntity = create(3, viewTypesByName.west);
+  const watchEntity = create(4, viewTypesByName.watch);
+  const eastEntity = create(5, viewTypesByName.east);
+  const southEntity = create(7, viewTypesByName.south);
+  const leftEntity = create(6, viewTypesByName.left);
+  const rightEntity = create(8, viewTypesByName.right);
+
+  // TODO remove this and actually use entities.
+  /** @type {any} */
+  const {} = {
+    northEntity,
+    southEntity,
+    westEntity,
+    eastEntity,
+    leftEntity,
+    rightEntity,
+    watchEntity,
+  };
+
+  return {
+    reset,
+    animate,
+  }
 }

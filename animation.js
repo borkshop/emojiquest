@@ -38,3 +38,7 @@ export function makeProgress(start, now, duration) {
   };
 }
 
+/**
+ * @callback AnimateFn
+ * @param {Progress} progress
+ */

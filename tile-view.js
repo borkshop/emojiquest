@@ -35,20 +35,18 @@ const noop = () => {};
 /**
  * @template Element
  * @param {ParentElement<Element>} $context
- * @param {(element: Element, tile: number) => void} position
  * @param {(tile: number) => Element} createElement
  * @param {(tile: number) => void} [collectElement]
  * @return {TileView}
  */
-export function makeTileView($context, position, createElement, collectElement = noop) {
-  const $tiles = new Map()
+export function makeTileView($context, createElement, collectElement = noop) {
+  const $tiles = new Map();
 
   /**
    * @param {number} t
    */
   function enter(t) {
     const $tile = createElement(t);
-    position($tile, t);
     $context.appendChild($tile);
     $tiles.set(t, $tile);
   }

@@ -2,12 +2,33 @@
 
 import {setDifference} from './set.js';
 
+/** @typedef {import('./animation.js').AnimateFn} AnimateFn */
+/** @typedef {import('./animation.js').Progress} Progress */
+/** @typedef {import('./animation2d.js').Coord} Coord */
+/** @typedef {import('./animation2d.js').Transition} Transition */
+
 /**
- * @typedef {Object} Coord
- * @prop {number} x - integer in the coordinate space of tiles.
- * @prop {number} y - integer in the coordinate space of tiles.
- * @prop {number} a - angle, in increments of quarter turns clockwise from due
- * north.
+ * @callback EntityWatchFn
+ * @param {Map<number, Coord>} tiles - tile number to coordinate
+ * @param {Watcher} watcher - notified when a tile enters, exits, or moves
+ * within a region
+ */
+
+/**
+ * @callback PlaceFn
+ * @param {number} entity
+ * @param {Coord} coord - position in the origin coordinate plane, including
+ * any inherent rotation angle relative to that plane due to transition over
+ * the edge of the world to another face.
+ * @param {Progress=} progress - precomputed progress parameters.
+ * @param {Transition=} transition - animated transition parameters.
+ */
+
+/**
+ * @typedef {Object} Watcher
+ * @prop {(entity: number) => void} enter
+ * @prop {(entity: number) => void} exit
+ * @prop {PlaceFn} place
  */
 
 /**
@@ -34,16 +55,6 @@ import {setDifference} from './set.js';
  * the next turn.
  */
 
-/**
- * @callback AnimateFn
- * @param {Progress} progress
- */
-
-/** @typedef {import('./facet-view.js').Watcher} Watcher */
-/** @typedef {import('./facet-view.js').Transition} Transition */
-/** @typedef {import('./facet-view.js').EntityWatchFn} EntityWatchFn */
-/** @typedef {import('./facet-view.js').Progress} Progress */
-
 export function makeViewModel() {
   /**
    * Entity number to tile number.
@@ -64,22 +75,29 @@ export function makeViewModel() {
   const watchers = new Map();
 
   /**
-   * From entity number to direction of motion in quarter turns clockwise from
-   * north.
+   * From entity number animated transition.
    * @type {Map<number, Transition>}
    */
   const animating = new Map();
 
   /** @type {PutFn} */
-  function put(e, t) {
-    locations.set(e, t);
-    let entities = colocated.get(t);
+  function put(entity, tile) {
+    locations.set(entity, tile);
+    let entities = colocated.get(tile);
     if (entities) {
-      entities.add(e);
+      entities.add(entity);
     } else {
       entities = new Set();
-      entities.add(e);
-      colocated.set(t, entities);
+      entities.add(entity);
+      colocated.set(tile, entities);
+    }
+
+    const tileWatchers = watchers.get(tile);
+    if (tileWatchers !== undefined) {
+      for (const [watcher, coord] of tileWatchers.entries()) {
+        watcher.enter(entity);
+        watcher.place(entity, coord);
+      }
     }
   }
 
@@ -236,7 +254,6 @@ export function makeViewModel() {
 
   /** @type {AnimateFn} */
   function animate(progress) {
-
     for (const [e, transition] of animating.entries()) {
       const t = locations.get(e);
       if (t !== undefined) {

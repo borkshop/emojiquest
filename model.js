@@ -7,10 +7,10 @@
  * @typedef {import('./view-model.js').TransitionFn} TransitionFn
  */
 
-import {count} from './iteration.js';
 import {same} from './geometry2d.js';
+import {viewTypesByName} from './data.js';
 
-const [agent, tree] = count();
+const {agent, tree} = viewTypesByName;
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange

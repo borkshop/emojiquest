@@ -9,33 +9,11 @@ import {placeEntity} from './animation2d.js';
 /** @typedef {import('./daia.js').TileCoordinateFn} TileCoordinateFn */
 /** @typedef {import('./daia.js').TileNumberFn} TileNumberFn */
 /** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
-/** @typedef {import('./animation.js').Progress} Progress */
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./animation2d.js').Transition} Transition */
-
-/**
- * @callback EntityWatchFn
- * @param {Map<number, Coord>} tiles - tile number to coordinate
- * @param {Watcher} watcher - notified when a tile enters, exits, or moves
- * within a region
- */
-
-/**
- * @callback PlaceFn
- * @param {number} entity
- * @param {Coord} coord - position in the origin coordinate plane, including
- * any inherent rotation angle relative to that plane due to transition over
- * the edge of the world to another face.
- * @param {Progress=} progress - precomputed progress parameters.
- * @param {Transition=} transition - animated transition parameters.
- */
-
-/**
- * @typedef {Object} Watcher
- * @prop {(entity: number) => void} enter
- * @prop {(entity: number) => void} exit
- * @prop {PlaceFn} place
- */
+/** @typedef {import('./view-model.js').Watcher} Watcher */
+/** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
+/** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
 
 /**
  * @param {Object} options
@@ -207,6 +185,10 @@ export function makeFacetView({
   function createMappedFacet(f) {
     const $facet = createFacet(f);
 
+    const transform = facetTransform(f);
+    // Placed using HTML transform, not SVG transform.
+    $facet.style.transform = matrix3dStyle(transform);
+
     const entityMap = new Map();
 
     const watcher = {
@@ -256,17 +238,7 @@ export function makeFacetView({
     unwatchEntities(tiles, watcher);
   }
 
-  /**
-   * @param {SVGElement} $facet
-   * @param {number} f
-   */
-  function placeFacet($facet, f) {
-    const transform = facetTransform(f);
-    // Placed using HTML transform, not SVG transform.
-    $facet.style.transform = matrix3dStyle(transform);
-  }
-
-  const facetView = makeTileView(context, placeFacet, createMappedFacet, collectMappedFacet);
+  const facetView = makeTileView(context, createMappedFacet, collectMappedFacet);
 
   /**
    * Tracks numbered tiles in the numbered facets.

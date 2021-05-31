@@ -14,8 +14,9 @@ import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeModel} from './model.js';
-import {createControls} from './controls.js';
+import {makeControlsController} from './controls.js';
 import {makeProgress} from './animation.js';
+import {viewText} from './data.js';
 
 /**
  * @template T
@@ -174,11 +175,7 @@ function createEntity(e) {
   const $entity = document.createElementNS(svgNS, 'text');
   const type = model.type(e);
   $entity.setAttributeNS(null, 'class', 'moji');
-  if (type === 0) { // agent
-    $entity.appendChild(document.createTextNode('🙂'));
-  } else if (type === 1) { // tree
-    $entity.appendChild(document.createTextNode('🌲'));
-  }
+  $entity.appendChild(document.createTextNode(viewText[type]));
   return $entity;
 }
 
@@ -206,7 +203,15 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
+const controlsController = makeControlsController(document.body);
+
 let start = Date.now();
+
+function reset() {
+  start = Date.now();
+  viewModel.reset();
+  controlsController.reset();
+}
 
 async function animate() {
   for (;;) {
@@ -215,6 +220,7 @@ async function animate() {
     const progress = makeProgress(start, now, animatedTransitionDuration);
     camera.animate(now);
     viewModel.animate(progress);
+    controlsController.animate(progress);
   }
 }
 
@@ -238,8 +244,7 @@ function makeController(animatedTransitionDuration) {
    * @param {boolean} deliberate
    */
   async function tickTock(direction, deliberate) {
-    start = Date.now();
-    viewModel.reset();
+    reset();
     // TODO: better
     model.intend(agent, direction, deliberate);
     model.tick();
@@ -247,8 +252,7 @@ function makeController(animatedTransitionDuration) {
       abort.promise,
       delay(animatedTransitionDuration),
     ]);
-    start = Date.now();
-    viewModel.reset();
+    reset();
     model.tock();
     draw();
   }
@@ -329,8 +333,6 @@ function makeController(animatedTransitionDuration) {
 }
 
 const controller = makeController(animatedTransitionDuration);
-
-document.body.appendChild(createControls());
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
