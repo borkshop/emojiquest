@@ -175,7 +175,16 @@ export function makeModel({
    * effects transitions
    */
   function tick() {
-    // AI
+    // Measure
+    // let treeCount = 0;
+    // for (let i = 0; i < size; i++) {
+    // }
+
+    // // Create
+    // for (let i = 0; i < size; i++) {
+    // }
+
+    // Think
     for (const mobile of mobiles) {
       // TODO select from eleigible directions.
       intend(mobile, Math.floor(Math.random() * 4));

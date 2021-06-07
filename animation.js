@@ -14,6 +14,7 @@ function clamp(lo, hi, value) {
 
 /**
  * @typedef {Object} Progress
+ * @prop {number} now
  * @prop {number} linear
  * @prop {number} sinusoidal
  * @prop {number} sinusoidalQuarterTurn
@@ -31,6 +32,7 @@ export function makeProgress(start, now, duration) {
   const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
   const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
   return {
+    now,
     linear,
     sinusoidal,
     sinusoidalQuarterTurn,

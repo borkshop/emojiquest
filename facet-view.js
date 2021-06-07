@@ -204,10 +204,10 @@ export function makeFacetView({
       },
 
       /** @type {PlaceFn} */
-      place(e, coord, progress, transition) {
+      place(e, coord, pressure, progress, transition) {
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed, entity map should have entry for entity ${e}`);
-        placeEntity($entity, coord, progress, transition);
+        placeEntity($entity, coord, pressure, progress, transition);
       },
 
       /**

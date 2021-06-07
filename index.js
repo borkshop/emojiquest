@@ -4,7 +4,7 @@ import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
 import {delay, defer} from './async.js';
 import {linear} from './easing.js';
-import {north, south, east, west, same} from './geometry2d.js';
+import {north, same} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
 import {faceColors} from './brand.js';
 import {makeDaia} from './daia.js';
@@ -17,6 +17,8 @@ import {makeModel} from './model.js';
 import {makeControlsController} from './controls.js';
 import {makeProgress} from './animation.js';
 import {viewText} from './data.js';
+import {makeButtonMux} from './button-mux.js';
+import {makeButtonKeyHandler} from './button-key-handler.js';
 
 /**
  * @template T
@@ -38,6 +40,7 @@ const fastCameraTransitionDuration = 300;
 const position = (81 * 81 * 5.5) | 0;
 
 let cursor = {position, direction: north};
+
 /**
  * The moment preserves the intended heading of the player agent if they
  * transit from one face of the world to another and suffer a forced
@@ -203,6 +206,19 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
+const model = makeModel({
+  size: world.worldArea,
+  advance: world.advance,
+  transition: viewModel.transition,
+  move: viewModel.move,
+  remove: viewModel.remove,
+  put: viewModel.put,
+  follow,
+});
+
+const agent = model.init(position);
+const buttonMux = makeButtonMux();
+
 const controlsController = makeControlsController(document.body);
 
 let start = Date.now();
@@ -355,18 +371,6 @@ function follow(e, change, destination) {
   }
 }
 
-const model = makeModel({
-  size: world.worldArea,
-  advance: world.advance,
-  transition: viewModel.transition,
-  move: viewModel.move,
-  remove: viewModel.remove,
-  put: viewModel.put,
-  follow,
-});
-
-const agent = model.init(position);
-
 function draw() {
   keepTilesAround(cursor.position, radius);
 }
@@ -374,47 +378,8 @@ function draw() {
 animate();
 draw();
 
-/**
- * @param {(direction: number) => void} direct
- */
-function director(direct) {
-  /**
-   * @param {KeyboardEvent} event
-   */
-  const handler = event => {
-    const {key, repeat, metaKey} = event;
-    if (repeat || metaKey) return;
-    switch (key) {
-      case '8':
-      case 'ArrowUp':
-      case 'k':
-        direct(north);
-        break;
-      case '6':
-      case 'ArrowRight':
-      case 'l': // east
-        direct(east);
-        break;
-      case '2':
-      case 'ArrowDown':
-      case 'j':
-        direct(south);
-        break;
-      case '4':
-      case 'ArrowLeft':
-      case 'h': // west
-        direct(west);
-        break;
-      case '5':
-      case '.':
-        direct(same);
-        break;
-      default:
-        console.log(key);
-    }
-  };
-  return handler;
-}
+buttonMux.observe(controller);
+buttonMux.observe(controlsController);
 
-window.addEventListener('keydown', director(controller.down));
-window.addEventListener('keyup', director(controller.up));
+window.addEventListener('keydown', makeButtonKeyHandler(buttonMux.down));
+window.addEventListener('keyup', makeButtonKeyHandler(buttonMux.up));

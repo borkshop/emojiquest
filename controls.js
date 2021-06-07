@@ -1,11 +1,13 @@
 // @ts-check
 
+import {north, east, south, west, same} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
 import {viewText, viewTypesByName} from './data.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
+/** @typedef {import('./animation.js').Progress} Progress */
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./animation2d.js').Transition} Transition */
 /** @typedef {import('./view-model.js').Watcher} Watcher */
@@ -21,6 +23,7 @@ export function createControls() {
   $controls.setAttributeNS(null, 'height', `${3 * tileSize}`);
   $controls.setAttributeNS(null, 'width', `${3 * tileSize}`);
   $controls.setAttributeNS(null, 'id', 'controls');
+  $controls.setAttributeNS(null, 'class', 'panel');
   return $controls;
 }
 
@@ -73,13 +76,12 @@ export function makeControlsController($parent) {
   const {enter, exit} = tileView;
 
   /** @type {PlaceFn} */
-  function place(entity, coord, progress, transition) {
+  function place(entity, coord, pressure, progress, transition) {
     const element = elements.get(entity);
-    placeEntity(element, coord, progress, transition);
+    placeEntity(element, coord, pressure, progress, transition);
   }
 
   const viewModel = makeViewModel();
-  const { reset, animate } = viewModel;
 
   viewModel.watch(tileMap, {enter, exit, place});
 
@@ -117,8 +119,34 @@ export function makeControlsController($parent) {
     watchEntity,
   };
 
+  const commandEntity = {
+    [north]: northEntity,
+    [south]: southEntity,
+    [east]: eastEntity,
+    [west]: westEntity,
+    [same]: watchEntity,
+  };
+
+  /**
+   * @param {number} command
+   */
+  function up(command) {
+    viewModel.up(commandEntity[command]);
+  }
+
+  /**
+   * @param {number} command
+   */
+  function down(command) {
+    viewModel.down(commandEntity[command]);
+  }
+
+  const {reset, animate} = viewModel;
+
   return {
     reset,
     animate,
+    up,
+    down
   }
 }

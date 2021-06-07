@@ -32,6 +32,7 @@ const noTransition = {
 
 /** @type {Progress} */
 const noProgress = {
+  now: NaN,
   linear: 0,
   sinusoidal: 0,
   sinusoidalQuarterTurn: 0,
@@ -41,22 +42,23 @@ const noProgress = {
 /**
  * @param {Element} $entity
  * @param {Coord} coord
+ * @param {number=} [pressure] how firmly the entity is pressed, 0 (up, no pressure) 1 (down, full pressure)
  * @param {Progress=} [progress]
  * @param {Transition=} [transition]
  */
-export function placeEntity($entity, coord, progress = noProgress, transition = noTransition) {
+export function placeEntity($entity, coord, pressure = 0, progress = noProgress, transition = noTransition) {
   const {
     direction = 0,
     rotation = 0,
     bump = false,
-    stage = 'stay'
+    stage = 'stay',
   } = transition;
   const { sinusoidal, sinusoidalQuarterTurn, bounce } = progress;
   const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
   const shiftProgress = bump ? bounce : sinusoidal;
   const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? 1 - sinusoidal : sinusoidal;
   const transform = compose(
-    scale(scaleProgress),
+    scale(scaleProgress * (1 + pressure / 3)),
     rotate(sinusoidalQuarterTurn * rotation),
     rotate(-Math.PI/2 * coord.a),
     translate(coord),

@@ -20,6 +20,7 @@ import {setDifference} from './set.js';
  * @param {Coord} coord - position in the origin coordinate plane, including
  * any inherent rotation angle relative to that plane due to transition over
  * the edge of the world to another face.
+ * @param {number} pressure - button pressure on entity.
  * @param {Progress=} progress - precomputed progress parameters.
  * @param {Transition=} transition - animated transition parameters.
  */
@@ -33,29 +34,32 @@ import {setDifference} from './set.js';
 
 /**
  * @callback PutFn
- * @param {number} e - entity number
- * @param {number} t - tile number
+ * @param {number} entity - entity number
+ * @param {number} tile - tile number
  */
 
 /**
  * @callback MoveFn
- * @param {number} e - entity number
+ * @param {number} entity - entity number
  * @param {number} to - tile number
  */
 
 /**
  * @callback RemoveFn
- * @param {number} e - entity number
+ * @param {number} entity - entity number
  */
 
 /**
  * @callback TransitionFn
- * @param {number} e - entity number
+ * @param {number} entity - entity number
  * @param {Transition} transition - how to animate the entity's transition into
  * the next turn.
  */
 
 export function makeViewModel() {
+  /** @type {number | undefined} time of last animation frame */
+  let last;
+
   /**
    * Entity number to tile number.
    * @type {Map<number, number>}
@@ -80,6 +84,19 @@ export function makeViewModel() {
    */
   const animating = new Map();
 
+  /**
+   * What entities are pressed down, as buttons.
+   * @type {Set<number>}
+   */
+  const pressed = new Set();
+
+  /**
+   * The pressure from 0 (fully up) to 1 (fully down)
+   * for each pressed button entity.
+   * @type {Map<number, number>}
+   */
+  const pressures = new Map();
+
   /** @type {PutFn} */
   function put(entity, tile) {
     locations.set(entity, tile);
@@ -96,7 +113,7 @@ export function makeViewModel() {
     if (tileWatchers !== undefined) {
       for (const [watcher, coord] of tileWatchers.entries()) {
         watcher.enter(entity);
-        watcher.place(entity, coord);
+        watcher.place(entity, coord, pressure(entity));
       }
     }
   }
@@ -117,16 +134,16 @@ export function makeViewModel() {
   }
 
   /** @type {MoveFn} */
-  function move(e, to) {
-    const from = locations.get(e);
-    if (from == null) throw new Error(`Assertion failed: cannot move absent entity ${e}`);
+  function move(entity, to) {
+    const from = locations.get(entity);
+    if (from == null) throw new Error(`Assertion failed: cannot move absent entity ${entity}`);
     if (from === to) {
       return;
     }
 
-    entityExitsTile(e, from);
-    locations.set(e, to);
-    entityEntersTile(e, to);
+    entityExitsTile(entity, from);
+    locations.set(entity, to);
+    entityEntersTile(entity, to);
 
     // The representation of the entity moves within each watcher
     // that observes it either before or after the transition.
@@ -136,131 +153,171 @@ export function makeViewModel() {
     const afterSet = new Set(after?.keys());
     for (const watcher of setDifference(beforeSet, afterSet)) {
       // watchers before move but not after
-      watcher.exit(e);
+      watcher.exit(entity);
     }
     for (const watcher of setDifference(afterSet, beforeSet)) {
       // watchers after move but not before
-      watcher.enter(e);
+      watcher.enter(entity);
     }
     if (after) {
       for (const [watcher, coord] of after.entries()) {
-        watcher.place(e, coord);
+        watcher.place(entity, coord, pressure(entity));
       }
     }
   }
 
   /** @type {EntityWatchFn} */
   function watch(tiles, watcher) {
-    for (const [t, coord] of tiles.entries()) {
-      watcherEntersTile(watcher, t, coord);
+    for (const [tile, coord] of tiles.entries()) {
+      watcherEntersTile(watcher, tile, coord);
     }
   }
 
   /** @type {EntityWatchFn} */
   function unwatch(tiles, watcher) {
-    for (const t of tiles.keys()) {
-      watcherExitsTile(watcher, t);
+    for (const tile of tiles.keys()) {
+      watcherExitsTile(watcher, tile);
     }
   }
 
   /**
    * @param {Watcher} watcher - watcher
-   * @param {number} t - tile number
+   * @param {number} tile - tile number
    * @param {Coord} coord - coordinate of tile
    */
-  function watcherEntersTile(watcher, t, coord) {
+  function watcherEntersTile(watcher, tile, coord) {
     // Register watcher.
-    let tileWatchers = watchers.get(t);
+    let tileWatchers = watchers.get(tile);
     if (tileWatchers) {
       tileWatchers.set(watcher, coord);
     } else {
       tileWatchers = new Map();
       tileWatchers.set(watcher, coord);
-      watchers.set(t, tileWatchers);
+      watchers.set(tile, tileWatchers);
     }
 
     // Initial notification.
-    const entities = colocated.get(t);
+    const entities = colocated.get(tile);
     if (entities) {
-      for (const e of entities) {
-        watcher.enter(e);
-        watcher.place(e, coord);
+      for (const entity of entities) {
+        watcher.enter(entity);
+        watcher.place(entity, coord, pressure(entity));
       }
     }
   }
 
   /**
    * @param {Watcher} watcher - watcher
-   * @param {number} t - tile number
+   * @param {number} tile - tile number
    */
-  function watcherExitsTile(watcher, t) {
+  function watcherExitsTile(watcher, tile) {
     // Final notification.
-    const entities = colocated.get(t);
+    const entities = colocated.get(tile);
     if (entities) {
-      for (const e of entities) {
-        watcher.exit(e);
+      for (const entity of entities) {
+        watcher.exit(entity);
       }
     }
 
     // Unregister watcher.
-    const tileWatchers = watchers.get(t);
+    const tileWatchers = watchers.get(tile);
     if (!tileWatchers) throw new Error(`Assertion failed`);
     tileWatchers.delete(watcher);
     if (tileWatchers.size === 0) {
-      watchers.delete(t);
+      watchers.delete(tile);
     }
   }
 
   /**
-   * @param {number} e - entity number
-   * @param {number} t - tile number
+   * @param {number} entity - entity number
+   * @param {number} tile - tile number
    */
-  function entityExitsTile(e, t) {
-    const entities = colocated.get(t);
+  function entityExitsTile(entity, tile) {
+    const entities = colocated.get(tile);
     if (entities) {
-      entities.delete(e);
+      entities.delete(entity);
     }
   }
 
   /**
-   * @param {number} e - entity number
-   * @param {number} t - tile number
+   * @param {number} entity - entity number
+   * @param {number} tile - tile number
    */
-  function entityEntersTile(e, t) {
-    let entities = colocated.get(t);
+  function entityEntersTile(entity, tile) {
+    let entities = colocated.get(tile);
     if (!entities) {
       entities = new Set();
-      colocated.set(t, entities);
+      colocated.set(tile, entities);
     }
-    entities.add(e);
+    entities.add(entity);
   }
 
   /**
-   * @param {number} t - tile number
+   * @param {number} tile - tile number
    * @returns {Set<number>=}
    */
-  function entitiesAtTile(t) {
-    return colocated.get(t);
+  function entitiesAtTile(tile) {
+    return colocated.get(tile);
   }
 
   /** @type {TransitionFn} */
-  function transition(e, transition) {
-    const location = locations.get(e);
+  function transition(entity, transition) {
+    const location = locations.get(entity);
     if (location === undefined) {
-      throw new Error(`Assertion failed: no location for entity ${e}`);
+      throw new Error(`Assertion failed: no location for entity ${entity}`);
     }
-    animating.set(e, transition);
+    animating.set(entity, transition);
   }
 
   /** @type {AnimateFn} */
   function animate(progress) {
-    for (const [e, transition] of animating.entries()) {
-      const t = locations.get(e);
-      if (t !== undefined) {
-        const tileWatchers = watchers.get(t);
+    const {now} = progress;
+
+    if (last === undefined) {
+      last = now;
+      return;
+    }
+
+    // Animate button pressure simulation.
+    const factor = 0.99995 ** (now - last);
+    for (const entry of pressures.entries()) {
+      const [command] = entry;
+      let [, pressure] = entry;
+      if (pressed.has(command)) {
+        pressure = 1 - ((1 - pressure) * factor);
+      } else {
+        pressure = pressure * factor;
+      }
+      if (pressure <= Number.EPSILON) {
+        pressures.delete(command);
+      } else {
+        pressures.set(command, pressure);
+      }
+    }
+
+    // Animate transitions.
+    for (const [entity, transition] of animating.entries()) {
+      const tile = locations.get(entity);
+      if (tile !== undefined) {
+        const tileWatchers = watchers.get(tile);
         if (tileWatchers !== undefined) {
           for (const [watcher, coord] of tileWatchers.entries()) {
-            watcher.place(e, coord, progress, transition);
+            watcher.place(entity, coord, pressure(entity), progress, transition);
+          }
+        }
+      }
+    }
+
+    // Animate any remaining entities that just have pressure applied.
+    for (const [entity, pressure] of pressures.entries()) {
+      if (!animating.has(entity)) {
+        const tile = locations.get(entity);
+        if (tile !== undefined) {
+          const tileWatchers = watchers.get(tile);
+          if (tileWatchers !== undefined) {
+            for (const [watcher, coord] of tileWatchers.entries()) {
+              watcher.place(entity, coord, pressure);
+            }
           }
         }
       }
@@ -271,10 +328,36 @@ export function makeViewModel() {
     animating.clear();
   }
 
+  /**
+   * @param {number} command
+   */
+  function down(command) {
+    if (!pressed.has(command)) {
+      pressed.add(command);
+      pressures.set(command, pressure(command));
+    }
+  }
+
+  /**
+   * @param {number} command
+   */
+  function up(command) {
+    pressed.delete(command);
+  }
+
+  /**
+   * @param {number} command
+   */
+  function pressure(command) {
+    return pressures.get(command) || 0;
+  }
+
   return {
     move,
     put,
     remove,
+    down,
+    up,
     entitiesAtTile,
     watch,
     unwatch,
