@@ -95,7 +95,7 @@ export function makeControlsController($parent) {
     next += 1;
 
     types.set(entity, type);
-    viewModel.put(entity, location);
+    viewModel.put(entity, location, type);
     return entity;
   }
 

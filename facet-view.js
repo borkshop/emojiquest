@@ -149,7 +149,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
  * @param {(tile:number) => SVGElement} options.createFacet
  * @param {EntityWatchFn} options.watchEntities
  * @param {EntityWatchFn} options.unwatchEntities
- * @param {(entity:number) => SVGElement} options.createEntity
+ * @param {(entity:number, type:number) => SVGElement} options.createEntity
  * @param {AdvanceFn} options.advance
  */
 export function makeFacetView({
@@ -195,9 +195,10 @@ export function makeFacetView({
 
       /**
        * @param {number} e - entity number
+       * @param {number} t - tile type
        */
-      enter(e) {
-        const $entity = createEntity(e);
+      enter(e, t) {
+        const $entity = createEntity(e, t);
         if (!$entity) throw new Error(`Assertion failed, createEntity hook must return something`);
         entityMap.set(e, $entity);
         $facet.appendChild($entity);

@@ -69,6 +69,10 @@ export function makeModel({
   const entityTypes = new Map();
   /** @type {Map<number, number>} */
   const tileTypes = new Map();
+  // /** @type {Map<number, number>} */
+  // const leftHands = new Map();
+  // /** @type {Map<number, number>} */
+  // const rightHands = new Map();
 
   // Ephemeral state
 
@@ -162,7 +166,7 @@ export function makeModel({
     entitiesPrev[spawn] = agentModelEntity;
     tilesPrev[spawn] = agentViewModelEntity;
     locations.set(agentModelEntity, spawn);
-    viewModel.put(agentViewModelEntity, spawn);
+    viewModel.put(agentViewModelEntity, spawn, tileTypesByName.happy);
 
     for (let location = 0; location < size; location++) {
       if (Math.random() < 0.25 && location !== spawn) {
@@ -174,7 +178,7 @@ export function makeModel({
         const tileType = defaultTileTypeForAgentType[modelType];
         const entity = createEntity(modelType);
         const tile = createTile(tileType);
-        viewModel.put(tile, location); // TODO thread tile type thru here, rename put to create or add
+        viewModel.put(tile, location, tileType);
         entitiesPrev[location] = entity;
         tilesPrev[location] = tile;
         if (Math.random() < 0.0625) {

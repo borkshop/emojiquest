@@ -27,7 +27,7 @@ import {setDifference} from './set.js';
 
 /**
  * @typedef {Object} Watcher
- * @prop {(entity: number) => void} enter
+ * @prop {(entity: number, type: number) => void} enter
  * @prop {(entity: number) => void} exit
  * @prop {PlaceFn} place
  */
@@ -35,7 +35,8 @@ import {setDifference} from './set.js';
 /**
  * @callback PutFn
  * @param {number} entity - entity number
- * @param {number} tile - tile number
+ * @param {number} location - tile number
+ * @param {number} type - tile type
  */
 
 /**
@@ -62,13 +63,13 @@ export function makeViewModel() {
 
   /**
    * Entity number to tile number.
-   * @type {Map<number, number>}
+   * @type {Map<number, {location: number, type: number}>}
    */
-  const locations = new Map();
+  const tiles = new Map();
 
   /**
-   * Tile number to entity numbers.
-   * @type {Map<number, Set<number>>}
+   * Tile number to entity numbers to entity types.
+   * @type {Map<number, Map<number, number>>}
    */
   const colocated = new Map();
 
@@ -98,21 +99,21 @@ export function makeViewModel() {
   const pressures = new Map();
 
   /** @type {PutFn} */
-  function put(entity, tile) {
-    locations.set(entity, tile);
-    let entities = colocated.get(tile);
+  function put(entity, location, type) {
+    tiles.set(entity, {location, type});
+    let entities = colocated.get(location);
     if (entities) {
-      entities.add(entity);
+      entities.set(entity, type);
     } else {
-      entities = new Set();
-      entities.add(entity);
-      colocated.set(tile, entities);
+      entities = new Map();
+      entities.set(entity, type);
+      colocated.set(location, entities);
     }
 
-    const tileWatchers = watchers.get(tile);
+    const tileWatchers = watchers.get(location);
     if (tileWatchers !== undefined) {
       for (const [watcher, coord] of tileWatchers.entries()) {
-        watcher.enter(entity);
+        watcher.enter(entity, type);
         watcher.place(entity, coord, pressure(entity));
       }
     }
@@ -120,12 +121,13 @@ export function makeViewModel() {
 
   /** @type {RemoveFn} */
   function remove(entity) {
-    const tile = locations.get(entity);
+    const tile = tiles.get(entity);
     if (tile === undefined) {
       throw new Error(`Cannot remove entity with unknown location ${entity}`);
     }
-    entityExitsTile(entity, tile);
-    const tileWatchers = watchers.get(tile);
+    const {location} = tile;
+    entityExitsTile(entity, location);
+    const tileWatchers = watchers.get(location);
     if (tileWatchers !== undefined) {
       for (const watcher of tileWatchers.keys()) {
         watcher.exit(entity);
@@ -135,15 +137,17 @@ export function makeViewModel() {
 
   /** @type {MoveFn} */
   function move(entity, to) {
-    const from = locations.get(entity);
-    if (from == null) throw new Error(`Assertion failed: cannot move absent entity ${entity}`);
+    const tile = tiles.get(entity);
+    if (tile === undefined) throw new Error(`Assertion failed: cannot move absent entity ${entity}`);
+    const {location: from, type} = tile;
+
     if (from === to) {
       return;
     }
 
     entityExitsTile(entity, from);
-    locations.set(entity, to);
-    entityEntersTile(entity, to);
+    tile.location = to;
+    entityEntersTile(entity, to, type);
 
     // The representation of the entity moves within each watcher
     // that observes it either before or after the transition.
@@ -157,7 +161,7 @@ export function makeViewModel() {
     }
     for (const watcher of setDifference(afterSet, beforeSet)) {
       // watchers after move but not before
-      watcher.enter(entity);
+      watcher.enter(entity, type);
     }
     if (after) {
       for (const [watcher, coord] of after.entries()) {
@@ -168,39 +172,39 @@ export function makeViewModel() {
 
   /** @type {EntityWatchFn} */
   function watch(tiles, watcher) {
-    for (const [tile, coord] of tiles.entries()) {
-      watcherEntersTile(watcher, tile, coord);
+    for (const [location, coord] of tiles.entries()) {
+      watcherEntersTile(watcher, location, coord);
     }
   }
 
   /** @type {EntityWatchFn} */
   function unwatch(tiles, watcher) {
-    for (const tile of tiles.keys()) {
-      watcherExitsTile(watcher, tile);
+    for (const location of tiles.keys()) {
+      watcherExitsTile(watcher, location);
     }
   }
 
   /**
    * @param {Watcher} watcher - watcher
-   * @param {number} tile - tile number
+   * @param {number} location - tile number
    * @param {Coord} coord - coordinate of tile
    */
-  function watcherEntersTile(watcher, tile, coord) {
+  function watcherEntersTile(watcher, location, coord) {
     // Register watcher.
-    let tileWatchers = watchers.get(tile);
+    let tileWatchers = watchers.get(location);
     if (tileWatchers) {
       tileWatchers.set(watcher, coord);
     } else {
       tileWatchers = new Map();
       tileWatchers.set(watcher, coord);
-      watchers.set(tile, tileWatchers);
+      watchers.set(location, tileWatchers);
     }
 
     // Initial notification.
-    const entities = colocated.get(tile);
+    const entities = colocated.get(location);
     if (entities) {
-      for (const entity of entities) {
-        watcher.enter(entity);
+      for (const [entity, type] of entities.entries()) {
+        watcher.enter(entity, type);
         watcher.place(entity, coord, pressure(entity));
       }
     }
@@ -208,32 +212,32 @@ export function makeViewModel() {
 
   /**
    * @param {Watcher} watcher - watcher
-   * @param {number} tile - tile number
+   * @param {number} location - tile number
    */
-  function watcherExitsTile(watcher, tile) {
+  function watcherExitsTile(watcher, location) {
     // Final notification.
-    const entities = colocated.get(tile);
+    const entities = colocated.get(location);
     if (entities) {
-      for (const entity of entities) {
+      for (const entity of entities.keys()) {
         watcher.exit(entity);
       }
     }
 
     // Unregister watcher.
-    const tileWatchers = watchers.get(tile);
+    const tileWatchers = watchers.get(location);
     if (!tileWatchers) throw new Error(`Assertion failed`);
     tileWatchers.delete(watcher);
     if (tileWatchers.size === 0) {
-      watchers.delete(tile);
+      watchers.delete(location);
     }
   }
 
   /**
    * @param {number} entity - entity number
-   * @param {number} tile - tile number
+   * @param {number} location - tile number
    */
-  function entityExitsTile(entity, tile) {
-    const entities = colocated.get(tile);
+  function entityExitsTile(entity, location) {
+    const entities = colocated.get(location);
     if (entities) {
       entities.delete(entity);
     }
@@ -241,29 +245,30 @@ export function makeViewModel() {
 
   /**
    * @param {number} entity - entity number
-   * @param {number} tile - tile number
+   * @param {number} location - tile number
+   * @param {number} type - tile type
    */
-  function entityEntersTile(entity, tile) {
-    let entities = colocated.get(tile);
+  function entityEntersTile(entity, location, type) {
+    let entities = colocated.get(location);
     if (!entities) {
-      entities = new Set();
-      colocated.set(tile, entities);
+      entities = new Map();
+      colocated.set(location, entities);
     }
-    entities.add(entity);
+    entities.set(entity, type);
   }
 
   /**
-   * @param {number} tile - tile number
-   * @returns {Set<number>=}
+   * @param {number} location - tile number
+   * @returns {Map<number, number>=}
    */
-  function entitiesAtTile(tile) {
-    return colocated.get(tile);
+  function entitiesAtTile(location) {
+    return colocated.get(location);
   }
 
   /** @type {TransitionFn} */
   function transition(entity, transition) {
-    const location = locations.get(entity);
-    if (location === undefined) {
+    const tile = tiles.get(entity);
+    if (tile === undefined) {
       throw new Error(`Assertion failed: no location for entity ${entity}`);
     }
     animating.set(entity, transition);
@@ -297,9 +302,10 @@ export function makeViewModel() {
 
     // Animate transitions.
     for (const [entity, transition] of animating.entries()) {
-      const tile = locations.get(entity);
+      const tile = tiles.get(entity);
       if (tile !== undefined) {
-        const tileWatchers = watchers.get(tile);
+        const {location} = tile;
+        const tileWatchers = watchers.get(location);
         if (tileWatchers !== undefined) {
           for (const [watcher, coord] of tileWatchers.entries()) {
             watcher.place(entity, coord, pressure(entity), progress, transition);
@@ -311,9 +317,10 @@ export function makeViewModel() {
     // Animate any remaining entities that just have pressure applied.
     for (const [entity, pressure] of pressures.entries()) {
       if (!animating.has(entity)) {
-        const tile = locations.get(entity);
+        const tile = tiles.get(entity);
         if (tile !== undefined) {
-          const tileWatchers = watchers.get(tile);
+          const {location} = tile;
+          const tileWatchers = watchers.get(location);
           if (tileWatchers !== undefined) {
             for (const [watcher, coord] of tileWatchers.entries()) {
               watcher.place(entity, coord, pressure);

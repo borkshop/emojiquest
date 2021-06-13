@@ -171,12 +171,12 @@ const cameraController = makeCameraController({
 });
 
 /**
- * @param {number} viewModelEntity
+ * @param {number} _entity
+ * @param {number} type
  * @returns {SVGElement}
  */
-function createEntity(viewModelEntity) {
+function createEntity(_entity, type) {
   const $entity = document.createElementNS(svgNS, 'text');
-  const type = model.tileType(viewModelEntity);
   $entity.setAttributeNS(null, 'class', 'moji');
   $entity.appendChild(document.createTextNode(viewText[type]));
   return $entity;
