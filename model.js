@@ -8,9 +8,7 @@
  */
 
 import {same} from './geometry2d.js';
-import {viewTypesByName} from './data.js';
-
-const {agent, tree} = viewTypesByName;
+import {agentTypesByName, defaultTileTypeForAgentType, tileTypesByName} from './data.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -44,31 +42,33 @@ const {agent, tree} = viewTypesByName;
  * @param {Object} args
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
- * @param {TransitionFn} args.transition
- * @param {MoveFn} args.move
- * @param {RemoveFn} args.remove
- * @param {PutFn} args.put
+ * @param {Object} args.viewModel
+ * @param {TransitionFn} args.viewModel.transition
+ * @param {MoveFn} args.viewModel.move
+ * @param {RemoveFn} args.viewModel.remove
+ * @param {PutFn} args.viewModel.put
  * @param {FollowFn} args.follow
  */
 export function makeModel({
   size,
   advance,
-  transition: transitionView,
-  move: moveView,
-  remove: removeView,
-  put: positionView,
+  viewModel,
   follow,
 }) {
   /** @type {Array<number | undefined>} */
   let entitiesPrev = new Array(size);
   let entitiesNext = new Array(size);
+  let tilesPrev = new Array(size);
+  let tilesNext = new Array(size);
   // const priorities = new Array(size);
   /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
   const intents = new Map();
   /** @type {Map<number, number>} entity number -> location number */
   const locations = new Map();
   /** @type {Map<number, number>} */
-  const types = new Map();
+  const entityTypes = new Map();
+  /** @type {Map<number, number>} */
+  const tileTypes = new Map();
 
   // Ephemeral state
 
@@ -79,28 +79,50 @@ export function makeModel({
   const mobiles = new Set();
   /** @type {Map<number, number>} */
   const moves = new Map();
-  /** @type {Set<number>} entities to remove on tock */
-  const removes = new Set();
+  /** @type {Map<number, number>} entities to remove on tock (model to viewModel) */
+  const removes = new Map();
   /** @type {Array<{agent: number, patient: number, origin: number, destination: number}>} - agents to patients */
   const bumps = [];
 
-  let next = 0;
+  let nextModelEntity = 0;
+  let nextViewEntity = 0;
+
   /**
    * @param {number} type
    * @returns {number} entity
    */
-  function create(type) {
-    const entity = next;
-    next++;
-    types.set(entity, type);
+  function createEntity(type) {
+    const entity = nextModelEntity;
+    nextModelEntity++;
+    entityTypes.set(entity, type);
+    return entity;
+  }
+
+  /**
+   * @param {number} type
+   * @returns {number} entity
+   */
+  function createTile(type) {
+    const entity = nextViewEntity;
+    nextViewEntity++;
+    tileTypes.set(entity, type);
     return entity;
   }
 
   /** @type {TypeFn} */
-  function type(entity) {
-    const type = types.get(entity);
+  function entityType(entity) {
+    const type = entityTypes.get(entity);
     if (type === undefined) {
-      throw new Error(`Cannot get type for non-existent entity ${entity}`);
+      throw new Error(`Cannot get type for non-existent model entity ${entity}`);
+    }
+    return type;
+  }
+
+  /** @type {TypeFn} */
+  function tileType(entity) {
+    const type = tileTypes.get(entity);
+    if (type === undefined) {
+      throw new Error(`Cannot get type for non-existent view model entity ${entity}`);
     }
     return type;
   }
@@ -135,24 +157,34 @@ export function makeModel({
    * @param {number} spawn - tile to spawn the agent at
    */
   function init(spawn) {
-    const a = create(agent);
-    entitiesPrev[spawn] = a;
-    locations.set(a, spawn);
-    positionView(a, spawn);
+    const agentModelEntity = createEntity(agentTypesByName.player);
+    const agentViewModelEntity = createTile(tileTypesByName.happy);
+    entitiesPrev[spawn] = agentModelEntity;
+    tilesPrev[spawn] = agentViewModelEntity;
+    locations.set(agentModelEntity, spawn);
+    viewModel.put(agentViewModelEntity, spawn);
 
-    for (let t = 0; t < size; t++) {
-      if (Math.random() < 0.25 && t !== spawn) {
-        const e = create(tree);
-        positionView(e, t);
-        entitiesPrev[t] = e;
-        if (Math.random() < 0.25) {
-          mobiles.add(e);
-          locations.set(e, t);
+    for (let location = 0; location < size; location++) {
+      if (Math.random() < 0.25 && location !== spawn) {
+        const modelType = [
+          agentTypesByName.pineTree,
+          agentTypesByName.appleTree,
+          agentTypesByName.axe
+        ].sort(() => Math.random() - 0.5).pop() || 0;
+        const tileType = defaultTileTypeForAgentType[modelType];
+        const entity = createEntity(modelType);
+        const tile = createTile(tileType);
+        viewModel.put(tile, location); // TODO thread tile type thru here, rename put to create or add
+        entitiesPrev[location] = entity;
+        tilesPrev[location] = tile;
+        if (Math.random() < 0.0625) {
+          mobiles.add(entity);
+          locations.set(entity, location);
         }
       }
     }
 
-    return a;
+    return agentModelEntity;
   }
 
   /**
@@ -193,6 +225,7 @@ export function makeModel({
     // Prepare the next generation
     for (let i = 0; i < size; i++) {
       entitiesNext[i] = entitiesPrev[i];
+      tilesNext[i] = tilesPrev[i];
     }
 
     // Auction
@@ -209,15 +242,17 @@ export function makeModel({
       const patient = entitiesPrev[destination];
       if (patient === undefined) {
         // Move
-        transitionView(winner, {direction, rotation: turn});
+        viewModel.transition(tilesPrev[origin], {direction, rotation: turn});
         follow(winner, change, destination);
-        moves.set(winner, destination);
+        moves.set(tilesPrev[origin], destination);
         locations.set(winner, destination);
         entitiesNext[destination] = winner;
         entitiesNext[origin] = undefined;
+        tilesNext[destination] = tilesPrev[origin];
+        tilesNext[origin] = undefined;
       } else {
         // Bounce
-        transitionView(winner, {direction, bump: true});
+        viewModel.transition(tilesPrev[origin], {direction, bump: true});
         if (deliberate) {
           // Bump
           bumps.push({agent: winner, patient, origin, destination});
@@ -229,38 +264,39 @@ export function makeModel({
         const change = options.get(loser);
         if (change === undefined) throw new Error(`Assertion failed`);
         const {position: origin, direction} = change;
-        transitionView(loser, {direction, bump: true});
-        moves.set(loser, origin);
+        viewModel.transition(tilesPrev[origin], {direction, bump: true});
       }
     }
 
     // Successfully bump an entity that did not move.
     for (const { patient, destination } of bumps) {
       if (!moves.has(patient)) {
-        transitionView(patient, {
+        viewModel.transition(tilesPrev[destination], {
           rotation: 1,
           bump: true,
           stage: 'exit'
         });
-        removes.add(patient);
+        removes.set(patient, tilesPrev[destination]);
         entitiesNext[destination] = undefined;
+        tilesNext[destination] = undefined;
       }
     }
 
     // Swap generations
     [entitiesNext, entitiesPrev] = [entitiesPrev, entitiesNext];
+    [tilesNext, tilesPrev] = [tilesPrev, tilesNext];
   }
 
   /**
    * effects moves;
    */
   function tock() {
-    for (const [entity, position] of moves.entries()) {
-      moveView(entity, position);
+    for (const [tile, destination] of moves.entries()) {
+      viewModel.move(tile, destination);
     }
-    for (const entity of removes) {
-      removeView(entity);
-      types.delete(entity);
+    for (const [entity, tile] of removes.entries()) {
+      viewModel.remove(tile);
+      entityTypes.delete(entity);
       locations.delete(entity);
       mobiles.delete(entity);
     }
@@ -272,5 +308,5 @@ export function makeModel({
     intents.clear();
   }
 
-  return {intend, type, tick, tock, init};
+  return {intend, entityType, tileType, tick, tock, init};
 }

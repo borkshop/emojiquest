@@ -4,7 +4,7 @@ import {north, east, south, west, same} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
-import {viewText, viewTypesByName} from './data.js';
+import {viewText, tileTypesByName} from './data.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -99,13 +99,13 @@ export function makeControlsController($parent) {
     return entity;
   }
 
-  const northEntity = create(1, viewTypesByName.north);
-  const westEntity = create(3, viewTypesByName.west);
-  const watchEntity = create(4, viewTypesByName.watch);
-  const eastEntity = create(5, viewTypesByName.east);
-  const southEntity = create(7, viewTypesByName.south);
-  const leftEntity = create(6, viewTypesByName.left);
-  const rightEntity = create(8, viewTypesByName.right);
+  const northEntity = create(1, tileTypesByName.north);
+  const westEntity = create(3, tileTypesByName.west);
+  const watchEntity = create(4, tileTypesByName.watch);
+  const eastEntity = create(5, tileTypesByName.east);
+  const southEntity = create(7, tileTypesByName.south);
+  const leftEntity = create(6, tileTypesByName.left);
+  const rightEntity = create(8, tileTypesByName.right);
 
   // TODO remove this and actually use entities.
   /** @type {any} */

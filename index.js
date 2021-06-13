@@ -171,12 +171,12 @@ const cameraController = makeCameraController({
 });
 
 /**
- * @param {number} e - entity number
+ * @param {number} viewModelEntity
  * @returns {SVGElement}
  */
-function createEntity(e) {
+function createEntity(viewModelEntity) {
   const $entity = document.createElementNS(svgNS, 'text');
-  const type = model.type(e);
+  const type = model.tileType(viewModelEntity);
   $entity.setAttributeNS(null, 'class', 'moji');
   $entity.appendChild(document.createTextNode(viewText[type]));
   return $entity;
@@ -209,10 +209,12 @@ const {keepTilesAround} = makeTileKeeper({
 const model = makeModel({
   size: world.worldArea,
   advance: world.advance,
-  transition: viewModel.transition,
-  move: viewModel.move,
-  remove: viewModel.remove,
-  put: viewModel.put,
+  viewModel: {
+    transition: viewModel.transition,
+    move: viewModel.move,
+    remove: viewModel.remove,
+    put: viewModel.put,
+  },
   follow,
 });
 

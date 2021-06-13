@@ -279,7 +279,7 @@ export function makeViewModel() {
     }
 
     // Animate button pressure simulation.
-    const factor = 0.99995 ** (now - last);
+    const factor = 0.9999 ** (now - last);
     for (const entry of pressures.entries()) {
       const [command] = entry;
       let [, pressure] = entry;
