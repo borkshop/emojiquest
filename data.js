@@ -10,6 +10,8 @@ export const agentTypes = [
 export const itemTypes = [
   { name: 'empty' },
   { name: 'apple' },
+  { name: 'axe' },
+  { name: 'pineLumber', tile: 'pineTree' },
 ];
 
 const tileTypes = [
@@ -36,4 +38,5 @@ export const agentTypesByName = Object.fromEntries(agentTypes.map(({ name }, i) 
 export const itemTypesByName = Object.fromEntries(itemTypes.map(({ name }, i) => [name, i]));
 
 export const defaultTileTypeForAgentType = agentTypes.map(({ name, tile }) => tileTypesByName[tile || name]);
+export const tileTypeForItemType = itemTypes.map(({ name, tile }) => tileTypesByName[tile || name]);
 export const viewText = tileTypes.map(type => type.text);

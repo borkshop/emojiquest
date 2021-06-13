@@ -8,7 +8,7 @@
  */
 
 import {same} from './geometry2d.js';
-import {agentTypesByName, defaultTileTypeForAgentType, tileTypesByName} from './data.js';
+import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, itemTypes, itemTypesByName} from './data.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -67,10 +67,10 @@ export function makeModel({
   const locations = new Map();
   /** @type {Map<number, number>} */
   const entityTypes = new Map();
-  // /** @type {Map<number, number>} */
-  // const leftHands = new Map();
-  // /** @type {Map<number, number>} */
-  // const rightHands = new Map();
+  /** @type {number} */
+  let left = itemTypesByName.empty;
+  /** @type {number} */
+  let right = itemTypesByName.empty;
 
   // Ephemeral state
 
@@ -98,6 +98,15 @@ export function makeModel({
     nextModelEntity++;
     entityTypes.set(entity, type);
     return entity;
+  }
+
+  /** @type {TypeFn} */
+  function entityType(entity) {
+    const type = entityTypes.get(entity);
+    if (type === undefined) {
+      throw new Error(`Cannot get type for non-existent model entity ${entity}`);
+    }
+    return type;
   }
 
   /**
@@ -251,16 +260,33 @@ export function makeModel({
     }
 
     // Successfully bump an entity that did not move.
-    for (const { patient, destination } of bumps) {
+    for (const { agent, patient, destination } of bumps) {
       if (!moves.has(patient)) {
-        viewModel.transition(tilesPrev[destination], {
-          rotation: 1,
-          bump: true,
-          stage: 'exit'
-        });
-        removes.set(patient, tilesPrev[destination]);
-        entitiesNext[destination] = undefined;
-        tilesNext[destination] = undefined;
+        const agentType = agentTypes[entityType(agent)].name;
+        const patientType = agentTypes[entityType(patient)].name;
+        const leftType = itemTypes[left].name;
+        const rightType = itemTypes[right].name;
+        const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
+        if (/^player:axe:empty:/.test(condition)) {
+          left = itemTypesByName.axe;
+          viewModel.transition(tilesPrev[destination], {
+            bump: true,
+            stage: 'exit'
+          });
+          removes.set(patient, tilesPrev[destination]);
+          entitiesNext[destination] = undefined;
+          tilesNext[destination] = undefined;
+        } else if (/^player:pineTree:axe:/.test(condition)) {
+          right = itemTypesByName.pineLumber;
+          viewModel.transition(tilesPrev[destination], {
+            rotation: 1,
+            bump: true,
+            stage: 'exit'
+          });
+          removes.set(patient, tilesPrev[destination]);
+          entitiesNext[destination] = undefined;
+          tilesNext[destination] = undefined;
+        }
       }
     }
 
