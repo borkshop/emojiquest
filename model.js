@@ -67,8 +67,6 @@ export function makeModel({
   const locations = new Map();
   /** @type {Map<number, number>} */
   const entityTypes = new Map();
-  /** @type {Map<number, number>} */
-  const tileTypes = new Map();
   // /** @type {Map<number, number>} */
   // const leftHands = new Map();
   // /** @type {Map<number, number>} */
@@ -103,32 +101,12 @@ export function makeModel({
   }
 
   /**
-   * @param {number} type
    * @returns {number} entity
    */
-  function createTile(type) {
+  function createTile() {
     const entity = nextViewEntity;
     nextViewEntity++;
-    tileTypes.set(entity, type);
     return entity;
-  }
-
-  /** @type {TypeFn} */
-  function entityType(entity) {
-    const type = entityTypes.get(entity);
-    if (type === undefined) {
-      throw new Error(`Cannot get type for non-existent model entity ${entity}`);
-    }
-    return type;
-  }
-
-  /** @type {TypeFn} */
-  function tileType(entity) {
-    const type = tileTypes.get(entity);
-    if (type === undefined) {
-      throw new Error(`Cannot get type for non-existent view model entity ${entity}`);
-    }
-    return type;
   }
 
   /**
@@ -161,12 +139,12 @@ export function makeModel({
    * @param {number} spawn - tile to spawn the agent at
    */
   function init(spawn) {
-    const agentModelEntity = createEntity(agentTypesByName.player);
-    const agentViewModelEntity = createTile(tileTypesByName.happy);
-    entitiesPrev[spawn] = agentModelEntity;
-    tilesPrev[spawn] = agentViewModelEntity;
-    locations.set(agentModelEntity, spawn);
-    viewModel.put(agentViewModelEntity, spawn, tileTypesByName.happy);
+    const agent = createEntity(agentTypesByName.player);
+    const tile = createTile();
+    entitiesPrev[spawn] = agent;
+    tilesPrev[spawn] = tile;
+    locations.set(agent, spawn);
+    viewModel.put(tile, spawn, tileTypesByName.happy);
 
     for (let location = 0; location < size; location++) {
       if (Math.random() < 0.25 && location !== spawn) {
@@ -177,7 +155,7 @@ export function makeModel({
         ].sort(() => Math.random() - 0.5).pop() || 0;
         const tileType = defaultTileTypeForAgentType[modelType];
         const entity = createEntity(modelType);
-        const tile = createTile(tileType);
+        const tile = createTile();
         viewModel.put(tile, location, tileType);
         entitiesPrev[location] = entity;
         tilesPrev[location] = tile;
@@ -188,7 +166,7 @@ export function makeModel({
       }
     }
 
-    return agentModelEntity;
+    return agent;
   }
 
   /**
@@ -312,5 +290,5 @@ export function makeModel({
     intents.clear();
   }
 
-  return {intend, entityType, tileType, tick, tock, init};
+  return {intend, tick, tock, init};
 }
