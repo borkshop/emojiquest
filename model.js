@@ -83,7 +83,7 @@ export function makeModel({
   const moves = new Map();
   /** @type {Map<number, number>} entities to remove on tock (model to viewModel) */
   const removes = new Map();
-  /** @type {Array<{agent: number, patient: number, origin: number, destination: number}>} - agents to patients */
+  /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
   const bumps = [];
 
   let nextModelEntity = 0;
@@ -246,7 +246,7 @@ export function makeModel({
         viewModel.transition(tilesPrev[origin], {direction, bump: true});
         if (deliberate) {
           // Bump
-          bumps.push({agent: winner, patient, origin, destination});
+          bumps.push({agent: winner, patient, origin, destination, direction});
         }
       }
       // Bounce all of the candidates that did not get to procede in the
@@ -260,7 +260,7 @@ export function makeModel({
     }
 
     // Successfully bump an entity that did not move.
-    for (const { agent, patient, destination } of bumps) {
+    for (const { agent, patient, destination, direction } of bumps) {
       if (!moves.has(patient)) {
         const agentType = agentTypes[entityType(agent)].name;
         const patientType = agentTypes[entityType(patient)].name;
@@ -270,7 +270,7 @@ export function makeModel({
         if (/^player:axe:empty:/.test(condition)) {
           left = itemTypesByName.axe;
           viewModel.transition(tilesPrev[destination], {
-            bump: true,
+            direction: (direction + 2) % 4,
             stage: 'exit'
           });
           removes.set(patient, tilesPrev[destination]);
