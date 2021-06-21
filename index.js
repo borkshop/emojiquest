@@ -13,6 +13,7 @@ import {makeCameraController} from './camera-controller.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
+import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
 import {makeControlsController} from './controls.js';
 import {makeProgress} from './animation.js';
@@ -183,6 +184,7 @@ function createEntity(_entity, type) {
 }
 
 const viewModel = makeViewModel();
+const macroViewModel = makeMacroViewModel(viewModel);
 
 const facetView = makeFacetView({
   context: $context,
@@ -209,6 +211,7 @@ const {keepTilesAround} = makeTileKeeper({
 const model = makeModel({
   size: world.worldArea,
   advance: world.advance,
+  macroViewModel,
   viewModel: {
     transition: viewModel.transition,
     move: viewModel.move,

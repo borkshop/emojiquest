@@ -1,10 +1,7 @@
 
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
- * @typedef {import('./view-model.js').MoveFn} MoveFn
- * @typedef {import('./view-model.js').RemoveFn} RemoveFn
- * @typedef {import('./view-model.js').PutFn} PutFn
- * @typedef {import('./view-model.js').TransitionFn} TransitionFn
+ * @typedef {import('./macro-view-model.js').MacroViewModel} MacroViewModel
  */
 
 import {same} from './geometry2d.js';
@@ -43,23 +40,18 @@ import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByNa
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
  * @param {Object} args.viewModel
- * @param {TransitionFn} args.viewModel.transition
- * @param {MoveFn} args.viewModel.move
- * @param {RemoveFn} args.viewModel.remove
- * @param {PutFn} args.viewModel.put
+ * @param {MacroViewModel} args.macroViewModel
  * @param {FollowFn} args.follow
  */
 export function makeModel({
   size,
   advance,
-  viewModel,
+  macroViewModel,
   follow,
 }) {
   /** @type {Array<number | undefined>} */
   let entitiesPrev = new Array(size);
   let entitiesNext = new Array(size);
-  let tilesPrev = new Array(size);
-  let tilesNext = new Array(size);
   // const priorities = new Array(size);
   /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
   const intents = new Map();
@@ -79,15 +71,12 @@ export function makeModel({
   const targets = new Map();
   /** @type {Set<number>} entity numbers of automobile entities */
   const mobiles = new Set();
-  /** @type {Map<number, number>} */
-  const moves = new Map();
-  /** @type {Map<number, number>} entities to remove on tock (model to viewModel) */
-  const removes = new Map();
+  /** @type {Set<number>} */
+  const moves = new Set();
   /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
   const bumps = [];
 
   let nextModelEntity = 0;
-  let nextViewEntity = 0;
 
   /**
    * @param {number} type
@@ -100,6 +89,15 @@ export function makeModel({
     return entity;
   }
 
+  /**
+   * @param {number} entity
+   */
+  function destroyEntity(entity) {
+    entityTypes.delete(entity);
+    mobiles.delete(entity);
+    locations.delete(entity);
+  }
+
   /** @type {TypeFn} */
   function entityType(entity) {
     const type = entityTypes.get(entity);
@@ -107,15 +105,6 @@ export function makeModel({
       throw new Error(`Cannot get type for non-existent model entity ${entity}`);
     }
     return type;
-  }
-
-  /**
-   * @returns {number} entity
-   */
-  function createTile() {
-    const entity = nextViewEntity;
-    nextViewEntity++;
-    return entity;
   }
 
   /**
@@ -149,11 +138,9 @@ export function makeModel({
    */
   function init(spawn) {
     const agent = createEntity(agentTypesByName.player);
-    const tile = createTile();
     entitiesPrev[spawn] = agent;
-    tilesPrev[spawn] = tile;
     locations.set(agent, spawn);
-    viewModel.put(tile, spawn, tileTypesByName.happy);
+    macroViewModel.put(agent, spawn, tileTypesByName.happy);
 
     for (let location = 0; location < size; location++) {
       if (Math.random() < 0.25 && location !== spawn) {
@@ -164,10 +151,8 @@ export function makeModel({
         ].sort(() => Math.random() - 0.5).pop() || 0;
         const tileType = defaultTileTypeForAgentType[modelType];
         const entity = createEntity(modelType);
-        const tile = createTile();
-        viewModel.put(tile, location, tileType);
+        macroViewModel.put(entity, location, tileType);
         entitiesPrev[location] = entity;
-        tilesPrev[location] = tile;
         if (Math.random() < 0.0625) {
           mobiles.add(entity);
           locations.set(entity, location);
@@ -216,7 +201,6 @@ export function makeModel({
     // Prepare the next generation
     for (let i = 0; i < size; i++) {
       entitiesNext[i] = entitiesPrev[i];
-      tilesNext[i] = tilesPrev[i];
     }
 
     // Auction
@@ -233,17 +217,15 @@ export function makeModel({
       const patient = entitiesPrev[destination];
       if (patient === undefined) {
         // Move
-        viewModel.transition(tilesPrev[origin], {direction, rotation: turn});
+        macroViewModel.move(winner, destination, direction, turn);
         follow(winner, change, destination);
-        moves.set(tilesPrev[origin], destination);
         locations.set(winner, destination);
+        moves.add(winner);
         entitiesNext[destination] = winner;
         entitiesNext[origin] = undefined;
-        tilesNext[destination] = tilesPrev[origin];
-        tilesNext[origin] = undefined;
       } else {
         // Bounce
-        viewModel.transition(tilesPrev[origin], {direction, bump: true});
+        macroViewModel.bounce(winner, direction);
         if (deliberate) {
           // Bump
           bumps.push({agent: winner, patient, origin, destination, direction});
@@ -254,8 +236,8 @@ export function makeModel({
       for (const loser of candidates) {
         const change = options.get(loser);
         if (change === undefined) throw new Error(`Assertion failed`);
-        const {position: origin, direction} = change;
-        viewModel.transition(tilesPrev[origin], {direction, bump: true});
+        const {direction} = change;
+        macroViewModel.bounce(loser, direction);
       }
     }
 
@@ -269,48 +251,29 @@ export function makeModel({
         const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
         if (/^player:axe:empty:/.test(condition)) {
           left = itemTypesByName.axe;
-          viewModel.transition(tilesPrev[destination], {
-            direction: (direction + 2) % 4,
-            stage: 'exit'
-          });
-          removes.set(patient, tilesPrev[destination]);
+          macroViewModel.take(patient, (direction + 2) % 4);
+          destroyEntity(patient);
           entitiesNext[destination] = undefined;
-          tilesNext[destination] = undefined;
         } else if (/^player:pineTree:axe:/.test(condition)) {
           right = itemTypesByName.pineLumber;
-          viewModel.transition(tilesPrev[destination], {
-            rotation: 1,
-            bump: true,
-            stage: 'exit'
-          });
-          removes.set(patient, tilesPrev[destination]);
+          macroViewModel.bounce(agent, direction);
+          macroViewModel.fell(patient);
+          destroyEntity(patient);
           entitiesNext[destination] = undefined;
-          tilesNext[destination] = undefined;
         }
       }
     }
 
     // Swap generations
     [entitiesNext, entitiesPrev] = [entitiesPrev, entitiesNext];
-    [tilesNext, tilesPrev] = [tilesPrev, tilesNext];
   }
 
   /**
    * effects moves;
    */
   function tock() {
-    for (const [tile, destination] of moves.entries()) {
-      viewModel.move(tile, destination);
-    }
-    for (const [entity, tile] of removes.entries()) {
-      viewModel.remove(tile);
-      entityTypes.delete(entity);
-      locations.delete(entity);
-      mobiles.delete(entity);
-    }
-
+    macroViewModel.reset();
     moves.clear();
-    removes.clear();
     bumps.length = 0;
     targets.clear();
     intents.clear();
