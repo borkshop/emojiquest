@@ -270,7 +270,7 @@ export function makeFacetView({
     if (facet == null) {
       facet = new Set();
       facetTiles.set(f, facet);
-      facetView.enter(f);
+      facetView.enter(f, t);
     }
     facet.add(t);
   }

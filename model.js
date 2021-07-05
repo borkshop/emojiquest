@@ -2,6 +2,7 @@
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
  * @typedef {import('./macro-view-model.js').MacroViewModel} MacroViewModel
+ * @typedef {import('./controls.js').Controls} Controls
  */
 
 import {same} from './geometry2d.js';
@@ -41,12 +42,14 @@ import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByNa
  * @param {AdvanceFn} args.advance
  * @param {Object} args.viewModel
  * @param {MacroViewModel} args.macroViewModel
+ * @param {Controls} args.controls
  * @param {FollowFn} args.follow
  */
 export function makeModel({
   size,
   advance,
   macroViewModel,
+  controls,
   follow,
 }) {
   /** @type {Array<number | undefined>} */
@@ -254,10 +257,12 @@ export function makeModel({
           macroViewModel.take(patient, (direction + 2) % 4);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
+          controls.left(tileTypesByName.axe);
         } else if (/^player:pineTree:axe:/.test(condition)) {
           right = itemTypesByName.pineLumber;
           macroViewModel.bounce(agent, direction);
           macroViewModel.fell(patient);
+          controls.right(tileTypesByName.pineTree);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
         }

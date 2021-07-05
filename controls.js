@@ -4,6 +4,7 @@ import {north, east, south, west, same} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
+import {makeMacroViewModel} from './macro-view-model.js';
 import {viewText, tileTypesByName} from './data.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -13,6 +14,7 @@ import {viewText, tileTypesByName} from './data.js';
 /** @typedef {import('./view-model.js').Watcher} Watcher */
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {ReturnType<makeControlsController>} Controls */
 
 const svgNS = "http://www.w3.org/2000/svg";
 const tileSize = 75;
@@ -50,13 +52,12 @@ export function makeControlsController($parent) {
   $parent.appendChild($controls);
 
   const elements = new Map();
-  const types = new Map();
 
   /**
    * @param {number} entity
+   * @param {number} type
    */
-  function createElement(entity) {
-    const type = types.get(entity);
+  function createElement(entity, type) {
     const text = viewText[type];
     const element = document.createElementNS(svgNS, 'text');
     element.setAttributeNS(null, 'class', 'moji');
@@ -78,75 +79,81 @@ export function makeControlsController($parent) {
   /** @type {PlaceFn} */
   function place(entity, coord, pressure, progress, transition) {
     const element = elements.get(entity);
-    placeEntity(element, coord, pressure, progress, transition);
+    // TODO y u no element evar?
+    if (element) {
+      placeEntity(element, coord, pressure, progress, transition);
+    }
   }
 
   const viewModel = makeViewModel();
+  const macroViewModel = makeMacroViewModel(viewModel, {name: 'controls'});
 
   viewModel.watch(tileMap, {enter, exit, place});
 
-  let next = 0;
-  /**
-   * @param {number} location
-   * @param {number} type
-   */
-  function create(location, type) {
-    const entity = next;
-    next += 1;
-
-    types.set(entity, type);
-    viewModel.put(entity, location, type);
-    return entity;
-  }
-
-  const northEntity = create(1, tileTypesByName.north);
-  const westEntity = create(3, tileTypesByName.west);
-  const watchEntity = create(4, tileTypesByName.watch);
-  const eastEntity = create(5, tileTypesByName.east);
-  const southEntity = create(7, tileTypesByName.south);
-  const leftEntity = create(6, tileTypesByName.left);
-  const rightEntity = create(8, tileTypesByName.right);
-
-  // TODO remove this and actually use entities.
-  /** @type {any} */
-  const {} = {
-    northEntity,
-    southEntity,
-    westEntity,
-    eastEntity,
-    leftEntity,
-    rightEntity,
-    watchEntity,
-  };
+  // Entity id corresponds to digit on numeric keypad.
+  // Entity location is raster 3x3 offset.
+  // macroViewModel.put(7, 0, tileTypesByName.backpack);
+  macroViewModel.put(8, 1, tileTypesByName.north);
+  // macroViewModel.put(9, 2, tileTypesByName.something);
+  macroViewModel.put(4, 3, tileTypesByName.west);
+  macroViewModel.put(5, 4, tileTypesByName.watch);
+  macroViewModel.put(6, 5, tileTypesByName.east);
+  macroViewModel.put(1, 6, tileTypesByName.left);
+  macroViewModel.put(2, 7, tileTypesByName.south);
+  macroViewModel.put(3, 8, tileTypesByName.right);
 
   const commandEntity = {
-    [north]: northEntity,
-    [south]: southEntity,
-    [east]: eastEntity,
-    [west]: westEntity,
-    [same]: watchEntity,
+    [north]: 8,
+    [south]: 2,
+    [east]: 6,
+    [west]: 4,
+    [same]: 5,
   };
 
   /**
    * @param {number} command
    */
   function up(command) {
-    viewModel.up(commandEntity[command]);
+    macroViewModel.up(commandEntity[command]);
   }
 
   /**
    * @param {number} command
    */
   function down(command) {
-    viewModel.down(commandEntity[command]);
+    macroViewModel.down(commandEntity[command]);
   }
 
-  const {reset, animate} = viewModel;
+  /**
+   * @param {number} type
+   */
+  function left(type) {
+    if (type === undefined) {
+      macroViewModel.replace(1, tileTypesByName.left);
+    } else {
+      macroViewModel.replace(1, type);
+    }
+  }
+
+  /**
+   * @param {number} type
+   */
+  function right(type) {
+    if (type === undefined) {
+      macroViewModel.replace(3, tileTypesByName.right);
+    } else {
+      macroViewModel.replace(3, type);
+    }
+  }
+
+  const {reset, animate} = macroViewModel;
 
   return {
     reset,
     animate,
     up,
-    down
+    down,
+    left,
+    right,
   }
 }

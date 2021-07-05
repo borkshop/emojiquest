@@ -7,6 +7,8 @@ import {setDifference} from './set.js';
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./animation2d.js').Transition} Transition */
 
+/** @typedef {ReturnType<makeViewModel>} ViewModel */
+
 /**
  * @callback EntityWatchFn
  * @param {Map<number, Coord>} tiles - tile number to coordinate

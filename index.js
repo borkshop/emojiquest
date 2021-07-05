@@ -184,7 +184,7 @@ function createEntity(_entity, type) {
 }
 
 const viewModel = makeViewModel();
-const macroViewModel = makeMacroViewModel(viewModel);
+const macroViewModel = makeMacroViewModel(viewModel, {name: 'world'});
 
 const facetView = makeFacetView({
   context: $context,
@@ -208,10 +208,13 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
+const controlsController = makeControlsController(document.body);
+
 const model = makeModel({
   size: world.worldArea,
   advance: world.advance,
   macroViewModel,
+  controls: controlsController,
   viewModel: {
     transition: viewModel.transition,
     move: viewModel.move,
@@ -224,14 +227,11 @@ const model = makeModel({
 const agent = model.init(position);
 const buttonMux = makeButtonMux();
 
-const controlsController = makeControlsController(document.body);
-
 let start = Date.now();
 
 function reset() {
   start = Date.now();
   viewModel.reset();
-  controlsController.reset();
 }
 
 async function animate() {
@@ -273,7 +273,9 @@ function makeController(animatedTransitionDuration) {
       abort.promise,
       delay(animatedTransitionDuration),
     ]);
+
     reset();
+    controlsController.reset();
     model.tock();
     draw();
   }

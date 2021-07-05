@@ -1,30 +1,26 @@
 // @ts-check
 
 /**
- * @typedef {import('./view-model.js').MoveFn} MoveFn
- * @typedef {import('./view-model.js').RemoveFn} RemoveFn
- * @typedef {import('./view-model.js').PutFn} PutFn
- * @typedef {import('./view-model.js').TransitionFn} TransitionFn
+ * @typedef {import('./view-model.js').ViewModel} ViewModel
+ * @typedef {ReturnType<makeMacroViewModel>} MacroViewModel
  */
-
-/** @typedef {ReturnType<makeMacroViewModel>} MacroViewModel */
 
 /**
- * @param {Object} viewModel
- * @param {TransitionFn} viewModel.transition
- * @param {MoveFn} viewModel.move
- * @param {RemoveFn} viewModel.remove
- * @param {PutFn} viewModel.put
+ * @param {ViewModel} viewModel
+ * @param {Object} options
+ * @param {string} options.name
  */
-export function makeMacroViewModel(viewModel) {
+export function makeMacroViewModel(viewModel, {}) {
   /** @type {Map<number, number>} external to internal */
   const entities = new Map();
-  // /** @type {Map<number, number>} */
-  // const adds = new Map();
-  // /** @type {Map<number, number>} external to internal */
+  /** @type {Map<number, number>} internal to location */
+  const locations = new Map();
+  /** @type {Map<number, number>} external to internal */
   const removes = new Map();
-  // /** @type {Map<number, number>} internal to location */
+  /** @type {Map<number, number>} internal to location */
   const moves = new Map();
+  /** @type {Set<number>} internal */
+  const replaced = new Set();
 
   let nextId = 0;
   function create() {
@@ -44,12 +40,22 @@ export function makeMacroViewModel(viewModel) {
 
   /**
    * @param {number} external
+   */
+  function locate(external) {
+    const location = locations.get(external);
+    if (location === undefined) throw new Error(`Assertion failed`);
+    return location;
+  }
+
+  /**
+   * @param {number} external
    * @param {number} location
    * @param {number} type
    */
   function put(external, location, type) {
     const internal = create();
     entities.set(external, internal);
+    locations.set(external, location);
     viewModel.put(internal, location, type);
   }
 
@@ -81,6 +87,30 @@ export function makeMacroViewModel(viewModel) {
 
   /**
    * @param {number} external
+   * @param {number} type
+   */
+  function replace(external, type) {
+    const internal = entity(external);
+    const location = locate(external);
+    const replacement = create();
+
+    replaced.add(internal);
+    locations.set(external, location);
+    entities.set(external, replacement);
+
+    viewModel.put(replacement, location, type);
+    viewModel.transition(internal, {
+      bump: true,
+      stage: 'exit',
+    });
+    viewModel.transition(replacement, {
+      bump: true,
+      stage: 'enter',
+    });
+  }
+
+  /**
+   * @param {number} external
    * @param {number} destination
    * @param {number} direction
    * @param {number} turn
@@ -88,6 +118,7 @@ export function makeMacroViewModel(viewModel) {
   function move(external, destination, direction, turn) {
     const internal = entity(external);
     moves.set(external, destination);
+    locations.set(external, destination);
     viewModel.transition(internal, {
       direction,
       rotation: turn,
@@ -107,6 +138,22 @@ export function makeMacroViewModel(viewModel) {
     });
   }
 
+  /**
+   * @param {number} external
+   */
+  function up(external) {
+    const internal = entity(external);
+    viewModel.up(internal);
+  }
+
+  /**
+   * @param {number} external
+   */
+  function down(external) {
+    const internal = entity(external);
+    viewModel.down(internal);
+  }
+
   function reset() {
     for (const [internal, destination] of moves.entries()) {
       viewModel.move(internal, destination);
@@ -114,12 +161,18 @@ export function makeMacroViewModel(viewModel) {
     for (const [external, internal] of removes.entries()) {
       viewModel.remove(internal);
       entities.delete(external);
+      locations.delete(external);
     }
+    for (const internal of replaced) {
+      viewModel.remove(internal);
+    }
+    replaced.clear();
     removes.clear();
     moves.clear();
+    viewModel.reset();
   }
 
-  return { reset, put, take, fell, move, bounce };
+  const { animate } = viewModel;
+
+  return { animate, reset, up, down, put, take, fell, move, bounce, replace };
 }
-
-
