@@ -16,6 +16,9 @@ export const itemTypes = [
 
 const tileTypes = [
   { name: 'happy', text: '🙂' },
+  { name: 'backpack', text: '🎒    ' },
+  { name: 'trash', text: '🗑    ' },
+  { name: 'shield', text: '🛡    ' },
   { name: 'pineTree', text: '🌲' },
   { name: 'appleTree', text: '🌳' },
   { name: 'axe', text: '🪓   ' },

@@ -45,14 +45,14 @@ function makeTileMap({x: w, y: h, a}) {
 const tileMap = makeTileMap({x: 3, y: 3, a: 0});
 
 /**
- * @callback CommandFn
- * @param {number} command
+ * @callback DirectionFn
+ * @param {number} direction
  */
 
 /**
  * @typedef {Object} Controller
- * @property {CommandFn} up
- * @property {CommandFn} down
+ * @property {DirectionFn} up
+ * @property {DirectionFn} down
  */
 
 /**
@@ -104,9 +104,9 @@ export function makeControlsController($parent, controller) {
 
   // Entity id corresponds to digit on numeric keypad.
   // Entity location is raster 3x3 offset.
-  // macroViewModel.put(7, 0, tileTypesByName.backpack);
+  macroViewModel.put(7, 0, tileTypesByName.backpack);
   macroViewModel.put(8, 1, tileTypesByName.north);
-  // macroViewModel.put(9, 2, tileTypesByName.something);
+  macroViewModel.put(9, 2, tileTypesByName.shield);
   macroViewModel.put(4, 3, tileTypesByName.west);
   macroViewModel.put(5, 4, tileTypesByName.watch);
   macroViewModel.put(6, 5, tileTypesByName.east);
@@ -114,28 +114,33 @@ export function makeControlsController($parent, controller) {
   macroViewModel.put(2, 7, tileTypesByName.south);
   macroViewModel.put(3, 8, tileTypesByName.right);
 
-  const commandEntity = {
-    [north]: 8,
-    [south]: 2,
-    [east]: 6,
-    [west]: 4,
-    [same]: 5,
+  /** @type {Record<number, number>} */
+  const commandDirection = {
+    8: north,
+    4: west,
+    6: east,
+    2: south,
+    5: same,
   };
 
   /**
    * @param {number} command
    */
   function up(command) {
-    macroViewModel.up(commandEntity[command]);
-    controller.up(command);
+    macroViewModel.up(command);
+    if (command in commandDirection) {
+      controller.up(commandDirection[command]);
+    }
   }
 
   /**
    * @param {number} command
    */
   function down(command) {
-    macroViewModel.down(commandEntity[command]);
-    controller.down(command);
+    macroViewModel.down(command);
+    if (command in commandDirection) {
+      controller.down(commandDirection[command]);
+    }
   }
 
   /**
