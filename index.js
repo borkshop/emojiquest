@@ -18,7 +18,6 @@ import {makeModel} from './model.js';
 import {makeControlsController} from './controls.js';
 import {makeProgress} from './animation.js';
 import {viewText} from './data.js';
-import {makeButtonMux} from './button-mux.js';
 import {makeButtonKeyHandler} from './button-key-handler.js';
 
 /**
@@ -208,7 +207,9 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
-const controlsController = makeControlsController(document.body);
+const controller = makeController(animatedTransitionDuration);
+
+const controlsController = makeControlsController(document.body, controller);
 
 const model = makeModel({
   size: world.worldArea,
@@ -225,7 +226,6 @@ const model = makeModel({
 });
 
 const agent = model.init(position);
-const buttonMux = makeButtonMux();
 
 let start = Date.now();
 
@@ -355,8 +355,6 @@ function makeController(animatedTransitionDuration) {
   return {down, up};
 }
 
-const controller = makeController(animatedTransitionDuration);
-
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
  */
@@ -385,8 +383,5 @@ function draw() {
 animate();
 draw();
 
-buttonMux.observe(controller);
-buttonMux.observe(controlsController);
-
-window.addEventListener('keydown', makeButtonKeyHandler(buttonMux.down));
-window.addEventListener('keyup', makeButtonKeyHandler(buttonMux.up));
+window.addEventListener('keydown', makeButtonKeyHandler(controlsController.down));
+window.addEventListener('keyup', makeButtonKeyHandler(controlsController.up));

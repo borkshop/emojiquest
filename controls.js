@@ -45,9 +45,21 @@ function makeTileMap({x: w, y: h, a}) {
 const tileMap = makeTileMap({x: 3, y: 3, a: 0});
 
 /**
- * @param {Element} $parent
+ * @callback CommandFn
+ * @param {number} command
  */
-export function makeControlsController($parent) {
+
+/**
+ * @typedef {Object} Controller
+ * @property {CommandFn} up
+ * @property {CommandFn} down
+ */
+
+/**
+ * @param {Element} $parent
+ * @param {Controller} controller
+ */
+export function makeControlsController($parent, controller) {
   const $controls = createControls();
   $parent.appendChild($controls);
 
@@ -115,6 +127,7 @@ export function makeControlsController($parent) {
    */
   function up(command) {
     macroViewModel.up(commandEntity[command]);
+    controller.up(command);
   }
 
   /**
@@ -122,6 +135,7 @@ export function makeControlsController($parent) {
    */
   function down(command) {
     macroViewModel.down(commandEntity[command]);
+    controller.down(command);
   }
 
   /**
