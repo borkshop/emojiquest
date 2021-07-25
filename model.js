@@ -5,7 +5,7 @@
  * @typedef {import('./controls.js').Controls} Controls
  */
 
-import {same} from './geometry2d.js';
+import {same, quarturnToOcturn, halfOcturn, fullOcturn} from './geometry2d.js';
 import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, itemTypes, itemTypesByName} from './data.js';
 
 /**
@@ -220,7 +220,7 @@ export function makeModel({
       const patient = entitiesPrev[destination];
       if (patient === undefined) {
         // Move
-        macroViewModel.move(winner, destination, direction, turn);
+        macroViewModel.move(winner, destination, direction * quarturnToOcturn, turn);
         follow(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
@@ -228,7 +228,7 @@ export function makeModel({
         entitiesNext[origin] = undefined;
       } else {
         // Bounce
-        macroViewModel.bounce(winner, direction);
+        macroViewModel.bounce(winner, direction * quarturnToOcturn);
         if (deliberate) {
           // Bump
           bumps.push({agent: winner, patient, origin, destination, direction});
@@ -240,7 +240,7 @@ export function makeModel({
         const change = options.get(loser);
         if (change === undefined) throw new Error(`Assertion failed`);
         const {direction} = change;
-        macroViewModel.bounce(loser, direction);
+        macroViewModel.bounce(loser, direction * quarturnToOcturn);
       }
     }
 
@@ -254,13 +254,13 @@ export function makeModel({
         const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
         if (/^player:axe:empty:/.test(condition)) {
           left = itemTypesByName.axe;
-          macroViewModel.take(patient, (direction + 2) % 4);
+          macroViewModel.take(patient, (direction * quarturnToOcturn + halfOcturn) % fullOcturn);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
           controls.left(tileTypesByName.axe);
         } else if (/^player:pineTree:axe:/.test(condition)) {
           right = itemTypesByName.pineLumber;
-          macroViewModel.bounce(agent, direction);
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
           macroViewModel.fell(patient);
           controls.right(tileTypesByName.pineTree);
           destroyEntity(patient);

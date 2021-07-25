@@ -13,12 +13,28 @@ import {count} from './iteration.js';
 export const [north, east, south, west, same] = count();
 
 /** @type {Array<Point>} */
-export const turnVectors = [
+export const quarturnVectors = [
   {x:  0, y: -1}, // north
   {x:  1, y:  0}, // east
   {x:  0, y:  1}, // south
   {x: -1, y:  0}, // west
 ];
+
+/** @type {Array<Point>} */
+export const octurnVectors = [
+  {x:  0, y: -1}, // nn
+  {x:  1, y: -1}, // ne
+  {x:  1, y:  0}, // ee
+  {x:  1, y:  1}, // se
+  {x:  0, y:  1}, // ss
+  {x: -1, y:  1}, // sw
+  {x: -1, y:  0}, // ww
+  {x: -1, y: -1}, // nw
+];
+
+export const quarturnToOcturn = 2;
+export const halfOcturn = 4;
+export const fullOcturn = 8;
 
 /** @type {Array<Point>} */
 export const corners = [

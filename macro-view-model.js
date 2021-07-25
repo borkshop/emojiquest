@@ -61,12 +61,12 @@ export function makeMacroViewModel(viewModel, {}) {
 
   /**
    * @param {number} external
-   * @param {number} direction
+   * @param {number} directionOcturns
    */
-  function take(external, direction) {
+  function take(external, directionOcturns) {
     const internal = entity(external);
     viewModel.transition(internal, {
-      direction,
+      directionOcturns,
       stage: 'exit'
     });
     removes.set(external, internal);
@@ -112,28 +112,28 @@ export function makeMacroViewModel(viewModel, {}) {
   /**
    * @param {number} external
    * @param {number} destination
-   * @param {number} direction
+   * @param {number} directionOcturns
    * @param {number} turn
    */
-  function move(external, destination, direction, turn) {
+  function move(external, destination, directionOcturns, turn) {
     const internal = entity(external);
     moves.set(external, destination);
     locations.set(external, destination);
     viewModel.transition(internal, {
-      direction,
+      directionOcturns,
       rotation: turn,
     });
   }
 
   /**
    * @param {number} external
-   * @param {number} direction
+   * @param {number} directionOcturns
    */
-  function bounce(external, direction) {
+  function bounce(external, directionOcturns) {
     const internal = entity(external);
-    viewModel.transition(external, {direction, bump: true});
+    viewModel.transition(external, {directionOcturns, bump: true});
     viewModel.transition(internal, {
-      direction,
+      directionOcturns,
       bump: true,
     });
   }

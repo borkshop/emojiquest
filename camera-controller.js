@@ -1,7 +1,7 @@
 // @ts-check
 
 import {translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
-import {turnVectors} from './geometry2d.js';
+import {quarturnVectors} from './geometry2d.js';
 
 /** @typedef {import('./matrix3d.js').Matrix} Matrix */
 /** @typedef {import('./camera.js').Camera} Camera */
@@ -59,7 +59,7 @@ export function makeCameraController({camera, tileSize, advance, ease = linear, 
       camera.transition(slow, (/** @type {number} */ p) => rotateZ(-Math.PI/2 * to.turn * ease(p)));
 
     } else {
-      const {x: dx, y: dy} = turnVectors[direction];
+      const {x: dx, y: dy} = quarturnVectors[direction];
       camera.transition(fast, (/** @type {number} */ p) => {
         const e = ease(p);
         return translate({

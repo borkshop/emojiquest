@@ -1,6 +1,6 @@
 // @ts-check
 //
-import {turnVectors} from './geometry2d.js';
+import {octurnVectors} from './geometry2d.js';
 import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -15,7 +15,7 @@ import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
 /**
  * @typedef {Object} Transition
- * @prop {number} [direction] - in quarter turns clockwise from north.
+ * @prop {number} [directionOcturns] - in 1/8 turns clockwise from north.
  * @prop {number} [rotation] - in quarter turns clockwise, positive or negative.
  * @prop {boolean} [bump] - whether the entity makes an aborted attempt in the
  * direction.
@@ -24,7 +24,7 @@ import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 
 /** @type {Transition} */
 const noTransition = {
-  direction: 0,
+  directionOcturns: 0,
   rotation: 0,
   bump: false,
   stage: 'stay',
@@ -48,13 +48,13 @@ const noProgress = {
  */
 export function placeEntity($entity, coord, pressure = 0, progress = noProgress, transition = noTransition) {
   const {
-    direction = 0,
+    directionOcturns = 0,
     rotation = 0,
     bump = false,
     stage = 'stay',
   } = transition;
   const { sinusoidal, sinusoidalQuarterTurn, bounce } = progress;
-  const {x: dx, y: dy} = turnVectors[(direction + 4 - coord.a) % 4];
+  const {x: dx, y: dy} = octurnVectors[(directionOcturns + 8 - coord.a * 2) % 8];
   const shiftProgress = bump ? bounce : sinusoidal;
   const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? 1 - sinusoidal : sinusoidal;
   const transform = compose(

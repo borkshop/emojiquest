@@ -61,12 +61,12 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
     //       ...edge
     //     });
     //     const next = advance({position, direction});
-    //     const flap = transform(edge, translate(turnVectors[direction]));
+    //     const flap = transform(edge, translate(quarturnVectors[direction]));
     //     tileMap.set(next.position, {
     //       ...flap,
     //       a: next.turn
     //     });
-    //     edge = transform(edge, translate(turnVectors[across]));
+    //     edge = transform(edge, translate(quarturnVectors[across]));
     //   }
     // }
 
