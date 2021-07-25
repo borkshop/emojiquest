@@ -350,9 +350,14 @@ function makeController(animatedTransitionDuration) {
     }
   }
 
+  function reset() {
+    held.clear();
+    moment = 0;
+  }
+
   run();
 
-  return {down, up};
+  return {down, up, reset};
 }
 
 /**

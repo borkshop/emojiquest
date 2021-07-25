@@ -55,6 +55,15 @@ const tileMap = makeTileMap({x: 3, y: 3, a: 0});
  * @property {DirectionFn} down
  */
 
+/** @type {Record<number, number>} */
+const commandDirection = {
+  8: north,
+  4: west,
+  6: east,
+  2: south,
+  5: same,
+};
+
 /**
  * @param {Element} $parent
  * @param {Controller} controller
@@ -64,6 +73,28 @@ export function makeControlsController($parent, controller) {
   $parent.appendChild($controls);
 
   const elements = new Map();
+
+  const playState = {
+    /**
+     * @param {number} command
+     */
+    up(command) {
+      if (command in commandDirection) {
+        controller.up(commandDirection[command]);
+      }
+      return playState;
+    },
+
+    /**
+     * @param {number} command
+     */
+    down(command) {
+      if (command in commandDirection) {
+        controller.down(commandDirection[command]);
+      }
+      return playState;
+    }
+  };
 
   /**
    * @param {number} entity
@@ -114,23 +145,14 @@ export function makeControlsController($parent, controller) {
   macroViewModel.put(2, 7, tileTypesByName.south);
   macroViewModel.put(3, 8, tileTypesByName.right);
 
-  /** @type {Record<number, number>} */
-  const commandDirection = {
-    8: north,
-    4: west,
-    6: east,
-    2: south,
-    5: same,
-  };
+  let state = playState;
 
   /**
    * @param {number} command
    */
   function up(command) {
     macroViewModel.up(command);
-    if (command in commandDirection) {
-      controller.up(commandDirection[command]);
-    }
+    state = state.up(command);
   }
 
   /**
@@ -138,9 +160,7 @@ export function makeControlsController($parent, controller) {
    */
   function down(command) {
     macroViewModel.down(command);
-    if (command in commandDirection) {
-      controller.down(commandDirection[command]);
-    }
+    state = state.down(command);
   }
 
   /**
