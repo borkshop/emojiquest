@@ -32,7 +32,11 @@ export const octurnVectors = [
   {x: -1, y: -1}, // nw
 ];
 
+export const halfQuarturn = 2;
+export const fullQuarturn = 4;
+
 export const quarturnToOcturn = 2;
+
 export const halfOcturn = 4;
 export const fullOcturn = 8;
 

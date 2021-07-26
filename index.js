@@ -1,10 +1,9 @@
 // @ts-check
 
-import {nextFrame} from 'cdom/anim';
 import {mustFind} from 'cdom/wiring';
-import {delay, defer} from './async.js';
+import {cell} from './cell.js';
 import {linear} from './easing.js';
-import {north, same} from './geometry2d.js';
+import {north, fullQuarturn} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
 import {faceColors} from './brand.js';
 import {makeDaia} from './daia.js';
@@ -16,9 +15,10 @@ import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
 import {makeControlsController} from './controls.js';
-import {makeProgress} from './animation.js';
 import {viewText} from './data.js';
 import {makeButtonKeyHandler} from './button-key-handler.js';
+import {makeDriver, commandDirection} from './driver.js';
+
 
 /**
  * @template T
@@ -51,7 +51,7 @@ let cursor = {position, direction: north};
  * travel to translate to southward travel along the back face, until the
  * player releases the "north" key.
  */
-let moment = 0;
+let moment = cell(0);
 
 const world = makeDaia({
   tileSize,
@@ -207,9 +207,7 @@ const {keepTilesAround} = makeTileKeeper({
   advance: world.advance
 });
 
-const controller = makeController(animatedTransitionDuration);
-
-const controlsController = makeControlsController(document.body, controller);
+const controlsController = makeControlsController(document.body);
 
 const model = makeModel({
   size: world.worldArea,
@@ -227,139 +225,6 @@ const model = makeModel({
 
 const agent = model.init(position);
 
-let start = Date.now();
-
-function reset() {
-  start = Date.now();
-  viewModel.reset();
-}
-
-async function animate() {
-  for (;;) {
-    await nextFrame();
-    const now = Date.now();
-    const progress = makeProgress(start, now, animatedTransitionDuration);
-    camera.animate(now);
-    viewModel.animate(progress);
-    controlsController.animate(progress);
-  }
-}
-
-/**
- * @param {number} animatedTransitionDuration - the delay in miliseconds between the
- * submission of a turn and the time the next turn can begin.
- */
-function makeController(animatedTransitionDuration) {
-  /** @type {Deferred<void>} */
-  let sync = defer();
-  /** @type {Deferred<void>} */
-  let abort = defer();
-  /** @type {Array<number>} */
-  const queue = [];
-  /** @type {Map<number, number>} */
-  const held = new Map();
-  // TODO const vector = {x: 0, y: 0};
-
-  /**
-   * @param {number} direction
-   * @param {boolean} deliberate
-   */
-  async function tickTock(direction, deliberate) {
-    reset();
-    // TODO: better
-    model.intend(agent, direction, deliberate);
-    model.tick();
-    await Promise.race([
-      abort.promise,
-      delay(animatedTransitionDuration),
-    ]);
-
-    reset();
-    controlsController.reset();
-    model.tock();
-    draw();
-  }
-
-  async function run() {
-    for (;;) {
-      sync = defer();
-      await sync.promise;
-
-      // The user can plan some number of moves ahead by tapping the command
-      // keys sequentially, as opposed to holding them down.
-      let direction;
-      while (direction = queue.shift(), direction !== undefined) {
-        if (direction === same) {
-          await tickTock(same, true);
-        } else {
-          await tickTock((direction + moment) % 4, true);
-        }
-      }
-
-      while (held.size) {
-        const now = Date.now();
-        for (const [heldDirection, start] of held.entries()) {
-          const duration = now - start;
-          if (duration > animatedTransitionDuration) {
-            direction = heldDirection;
-          }
-        }
-        if (direction === same) {
-          await tickTock(same, false);
-        } else if (direction !== undefined) {
-          await tickTock((direction + moment) % 4, false);
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
-  /**
-   * @param {number} direction
-   */
-  function down(direction) {
-    // If a command key goes down during an animated transition for a prior
-    // command, we abort that animation so the next move advances immediately
-    // to the beginning of the next animation.
-    if (held.size === 0) {
-      abort.resolve();
-      abort = defer();
-      queue.length = 0;
-    }
-    // We add the direction command to both the command queue and the held
-    // commands. We keep the older command if redundant command keys are
-    // pressed.
-    if (!held.has(direction)) {
-      held.set(direction, Date.now());
-    }
-    queue.push(direction);
-    // Kick the command processor into gear if it hasn't been provoked already.
-    sync.resolve();
-    sync = defer();
-  }
-
-  /**
-   * @param {number} direction
-   */
-  function up(direction) {
-    held.delete(direction);
-    // Clear the momentum heading if the player releases all keys.
-    if (held.size === 0) {
-      moment = 0;
-    }
-  }
-
-  function reset() {
-    held.clear();
-    moment = 0;
-  }
-
-  run();
-
-  return {down, up, reset};
-}
-
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
  */
@@ -376,17 +241,55 @@ function follow(e, change, destination) {
   if (e === agent) {
     cameraController.go(change);
     cursor = change;
-    moment = (moment + change.turn + 4) % 4;
+    moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
     $debug.innerText = world.toponym(destination);
   }
 }
 
-function draw() {
-  keepTilesAround(cursor.position, radius);
-}
+const driver = makeDriver({
+  moment,
+  animatedTransitionDuration,
 
-animate();
-draw();
+  /**
+   * @param {number} command
+   * @param {boolean} repeat
+   */
+  command(command, repeat) {
+    const direction = commandDirection[command];
+    if (direction !== undefined) {
+      model.intend(agent, direction, repeat);
+      model.tick();
+    }
+  },
 
-window.addEventListener('keydown', makeButtonKeyHandler(controlsController.down));
-window.addEventListener('keyup', makeButtonKeyHandler(controlsController.up));
+  reset() {
+    viewModel.reset();
+    controlsController.reset();
+    model.tock();
+    keepTilesAround(cursor.position, radius);
+  },
+
+  /**
+   * @param {number} command
+   */
+  up(command) {
+    controlsController.up(command);
+  },
+
+  /**
+   * @param {number} command
+   */
+  down(command) {
+    controlsController.down(command);
+  },
+
+  /** @param {import('./animation.js').Progress} progress */
+  animate(progress) {
+    camera.animate(progress.now);
+    viewModel.animate(progress);
+    controlsController.animate(progress);
+  }
+});
+
+window.addEventListener('keydown', makeButtonKeyHandler(driver.down));
+window.addEventListener('keyup', makeButtonKeyHandler(driver.up));

@@ -1,6 +1,5 @@
 // @ts-check
 
-import {north, east, south, west, same} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
@@ -45,30 +44,9 @@ function makeTileMap({x: w, y: h, a}) {
 const tileMap = makeTileMap({x: 3, y: 3, a: 0});
 
 /**
- * @callback DirectionFn
- * @param {number} direction
- */
-
-/**
- * @typedef {Object} Controller
- * @property {DirectionFn} up
- * @property {DirectionFn} down
- */
-
-/** @type {Record<number, number>} */
-const commandDirection = {
-  8: north,
-  4: west,
-  6: east,
-  2: south,
-  5: same,
-};
-
-/**
  * @param {Element} $parent
- * @param {Controller} controller
  */
-export function makeControlsController($parent, controller) {
+export function makeControlsController($parent) {
   const $controls = createControls();
   $parent.appendChild($controls);
 
@@ -76,22 +54,16 @@ export function makeControlsController($parent, controller) {
 
   const playState = {
     /**
-     * @param {number} command
+     * @param {number} _command
      */
-    up(command) {
-      if (command in commandDirection) {
-        controller.up(commandDirection[command]);
-      }
+    up(_command) {
       return playState;
     },
 
     /**
-     * @param {number} command
+     * @param {number} _command
      */
-    down(command) {
-      if (command in commandDirection) {
-        controller.down(commandDirection[command]);
-      }
+    down(_command) {
       return playState;
     }
   };

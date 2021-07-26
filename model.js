@@ -27,9 +27,8 @@ import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByNa
 
 /**
  * @typedef {Object} BidExtension
- * @property {boolean} deliberate - Whether the agent wishes to bump the
- * patient, otherwise to move onto the tile in the direction only if it is
- * empty.
+ * @property {boolean} repeat - Repeated actions should only attempt to move
+ * the agent, not perform object specific interactions.
  */
 
 /**
@@ -169,16 +168,16 @@ export function makeModel({
   /**
    * @param {number} e - entity number
    * @param {number} direction - in quarters clockwise from north
-   * @param {boolean} deliberate - whether the agent intends to act upon the
+   * @param {boolean} repeat - whether the agent intends to act upon the
    * patient before them.
    */
-  function intend(e, direction, deliberate = false) {
+  function intend(e, direction, repeat = false) {
     const source = locate(e);
     if (direction === same) {
       return;
     }
     const {position: target, turn, transit} = advance({position: source, direction});
-    bids(target).set(e, {position: source, direction, turn, transit, deliberate});
+    bids(target).set(e, {position: source, direction, turn, transit, repeat});
     intents.set(e, direction);
   }
 
@@ -216,7 +215,7 @@ export function makeModel({
       if (winner === undefined) throw new Error(`Assertion failed`);
       const change = options.get(winner);
       if (change === undefined) throw new Error(`Assertion failed`);
-      const {position: origin, direction, turn, deliberate} = change;
+      const {position: origin, direction, turn, repeat} = change;
       const patient = entitiesPrev[destination];
       if (patient === undefined) {
         // Move
@@ -229,7 +228,7 @@ export function makeModel({
       } else {
         // Bounce
         macroViewModel.bounce(winner, direction * quarturnToOcturn);
-        if (deliberate) {
+        if (!repeat) {
           // Bump
           bumps.push({agent: winner, patient, origin, destination, direction});
         }
