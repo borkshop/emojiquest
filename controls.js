@@ -1,5 +1,6 @@
 // @ts-check
 
+import {ne} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
@@ -112,6 +113,8 @@ export function makeController($parent, {
   macroViewModel.put(2, 7, tileTypesByName.south);
   macroViewModel.put(3, 8, tileTypesByName.right);
 
+  let entities = [7, 8, 9, 4, 5, 6, 1, 2, 3];
+
   /**
    * @param {number} command
    */
@@ -159,8 +162,8 @@ export function makeController($parent, {
   }
 
   function reset() {
-    macroViewModel.reset();
     resetWorld();
+    macroViewModel.reset();
   }
 
   /**
@@ -171,6 +174,15 @@ export function makeController($parent, {
     const direction = commandDirection[command];
     if (direction !== undefined) {
       commandWorld(direction, repeat, inventory);
+    // TODO implement inventory management state machine
+    // XXX demo of animating the selection of the left hand item:
+    // } else if (command === 1) { // && left non-empty
+    //   const item = entities.splice(6, 1)[0];
+    //   macroViewModel.move(item, 4, ne, 0);
+    //   for (const item of entities) {
+    //     macroViewModel.exit(item);
+    //   }
+    //   entities = [];
     }
   }
 

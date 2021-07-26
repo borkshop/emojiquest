@@ -87,6 +87,18 @@ export function makeMacroViewModel(viewModel, {}) {
 
   /**
    * @param {number} external
+   */
+  function exit(external) {
+    const internal = entity(external);
+    viewModel.transition(internal, {
+      bump: true,
+      stage: 'exit',
+    });
+    removes.set(external, internal);
+  }
+
+  /**
+   * @param {number} external
    * @param {number} type
    */
   function replace(external, type) {
@@ -117,7 +129,7 @@ export function makeMacroViewModel(viewModel, {}) {
    */
   function move(external, destination, directionOcturns, turn) {
     const internal = entity(external);
-    moves.set(external, destination);
+    moves.set(internal, destination);
     locations.set(external, destination);
     viewModel.transition(internal, {
       directionOcturns,
@@ -174,5 +186,5 @@ export function makeMacroViewModel(viewModel, {}) {
 
   const { animate } = viewModel;
 
-  return { animate, reset, up, down, put, take, fell, move, bounce, replace };
+  return { animate, reset, up, down, put, take, exit, fell, move, bounce, replace };
 }
