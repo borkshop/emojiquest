@@ -63,22 +63,6 @@ export function makeController($parent, {
 
   const elements = new Map();
 
-  const playState = {
-    /**
-     * @param {number} _command
-     */
-    up(_command) {
-      return playState;
-    },
-
-    /**
-     * @param {number} _command
-     */
-    down(_command) {
-      return playState;
-    }
-  };
-
   /**
    * @param {number} entity
    * @param {number} type
@@ -128,14 +112,11 @@ export function makeController($parent, {
   macroViewModel.put(2, 7, tileTypesByName.south);
   macroViewModel.put(3, 8, tileTypesByName.right);
 
-  let state = playState;
-
   /**
    * @param {number} command
    */
   function up(command) {
     macroViewModel.up(command);
-    state = state.up(command);
   }
 
   /**
@@ -143,7 +124,6 @@ export function makeController($parent, {
    */
   function down(command) {
     macroViewModel.down(command);
-    state = state.down(command);
   }
 
   /**
