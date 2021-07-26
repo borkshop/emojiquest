@@ -48,15 +48,16 @@ export const directionCommand = Object.fromEntries(
  * @property {(command: number) => void} up
  * @property {(command: number) => void} down
  * @property {(progress: Progress) => void} animate
- * @property {Cell<number>} moment
- * @property {number} animatedTransitionDuration
  */
 
 /**
  * @param {Delegate} delegate
+ * @param {Object} options
+ * @param {number} options.animatedTransitionDuration
+ * @param {Cell<number>} options.moment
  */
-export const makeDriver = (delegate) => {
-  const {animatedTransitionDuration, moment} = delegate;
+export const makeDriver = (delegate, options) => {
+  const {animatedTransitionDuration, moment} = options;
 
   /** @type {Deferred<void>} */
   let sync = defer();

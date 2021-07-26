@@ -5,6 +5,7 @@ import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {viewText, tileTypesByName} from './data.js';
+import {commandDirection} from './driver.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -13,7 +14,7 @@ import {viewText, tileTypesByName} from './data.js';
 /** @typedef {import('./view-model.js').Watcher} Watcher */
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
-/** @typedef {ReturnType<makeControlsController>} Controls */
+/** @typedef {ReturnType<makeController>} Controls */
 
 const svgNS = "http://www.w3.org/2000/svg";
 const tileSize = 75;
@@ -45,8 +46,18 @@ const tileMap = makeTileMap({x: 3, y: 3, a: 0});
 
 /**
  * @param {Element} $parent
+ * @param {Object} options
+ * @param {(direction: number, repeat: boolean, inventory: import('./model.js').Inventory) => void} options.commandWorld
+ * @param {() => void} options.resetWorld - to be called when an animated
+ * transition ends
+ * @param {(progress: Progress) => void} options.animateWorld
+ * so the frustum can update its retained facets.
  */
-export function makeControlsController($parent) {
+export function makeController($parent, {
+  commandWorld,
+  resetWorld,
+  animateWorld,
+}) {
   const $controls = createControls();
   $parent.appendChild($controls);
 
@@ -100,10 +111,10 @@ export function makeControlsController($parent) {
     }
   }
 
-  const viewModel = makeViewModel();
-  const macroViewModel = makeMacroViewModel(viewModel, {name: 'controls'});
+  const controlsViewModel = makeViewModel();
+  const macroViewModel = makeMacroViewModel(controlsViewModel, {name: 'controls'});
 
-  viewModel.watch(tileMap, {enter, exit, place});
+  controlsViewModel.watch(tileMap, {enter, exit, place});
 
   // Entity id corresponds to digit on numeric keypad.
   // Entity location is raster 3x3 offset.
@@ -157,14 +168,37 @@ export function makeControlsController($parent) {
     }
   }
 
-  const {reset, animate} = macroViewModel;
+  const inventory = {left, right};
+
+  /**
+   * @param {Progress} progress
+   */
+  function animate(progress) {
+    animateWorld(progress);
+    macroViewModel.animate(progress);
+  }
+
+  function reset() {
+    macroViewModel.reset();
+    resetWorld();
+  }
+
+  /**
+   * @param {number} command
+   * @param {boolean} repeat
+   */
+  function command(command, repeat) {
+    const direction = commandDirection[command];
+    if (direction !== undefined) {
+      commandWorld(direction, repeat, inventory);
+    }
+  }
 
   return {
     reset,
     animate,
     up,
     down,
-    left,
-    right,
+    command,
   }
 }

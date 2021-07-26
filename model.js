@@ -13,6 +13,17 @@ import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByNa
  */
 
 /**
+ * @callback SetItemTypeFn
+ * @param {number} itemType
+ */
+
+/**
+ * @typedef {Object} Inventory
+ * @property {SetItemTypeFn} left
+ * @property {SetItemTypeFn} right
+ */
+
+/**
  * @callback FollowFn
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
@@ -36,19 +47,20 @@ import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByNa
  */
 
 /**
+ * @typedef {ReturnType<makeModel>} Model
+ */
+
+/**
  * @param {Object} args
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
- * @param {Object} args.viewModel
  * @param {MacroViewModel} args.macroViewModel
- * @param {Controls} args.controls
  * @param {FollowFn} args.follow
  */
 export function makeModel({
   size,
   advance,
   macroViewModel,
-  controls,
   follow,
 }) {
   /** @type {Array<number | undefined>} */
@@ -183,8 +195,9 @@ export function makeModel({
 
   /**
    * effects transitions
+   * @param {Inventory} inventory
    */
-  function tick() {
+  function tick(inventory) {
     // Measure
     // let treeCount = 0;
     // for (let i = 0; i < size; i++) {
@@ -256,12 +269,12 @@ export function makeModel({
           macroViewModel.take(patient, (direction * quarturnToOcturn + halfOcturn) % fullOcturn);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
-          controls.left(tileTypesByName.axe);
+          inventory.left(tileTypesByName.axe);
         } else if (/^player:pineTree:axe:/.test(condition)) {
           right = itemTypesByName.pineLumber;
           macroViewModel.bounce(agent, direction * quarturnToOcturn);
           macroViewModel.fell(patient);
-          controls.right(tileTypesByName.pineTree);
+          inventory.right(tileTypesByName.pineTree);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
         }

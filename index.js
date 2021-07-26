@@ -14,10 +14,10 @@ import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
-import {makeControlsController} from './controls.js';
+import {makeController} from './controls.js';
 import {viewText} from './data.js';
 import {makeButtonKeyHandler} from './button-key-handler.js';
-import {makeDriver, commandDirection} from './driver.js';
+import {makeDriver} from './driver.js';
 
 
 /**
@@ -182,8 +182,8 @@ function createEntity(_entity, type) {
   return $entity;
 }
 
-const viewModel = makeViewModel();
-const macroViewModel = makeMacroViewModel(viewModel, {name: 'world'});
+const worldViewModel = makeViewModel();
+const worldMacroViewModel = makeMacroViewModel(worldViewModel, {name: 'world'});
 
 const facetView = makeFacetView({
   context: $context,
@@ -197,8 +197,8 @@ const facetView = makeFacetView({
   tileCoordinate: world.tileCoordinate,
   advance: world.advance,
   facetCoordinate: facets.tileCoordinate,
-  watchEntities: viewModel.watch,
-  unwatchEntities: viewModel.unwatch,
+  watchEntities: worldViewModel.watch,
+  unwatchEntities: worldViewModel.unwatch,
 });
 
 const {keepTilesAround} = makeTileKeeper({
@@ -206,24 +206,6 @@ const {keepTilesAround} = makeTileKeeper({
   exit: facetView.exit,
   advance: world.advance
 });
-
-const controlsController = makeControlsController(document.body);
-
-const model = makeModel({
-  size: world.worldArea,
-  advance: world.advance,
-  macroViewModel,
-  controls: controlsController,
-  viewModel: {
-    transition: viewModel.transition,
-    move: viewModel.move,
-    remove: viewModel.remove,
-    put: viewModel.put,
-  },
-  follow,
-});
-
-const agent = model.init(position);
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -246,49 +228,37 @@ function follow(e, change, destination) {
   }
 }
 
-const driver = makeDriver({
-  moment,
-  animatedTransitionDuration,
+const worldModel = makeModel({
+  size: world.worldArea,
+  advance: world.advance,
+  macroViewModel: worldMacroViewModel,
+  follow,
+});
 
-  /**
-   * @param {number} command
-   * @param {boolean} repeat
-   */
-  command(command, repeat) {
-    const direction = commandDirection[command];
-    if (direction !== undefined) {
-      model.intend(agent, direction, repeat);
-      model.tick();
-    }
+const agent = worldModel.init(position);
+
+const controls = makeController(document.body, {
+  commandWorld(direction, repeat, inventory) {
+    worldModel.intend(agent, direction, repeat);
+    worldModel.tick(inventory);
   },
-
-  reset() {
-    viewModel.reset();
-    controlsController.reset();
-    model.tock();
+  resetWorld() {
+    worldModel.tock();
+    worldViewModel.reset();
     keepTilesAround(cursor.position, radius);
   },
-
   /**
-   * @param {number} command
+   * @param {import('./animation.js').Progress} progress
    */
-  up(command) {
-    controlsController.up(command);
-  },
-
-  /**
-   * @param {number} command
-   */
-  down(command) {
-    controlsController.down(command);
-  },
-
-  /** @param {import('./animation.js').Progress} progress */
-  animate(progress) {
+  animateWorld(progress) {
     camera.animate(progress.now);
-    viewModel.animate(progress);
-    controlsController.animate(progress);
-  }
+    worldViewModel.animate(progress);
+  },
+});
+
+const driver = makeDriver(controls, {
+  moment,
+  animatedTransitionDuration,
 });
 
 window.addEventListener('keydown', makeButtonKeyHandler(driver.down));
