@@ -317,6 +317,12 @@ export function makeController($parent, {
         restoreOtherItem(otherItem, leftOrRight);
         restoreDpad();
 
+        if (leftOrRight < 0) {
+          left = itemTypesByName.empty;
+        } else if (leftOrRight > 0) {
+          right = itemTypesByName.empty;
+        }
+
         return play;
       } else if (command === 1) { // place in left hand
         const trash = entities[8];
