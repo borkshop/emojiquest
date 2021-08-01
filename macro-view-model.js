@@ -53,6 +53,9 @@ export function makeMacroViewModel(viewModel, {}) {
    * @param {number} type
    */
   function put(external, location, type) {
+    if (entities.get(external) !== undefined) {
+      throw new Error(`Assertion error`);
+    }
     const internal = create();
     entities.set(external, internal);
     locations.set(external, location);
@@ -86,15 +89,30 @@ export function makeMacroViewModel(viewModel, {}) {
   }
 
   /**
-   * @param {number} external
+   * @param {...number} externals
    */
-  function exit(external) {
-    const internal = entity(external);
-    viewModel.transition(internal, {
-      bump: true,
-      stage: 'exit',
-    });
-    removes.set(external, internal);
+  function exit(...externals) {
+    for (const external of externals) {
+      const internal = entity(external);
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'exit',
+      });
+      removes.set(external, internal);
+    }
+  }
+
+  /**
+   * @param {...number} externals
+   */
+  function enter(...externals) {
+    for (const external of externals) {
+      const internal = entity(external);
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'enter',
+      });
+    }
   }
 
   /**
@@ -186,5 +204,5 @@ export function makeMacroViewModel(viewModel, {}) {
 
   const { animate } = viewModel;
 
-  return { animate, reset, up, down, put, take, exit, fell, move, bounce, replace };
+  return { animate, reset, up, down, put, take, exit, enter, fell, move, bounce, replace };
 }

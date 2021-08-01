@@ -13,14 +13,9 @@ import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByNa
  */
 
 /**
- * @callback SetItemTypeFn
- * @param {number} itemType
- */
-
-/**
  * @typedef {Object} Inventory
- * @property {SetItemTypeFn} left
- * @property {SetItemTypeFn} right
+ * @property {number} left
+ * @property {number} right
  */
 
 /**
@@ -73,10 +68,6 @@ export function makeModel({
   const locations = new Map();
   /** @type {Map<number, number>} */
   const entityTypes = new Map();
-  /** @type {number} */
-  let left = itemTypesByName.empty;
-  /** @type {number} */
-  let right = itemTypesByName.empty;
 
   // Ephemeral state
 
@@ -87,6 +78,8 @@ export function makeModel({
   const mobiles = new Set();
   /** @type {Set<number>} */
   const moves = new Set();
+  /** @type {Set<number>} */
+  const removes = new Set();
   /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
   const bumps = [];
 
@@ -107,6 +100,7 @@ export function makeModel({
    * @param {number} entity
    */
   function destroyEntity(entity) {
+    removes.add(entity);
     entityTypes.delete(entity);
     mobiles.delete(entity);
     locations.delete(entity);
@@ -257,24 +251,24 @@ export function makeModel({
     }
 
     // Successfully bump an entity that did not move.
+    // TODO break this into phases since an entity that doesn't move can also
+    // be destroyed by another bump and therein may lay race conditions.
     for (const { agent, patient, destination, direction } of bumps) {
-      if (!moves.has(patient)) {
+      if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
         const agentType = agentTypes[entityType(agent)].name;
         const patientType = agentTypes[entityType(patient)].name;
-        const leftType = itemTypes[left].name;
-        const rightType = itemTypes[right].name;
+        const leftType = itemTypes[inventory.left].name;
+        const rightType = itemTypes[inventory.right].name;
         const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
         if (/^player:axe:empty:/.test(condition)) {
-          left = itemTypesByName.axe;
+          inventory.left = itemTypesByName.axe;
           macroViewModel.take(patient, (direction * quarturnToOcturn + halfOcturn) % fullOcturn);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
-          inventory.left(tileTypesByName.axe);
         } else if (/^player:pineTree:axe:/.test(condition)) {
-          right = itemTypesByName.pineLumber;
+          inventory.right = itemTypesByName.pineLumber;
           macroViewModel.bounce(agent, direction * quarturnToOcturn);
           macroViewModel.fell(patient);
-          inventory.right(tileTypesByName.pineTree);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
         }
@@ -291,6 +285,7 @@ export function makeModel({
   function tock() {
     macroViewModel.reset();
     moves.clear();
+    removes.clear();
     bumps.length = 0;
     targets.clear();
     intents.clear();

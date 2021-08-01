@@ -28,6 +28,7 @@ const tileTypes = [
   { name: 'west', text: '👈 ' },
   { name: 'east', text: '👉 ' },
   { name: 'left', text: '✋ ' },
+  { name: 'swap', text: '🤝    ' },
   { name: 'right', text: '🤚 ' },
   { name: 'watch', text: '⏱ ' },
   { name: 'health', text: '❤️ ' },
