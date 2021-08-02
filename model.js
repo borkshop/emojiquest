@@ -5,7 +5,7 @@
  * @typedef {import('./controls.js').Controls} Controls
  */
 
-import {same, quarturnToOcturn, halfOcturn, fullOcturn} from './geometry2d.js';
+import {same, quarturnToOcturn} from './geometry2d.js';
 import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, itemTypes, itemTypesByName} from './data.js';
 
 /**
