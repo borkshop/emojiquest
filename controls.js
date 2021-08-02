@@ -1,11 +1,12 @@
 // @ts-check
 
+import {assert} from './assert.js';
 import {nn, ne, ee, se, ss, sw, ww, nw} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
-import {viewText, tileTypesByName, itemTypes, itemTypesByName} from './data.js';
+import {viewText, tileTypesByName, itemTypes, itemTypesByName, tileTypeForItemType, combine} from './data.js';
 import {commandDirection} from './driver.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -16,16 +17,6 @@ import {commandDirection} from './driver.js';
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
 /** @typedef {ReturnType<makeController>} Controls */
-
-/**
- * @param {any} condition
- * @returns {asserts condition}
- */
-function assert(condition) {
-  if (!condition) {
-    throw new Error(`Assertion failed`);
-  }
-}
 
 const svgNS = "http://www.w3.org/2000/svg";
 const tileSize = 75;
@@ -163,19 +154,19 @@ export function makeController($parent, {
   }
 
   /** @type {number} */
-  let left = itemTypesByName.empty;
+  let leftItemType = itemTypesByName.empty;
   /** @type {number} */
-  let right = itemTypesByName.empty;
+  let rightItemType = itemTypesByName.empty;
 
   const inventory = {
     get left() {
-      return left;
+      return leftItemType;
     },
     /**
      * @param {number} type
      */
     set left(type) {
-      left = type;
+      leftItemType = type;
       if (type === itemTypesByName.empty) {
         if (entities[0] !== undefined) {
           macroViewModel.replace(entities[0], tileTypesByName.left);
@@ -189,13 +180,13 @@ export function makeController($parent, {
       }
     },
     get right() {
-      return right;
+      return rightItemType;
     },
     /**
      * @param {number} type
      */
     set right(type) {
-      right = type;
+      rightItemType = type;
       if (type === itemTypesByName.empty) {
         if (entities[2] !== undefined) {
           macroViewModel.replace(entities[2], tileTypesByName.right);
@@ -224,19 +215,19 @@ export function makeController($parent, {
   }
 
   /**
-   * @callback State
+   * @callback Mode
    * @param {number} command
    * @param {boolean} repeat
    */
 
-  /** @type {State} */
-  function play(command, repeat) {
+  /** @type {Mode} */
+  function playMode(command, repeat) {
     const direction = commandDirection[command];
     if (direction !== undefined) {
       commandWorld(direction, repeat, inventory);
 
-    } else if (command === 1 && left !== itemTypesByName.empty) { // && left non-empty
-      removeDpad();
+    } else if (command === 1 && leftItemType !== itemTypesByName.empty) { // && left non-empty
+      dismissDpad();
 
       const leftItem = entities[0];
       assert(leftItem !== undefined);
@@ -245,27 +236,25 @@ export function makeController($parent, {
       entities[0] = undefined;
       entities[4] = leftItem;
 
-      if (right !== itemTypesByName.empty) {
-        const rightItem = entities[2];
-        assert(rightItem !== undefined);
-        const right = create(tileTypesByName.right, locate(3, 3));
-        macroViewModel.move(rightItem, locate(1, 2), ww, 0);
-        macroViewModel.move(right, locate(2, 2), nw, 0);
-        entities[1] = rightItem;
-        entities[2] = right;
+      if (rightItemType !== itemTypesByName.empty) {
+        const rightItemEntity = entities[2];
+        assert(rightItemEntity !== undefined);
+        const rightHandEntity = create(tileTypesByName.right, locate(3, 3));
+        macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
+        macroViewModel.move(rightHandEntity, locate(2, 2), nw, 0);
+        entities[1] = rightItemEntity;
+        entities[2] = rightHandEntity;
       }
 
-      const trash = create(tileTypesByName.trash, locate(3, -1));
-      macroViewModel.move(trash, locate(2, 0), sw, 0);
-      entities[8] = trash;
+      restoreTrash();
 
       const leftHand = create(tileTypesByName.left, locate(-1, 3));
       macroViewModel.move(leftHand, locate(0, 2), ne, 0);
       entities[0] = leftHand;
 
-      return inventoryMode(left, right, -1);
-    } else if (command === 3 && right !== itemTypesByName.empty) {
-      removeDpad();
+      return inventoryMode(leftItemType, rightItemType, -1);
+    } else if (command === 3 && rightItemType !== itemTypesByName.empty) {
+      dismissDpad();
 
       const rightItem = entities[2];
       assert(rightItem !== undefined);
@@ -274,27 +263,25 @@ export function makeController($parent, {
       entities[2] = undefined;
       entities[4] = rightItem;
 
-      if (left !== itemTypesByName.empty) {
+      if (leftItemType !== itemTypesByName.empty) {
         const leftItem = entities[0];
         assert(leftItem !== undefined);
-        const left = create(tileTypesByName.left, locate(-1, 3));
+        const leftEntity = create(tileTypesByName.left, locate(-1, 3));
         macroViewModel.move(leftItem, locate(1, 2), ee, 0);
-        macroViewModel.move(left, locate(0, 2), ne, 0);
+        macroViewModel.move(leftEntity, locate(0, 2), ne, 0);
         entities[1] = leftItem;
-        entities[0] = left;
+        entities[0] = leftEntity;
       }
 
-      const trash = create(tileTypesByName.trash, locate(3, -1));
-      macroViewModel.move(trash, locate(2, 0), sw, 0);
-      entities[8] = trash;
+      restoreTrash();
 
       const rightHand = create(tileTypesByName.right, locate(3, 3));
       macroViewModel.move(rightHand, locate(2, 2), nw, 0);
       entities[2] = rightHand;
 
-      return inventoryMode(right, left, 1);
+      return inventoryMode(rightItemType, leftItemType, 1);
     }
-    return play;
+    return playMode;
   }
 
   /**
@@ -303,12 +290,12 @@ export function makeController($parent, {
    * @param {number} leftOrRight
    */
   function inventoryMode(item, otherItem, leftOrRight) {
-    /** @type {State} */
-    const state = command => {
+    /** @type {Mode} */
+    const mode = command => {
       if (command === 9) { // trash
         const trashItem = entities[4];
         assert(trashItem !== undefined);
-        inventory.left = itemTypesByName.empty;
+        leftItemType = itemTypesByName.empty;
         assert(entities[8] !== undefined);
         macroViewModel.exit(entities[8]);
         entities[8] = undefined;
@@ -318,62 +305,72 @@ export function makeController($parent, {
         restoreDpad();
 
         if (leftOrRight < 0) {
-          left = itemTypesByName.empty;
+          leftItemType = itemTypesByName.empty;
         } else if (leftOrRight > 0) {
-          right = itemTypesByName.empty;
+          rightItemType = itemTypesByName.empty;
         }
 
-        return play;
+        return playMode;
+      } else if (command === 2 && otherItem !== itemTypesByName.empty) { // combine
+
+        const entity = entities[4];
+        assert(entity !== undefined);
+        const otherEntity = entities[1];
+        assert(otherEntity !== undefined);
+        macroViewModel.take(otherEntity, nn);
+
+        item = combine(item, otherItem);
+        otherItem = itemTypesByName.empty;
+
+        const itemTileType = tileTypeForItemType[item];
+        macroViewModel.replace(entity, itemTileType);
+
+
+        return mode;
       } else if (command === 1) { // place in left hand
-        const trash = entities[8];
+        dismissTrash();
         const leftItem = entities[4];
         const leftHand = entities[0];
 
-        assert(trash !== undefined);
         assert(leftItem !== undefined);
         assert(leftHand !== undefined);
 
-        macroViewModel.exit(trash);
         macroViewModel.move(leftItem, locate(0, 2), sw, 0);
         macroViewModel.exit(leftHand);
 
         entities[0] = leftItem;
-        entities[8] = undefined;
 
         restoreOtherItem(otherItem, -1);
         restoreDpad();
 
-        left = item;
-        right = otherItem;
+        leftItemType = item;
+        rightItemType = otherItem;
 
-        return play;
+        return playMode;
       } else if (command === 3) { // place in right hand
-        const trash = entities[8];
+        dismissTrash();
         const rightItem = entities[4];
         const rightHand = entities[2];
 
-        assert(trash !== undefined);
         assert(rightItem !== undefined);
         assert(rightHand !== undefined);
 
-        macroViewModel.exit(trash);
         macroViewModel.move(rightItem, locate(2, 2), se, 0);
         macroViewModel.exit(rightHand);
 
         entities[2] = rightItem;
-        entities[8] = undefined;
 
         restoreOtherItem(otherItem, 1);
         restoreDpad();
 
-        right = item;
-        left = otherItem;
+        rightItemType = item;
+        leftItemType = otherItem;
 
-        return play;
+        return playMode;
       }
-      return state;
+      return mode;
     };
-    return state;
+    return mode;
   }
 
   function restoreDpad() {
@@ -398,7 +395,20 @@ export function makeController($parent, {
     entities[4] = watch;
   }
 
-  function removeDpad() {
+  function restoreTrash() {
+    const trash = create(tileTypesByName.trash, locate(3, -1));
+    macroViewModel.move(trash, locate(2, 0), sw, 0);
+    entities[8] = trash;
+  }
+
+  function dismissTrash() {
+    const trash = entities[8];
+    assert(trash !== undefined);
+    macroViewModel.exit(trash);
+    entities[8] = undefined;
+  }
+
+  function dismissDpad() {
     const north = entities[7];
     const west = entities[3];
     const watch = entities[4];
@@ -456,11 +466,14 @@ export function makeController($parent, {
     }
   }
 
-  let state = play;
+  function restoreBack() {
+  }
 
-  /** @type {State} */
+  let mode = playMode;
+
+  /** @type {Mode} */
   function command(command, repeat) {
-    state = state(command, repeat);
+    mode = mode(command, repeat);
   }
 
   return {
