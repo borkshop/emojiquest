@@ -1,5 +1,7 @@
 // @ts-check
 
+import {halfOcturn, fullOcturn} from './geometry2d.js';
+
 /**
  * @typedef {import('./view-model.js').ViewModel} ViewModel
  * @typedef {ReturnType<makeMacroViewModel>} MacroViewModel
@@ -66,6 +68,14 @@ export function makeMacroViewModel(viewModel, {}) {
    * @param {number} external
    * @param {number} directionOcturns
    */
+  function give(external, directionOcturns) {
+    take(external, (directionOcturns + halfOcturn) % fullOcturn);
+  }
+
+  /**
+   * @param {number} external
+   * @param {number} directionOcturns
+   */
   function take(external, directionOcturns) {
     const internal = entity(external);
     viewModel.transition(internal, {
@@ -74,7 +84,6 @@ export function makeMacroViewModel(viewModel, {}) {
     });
     removes.set(external, internal);
   }
-
   /**
    * @param {number} external
    */
@@ -204,5 +213,5 @@ export function makeMacroViewModel(viewModel, {}) {
 
   const { animate } = viewModel;
 
-  return { animate, reset, up, down, put, take, exit, enter, fell, move, bounce, replace };
+  return { animate, reset, up, down, put, take, give, exit, enter, fell, move, bounce, replace };
 }

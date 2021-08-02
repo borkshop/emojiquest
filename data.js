@@ -7,23 +7,42 @@ export const agentTypes = [
   { name: 'pineTree' },
   { name: 'appleTree' },
   { name: 'axe' },
+  { name: 'mountain' },
+  { name: 'pick' },
+  { name: 'bank' },
+  { name: 'forge' },
 ];
 
 export const itemTypes = [
   { name: 'empty' },
   { name: 'apple' },
   { name: 'axe' },
-  { name: 'pineLumber', tile: 'pineTree' },
-  { name: 'appleLumber', tile: 'appleTree' },
+  { name: 'softwood', tile: 'pineTree' },
+  { name: 'hardwood', tile: 'appleTree' },
   { name: 'poop' },
-  { name: 'shield', back: true },
-  { name: 'backpack', back: true },
+  { name: 'shield' },
+  { name: 'bolt' },
+  { name: 'knife' },
+  { name: 'gear' },
+  { name: 'spoon' },
+  { name: 'link' },
+  { name: 'pick' },
+  { name: 'bicycle' },
+  { name: 'hook' },
+  { name: 'hammer' },
+  { name: 'chain' },
+  { name: 'scissors' },
+  { name: 'cart' },
+  { name: 'fishingRod' },
+  { name: 'copper' },
+  { name: 'silver' },
+  { name: 'gold' },
 ];
 
 const tileTypes = [
   { name: 'happy', text: '🙂' },
   { name: 'backpack', text: '🎒    ' },
-  { name: 'trash', text: '🗑    ' },
+  { name: 'trash', text: '🗑' },
   { name: 'shield', text: '🛡    ' },
   { name: 'pineTree', text: '🌲' },
   { name: 'appleTree', text: '🌳' },
@@ -43,6 +62,28 @@ const tileTypes = [
   { name: 'healthSlot', text: '🖤 ' },
   { name: 'staminaSlot', text: '🖤 ' },
   { name: 'poop', text: '💩  ' },
+  { name: 'bolt', text: '🔩 ' },
+  { name: 'knife', text: '🔪 ' },
+  { name: 'spoon', text: '🥄 ' },
+  { name: 'link', text: '🔗 ' },
+  { name: 'gear', text: '⚙️ ' },
+  { name: 'pick', text: '⛏ ' },
+  { name: 'bicycle', text: '🚲 ' },
+  { name: 'hook', text: '⚓️' },
+  { name: 'hammer', text: '🔨' },
+  { name: 'chain', text: '⛓' },
+  { name: 'scissors', text: '✂️ ' },
+  { name: 'hammerAndPick', text: '⚒ ' },
+  { name: 'hammerAndWrench', text: '🛠' },
+  { name: 'sword', text: '🗡', turn: 2 },
+  { name: 'cart', text: '🛒    ' },
+  { name: 'fishingRod', text: '🎣 ' },
+  { name: 'mountain', text: '⛰' },
+  { name: 'copper', text: '🥉' },
+  { name: 'silver', text: '🥈' },
+  { name: 'gold', text: '🥇' },
+  { name: 'bank', text: '🏦' },
+  { name: 'forge', text: '🏭' },
 ];
 
 export const tileTypesByName = Object.fromEntries(tileTypes.map((type, index) => [type.name, index]));
@@ -87,4 +128,4 @@ export function combine(agentType, reagentType) {
   return itemTypesByName.poop;
 }
 
-formula('pineLumber', 'axe', 'shield');
+formula('bolt', 'bolt', 'knife');

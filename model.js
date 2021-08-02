@@ -154,8 +154,17 @@ export function makeModel({
       if (Math.random() < 0.25 && location !== spawn) {
         const modelType = [
           agentTypesByName.pineTree,
+          agentTypesByName.pineTree,
+          agentTypesByName.pineTree,
           agentTypesByName.appleTree,
-          agentTypesByName.axe
+          agentTypesByName.appleTree,
+          agentTypesByName.mountain,
+          agentTypesByName.mountain,
+          agentTypesByName.mountain,
+          agentTypesByName.axe,
+          agentTypesByName.pick,
+          agentTypesByName.bank,
+          agentTypesByName.forge,
         ].sort(() => Math.random() - 0.5).pop() || 0;
         const tileType = defaultTileTypeForAgentType[modelType];
         const entity = createEntity(modelType);
@@ -262,15 +271,56 @@ export function makeModel({
         const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
         if (/^player:axe:empty:/.test(condition)) {
           inventory.left = itemTypesByName.axe;
-          macroViewModel.take(patient, (direction * quarturnToOcturn + halfOcturn) % fullOcturn);
+          macroViewModel.give(patient, direction * quarturnToOcturn);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
-        } else if (/^player:pineTree:axe:/.test(condition)) {
-          inventory.right = itemTypesByName.pineLumber;
+        } else if (/^player:pineTree:axe:empty:/.test(condition)) {
+          inventory.right = itemTypesByName.softwood;
           macroViewModel.bounce(agent, direction * quarturnToOcturn);
           macroViewModel.fell(patient);
           destroyEntity(patient);
           entitiesNext[destination] = undefined;
+        } else if (/^player:pick:empty:/.test(condition)) {
+          inventory.left = itemTypesByName.pick;
+          macroViewModel.give(patient, direction * quarturnToOcturn);
+          destroyEntity(patient);
+          entitiesNext[destination] = undefined;
+        } else if (/^player:mountain:pick:empty:/.test(condition)) {
+          inventory.right = itemTypesByName.copper;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
+        } else if (/^player:mountain:pick:copper:/.test(condition)) {
+          inventory.right = itemTypesByName.silver;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
+        } else if (/^player:mountain:pick:silver:/.test(condition)) {
+          inventory.right = itemTypesByName.gold;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
+
+        } else if (/^player:bank:silver:empty:/.test(condition)) {
+          inventory.left = itemTypesByName.copper;
+          inventory.right = itemTypesByName.copper;
+        } else if (/^player:bank:copper:silver:/.test(condition)) {
+          inventory.left = itemTypesByName.gold;
+          inventory.right = itemTypesByName.empty;
+        } else if (/^player:bank:copper:copper:/.test(condition)) {
+          inventory.left = itemTypesByName.silver;
+          inventory.right = itemTypesByName.empty;
+        } else if (/^player:bank:gold:empty:/.test(condition)) {
+          inventory.left = itemTypesByName.silver;
+          inventory.right = itemTypesByName.copper;
+        } else if (/^player:bank:silver:empty:/.test(condition)) {
+          inventory.left = itemTypesByName.copper;
+          inventory.right = itemTypesByName.copper;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
+
+        } else if (/^player:forge:copper:/.test(condition)) {
+          inventory.left = itemTypesByName.link;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
+        } else if (/^player:forge:silver:/.test(condition)) {
+          inventory.left = itemTypesByName.bolt;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
+        } else if (/^player:forge:gold:/.test(condition)) {
+          inventory.left = itemTypesByName.gear;
+          macroViewModel.bounce(agent, direction * quarturnToOcturn);
         }
       }
     }
