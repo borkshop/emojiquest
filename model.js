@@ -263,12 +263,13 @@ export function makeModel({
     // TODO break this into phases since an entity that doesn't move can also
     // be destroyed by another bump and therein may lay race conditions.
     for (const { agent, patient, destination, direction } of bumps) {
-      if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
+      if (agent === agentTypesByName.player && !moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
         const agentType = agentTypes[entityType(agent)].name;
         const patientType = agentTypes[entityType(patient)].name;
         const leftType = itemTypes[inventory.left].name;
         const rightType = itemTypes[inventory.right].name;
         const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
+        console.log(condition);
         if (/^player:axe:empty:/.test(condition)) {
           inventory.left = itemTypesByName.axe;
           macroViewModel.give(patient, direction * quarturnToOcturn);
@@ -288,26 +289,23 @@ export function makeModel({
         } else if (/^player:mountain:pick:empty:/.test(condition)) {
           inventory.right = itemTypesByName.copper;
           macroViewModel.bounce(agent, direction * quarturnToOcturn);
-        } else if (/^player:mountain:pick:copper:/.test(condition)) {
-          inventory.right = itemTypesByName.silver;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-        } else if (/^player:mountain:pick:silver:/.test(condition)) {
-          inventory.right = itemTypesByName.gold;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
 
-        } else if (/^player:bank:silver:empty:/.test(condition)) {
+        } else if (/^player:bank:(?:silver:empty|empty:silver):/.test(condition)) {
           inventory.left = itemTypesByName.copper;
           inventory.right = itemTypesByName.copper;
-        } else if (/^player:bank:copper:silver:/.test(condition)) {
+        } else if (/^player:bank:(?:copper:silver|silver:copper):/.test(condition)) {
           inventory.left = itemTypesByName.gold;
           inventory.right = itemTypesByName.empty;
         } else if (/^player:bank:copper:copper:/.test(condition)) {
           inventory.left = itemTypesByName.silver;
           inventory.right = itemTypesByName.empty;
-        } else if (/^player:bank:gold:empty:/.test(condition)) {
+        } else if (/^player:bank:(?:silver:copper|copper:silver):/.test(condition)) {
+          inventory.left = itemTypesByName.gold;
+          inventory.right = itemTypesByName.empty;
+        } else if (/^player:bank:(?:gold:empty|empty:gold):/.test(condition)) {
           inventory.left = itemTypesByName.silver;
           inventory.right = itemTypesByName.copper;
-        } else if (/^player:bank:silver:empty:/.test(condition)) {
+        } else if (/^player:bank:(?:silver:empty|empty:silver):/.test(condition)) {
           inventory.left = itemTypesByName.copper;
           inventory.right = itemTypesByName.copper;
           macroViewModel.bounce(agent, direction * quarturnToOcturn);

@@ -37,11 +37,14 @@ export const itemTypes = [
   { name: 'copper' },
   { name: 'silver' },
   { name: 'gold' },
+  { name: 'apple', food: true, health: 1 },
+  { name: 'pineApple', food: true, stamina: 1 },
 ];
 
 const tileTypes = [
   { name: 'happy', text: '🙂' },
   { name: 'backpack', text: '🎒    ' },
+  { name: 'back', text: '🔙' },
   { name: 'trash', text: '🗑' },
   { name: 'shield', text: '🛡    ' },
   { name: 'pineTree', text: '🌲' },
