@@ -493,9 +493,11 @@ export function makeController($parent, {
       if (command === 5) { // keep
         dismissPackItemsExcept(-1);
 
-        const entity = entities[4];
-        assert(entity !== undefined);
-        macroViewModel.up(entity);
+        if (heldItemType !== itemTypesByName.empty) {
+          const entity = entities[4];
+          assert(entity !== undefined);
+          macroViewModel.up(entity);
+        }
 
       } else { // put or swap
         const inventoryIndex = inventoryIndexForCommand[command];
@@ -571,7 +573,6 @@ export function makeController($parent, {
 
         return playMode;
       }
-
     }
 
     return mode;
