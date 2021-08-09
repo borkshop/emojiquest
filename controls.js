@@ -23,7 +23,7 @@ const tileSize = 75;
 
 const inventoryIndexForCommand = [undefined, 0, 1, 2, 3, undefined, 4, 5, 6, 7];
 const entityIndexForInventoryIndex = [0, 1, 2, 3, 5, 6, 7, 8];
-const inventoryIndexForEntityIndex = [0, 1, 2, 3, undefined, 4, 5, 6, 7];
+// const inventoryIndexForEntityIndex = [0, 1, 2, 3, undefined, 4, 5, 6, 7];
 
 const itemLocations = [
   locate(0, 2),
