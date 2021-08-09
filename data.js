@@ -42,6 +42,7 @@ export const itemTypes = [
 ];
 
 const tileTypes = [
+  { name: 'empty', text: '' },
   { name: 'happy', text: '🙂' },
   { name: 'backpack', text: '🎒    ' },
   { name: 'back', text: '🔙' },
@@ -87,6 +88,18 @@ const tileTypes = [
   { name: 'gold', text: '🥇' },
   { name: 'bank', text: '🏦' },
   { name: 'forge', text: '🏭' },
+  { name: 'rainbow', text: '🌈' },
+  { name: 'shoe', text: '👞' },
+  { name: 'one', text: '1️⃣' },
+  { name: 'two', text: '2️⃣' },
+  { name: 'three', text: '3️⃣' },
+  { name: 'four', text: '4️⃣' },
+  { name: 'five', text: '5️⃣' },
+  { name: 'six', text: '6️⃣' },
+  { name: 'seven', text: '7️⃣' },
+  { name: 'eight', text: '8️⃣' },
+  { name: 'nine', text: '9️⃣' },
+
 ];
 
 export const tileTypesByName = Object.fromEntries(tileTypes.map((type, index) => [type.name, index]));
