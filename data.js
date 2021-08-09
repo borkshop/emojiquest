@@ -39,6 +39,11 @@ export const itemTypes = [
   { name: 'gold' },
   { name: 'apple', food: true, health: 1 },
   { name: 'pineApple', food: true, stamina: 1 },
+  { name: 'canoe' },
+  { name: 'dagger' },
+  { name: 'doubleDagger' },
+  { name: 'wrench' },
+  { name: 'knittingNeedles' },
 ];
 
 const tileTypes = [
@@ -75,11 +80,13 @@ const tileTypes = [
   { name: 'bicycle', text: '🚲 ' },
   { name: 'hook', text: '⚓️' },
   { name: 'hammer', text: '🔨' },
+  { name: 'wrench', text: '🔧' },
   { name: 'chain', text: '⛓' },
   { name: 'scissors', text: '✂️ ' },
   { name: 'hammerAndPick', text: '⚒ ' },
   { name: 'hammerAndWrench', text: '🛠' },
-  { name: 'sword', text: '🗡', turn: 2 },
+  { name: 'dagger', text: '🗡', turn: 2 },
+  { name: 'doubleDagger', text: '⚔️'  },
   { name: 'cart', text: '🛒    ' },
   { name: 'fishingRod', text: '🎣 ' },
   { name: 'mountain', text: '⛰' },
@@ -99,7 +106,8 @@ const tileTypes = [
   { name: 'seven', text: '7️⃣' },
   { name: 'eight', text: '8️⃣' },
   { name: 'nine', text: '9️⃣' },
-
+  { name: 'canoe', text: '🛶' },
+  { name: 'knittingNeedles', text: '🥢 ' },
 ];
 
 export const tileTypesByName = Object.fromEntries(tileTypes.map((type, index) => [type.name, index]));
@@ -110,38 +118,58 @@ export const defaultTileTypeForAgentType = agentTypes.map(({ name, tile }) => ti
 export const tileTypeForItemType = itemTypes.map(({ name, tile }) => tileTypesByName[tile || name]);
 export const viewText = tileTypes.map(type => type.text);
 
-const formulae = new Map();
+const craftingFormulae = new Map();
 
 /**
  * @param {string} agent
  * @param {string} reagent
  * @param {string} product
+ * @param {string} byproduct
  */
-function formula(agent, reagent, product) {
+function craft(agent, reagent, product, byproduct = 'empty') {
   const agentType = itemTypesByName[agent];
   const reagentType = itemTypesByName[reagent];
   const productType = itemTypesByName[product];
+  const byproductType = itemTypesByName[byproduct];
   assert(agentType !== undefined);
   assert(reagentType !== undefined);
   assert(productType !== undefined);
-  formulae.set(agentType * itemTypes.length + reagentType, productType);
+  craftingFormulae.set(agentType * itemTypes.length + reagentType, [productType, byproductType]);
 }
 
 /**
  * @param {number} agentType
  * @param {number} reagentType
- * @returns {number} productType
+ * @returns {[number, number]} productType and byproductType
  */
 export function combine(agentType, reagentType) {
-  let productType = formulae.get(agentType * itemTypes.length + reagentType);
-  if (productType !== undefined) {
-    return productType;
+  let productTypes = craftingFormulae.get(agentType * itemTypes.length + reagentType);
+  if (productTypes !== undefined) {
+    return productTypes;
   }
-  productType = formulae.get(reagentType * itemTypes.length + agentType);
-  if (productType !== undefined) {
-    return productType;
+  productTypes = craftingFormulae.get(reagentType * itemTypes.length + agentType);
+  if (productTypes !== undefined) {
+    return productTypes;
   }
-  return itemTypesByName.poop;
+  return [itemTypesByName.poop, itemTypesByName.empty];
 }
 
-formula('bolt', 'bolt', 'knife');
+craft('bolt', 'bolt', 'knife');
+craft('bolt', 'gear', 'spoon');
+craft('bolt', 'link', 'wrench');
+
+craft('gear', 'bolt', 'pick');
+craft('gear', 'gear', 'bicycle');
+craft('gear', 'link', 'hook');
+
+craft('link', 'gear', 'shield');
+craft('link', 'link', 'chain');
+
+craft('bolt', 'knife', 'dagger');
+craft('knife', 'knife', 'scissors');
+
+craft('dagger', 'dagger', 'doubleDagger');
+
+craft('spoon', 'softwood', 'canoe', 'spoon');
+
+craft('knife', 'softwood', 'knittingNeedles');

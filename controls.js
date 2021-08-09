@@ -409,8 +409,7 @@ export function makeController($parent, {
         assert(otherEntity !== undefined);
         macroViewModel.take(otherEntity, nn);
 
-        itemType = combine(itemType, otherItemType);
-        otherItemType = itemTypesByName.empty;
+        [itemType, otherItemType] = combine(itemType, otherItemType);
 
         const itemTileType = tileTypeForItemType[itemType];
         macroViewModel.replace(entity, itemTileType);
