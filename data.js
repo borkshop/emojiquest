@@ -3,6 +3,7 @@
 import {assert} from './assert.js';
 
 export const agentTypes = [
+  // { name: 'empty' },
   { name: 'player', tile: 'happy' },
   { name: 'pineTree' },
   { name: 'appleTree' },
@@ -173,3 +174,4 @@ craft('dagger', 'dagger', 'doubleDagger');
 craft('spoon', 'softwood', 'canoe', 'spoon');
 
 craft('knife', 'softwood', 'knittingNeedles');
+

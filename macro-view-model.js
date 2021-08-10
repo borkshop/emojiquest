@@ -170,7 +170,6 @@ export function makeMacroViewModel(viewModel, {}) {
    */
   function bounce(external, directionOcturns) {
     const internal = entity(external);
-    viewModel.transition(external, {directionOcturns, bump: true});
     viewModel.transition(internal, {
       directionOcturns,
       bump: true,

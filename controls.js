@@ -407,12 +407,53 @@ export function makeController($parent, {
         assert(entity !== undefined);
         const otherEntity = entities[1];
         assert(otherEntity !== undefined);
+
+        const [productType, byproductType] = combine(itemType, otherItemType);
+
+        assert(otherItemType !== productType);
         macroViewModel.take(otherEntity, nn);
 
-        [itemType, otherItemType] = combine(itemType, otherItemType);
+        assert(productType !== itemTypesByName.empty);
+        const productTileType = tileTypeForItemType[productType];
 
-        const itemTileType = tileTypeForItemType[itemType];
-        macroViewModel.replace(entity, itemTileType);
+
+        if (otherItemType === byproductType && byproductType !== itemTypesByName.empty) {
+          // The agent is replaced with the product.  The reagent is also the
+          // byproduct, in other words, it is a catalyst and just bounces in
+          // place.
+          macroViewModel.replace(entity, productTileType);
+          // TODO: bug: after the bounce, the otherEntity disappears.
+          macroViewModel.bounce(otherEntity, nn);
+
+        } else if (itemType === byproductType) {
+          // The agent becomes the byproduct when the formula above gets
+          // reversed.  In this case, the agent becomes the byproduct, or
+          // rather, it just moves from the top to the bottom slot.
+          macroViewModel.move(entity, locate(1, 2), ss, 0);
+          entities[1] = entity;
+
+          const productEntity = create(productTileType, locate(1, 1));
+          macroViewModel.enter(productEntity);
+          entities[4] = productEntity;
+
+        } else {
+          macroViewModel.replace(entity, productTileType);
+
+          if (byproductType !== itemTypesByName.empty) {
+            const byproductTileType = tileTypeForItemType[byproductType];
+            const byproductEntity = create(byproductTileType, locate(1, 2));
+            macroViewModel.enter(byproductEntity);
+            entities[1] = byproductEntity;
+          } else {
+            entities[1] = undefined;
+          }
+        }
+
+        // TODO: bug: the reagent is not always consumed, even when there
+        // is not supposed to be a byproduct.
+        // There might be a failing to account for returning the other
+        // item when the other item becomes empty.
+        [itemType, otherItemType] = [productType, byproductType];
 
         return mode;
       } else if (command === 1) { // place in left hand
