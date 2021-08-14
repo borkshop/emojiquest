@@ -71,17 +71,17 @@ const foundation = makeDaia({
   transform: scale(faceSize*0.9999),
 });
 
-const atmosquare = makeDaia({
-  tileSize: tileSize,
-  faceSize: 3,
-  transform: scale(faceSize*2/3),
-});
+// const atmosquare = makeDaia({
+//   tileSize: tileSize,
+//   faceSize: 3,
+//   transform: scale(faceSize*2/3),
+// });
 
-const firmament = makeDaia({
-  tileSize: 100,
-  faceSize: 3,
-  transform: scale(faceSize*3/3),
-});
+// const firmament = makeDaia({
+//   tileSize: 100,
+//   faceSize: 3,
+//   transform: scale(faceSize*3/3),
+// });
 
 /**
  * @param {number} t
@@ -94,27 +94,27 @@ function createFoundationTile(t) {
   return $tile;
 }
 
-/**
- * @param {number} _t
- * @returns {HTMLElement}
- */
-function createAtmosquare(_t) {
-  const $tile = document.createElement('div');
-  $tile.className = 'atmosquare';
-  $tile.innerText = Math.random() < 0.25 ? `☁️` : '';
-  return $tile;
-}
+// /**
+//  * @param {number} _t
+//  * @returns {HTMLElement}
+//  */
+// function createAtmosquare(_t) {
+//   const $tile = document.createElement('div');
+//   $tile.className = 'atmosquare';
+//   $tile.innerText = Math.random() < 0.25 ? `☁️` : '';
+//   return $tile;
+// }
 
-/**
- * @param {number} _t
- * @returns {HTMLElement}
- */
-function createFirmamentTile(_t) {
-  const $tile = document.createElement('div');
-  $tile.className = 'firmament';
-  $tile.innerText = Math.random() < 0.75 ? `⭐️` : '';
-  return $tile;
-}
+// /**
+//  * @param {number} _t
+//  * @returns {HTMLElement}
+//  */
+// function createFirmamentTile(_t) {
+//   const $tile = document.createElement('div');
+//   $tile.className = 'firmament';
+//   $tile.innerText = Math.random() < 0.75 ? `⭐️` : '';
+//   return $tile;
+// }
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -156,8 +156,8 @@ function createAllTiles3d(context, cube, createTile) {
 }
 
 createAllTiles3d($context, foundation, createFoundationTile);
-createAllTiles3d($context, firmament, createFirmamentTile);
-createAllTiles3d($context, atmosquare, createAtmosquare);
+// createAllTiles3d($context, firmament, createFirmamentTile);
+// createAllTiles3d($context, atmosquare, createAtmosquare);
 
 const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
