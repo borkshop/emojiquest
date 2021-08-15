@@ -6,7 +6,7 @@
  */
 
 import {same, quarturnToOcturn} from './geometry2d.js';
-import {agentTypes, agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, itemTypes, itemTypesByName} from './data.js';
+import {agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, bump} from './mechanics.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -98,12 +98,14 @@ export function makeModel({
 
   /**
    * @param {number} entity
+   * @param {number} location
    */
-  function destroyEntity(entity) {
+  function destroyEntity(entity, location) {
     removes.add(entity);
     entityTypes.delete(entity);
     mobiles.delete(entity);
     locations.delete(entity);
+    entitiesNext[location] = undefined;
   }
 
   /** @type {TypeFn} */
@@ -156,6 +158,8 @@ export function makeModel({
           agentTypesByName.pineTree,
           agentTypesByName.pineTree,
           agentTypesByName.pineTree,
+          agentTypesByName.ram,
+          agentTypesByName.ewe,
           agentTypesByName.appleTree,
           agentTypesByName.appleTree,
           agentTypesByName.mountain,
@@ -263,63 +267,21 @@ export function makeModel({
     // TODO break this into phases since an entity that doesn't move can also
     // be destroyed by another bump and therein may lay race conditions.
     for (const { agent, patient, destination, direction } of bumps) {
-      if (agent === agentTypesByName.player && !moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
-        const agentType = agentTypes[entityType(agent)].name;
-        const patientType = agentTypes[entityType(patient)].name;
-        const leftType = itemTypes[inventory.left].name;
-        const rightType = itemTypes[inventory.right].name;
-        const condition = `${agentType}:${patientType}:${leftType}:${rightType}:`;
-        console.log(condition);
-        if (/^player:axe:empty:/.test(condition)) {
-          inventory.left = itemTypesByName.axe;
-          macroViewModel.give(patient, direction * quarturnToOcturn);
-          destroyEntity(patient);
-          entitiesNext[destination] = undefined;
-        } else if (/^player:pineTree:axe:empty:/.test(condition)) {
-          inventory.right = itemTypesByName.softwood;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-          macroViewModel.fell(patient);
-          destroyEntity(patient);
-          entitiesNext[destination] = undefined;
-        } else if (/^player:pick:empty:/.test(condition)) {
-          inventory.left = itemTypesByName.pick;
-          macroViewModel.give(patient, direction * quarturnToOcturn);
-          destroyEntity(patient);
-          entitiesNext[destination] = undefined;
-        } else if (/^player:mountain:pick:empty:/.test(condition)) {
-          inventory.right = itemTypesByName.copper;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-
-        } else if (/^player:bank:(?:silver:empty|empty:silver):/.test(condition)) {
-          inventory.left = itemTypesByName.copper;
-          inventory.right = itemTypesByName.copper;
-        } else if (/^player:bank:(?:copper:silver|silver:copper):/.test(condition)) {
-          inventory.left = itemTypesByName.gold;
-          inventory.right = itemTypesByName.empty;
-        } else if (/^player:bank:copper:copper:/.test(condition)) {
-          inventory.left = itemTypesByName.silver;
-          inventory.right = itemTypesByName.empty;
-        } else if (/^player:bank:(?:silver:copper|copper:silver):/.test(condition)) {
-          inventory.left = itemTypesByName.gold;
-          inventory.right = itemTypesByName.empty;
-        } else if (/^player:bank:(?:gold:empty|empty:gold):/.test(condition)) {
-          inventory.left = itemTypesByName.silver;
-          inventory.right = itemTypesByName.copper;
-        } else if (/^player:bank:(?:silver:empty|empty:silver):/.test(condition)) {
-          inventory.left = itemTypesByName.copper;
-          inventory.right = itemTypesByName.copper;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-
-        } else if (/^player:forge:copper:/.test(condition)) {
-          inventory.left = itemTypesByName.link;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-        } else if (/^player:forge:silver:/.test(condition)) {
-          inventory.left = itemTypesByName.bolt;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-        } else if (/^player:forge:gold:/.test(condition)) {
-          inventory.left = itemTypesByName.gear;
-          macroViewModel.bounce(agent, direction * quarturnToOcturn);
-        }
+      if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
+        bump({
+          agent,
+          agentType: entityType(agent),
+          patient,
+          patientType: entityType(patient),
+          leftType: inventory.left,
+          rightType: inventory.right,
+          effectType: effectTypesByName.empty,
+          destination,
+          direction,
+          inventory,
+          macroViewModel,
+          destroyEntity,
+        });
       }
     }
 

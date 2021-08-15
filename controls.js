@@ -6,7 +6,7 @@ import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
-import {viewText, tileTypesByName, itemTypes, itemTypesByName, tileTypeForItemType, combine} from './data.js';
+import {viewText, tileTypesByName, itemTypes, itemTypesByName, tileTypeForItemType, craft} from './mechanics.js';
 import {commandDirection} from './driver.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -24,6 +24,23 @@ const tileSize = 75;
 const inventoryIndexForCommand = [undefined, 0, 1, 2, 3, undefined, 4, 5, 6, 7];
 const entityIndexForInventoryIndex = [0, 1, 2, 3, 5, 6, 7, 8];
 // const inventoryIndexForEntityIndex = [0, 1, 2, 3, undefined, 4, 5, 6, 7];
+
+const emptyTile = tileTypesByName.empty;
+const emptyItem = itemTypesByName.empty;
+
+/**
+ * @param {number} itemType
+ */
+function isEmptyItem(itemType) {
+  return itemType === emptyItem;
+}
+
+/**
+ * @param {number} itemType
+ */
+function isNotEmptyItem(itemType) {
+  return itemType !== emptyItem;
+}
 
 const itemLocations = [
   locate(0, 2),
@@ -170,25 +187,25 @@ export function makeController($parent, {
   ];
 
   let items = [
-    itemTypesByName.empty, // command === 1
-    itemTypesByName.empty, // command === 2
-    itemTypesByName.empty, // command === 3
+    emptyItem, // command === 1
+    emptyItem, // command === 2
+    emptyItem, // command === 3
 
-    itemTypesByName.empty, // command === 4
+    emptyItem, // command === 4
 
-    itemTypesByName.empty, // command === 6
+    emptyItem, // command === 6
 
-    itemTypesByName.empty, // command === 7
-    itemTypesByName.empty, // command === 8
-    itemTypesByName.empty, // command === 9
+    emptyItem, // command === 7
+    emptyItem, // command === 8
+    emptyItem, // command === 9
   ];
 
   /** @type {number} */
-  let leftItemType = itemTypesByName.empty;
+  let leftItemType = emptyItem;
   /** @type {number} */
-  let rightItemType = itemTypesByName.empty;
+  let rightItemType = emptyItem;
   /** @type {number} */
-  let effectTileType = tileTypesByName.empty;
+  let effectTileType = emptyTile;
   /** @type {number} */
   let packTileType = tileTypesByName.backpack;
 
@@ -220,10 +237,10 @@ export function makeController($parent, {
      * @param {number} type
      */
     set left(type) {
-      const packWasVisible = packVisibility();
+      const packWasVisible = packNotEmpty();
 
       leftItemType = type;
-      if (type === itemTypesByName.empty) {
+      if (isEmptyItem(type)) {
         if (entities[0] !== undefined) {
           macroViewModel.replace(entities[0], tileTypesByName.left);
         }
@@ -235,7 +252,7 @@ export function makeController($parent, {
         }
       }
 
-      const packIsVisible = packVisibility();
+      const packIsVisible = packNotEmpty();
       updatePack(packWasVisible, packIsVisible);
     },
     get right() {
@@ -245,10 +262,10 @@ export function makeController($parent, {
      * @param {number} type
      */
     set right(type) {
-      const packWasVisible = packVisibility();
+      const packWasVisible = packNotEmpty();
 
       rightItemType = type;
-      if (type === itemTypesByName.empty) {
+      if (isEmptyItem(type)) {
         if (entities[2] !== undefined) {
           macroViewModel.replace(entities[2], tileTypesByName.right);
         }
@@ -260,7 +277,7 @@ export function makeController($parent, {
         }
       }
 
-      const packIsVisible = packVisibility();
+      const packIsVisible = packNotEmpty();
       updatePack(packWasVisible, packIsVisible);
     },
   };
@@ -290,7 +307,7 @@ export function makeController($parent, {
     if (direction !== undefined) {
       commandWorld(direction, repeat, inventory);
 
-    } else if (command === 1 && leftItemType !== itemTypesByName.empty) { // && left non-empty
+    } else if (command === 1 && isNotEmptyItem(leftItemType)) { // && left non-empty
       dismissDpad();
       dismiss(8); // effect
 
@@ -301,7 +318,7 @@ export function makeController($parent, {
       entities[4] = leftItemEntity;
       macroViewModel.up(leftItemEntity);
 
-      if (rightItemType !== itemTypesByName.empty) {
+      if (isNotEmptyItem(rightItemType)) {
         const rightItemEntity = entities[2];
         assert(rightItemEntity !== undefined);
         macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
@@ -309,14 +326,14 @@ export function makeController($parent, {
         restoreRightHand();
       }
 
-      if (!packVisibility() && !items.every(Boolean)) {
+      if (packEmpty()) {
         restorePack();
       }
       restoreTrash();
       restoreLeftHand();
 
       return inventoryMode(leftItemType, rightItemType, -1);
-    } else if (command === 3 && rightItemType !== itemTypesByName.empty) {
+    } else if (command === 3 && isNotEmptyItem(rightItemType)) {
       dismissDpad();
       dismiss(8); // effect
 
@@ -327,7 +344,7 @@ export function makeController($parent, {
       entities[4] = rightItemEntity;
       macroViewModel.up(rightItemEntity);
 
-      if (leftItemType !== itemTypesByName.empty) {
+      if (isNotEmptyItem(leftItemType)) {
         const leftItemEntity = entities[0];
         assert(leftItemEntity !== undefined);
         macroViewModel.move(leftItemEntity, locate(1, 2), ee, 0);
@@ -335,24 +352,24 @@ export function makeController($parent, {
         restoreLeftHand();
       }
 
-      if (!packVisibility() && !items.every(Boolean)) {
+      if (packEmpty()) {
         restorePack();
       }
       restoreTrash();
       restoreRightHand();
 
       return inventoryMode(rightItemType, leftItemType, 1);
-    } else if (command === 7 && items.some(Boolean)) { // stash
+    } else if (command === 7 && packNotEmpty()) { // stash
       dismissPack();
       dismiss(8); // effect
       dismissDpad();
 
-      if (leftItemType === itemTypesByName.empty) {
+      if (isEmptyItem(leftItemType)) {
         dismissLeft();
         dismissRight();
         restorePackItems();
         return packMode(leftItemType, rightItemType, -1);
-      } else if (rightItemType === itemTypesByName.empty) {
+      } else if (isEmptyItem(rightItemType)) {
         dismissLeft();
         dismissRight();
         restorePackItems();
@@ -378,7 +395,7 @@ export function makeController($parent, {
    */
   function inventoryMode(itemType, otherItemType, leftOrRight) {
     // Invariant: the pack should be visible iff there are any empty slots.
-    const packWasVisible = !items.every(Boolean);
+    const packWasVisible = packNotFull();
 
     /** @type {Mode} */
     const mode = command => {
@@ -387,37 +404,43 @@ export function makeController($parent, {
         assert(trashedItemEntity !== undefined);
         macroViewModel.take(trashedItemEntity, ne);
         dismiss(8); // trash
-        if (packWasVisible && !packVisibility()) {
+        if (packWasVisible && packEmpty()) {
           dismissPack();
         }
 
         if (leftOrRight < 0) {
-          leftItemType = itemTypesByName.empty;
+          leftItemType = emptyItem;
         } else if (leftOrRight > 0) {
-          rightItemType = itemTypesByName.empty;
+          rightItemType = emptyItem;
         }
         restoreCenterItem(otherItemType, leftOrRight);
         restoreDpad();
         restoreEffect();
 
         return playMode;
-      } else if (command === 2 && otherItemType !== itemTypesByName.empty) { // combine
+      } else if (command === 2 && isNotEmptyItem(otherItemType)) { // craft
 
         const entity = entities[4];
         assert(entity !== undefined);
         const otherEntity = entities[1];
         assert(otherEntity !== undefined);
 
-        const [productType, byproductType] = combine(itemType, otherItemType);
+        const [productType, byproductType] = craft(itemType, otherItemType);
+        console.log('craft');
+        console.table({
+          agent: itemTypes[itemType].name,
+          reagent: itemTypes[otherItemType].name,
+          product: itemTypes[productType].name,
+          byproduct: itemTypes[byproductType].name,
+        });
 
         assert(otherItemType !== productType);
         macroViewModel.take(otherEntity, nn);
 
-        assert(productType !== itemTypesByName.empty);
+        assert(isNotEmptyItem(productType));
         const productTileType = tileTypeForItemType[productType];
 
-
-        if (otherItemType === byproductType && byproductType !== itemTypesByName.empty) {
+        if (otherItemType === byproductType && isNotEmptyItem(byproductType)) {
           // The agent is replaced with the product.  The reagent is also the
           // byproduct, in other words, it is a catalyst and just bounces in
           // place.
@@ -439,7 +462,7 @@ export function makeController($parent, {
         } else {
           macroViewModel.replace(entity, productTileType);
 
-          if (byproductType !== itemTypesByName.empty) {
+          if (isNotEmptyItem(byproductType)) {
             const byproductTileType = tileTypeForItemType[byproductType];
             const byproductEntity = create(byproductTileType, locate(1, 2));
             macroViewModel.enter(byproductEntity);
@@ -453,12 +476,13 @@ export function makeController($parent, {
         // is not supposed to be a byproduct.
         // There might be a failing to account for returning the other
         // item when the other item becomes empty.
+
         [itemType, otherItemType] = [productType, byproductType];
 
         return mode;
       } else if (command === 1) { // place in left hand
         dismiss(8); // trash
-        if (packWasVisible && !packVisibility()) {
+        if (packWasVisible && packEmpty()) {
           dismissPack();
         }
 
@@ -483,7 +507,7 @@ export function makeController($parent, {
         return playMode;
       } else if (command === 3) { // place in right hand
         dismiss(8); // trash
-        if (packWasVisible && !packVisibility()) {
+        if (packWasVisible && packEmpty()) {
           dismissPack();
         }
 
@@ -511,7 +535,7 @@ export function makeController($parent, {
         dismiss(8); // trash
         dismissLeft();
         dismissRight();
-        if (otherItemType !== itemTypesByName.empty) {
+        if (isNotEmptyItem(otherItemType)) {
           dismissCenter();
         }
         restorePackItems();
@@ -534,7 +558,7 @@ export function makeController($parent, {
       if (command === 5) { // keep
         dismissPackItemsExcept(-1);
 
-        if (heldItemType !== itemTypesByName.empty) {
+        if (isNotEmptyItem(heldItemType)) {
           const entity = entities[4];
           assert(entity !== undefined);
           macroViewModel.up(entity);
@@ -553,14 +577,14 @@ export function makeController($parent, {
         macroViewModel.up(inventoryEntity);
 
         // From hand to inventory (which is immediately disappearing)
-        if (heldItemType !== itemTypesByName.empty) {
+        if (isNotEmptyItem(heldItemType)) {
           const itemEntity = entities[4];
           assert(itemEntity !== undefined);
           macroViewModel.take(itemEntity, toItemDirection);
         }
 
         // From inventory to hand (everything else disappearing)
-        if (inventoryItemType !== itemTypesByName.empty) {
+        if (isNotEmptyItem(inventoryItemType)) {
           macroViewModel.move(inventoryEntity, locate(1, 1), fromItemDirection, 0);
           entities[4] = inventoryEntity;
           entities[inventoryEntityIndex] = undefined;
@@ -573,12 +597,12 @@ export function makeController($parent, {
         ([heldItemType, items[inventoryIndex]] = [items[inventoryIndex], heldItemType]);
       }
 
-      if (heldItemType !== itemTypesByName.empty) {
+      if (isNotEmptyItem(heldItemType)) {
         restoreLeftHand();
         restoreRightHand();
         restoreTrash();
         restorePack();
-        if (otherItemType !== itemTypesByName.empty) {
+        if (isNotEmptyItem(otherItemType)) {
           const otherItemTileType = tileTypeForItemType[otherItemType];
           const centerItemEntity = create(otherItemTileType, locate(1, 3));
           macroViewModel.move(centerItemEntity, locate(1, 2), nn, 0);
@@ -588,17 +612,17 @@ export function makeController($parent, {
       } else { // back to play mode with an empty hand
 
         if (leftOrRight < 0) {
-          leftItemType = itemTypesByName.empty;
+          leftItemType = emptyItem;
           restoreLeftHand();
-          if (otherItemType === itemTypesByName.empty) {
+          if (isEmptyItem(otherItemType)) {
             restoreRightHand();
           } else {
             restoreRightItem();
           }
         } else if (leftOrRight > 0) {
-          rightItemType = itemTypesByName.empty;
+          rightItemType = emptyItem;
           restoreRightHand();
-          if (otherItemType === itemTypesByName.empty) {
+          if (isEmptyItem(otherItemType)) {
             restoreLeftHand();
           } else {
             restoreLeftItem();
@@ -608,7 +632,7 @@ export function makeController($parent, {
         restoreDpad();
         restoreEffect();
 
-        if (items.some(Boolean)) {
+        if (packNotEmpty()) {
           restorePack();
         }
 
@@ -687,12 +711,22 @@ export function makeController($parent, {
     entities[8] = effectEntity;
   }
 
-  function packVisibility() {
-    return items.some(Boolean);
-    // if (leftItemType || rightItemType) return items.some(Boolean);
-    // if (!leftItemType || !rightItemType) return items.some(Boolean);
-    // return false;
+  function packNotFull() {
+    return items.some(isEmptyItem);
   }
+
+  function packNotEmpty() {
+    return !items.every(isEmptyItem);
+  }
+
+  function packEmpty() {
+    return items.every(isEmptyItem);
+  }
+
+  // Superfluous:
+  // function packFull() {
+  //   return !items.some(isEmptyItem);
+  // }
 
   /**
    * @param {boolean} packWasVisible
@@ -746,7 +780,7 @@ export function makeController($parent, {
       const itemType = items[i];
       const entityIndex = entityIndexForInventoryIndex[i];
       const itemLocation = itemLocations[i];
-      const itemTileType = itemType !== itemTypesByName.empty ? tileTypeForItemType[itemType] : defaultItemTileTypes[i];
+      const itemTileType = isNotEmptyItem(itemType) ? tileTypeForItemType[itemType] : defaultItemTileTypes[i];
       const itemEntity = create(itemTileType, itemLocation);
       macroViewModel.enter(itemEntity);
       entities[entityIndex] = itemEntity;
@@ -796,7 +830,7 @@ export function makeController($parent, {
    * @param {number} leftOrRight
    */
   function restoreCenterItem(otherItemType, leftOrRight) {
-    if (otherItemType !== itemTypesByName.empty) {
+    if (isNotEmptyItem(otherItemType)) {
       if (leftOrRight < 0) {
         // If the primary item was on the left,
         // the secondary item goes back to the right.

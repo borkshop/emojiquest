@@ -15,7 +15,7 @@ import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
 import {makeController} from './controls.js';
-import {viewText} from './data.js';
+import {viewText} from './mechanics.js';
 import {makeButtonKeyHandler} from './button-key-handler.js';
 import {makeDriver} from './driver.js';
 

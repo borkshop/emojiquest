@@ -1,9 +1,16 @@
 // @ts-check
 
-import {assert} from './assert.js';
-
+/**
+ * @type {Array<{
+ *   name: string,
+ *   tile?: string,
+ *   wanders?: string,
+ * }>}
+ */
 export const agentTypes = [
-  // { name: 'empty' },
+  { name: 'invalid' },
+  { name: 'empty' },
+  { name: 'any' },
   { name: 'player', tile: 'happy' },
   { name: 'pineTree' },
   { name: 'appleTree' },
@@ -12,10 +19,21 @@ export const agentTypes = [
   { name: 'pick' },
   { name: 'bank' },
   { name: 'forge' },
+  { name: 'ram', wanders: 'land' },
+  { name: 'ewe', wanders: 'land' },
 ];
 
+
+/**
+ * @type {Array<{
+ *   name: string,
+ *   tile?: string,
+ * }>}
+ */
 export const itemTypes = [
+  { name: 'invalid' },
   { name: 'empty' },
+  { name: 'any' },
   { name: 'apple' },
   { name: 'axe' },
   { name: 'softwood', tile: 'pineTree' },
@@ -38,17 +56,32 @@ export const itemTypes = [
   { name: 'copper' },
   { name: 'silver' },
   { name: 'gold' },
-  { name: 'apple', food: true, health: 1 },
-  { name: 'pineApple', food: true, stamina: 1 },
+  { name: 'apple' },
+  { name: 'pineApple' },
   { name: 'canoe' },
   { name: 'dagger' },
   { name: 'doubleDagger' },
   { name: 'wrench' },
   { name: 'knittingNeedles' },
+  { name: 'basket', tile: 'trash' },
+  { name: 'meat' },
+  { name: 'yarn' },
+  { name: 'hammerAndPick' },
+  { name: 'hammerAndWrench' },
+  { name: 'coat' },
 ];
 
-const tileTypes = [
+/**
+ * @type {Array<{
+ *   name: string,
+ *   text: string,
+ *   turn?: number,
+ * }>}
+ */
+export const tileTypes = [
+  { name: 'invalid', text: '�' },
   { name: 'empty', text: '' },
+  { name: 'any', text: '*' },
   { name: 'happy', text: '🙂' },
   { name: 'backpack', text: '🎒    ' },
   { name: 'back', text: '🔙' },
@@ -58,6 +91,7 @@ const tileTypes = [
   { name: 'appleTree', text: '🌳' },
   { name: 'axe', text: '🪓   ' },
   { name: 'apple', text: '🍎 ' },
+  { name: 'pineApple', text: '🍍' },
   { name: 'north', text: '👆  ' },
   { name: 'south', text: '👇  ' },
   { name: 'west', text: '👈 ' },
@@ -109,69 +143,117 @@ const tileTypes = [
   { name: 'nine', text: '9️⃣' },
   { name: 'canoe', text: '🛶' },
   { name: 'knittingNeedles', text: '🥢 ' },
+  { name: 'yarn', text: '🧶 ' },
+  { name: 'thread', text: '🧵' },
+  { name: 'wind', text: '💨' },
+  { name: 'waterDroplet', text: '💧 ' },
+  { name: 'fire', text: '🔥' },
+  { name: 'rainbow', text: '🌈 ' },
+  { name: 'ewe', text: '🐑 ' },
+  { name: 'ram', text: '🐏 ' },
+  { name: 'meat', text: '🥩' },
+  { name: 'coat', text: '🧥' },
 ];
 
-export const tileTypesByName = Object.fromEntries(tileTypes.map((type, index) => [type.name, index]));
-export const agentTypesByName = Object.fromEntries(agentTypes.map(({ name }, i) => [name, i]));
-export const itemTypesByName = Object.fromEntries(itemTypes.map(({ name }, i) => [name, i]));
+/**
+ * @type {Array<[
+ *   agent: string,
+ *   reagent: string,
+ *   product: string,
+ *   byproduct?: string,
+ * ]>}
+ */
+export const recipes = [
 
-export const defaultTileTypeForAgentType = agentTypes.map(({ name, tile }) => tileTypesByName[tile || name]);
-export const tileTypeForItemType = itemTypes.map(({ name, tile }) => tileTypesByName[tile || name]);
-export const viewText = tileTypes.map(type => type.text);
+  // metallurgy 1
+  ['bolt', 'bolt', 'knife'],
+  ['bolt', 'gear', 'spoon'],
+  ['bolt', 'link', 'wrench'],
+  ['gear', 'bolt', 'pick'],
+  ['gear', 'gear', 'bicycle'],
+  ['gear', 'link', 'hook'],
+  ['link', 'gear', 'shield'],
+  ['link', 'bolt', 'hammer'],
+  ['link', 'link', 'chain'],
 
-const craftingFormulae = new Map();
+  // metallurgy 2
+
+  ['knife', 'knife', 'scissors'],
+  ['bolt', 'knife', 'dagger'],
+  ['hammer', 'pick', 'hammerAndPick'],
+  ['hammer', 'wrench', 'hammerAndWrench'],
+  ['gear', 'chain', 'basket'],
+
+  // composite 2
+
+  ['spoon', 'softwood', 'canoe', 'spoon'],
+  ['knife', 'softwood', 'knittingNeedles', 'knife'],
+  ['hook', 'softwood', 'fishingRod'],
+
+  // metallurgy 3
+
+  ['bicycle', 'basket', 'cart'],
+  ['dagger', 'dagger', 'doubleDagger'],
+
+  // composite 3
+
+  ['knittingNeedles', 'yarn', 'coat', 'knittingNeedles'],
+
+];
 
 /**
- * @param {string} agent
- * @param {string} reagent
- * @param {string} product
- * @param {string} byproduct
+ * @typedef {[
+ *   agent: string,
+ *   patient: string,
+ *   left: string,
+ *   right: string,
+ *   effect: string,
+ *   verb: string,
+ *   object: Array<string>,
+ * ]} Action
  */
-function craft(agent, reagent, product, byproduct = 'empty') {
-  const agentType = itemTypesByName[agent];
-  const reagentType = itemTypesByName[reagent];
-  const productType = itemTypesByName[product];
-  const byproductType = itemTypesByName[byproduct];
-  assert(agentType !== undefined);
-  assert(reagentType !== undefined);
-  assert(productType !== undefined);
-  craftingFormulae.set(agentType * itemTypes.length + reagentType, [productType, byproductType]);
-}
 
 /**
- * @param {number} agentType
- * @param {number} reagentType
- * @returns {[number, number]} productType and byproductType
+ * @type {Array<Action>}
  */
-export function combine(agentType, reagentType) {
-  let productTypes = craftingFormulae.get(agentType * itemTypes.length + reagentType);
-  if (productTypes !== undefined) {
-    return productTypes;
-  }
-  productTypes = craftingFormulae.get(reagentType * itemTypes.length + agentType);
-  if (productTypes !== undefined) {
-    return productTypes;
-  }
-  return [itemTypesByName.poop, itemTypesByName.empty];
-}
+export const actions = [
+  // raw material
+  ['player', 'axe', 'empty', 'empty', 'any', 'take', ['axe']],
+  ['player', 'pineTree', 'axe', 'empty', 'any', 'reap', ['softwood']],
+  ['player', 'appleTree', 'axe', 'empty', 'any', 'reap', ['hardwood']],
+  ['player', 'pick', 'empty', 'any', 'any', 'take', ['pick']],
+  ['player', 'mountain', 'pick', 'empty', 'any', 'cut', ['copper']],
+  ['player', 'ewe', 'scissors', 'empty', 'any', 'cut', ['yarn']],
+  ['player', 'ewe', 'knife', 'empty', 'any', 'reap', ['meat']],
+  ['player', 'appleTree', 'empty', 'any', 'any', 'pick', ['apple']],
+  ['player', 'pineTree', 'empty', 'any', 'any', 'pick', ['pineApple']],
 
-craft('bolt', 'bolt', 'knife');
-craft('bolt', 'gear', 'spoon');
-craft('bolt', 'link', 'wrench');
+  // monetary exchange
+  ['player', 'bank', 'copper', 'copper', 'any', 'merge', ['silver']],
+  ['player', 'bank', 'silver', 'copper', 'any', 'merge', ['gold']],
+  ['player', 'bank', 'copper', 'silver', 'any', 'merge', ['gold']],
+  ['player', 'bank', 'silver', 'empty', 'any', 'split', ['copper', 'copper']],
+  ['player', 'bank', 'empty', 'silver', 'any', 'split', ['copper', 'copper']],
+  ['player', 'bank', 'gold', 'empty', 'any', 'split', ['silver', 'copper']],
+  ['player', 'bank', 'empty', 'gold', 'any', 'split', ['silver', 'copper']],
 
-craft('gear', 'bolt', 'pick');
-craft('gear', 'gear', 'bicycle');
-craft('gear', 'link', 'hook');
+  // forgery
+  ['player', 'forge', 'copper', 'any', 'any', 'replace', ['link']],
+  ['player', 'forge', 'silver', 'any', 'any', 'replace', ['bolt']],
+  ['player', 'forge', 'gold', 'any', 'any', 'replace', ['gear']],
+];
 
-craft('link', 'gear', 'shield');
-craft('link', 'link', 'chain');
-
-craft('bolt', 'knife', 'dagger');
-craft('knife', 'knife', 'scissors');
-
-craft('dagger', 'dagger', 'doubleDagger');
-
-craft('spoon', 'softwood', 'canoe', 'spoon');
-
-craft('knife', 'softwood', 'knittingNeedles');
-
+/** @type {Array<{
+ *   name: string,
+ *   tile?: string,
+ * }>} */
+export const effectTypes = [
+  { name: 'invalid' },
+  { name: 'empty' },
+  { name: 'any' },
+  { name: 'wind', tile: 'wind' },
+  { name: 'water', tile: 'waterDroplet' },
+  { name: 'fire'  },
+  { name: 'power', tile: 'lightningBolt' },
+  { name: 'mojick', tile: 'rainbow' },
+];
