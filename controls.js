@@ -74,16 +74,6 @@ const directionFromForInventoryIndex = directionToForInventoryIndex.map(
   direction => (direction + halfOcturn) % fullOcturn
 );
 
-export function createControls() {
-  const $controls = document.createElementNS(svgNS, 'svg');
-  $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
-  $controls.setAttributeNS(null, 'height', `${3 * tileSize}`);
-  $controls.setAttributeNS(null, 'width', `${3 * tileSize}`);
-  $controls.setAttributeNS(null, 'id', 'controls');
-  $controls.setAttributeNS(null, 'class', 'panel');
-  return $controls;
-}
-
 /**
  * @param {number} x
  * @param {number} y
@@ -105,7 +95,7 @@ function makeTileMap() {
 const tileMap = makeTileMap();
 
 /**
- * @param {Element} $parent
+ * @param {Element} $controls
  * @param {Object} options
  * @param {(direction: number, repeat: boolean, inventory: import('./model.js').Inventory) => void} options.commandWorld
  * @param {() => void} options.resetWorld - to be called when an animated
@@ -113,13 +103,11 @@ const tileMap = makeTileMap();
  * @param {(progress: Progress) => void} options.animateWorld
  * so the frustum can update its retained facets.
  */
-export function makeController($parent, {
+export function makeController($controls, {
   commandWorld,
   resetWorld,
   animateWorld,
 }) {
-  const $controls = createControls();
-  $parent.appendChild($controls);
 
   const elements = new Map();
 

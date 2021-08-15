@@ -159,6 +159,19 @@ createAllTiles3d($context, foundation, createFoundationTile);
 // createAllTiles3d($context, firmament, createFirmamentTile);
 // createAllTiles3d($context, atmosquare, createAtmosquare);
 
+export function createControls() {
+  const $controls = document.createElementNS(svgNS, 'svg');
+  $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
+  $controls.setAttributeNS(null, 'height', `${3 * tileSize}`);
+  $controls.setAttributeNS(null, 'width', `${3 * tileSize}`);
+  $controls.setAttributeNS(null, 'id', 'controls');
+  $controls.setAttributeNS(null, 'class', 'panel');
+  return $controls;
+}
+
+const $controls = createControls();
+document.body.appendChild($controls);
+
 const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
 const cameraController = makeCameraController({
@@ -237,7 +250,7 @@ const worldModel = makeModel({
 
 const agent = worldModel.init(position);
 
-const controls = makeController(document.body, {
+const controls = makeController($controls, {
   commandWorld(direction, repeat, inventory) {
     worldModel.intend(agent, direction, repeat);
     worldModel.tick(inventory);
