@@ -398,8 +398,10 @@ export function makeController($controls, {
 
         if (leftOrRight < 0) {
           leftItemType = emptyItem;
+          rightItemType = otherItemType;
         } else if (leftOrRight > 0) {
           rightItemType = emptyItem;
+          leftItemType = otherItemType;
         }
         restoreCenterItem(otherItemType, leftOrRight);
         restoreDpad();
@@ -414,7 +416,7 @@ export function makeController($controls, {
         assert(otherEntity !== undefined);
 
         const [productType, byproductType] = craft(itemType, otherItemType);
-        console.log('craft');
+
         console.table({
           agent: itemTypes[itemType].name,
           reagent: itemTypes[otherItemType].name,
@@ -423,8 +425,6 @@ export function makeController($controls, {
         });
 
         assert(otherItemType !== productType);
-        macroViewModel.take(otherEntity, nn);
-
         assert(isNotEmptyItem(productType));
         const productTileType = tileTypeForItemType[productType];
 
@@ -433,7 +433,6 @@ export function makeController($controls, {
           // byproduct, in other words, it is a catalyst and just bounces in
           // place.
           macroViewModel.replace(entity, productTileType);
-          // TODO: bug: after the bounce, the otherEntity disappears.
           macroViewModel.bounce(otherEntity, nn);
 
         } else if (itemType === byproductType) {
@@ -443,12 +442,16 @@ export function makeController($controls, {
           macroViewModel.move(entity, locate(1, 2), ss, 0);
           entities[1] = entity;
 
+          macroViewModel.take(otherEntity, nn);
+
           const productEntity = create(productTileType, locate(1, 1));
           macroViewModel.enter(productEntity);
           entities[4] = productEntity;
 
         } else {
           macroViewModel.replace(entity, productTileType);
+
+          macroViewModel.take(otherEntity, nn);
 
           if (isNotEmptyItem(byproductType)) {
             const byproductTileType = tileTypeForItemType[byproductType];
