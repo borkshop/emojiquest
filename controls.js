@@ -159,20 +159,6 @@ export function makeController($controls, {
 
   controlsViewModel.watch(tileMap, {enter, exit, place});
 
-  // indexed by command - 1
-  /** @type {Array<number | undefined>} */
-  let entities = [
-    create(tileTypesByName.left, locate(0, 2)),
-    create(tileTypesByName.south, locate(1, 2)),
-    create(tileTypesByName.right, locate(2, 2)),
-    create(tileTypesByName.west, locate(0, 1)),
-    create(tileTypesByName.watch, locate(1, 1)),
-    create(tileTypesByName.east, locate(2, 1)),
-    undefined,
-    create(tileTypesByName.north, locate(1, 0)),
-    create(tileTypesByName.empty, locate(2, 0)),
-  ];
-
   let items = [
     emptyItem, // command === 1
     emptyItem, // command === 2
@@ -185,6 +171,20 @@ export function makeController($controls, {
     emptyItem, // command === 7
     emptyItem, // command === 8
     emptyItem, // command === 9
+  ];
+
+  // indexed by command - 1
+  /** @type {Array<number | undefined>} */
+  let entities = [
+    create(tileTypesByName.left, locate(0, 2)),
+    create(tileTypesByName.south, locate(1, 2)),
+    create(tileTypesByName.right, locate(2, 2)),
+    create(tileTypesByName.west, locate(0, 1)),
+    create(tileTypesByName.watch, locate(1, 1)),
+    create(tileTypesByName.east, locate(2, 1)),
+    packEmpty() ? undefined : create(tileTypesByName.backpack, locate(0, 0)),
+    create(tileTypesByName.north, locate(1, 0)),
+    create(tileTypesByName.empty, locate(2, 0)),
   ];
 
   /** @type {number} */
