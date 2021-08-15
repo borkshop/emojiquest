@@ -225,6 +225,8 @@ export const actions = [
   ['player', 'mountain', 'pick', 'empty', 'any', 'cut', ['copper']],
   ['player', 'ewe', 'scissors', 'empty', 'any', 'cut', ['yarn']],
   ['player', 'ewe', 'knife', 'empty', 'any', 'reap', ['meat']],
+  ['player', 'ram', 'scissors', 'empty', 'any', 'cut', ['yarn']],
+  ['player', 'ram', 'knife', 'empty', 'any', 'reap', ['meat']],
   ['player', 'appleTree', 'empty', 'any', 'any', 'pick', ['apple']],
   ['player', 'pineTree', 'empty', 'any', 'any', 'pick', ['pineApple']],
 
