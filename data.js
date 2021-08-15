@@ -28,13 +28,13 @@ export const agentTypes = [
  * @type {Array<{
  *   name: string,
  *   tile?: string,
+ *   comestible?: boolean,
  * }>}
  */
 export const itemTypes = [
   { name: 'invalid' },
   { name: 'empty' },
   { name: 'any' },
-  { name: 'apple' },
   { name: 'axe' },
   { name: 'softwood', tile: 'pineTree' },
   { name: 'hardwood', tile: 'appleTree' },
@@ -56,8 +56,8 @@ export const itemTypes = [
   { name: 'copper' },
   { name: 'silver' },
   { name: 'gold' },
-  { name: 'apple' },
-  { name: 'pineApple' },
+  { name: 'apple', comestible: true },
+  { name: 'pineApple', comestible: true },
   { name: 'canoe' },
   { name: 'dagger' },
   { name: 'doubleDagger' },
@@ -86,6 +86,7 @@ export const tileTypes = [
   { name: 'backpack', text: '🎒    ' },
   { name: 'back', text: '🔙' },
   { name: 'trash', text: '🗑' },
+  { name: 'mouth', text: '👄' },
   { name: 'shield', text: '🛡    ' },
   { name: 'pineTree', text: '🌲' },
   { name: 'appleTree', text: '🌳' },

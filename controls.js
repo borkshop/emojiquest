@@ -329,7 +329,7 @@ export function makeController($parent, {
       if (packEmpty()) {
         restorePack();
       }
-      restoreTrash();
+      restoreRecepticle(leftItemType);
       restoreLeftHand();
 
       return inventoryMode(leftItemType, rightItemType, -1);
@@ -355,7 +355,7 @@ export function makeController($parent, {
       if (packEmpty()) {
         restorePack();
       }
-      restoreTrash();
+      restoreRecepticle(rightItemType);
       restoreRightHand();
 
       return inventoryMode(rightItemType, leftItemType, 1);
@@ -595,7 +595,7 @@ export function makeController($parent, {
       if (isNotEmptyItem(heldItemType)) {
         restoreLeftHand();
         restoreRightHand();
-        restoreTrash();
+        restoreRecepticle(heldItemType);
         restorePack();
         if (isNotEmptyItem(otherItemType)) {
           const otherItemTileType = tileTypeForItemType[otherItemType];
@@ -698,10 +698,14 @@ export function makeController($parent, {
     entities[slot] = undefined;
   }
 
-  function restoreTrash() {
-    const trashEntity = create(tileTypesByName.trash, locate(3, -1));
-    macroViewModel.move(trashEntity, locate(2, 0), sw, 0);
-    entities[8] = trashEntity;
+  /**
+   * @param {number} itemType
+   */
+  function restoreRecepticle(itemType) {
+    const { comestible = false } = itemTypes[itemType];
+    const recepticleEntity = create(comestible ? tileTypesByName.mouth : tileTypesByName.trash, locate(3, -1));
+    macroViewModel.move(recepticleEntity, locate(2, 0), sw, 0);
+    entities[8] = recepticleEntity;
   }
 
   function restoreEffect() {
