@@ -19,7 +19,6 @@ import {commandDirection} from './driver.js';
 /** @typedef {ReturnType<makeController>} Controls */
 
 const svgNS = "http://www.w3.org/2000/svg";
-const tileSize = 75;
 
 const inventoryIndexForCommand = [undefined, 0, 1, 2, 3, undefined, 4, 5, 6, 7];
 const entityIndexForInventoryIndex = [0, 1, 2, 3, 5, 6, 7, 8];
