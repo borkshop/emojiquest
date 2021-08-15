@@ -472,11 +472,6 @@ export function makeController($parent, {
           }
         }
 
-        // TODO: bug: the reagent is not always consumed, even when there
-        // is not supposed to be a byproduct.
-        // There might be a failing to account for returning the other
-        // item when the other item becomes empty.
-
         [itemType, otherItemType] = [productType, byproductType];
 
         return mode;
@@ -614,6 +609,8 @@ export function makeController($parent, {
         if (leftOrRight < 0) {
           leftItemType = emptyItem;
           restoreLeftHand();
+
+          rightItemType = otherItemType;
           if (isEmptyItem(otherItemType)) {
             restoreRightHand();
           } else {
@@ -622,6 +619,8 @@ export function makeController($parent, {
         } else if (leftOrRight > 0) {
           rightItemType = emptyItem;
           restoreRightHand();
+
+          leftItemType = otherItemType;
           if (isEmptyItem(otherItemType)) {
             restoreLeftHand();
           } else {
