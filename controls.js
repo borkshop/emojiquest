@@ -321,7 +321,7 @@ export function makeController($controls, {
    * @param {number} leftOrRight
    * @param {boolean} packWasVisible
    */
-  function itemMode(itemType, otherItemType, leftOrRight, packWasVisible = packNotEmpty()) {
+  function itemMode(itemType, otherItemType, leftOrRight, packWasVisible = packNotFull()) {
     // Invariant: the pack should be visible iff there are any empty slots.
 
     /** @type {Mode} */
