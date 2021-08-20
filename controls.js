@@ -319,17 +319,17 @@ export function makeController($controls, {
    * @param {number} itemType
    * @param {number} otherItemType
    * @param {number} leftOrRight
+   * @param {boolean} packWasVisible
    */
-  function itemMode(itemType, otherItemType, leftOrRight) {
+  function itemMode(itemType, otherItemType, leftOrRight, packWasVisible = packNotEmpty()) {
     // Invariant: the pack should be visible iff there are any empty slots.
-    const packWasVisible = packNotFull();
 
     /** @type {Mode} */
     const mode = command => {
       if (command === 9) { // trash / consume / convert to effect
         return useItem(itemType, otherItemType, leftOrRight, packWasVisible);
       } else if (command === 2 && isNotEmptyItem(otherItemType)) { // craft
-        return craftItems(itemType, otherItemType, mode);
+        return craftItems(itemType, otherItemType, leftOrRight, packWasVisible);
       } else if (command === 1) { // place in left hand
         return placeItemInLeftHand(itemType, otherItemType, packWasVisible);
       } else if (command === 3) { // place in right hand
@@ -601,9 +601,10 @@ export function makeController($controls, {
   /**
    * @param {number} itemType
    * @param {number} otherItemType
-   * @param {Mode} itemMode
+   * @param {number} leftOrRight
+   * @param {boolean} packWasVisible
    */
-  function craftItems(itemType, otherItemType, itemMode) {
+  function craftItems(itemType, otherItemType, leftOrRight, packWasVisible) {
     const entity = entities[4];
     assert(entity !== undefined);
     const otherEntity = entities[1];
@@ -657,9 +658,7 @@ export function makeController($controls, {
       }
     }
 
-    [itemType, otherItemType] = [productType, byproductType];
-
-    return itemMode;
+    return itemMode(productType, byproductType, leftOrRight, packWasVisible);
   }
 
   /**
