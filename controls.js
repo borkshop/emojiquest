@@ -172,10 +172,8 @@ export function makeController($controls, {
   /** @type {PlaceFn} */
   function place(entity, coord, pressure, progress, transition) {
     const element = elements.get(entity);
-    // TODO y u no element evar?
-    if (element) {
-      placeEntity(element, coord, pressure, progress, transition);
-    }
+    assert(element !== undefined);
+    placeEntity(element, coord, pressure, progress, transition);
   }
 
   const controlsViewModel = makeViewModel();

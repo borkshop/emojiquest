@@ -138,6 +138,8 @@ export function makeViewModel() {
 
   /** @type {RemoveFn} */
   function remove(entity) {
+    pressures.delete(entity);
+    animating.delete(entity);
     const tile = tiles.get(entity);
     if (tile === undefined) {
       throw new Error(`Cannot remove entity with unknown location ${entity}`);
