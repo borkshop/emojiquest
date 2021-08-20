@@ -166,6 +166,7 @@ export function makeModel({
           agentTypesByName.mountain,
           agentTypesByName.mountain,
           agentTypesByName.axe,
+          agentTypesByName.coat,
           agentTypesByName.pick,
           agentTypesByName.bank,
           agentTypesByName.forge,

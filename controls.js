@@ -6,7 +6,16 @@ import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
-import {viewText, tileTypesByName, itemTypes, itemTypesByName, tileTypeForItemType, craft} from './mechanics.js';
+import {
+  viewText,
+  tileTypesByName,
+  itemTypes,
+  itemTypesByName,
+  effectTypesByName,
+  tileTypeForItemType,
+  tileTypeForEffectType,
+  craft
+} from './mechanics.js';
 import {commandDirection} from './driver.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -24,7 +33,7 @@ const inventoryIndexForCommand = [undefined, 0, 1, 2, 3, undefined, 4, 5, 6, 7];
 const entityIndexForInventoryIndex = [0, 1, 2, 3, 5, 6, 7, 8];
 // const inventoryIndexForEntityIndex = [0, 1, 2, 3, undefined, 4, 5, 6, 7];
 
-const emptyTile = tileTypesByName.empty;
+// const emptyTile = tileTypesByName.empty;
 const emptyItem = itemTypesByName.empty;
 
 /**
@@ -41,26 +50,39 @@ function isNotEmptyItem(itemType) {
   return itemType !== emptyItem;
 }
 
-const itemLocations = [
+// /**
+//  * @param {number} effectType
+//  */
+// function isEmptyEffect(effectType) {
+//   return effectType === emptyEffect;
+// }
+
+
+const itemGridIndexes = [
+  0, 1, 2,
+  3,    5,
+  6, 7, 8,
+]
+
+const gridLocations = [
   locate(0, 2),
   locate(1, 2),
   locate(2, 2),
   locate(0, 1),
+  locate(1, 1),
   locate(2, 1),
   locate(0, 0),
   locate(1, 0),
   locate(2, 0),
 ];
 
-const defaultItemTileTypes = [
+const gridTileTypes = [
   tileTypesByName.one,
   tileTypesByName.two,
   tileTypesByName.three,
-
   tileTypesByName.four,
-
+  tileTypesByName.five,
   tileTypesByName.six,
-
   tileTypesByName.seven,
   tileTypesByName.eight,
   tileTypesByName.nine,
@@ -107,6 +129,8 @@ export function makeController($controls, {
   resetWorld,
   animateWorld,
 }) {
+
+  // State:
 
   const elements = new Map();
 
@@ -173,6 +197,10 @@ export function makeController($controls, {
     emptyItem, // command === 9
   ];
 
+  // index of enabled effect, or -1 for no effect
+  let effectType = effectTypesByName.none;
+  // bit mask of owned effect types
+  let effects = 1 << effectType;
   // indexed by command - 1
   /** @type {Array<number | undefined>} */
   let entities = [
@@ -184,7 +212,7 @@ export function makeController($controls, {
     create(tileTypesByName.east, locate(2, 1)),
     packEmpty() ? undefined : create(tileTypesByName.backpack, locate(0, 0)),
     create(tileTypesByName.north, locate(1, 0)),
-    create(tileTypesByName.empty, locate(2, 0)),
+    create(tileTypeForEffectType[effectType], locate(2, 0)),
   ];
 
   /** @type {number} */
@@ -192,29 +220,7 @@ export function makeController($controls, {
   /** @type {number} */
   let rightItemType = emptyItem;
   /** @type {number} */
-  let effectTileType = emptyTile;
-  /** @type {number} */
   let packTileType = tileTypesByName.backpack;
-
-  /**
-   * @param {number} command
-   */
-  function down(command) {
-    const entity = entities[command - 1];
-    if (entity !== undefined) {
-      macroViewModel.down(entity);
-    }
-  }
-
-  /**
-   * @param {number} command
-   */
-  function up(command) {
-    const entity = entities[command - 1];
-    if (entity !== undefined) {
-      macroViewModel.up(entity);
-    }
-  }
 
   const inventory = {
     get left() {
@@ -269,18 +275,21 @@ export function makeController($controls, {
     },
   };
 
-  /**
-   * @param {Progress} progress
-   */
-  function animate(progress) {
-    animateWorld(progress);
-    macroViewModel.animate(progress);
+  // Common queries:
+
+  function packNotFull() {
+    return items.some(isEmptyItem);
   }
 
-  function reset() {
-    resetWorld();
-    macroViewModel.reset();
+  function packNotEmpty() {
+    return !items.every(isEmptyItem);
   }
+
+  function packEmpty() {
+    return items.every(isEmptyItem);
+  }
+
+  // Modes:
 
   /**
    * @callback Mode
@@ -295,82 +304,13 @@ export function makeController($controls, {
       commandWorld(direction, repeat, inventory);
 
     } else if (command === 1 && isNotEmptyItem(leftItemType)) { // && left non-empty
-      dismissDpad();
-      dismiss(8); // effect
-
-      const leftItemEntity = entities[0];
-      assert(leftItemEntity !== undefined);
-      macroViewModel.move(leftItemEntity, locate(1, 1), ne, 0);
-      entities[0] = undefined;
-      entities[4] = leftItemEntity;
-      macroViewModel.up(leftItemEntity);
-
-      if (isNotEmptyItem(rightItemType)) {
-        const rightItemEntity = entities[2];
-        assert(rightItemEntity !== undefined);
-        macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
-        entities[1] = rightItemEntity;
-        restoreRightHand();
-      }
-
-      if (packEmpty()) {
-        restorePack();
-      }
-      restoreRecepticle(leftItemType);
-      restoreLeftHand();
-
-      return inventoryMode(leftItemType, rightItemType, -1);
+      return handleLeftItem();
     } else if (command === 3 && isNotEmptyItem(rightItemType)) {
-      dismissDpad();
-      dismiss(8); // effect
-
-      const rightItemEntity = entities[2];
-      assert(rightItemEntity !== undefined);
-      macroViewModel.move(rightItemEntity, locate(1, 1), nw, 0);
-      entities[2] = undefined;
-      entities[4] = rightItemEntity;
-      macroViewModel.up(rightItemEntity);
-
-      if (isNotEmptyItem(leftItemType)) {
-        const leftItemEntity = entities[0];
-        assert(leftItemEntity !== undefined);
-        macroViewModel.move(leftItemEntity, locate(1, 2), ee, 0);
-        entities[1] = leftItemEntity;
-        restoreLeftHand();
-      }
-
-      if (packEmpty()) {
-        restorePack();
-      }
-      restoreRecepticle(rightItemType);
-      restoreRightHand();
-
-      return inventoryMode(rightItemType, leftItemType, 1);
+      return handleRightItem();
     } else if (command === 7 && packNotEmpty()) { // stash
-      dismissPack();
-      dismiss(8); // effect
-      dismissDpad();
-
-      if (isEmptyItem(leftItemType)) {
-        dismissLeft();
-        dismissRight();
-        restorePackItems();
-        return packMode(leftItemType, rightItemType, -1);
-      } else if (isEmptyItem(rightItemType)) {
-        dismissLeft();
-        dismissRight();
-        restorePackItems();
-        return packMode(rightItemType, leftItemType, 1);
-      } else {
-        const leftEntity = entities[0];
-        assert(leftEntity !== undefined);
-        macroViewModel.move(leftEntity, locate(1, 1), ne, 0);
-        entities[4] = leftEntity;
-        entities[0] = undefined;
-        dismissRight();
-        restorePackItems();
-        return packMode(leftItemType, rightItemType, -1);
-      }
+      return openStash();
+    } else if (command === 9 && effects !== 0) { // effect chooser
+      return openEffects();
     }
     return playMode;
   }
@@ -380,152 +320,22 @@ export function makeController($controls, {
    * @param {number} otherItemType
    * @param {number} leftOrRight
    */
-  function inventoryMode(itemType, otherItemType, leftOrRight) {
+  function itemMode(itemType, otherItemType, leftOrRight) {
     // Invariant: the pack should be visible iff there are any empty slots.
     const packWasVisible = packNotFull();
 
     /** @type {Mode} */
     const mode = command => {
-      if (command === 9) { // trash
-        const trashedItemEntity = entities[4];
-        assert(trashedItemEntity !== undefined);
-        macroViewModel.take(trashedItemEntity, ne);
-        dismiss(8); // trash
-        if (packWasVisible && packEmpty()) {
-          dismissPack();
-        }
-
-        if (leftOrRight < 0) {
-          leftItemType = emptyItem;
-          rightItemType = otherItemType;
-        } else if (leftOrRight > 0) {
-          rightItemType = emptyItem;
-          leftItemType = otherItemType;
-        }
-        restoreCenterItem(otherItemType, leftOrRight);
-        restoreDpad();
-        restoreEffect();
-
-        return playMode;
+      if (command === 9) { // trash / consume / convert to effect
+        return useItem(itemType, otherItemType, leftOrRight, packWasVisible);
       } else if (command === 2 && isNotEmptyItem(otherItemType)) { // craft
-
-        const entity = entities[4];
-        assert(entity !== undefined);
-        const otherEntity = entities[1];
-        assert(otherEntity !== undefined);
-
-        const [productType, byproductType] = craft(itemType, otherItemType);
-
-        console.table({
-          agent: itemTypes[itemType].name,
-          reagent: itemTypes[otherItemType].name,
-          product: itemTypes[productType].name,
-          byproduct: itemTypes[byproductType].name,
-        });
-
-        assert(otherItemType !== productType);
-        assert(isNotEmptyItem(productType));
-        const productTileType = tileTypeForItemType[productType];
-
-        if (otherItemType === byproductType && isNotEmptyItem(byproductType)) {
-          // The agent is replaced with the product.  The reagent is also the
-          // byproduct, in other words, it is a catalyst and just bounces in
-          // place.
-          macroViewModel.replace(entity, productTileType);
-          macroViewModel.bounce(otherEntity, nn);
-
-        } else if (itemType === byproductType) {
-          // The agent becomes the byproduct when the formula above gets
-          // reversed.  In this case, the agent becomes the byproduct, or
-          // rather, it just moves from the top to the bottom slot.
-          macroViewModel.move(entity, locate(1, 2), ss, 0);
-          entities[1] = entity;
-
-          macroViewModel.take(otherEntity, nn);
-
-          const productEntity = create(productTileType, locate(1, 1));
-          macroViewModel.enter(productEntity);
-          entities[4] = productEntity;
-
-        } else {
-          macroViewModel.replace(entity, productTileType);
-
-          macroViewModel.take(otherEntity, nn);
-
-          if (isNotEmptyItem(byproductType)) {
-            const byproductTileType = tileTypeForItemType[byproductType];
-            const byproductEntity = create(byproductTileType, locate(1, 2));
-            macroViewModel.enter(byproductEntity);
-            entities[1] = byproductEntity;
-          } else {
-            entities[1] = undefined;
-          }
-        }
-
-        [itemType, otherItemType] = [productType, byproductType];
-
-        return mode;
+        return craftItems(itemType, otherItemType, mode);
       } else if (command === 1) { // place in left hand
-        dismiss(8); // trash
-        if (packWasVisible && packEmpty()) {
-          dismissPack();
-        }
-
-        const leftItemEntity = entities[4];
-        const leftHand = entities[0];
-
-        assert(leftItemEntity !== undefined);
-        assert(leftHand !== undefined);
-
-        macroViewModel.move(leftItemEntity, locate(0, 2), sw, 0);
-        macroViewModel.exit(leftHand);
-
-        entities[0] = leftItemEntity;
-
-        leftItemType = itemType;
-        rightItemType = otherItemType;
-
-        restoreCenterItem(otherItemType, -1);
-        restoreDpad();
-        restoreEffect();
-
-        return playMode;
+        return placeItemInLeftHand(itemType, otherItemType, packWasVisible);
       } else if (command === 3) { // place in right hand
-        dismiss(8); // trash
-        if (packWasVisible && packEmpty()) {
-          dismissPack();
-        }
-
-        const rightItemEntity = entities[4];
-        const rightHandEntity = entities[2];
-
-        assert(rightItemEntity !== undefined);
-        assert(rightHandEntity !== undefined);
-
-        macroViewModel.move(rightItemEntity, locate(2, 2), se, 0);
-        macroViewModel.exit(rightHandEntity);
-
-        entities[2] = rightItemEntity;
-
-        rightItemType = itemType;
-        leftItemType = otherItemType;
-
-        restoreCenterItem(otherItemType, 1);
-        restoreDpad();
-        restoreEffect();
-
-        return playMode;
+        return placeItemInRightHand(itemType, otherItemType, packWasVisible);
       } else if (command === 7) { // stash
-        dismissPack();
-        dismiss(8); // trash
-        dismissLeft();
-        dismissRight();
-        if (isNotEmptyItem(otherItemType)) {
-          dismissCenter();
-        }
-        restorePackItems();
-
-        return packMode(itemType, otherItemType, leftOrRight);
+        return stashItem(itemType, otherItemType, leftOrRight);
       }
       return mode;
     };
@@ -593,7 +403,7 @@ export function makeController($controls, {
           macroViewModel.move(centerItemEntity, locate(1, 2), nn, 0);
           entities[1] = centerItemEntity;
         }
-        return inventoryMode(heldItemType, otherItemType, leftOrRight);
+        return itemMode(heldItemType, otherItemType, leftOrRight);
       } else { // back to play mode with an empty hand
 
         if (leftOrRight < 0) {
@@ -632,6 +442,328 @@ export function makeController($controls, {
     return mode;
   }
 
+  /** @type {Mode} */
+  function effectMode(command) {
+    const chosenType = command - 1;
+    if ((effects & (1 << chosenType)) !== 0) {
+      return chooseEffect(chosenType);
+    }
+    return effectMode;
+  }
+
+  // Mode transitions:
+
+  function handleLeftItem() {
+    // Transition from play mode to item handling mode.
+    dismissDpad();
+    dismissEffect();
+
+    const leftItemEntity = entities[0];
+    assert(leftItemEntity !== undefined);
+    macroViewModel.move(leftItemEntity, locate(1, 1), ne, 0);
+    entities[0] = undefined;
+    entities[4] = leftItemEntity;
+    macroViewModel.up(leftItemEntity);
+
+    if (isNotEmptyItem(rightItemType)) {
+      const rightItemEntity = entities[2];
+      assert(rightItemEntity !== undefined);
+      macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
+      entities[1] = rightItemEntity;
+      restoreRightHand();
+    }
+
+    if (packEmpty()) {
+      restorePack();
+    }
+    restoreRecepticle(leftItemType);
+    restoreLeftHand();
+
+    return itemMode(leftItemType, rightItemType, -1);
+  }
+
+  function handleRightItem() {
+    // Transition from play mode to item handling mode.
+    dismissDpad();
+    dismissEffect();
+
+    const rightItemEntity = entities[2];
+    assert(rightItemEntity !== undefined);
+    macroViewModel.move(rightItemEntity, locate(1, 1), nw, 0);
+    entities[2] = undefined;
+    entities[4] = rightItemEntity;
+    macroViewModel.up(rightItemEntity);
+
+    if (isNotEmptyItem(leftItemType)) {
+      const leftItemEntity = entities[0];
+      assert(leftItemEntity !== undefined);
+      macroViewModel.move(leftItemEntity, locate(1, 2), ee, 0);
+      entities[1] = leftItemEntity;
+      restoreLeftHand();
+    }
+
+    if (packEmpty()) {
+      restorePack();
+    }
+    restoreRecepticle(rightItemType);
+    restoreRightHand();
+
+    return itemMode(rightItemType, leftItemType, 1);
+  }
+
+  function openStash() {
+    dismissPack();
+    dismissEffect();
+    dismissDpad();
+
+    if (isEmptyItem(leftItemType)) {
+      dismissLeft();
+      dismissRight();
+      restorePackItems();
+      return packMode(leftItemType, rightItemType, -1);
+    } else if (isEmptyItem(rightItemType)) {
+      dismissLeft();
+      dismissRight();
+      restorePackItems();
+      return packMode(rightItemType, leftItemType, 1);
+    } else {
+      const leftEntity = entities[0];
+      assert(leftEntity !== undefined);
+      macroViewModel.move(leftEntity, locate(1, 1), ne, 0);
+      entities[4] = leftEntity;
+      entities[0] = undefined;
+      dismissRight();
+      restorePackItems();
+      return packMode(leftItemType, rightItemType, -1);
+    }
+  }
+
+  function openEffects() {
+    // Transition from play mode to effect mode.
+    if (packNotEmpty()) {
+      dismissPack();
+    }
+    dismissEffect();
+    dismissDpad();
+    dismissLeft();
+    dismissRight();
+
+    restoreEffects();
+
+    return effectMode;
+  }
+
+  /**
+   * @param {number} itemType
+   * @param {number} otherItemType
+   * @param {number} leftOrRight
+   * @param {boolean} packWasVisible
+   */
+  function useItem(itemType, otherItemType, leftOrRight, packWasVisible) {
+    const effectName = itemTypes[itemType].effect;
+    const itemEntity = entities[4];
+    assert(itemEntity !== undefined);
+
+    dismiss(8); // trash / mouth / or effect
+
+    if (effectName !== undefined) {
+      effectType = effectTypesByName[effectName];
+      effects |= 1 << effectType;
+      macroViewModel.move(itemEntity, locate(2, 0), ne, 0);
+      entities[8] = itemEntity;
+      entities[4] = undefined;
+
+    } else {
+      macroViewModel.take(itemEntity, ne);
+
+      restoreEffect();
+    }
+
+    // TODO effects of eating (+health, +stamina)
+
+    if (packWasVisible && packEmpty()) {
+      dismissPack();
+    }
+
+    if (leftOrRight < 0) {
+      leftItemType = emptyItem;
+      rightItemType = otherItemType;
+    } else if (leftOrRight > 0) {
+      rightItemType = emptyItem;
+      leftItemType = otherItemType;
+    }
+    restoreCenterItem(otherItemType, leftOrRight);
+    restoreDpad();
+
+    return playMode;
+  }
+
+  /**
+   * @param {number} itemType
+   * @param {number} otherItemType
+   * @param {Mode} itemMode
+   */
+  function craftItems(itemType, otherItemType, itemMode) {
+    const entity = entities[4];
+    assert(entity !== undefined);
+    const otherEntity = entities[1];
+    assert(otherEntity !== undefined);
+
+    const [productType, byproductType] = craft(itemType, otherItemType);
+
+    console.table({
+      agent: itemTypes[itemType].name,
+      reagent: itemTypes[otherItemType].name,
+      product: itemTypes[productType].name,
+      byproduct: itemTypes[byproductType].name,
+    });
+
+    assert(otherItemType !== productType);
+    assert(isNotEmptyItem(productType));
+    const productTileType = tileTypeForItemType[productType];
+
+    if (otherItemType === byproductType && isNotEmptyItem(byproductType)) {
+      // The agent is replaced with the product.  The reagent is also the
+      // byproduct, in other words, it is a catalyst and just bounces in
+      // place.
+      macroViewModel.replace(entity, productTileType);
+      macroViewModel.bounce(otherEntity, nn);
+
+    } else if (itemType === byproductType) {
+      // The agent becomes the byproduct when the formula above gets
+      // reversed.  In this case, the agent becomes the byproduct, or
+      // rather, it just moves from the top to the bottom slot.
+      macroViewModel.move(entity, locate(1, 2), ss, 0);
+      entities[1] = entity;
+
+      macroViewModel.take(otherEntity, nn);
+
+      const productEntity = create(productTileType, locate(1, 1));
+      macroViewModel.enter(productEntity);
+      entities[4] = productEntity;
+
+    } else {
+      macroViewModel.replace(entity, productTileType);
+
+      macroViewModel.take(otherEntity, nn);
+
+      if (isNotEmptyItem(byproductType)) {
+        const byproductTileType = tileTypeForItemType[byproductType];
+        const byproductEntity = create(byproductTileType, locate(1, 2));
+        macroViewModel.enter(byproductEntity);
+        entities[1] = byproductEntity;
+      } else {
+        entities[1] = undefined;
+      }
+    }
+
+    [itemType, otherItemType] = [productType, byproductType];
+
+    return itemMode;
+  }
+
+  /**
+   * @param {number} itemType
+   * @param {number} otherItemType
+   * @param {boolean} packWasVisible
+   */
+  function placeItemInLeftHand(itemType, otherItemType, packWasVisible) {
+    dismiss(8); // trash
+    if (packWasVisible && packEmpty()) {
+      dismissPack();
+    }
+
+    const leftItemEntity = entities[4];
+    const leftHand = entities[0];
+
+    assert(leftItemEntity !== undefined);
+    assert(leftHand !== undefined);
+
+    macroViewModel.move(leftItemEntity, locate(0, 2), sw, 0);
+    macroViewModel.exit(leftHand);
+
+    entities[0] = leftItemEntity;
+
+    leftItemType = itemType;
+    rightItemType = otherItemType;
+
+    restoreCenterItem(otherItemType, -1);
+    restoreDpad();
+    restoreEffect();
+
+    return playMode;
+  }
+
+  /**
+   * @param {number} itemType
+   * @param {number} otherItemType
+   * @param {boolean} packWasVisible
+   */
+  function placeItemInRightHand(itemType, otherItemType, packWasVisible) {
+    dismiss(8); // trash
+    if (packWasVisible && packEmpty()) {
+      dismissPack();
+    }
+
+    const rightItemEntity = entities[4];
+    const rightHandEntity = entities[2];
+
+    assert(rightItemEntity !== undefined);
+    assert(rightHandEntity !== undefined);
+
+    macroViewModel.move(rightItemEntity, locate(2, 2), se, 0);
+    macroViewModel.exit(rightHandEntity);
+
+    entities[2] = rightItemEntity;
+
+    rightItemType = itemType;
+    leftItemType = otherItemType;
+
+    restoreCenterItem(otherItemType, 1);
+    restoreDpad();
+    restoreEffect();
+
+    return playMode;
+  }
+
+  /**
+   * @param {number} itemType
+   * @param {number} otherItemType
+   * @param {number} leftOrRight
+   */
+  function stashItem(itemType, otherItemType, leftOrRight) {
+    dismissPack();
+    dismiss(8); // trash
+    dismissLeft();
+    dismissRight();
+    if (isNotEmptyItem(otherItemType)) {
+      dismissCenter();
+    }
+    restorePackItems();
+
+    return packMode(itemType, otherItemType, leftOrRight);
+  }
+
+  /**
+   * @param {number} chosenType
+   */
+  function chooseEffect(chosenType) {
+    effectType = chosenType;
+
+    dismissEffects();
+    restoreLeft();
+    restoreRight()
+    restoreDpad();
+    restoreEffect();
+    if (packNotEmpty()) {
+      restorePack();
+    }
+
+    return playMode;
+  }
+
+  // Entity management:
+
   function restoreDpad() {
     const north = create(tileTypesByName.north, locate(1, -1));
     macroViewModel.move(north, locate(1, 0), ss, 0);
@@ -652,6 +784,22 @@ export function makeController($controls, {
     const watch = create(tileTypesByName.watch, locate(1, 1));
     macroViewModel.enter(watch);
     entities[4] = watch;
+  }
+
+  function restoreLeft() {
+    if (isEmptyItem(leftItemType)) {
+      restoreLeftHand();
+    } else {
+      restoreLeftItem();
+    }
+  }
+
+  function restoreRight() {
+    if (isEmptyItem(rightItemType)) {
+      restoreRightHand();
+    } else {
+      restoreRightItem();
+    }
   }
 
   function restoreLeftHand() {
@@ -692,34 +840,25 @@ export function makeController($controls, {
    * @param {number} itemType
    */
   function restoreRecepticle(itemType) {
-    const { comestible = false } = itemTypes[itemType];
-    const recepticleEntity = create(comestible ? tileTypesByName.mouth : tileTypesByName.trash, locate(3, -1));
+    const { comestible = false, effect = undefined } = itemTypes[itemType];
+    let recepticleTileType = tileTypesByName.trash;
+    if (effect !== undefined) {
+      recepticleTileType = tileTypesByName.arm;
+    } else if (comestible) {
+      recepticleTileType = tileTypesByName.mouth;
+    }
+    const recepticleEntity = create(recepticleTileType, locate(3, -1));
     macroViewModel.move(recepticleEntity, locate(2, 0), sw, 0);
     entities[8] = recepticleEntity;
   }
 
   function restoreEffect() {
+    const effectTileType = tileTypeForEffectType[effectType];
+    assert(effectTileType !== undefined);
     const effectEntity = create(effectTileType, locate(3, -1));
     macroViewModel.move(effectEntity, locate(2, 0), sw, 0);
     entities[8] = effectEntity;
   }
-
-  function packNotFull() {
-    return items.some(isEmptyItem);
-  }
-
-  function packNotEmpty() {
-    return !items.every(isEmptyItem);
-  }
-
-  function packEmpty() {
-    return items.every(isEmptyItem);
-  }
-
-  // Superfluous:
-  // function packFull() {
-  //   return !items.some(isEmptyItem);
-  // }
 
   /**
    * @param {boolean} packWasVisible
@@ -747,6 +886,10 @@ export function makeController($controls, {
     entities[6] = undefined;
   }
 
+  function dismissEffect() {
+    dismiss(8); // effect
+  }
+
   function dismissLeft() {
     const leftItemEntity = entities[0];
     assert(leftItemEntity !== undefined);
@@ -772,11 +915,29 @@ export function makeController($controls, {
     for (let i = 0; i < items.length; i++) {
       const itemType = items[i];
       const entityIndex = entityIndexForInventoryIndex[i];
-      const itemLocation = itemLocations[i];
-      const itemTileType = isNotEmptyItem(itemType) ? tileTypeForItemType[itemType] : defaultItemTileTypes[i];
+      const itemGridIndex = itemGridIndexes[i];
+      const itemLocation = gridLocations[itemGridIndex];
+      const itemTileType = isNotEmptyItem(itemType) ? tileTypeForItemType[itemType] : gridTileTypes[itemGridIndex];
       const itemEntity = create(itemTileType, itemLocation);
       macroViewModel.enter(itemEntity);
       entities[entityIndex] = itemEntity;
+    }
+  }
+
+  function restoreEffects() {
+    for (let i = 0; i < 9; i++) {
+      const effectBit = 1 << i;
+      const effectTileType = effects & effectBit ? tileTypeForEffectType[i] : gridTileTypes[i];
+      const effectLocation = gridLocations[i];
+      const effectEntity = create(effectTileType, effectLocation);
+      macroViewModel.enter(effectEntity);
+      entities[i] = effectEntity;
+    }
+  }
+
+  function dismissEffects() {
+    for (let i = 0; i < 9; i++) {
+      dismiss(i);
     }
   }
 
@@ -848,6 +1009,44 @@ export function makeController($controls, {
         assert(false);
       }
     }
+  }
+
+  // Superfluous:
+  // function packFull() {
+  //   return !items.some(isEmptyItem);
+  // }
+
+  /**
+   * @param {number} command
+   */
+  function down(command) {
+    const entity = entities[command - 1];
+    if (entity !== undefined) {
+      macroViewModel.down(entity);
+    }
+  }
+
+  /**
+   * @param {number} command
+   */
+  function up(command) {
+    const entity = entities[command - 1];
+    if (entity !== undefined) {
+      macroViewModel.up(entity);
+    }
+  }
+
+  /**
+   * @param {Progress} progress
+   */
+  function animate(progress) {
+    animateWorld(progress);
+    macroViewModel.animate(progress);
+  }
+
+  function reset() {
+    resetWorld();
+    macroViewModel.reset();
   }
 
   let mode = playMode;

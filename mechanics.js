@@ -22,6 +22,7 @@ const indexTileType = array => array.map(({ name, tile }) => tileTypesByName[til
 
 export const defaultTileTypeForAgentType = indexTileType(agentTypes);
 export const tileTypeForItemType = indexTileType(itemTypes);
+export const tileTypeForEffectType = indexTileType(effectTypes);
 
 export const viewText = tileTypes.map(type => type.text);
 

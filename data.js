@@ -14,13 +14,14 @@ export const agentTypes = [
   { name: 'player', tile: 'happy' },
   { name: 'pineTree' },
   { name: 'appleTree' },
-  { name: 'axe' },
+  { name: 'axe' }, // temporary
   { name: 'mountain' },
-  { name: 'pick' },
+  { name: 'pick' }, // temporary
   { name: 'bank' },
   { name: 'forge' },
   { name: 'ram', wanders: 'land' },
-  { name: 'ewe', wanders: 'land' },
+  { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.'] },
+  { name: 'coat' }, // temporary
 ];
 
 
@@ -29,6 +30,7 @@ export const agentTypes = [
  *   name: string,
  *   tile?: string,
  *   comestible?: boolean,
+ *   effect?: string,
  * }>}
  */
 export const itemTypes = [
@@ -68,7 +70,7 @@ export const itemTypes = [
   { name: 'yarn' },
   { name: 'hammerAndPick' },
   { name: 'hammerAndWrench' },
-  { name: 'coat' },
+  { name: 'coat', effect: 'warm' },
 ];
 
 /**
@@ -154,6 +156,9 @@ export const tileTypes = [
   { name: 'ram', text: '🐏 ' },
   { name: 'meat', text: '🥩' },
   { name: 'coat', text: '🧥' },
+  { name: 'balloon', text: '🎈 ' },
+  { name: 'arm', text: '💪 ' },
+  { name: 'shirt', text: '👕' },
 ];
 
 /**
@@ -167,23 +172,24 @@ export const tileTypes = [
 export const recipes = [
 
   // metallurgy 1
-  ['bolt', 'bolt', 'knife'],
-  ['bolt', 'gear', 'spoon'],
-  ['bolt', 'link', 'wrench'],
-  ['gear', 'bolt', 'pick'],
-  ['gear', 'gear', 'bicycle'],
-  ['gear', 'link', 'hook'],
-  ['link', 'gear', 'shield'],
-  ['link', 'bolt', 'hammer'],
-  ['link', 'link', 'chain'],
+  ['bolt', 'bolt', 'knife'], // price 4
+  ['bolt', 'gear', 'spoon'], // price 5
+  ['bolt', 'link', 'wrench'], // price 3
+  ['gear', 'bolt', 'pick'], // price 5
+  ['gear', 'gear', 'bicycle'], // price 6
+  ['gear', 'link', 'hook'], // price 4
+  ['link', 'gear', 'shield'], // price 4
+  ['link', 'bolt', 'hammer'], // price 3
+  ['link', 'link', 'chain'], // price 2
 
   // metallurgy 2
 
-  ['knife', 'knife', 'scissors'],
-  ['bolt', 'knife', 'dagger'],
-  ['hammer', 'pick', 'hammerAndPick'],
-  ['hammer', 'wrench', 'hammerAndWrench'],
-  ['gear', 'chain', 'basket'],
+  ['knife', 'knife', 'scissors'], // price 8
+  ['bolt', 'knife', 'dagger'], // price 6
+  ['hammer', 'knife', 'axe'], // price 7
+  ['hammer', 'pick', 'hammerAndPick'], // price 8
+  ['hammer', 'wrench', 'hammerAndWrench'], // price 6
+  ['gear', 'chain', 'basket'], // price 5
 
   // composite 2
 
@@ -193,8 +199,8 @@ export const recipes = [
 
   // metallurgy 3
 
-  ['bicycle', 'basket', 'cart'],
-  ['dagger', 'dagger', 'doubleDagger'],
+  ['bicycle', 'basket', 'cart'], // price 11
+  ['dagger', 'dagger', 'doubleDagger'], // price 12
 
   // composite 3
 
@@ -220,6 +226,7 @@ export const recipes = [
 export const actions = [
   // raw material
   ['player', 'axe', 'empty', 'empty', 'any', 'take', ['axe']],
+  ['player', 'coat', 'empty', 'empty', 'any', 'take', ['coat']],
   ['player', 'pineTree', 'axe', 'empty', 'any', 'reap', ['softwood']],
   ['player', 'appleTree', 'axe', 'empty', 'any', 'reap', ['hardwood']],
   ['player', 'pick', 'empty', 'any', 'any', 'take', ['pick']],
@@ -251,12 +258,14 @@ export const actions = [
  *   tile?: string,
  * }>} */
 export const effectTypes = [
-  { name: 'invalid' },
-  { name: 'empty' },
+  { name: 'warm', tile: 'coat' }, // 1
+  { name: 'fire'  }, // 2
+  { name: 'float', tile: 'canoe' }, // 3
+  { name: 'power', tile: 'lightningBolt' }, // 4
+  { name: 'mojick', tile: 'rainbow' }, // 5
+  { name: 'water', tile: 'waterDroplet' }, // 6
+  { name: 'fly', tile: 'balloon' }, // 7
+  { name: 'wind', tile: 'wind' }, // 8
+  { name: 'none', tile: 'shirt' }, // 9
   { name: 'any' },
-  { name: 'wind', tile: 'wind' },
-  { name: 'water', tile: 'waterDroplet' },
-  { name: 'fire'  },
-  { name: 'power', tile: 'lightningBolt' },
-  { name: 'mojick', tile: 'rainbow' },
 ];
