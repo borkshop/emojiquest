@@ -100,6 +100,21 @@ export function makeViewModel() {
    */
   const pressures = new Map();
 
+  /**
+   * Returns whether the entity is watched by any view.
+   *
+   * @param {number} entity
+   */
+  function watched(entity) {
+    const tile = tiles.get(entity);
+    if (tile === undefined) {
+      return false;
+    }
+    const {location} = tile;
+    const tileWatchers = watchers.get(location);
+    return tileWatchers !== undefined;
+  }
+
   /** @type {PutFn} */
   function put(entity, location, type) {
     tiles.set(entity, {location, type});
@@ -368,6 +383,7 @@ export function makeViewModel() {
     down,
     up,
     entitiesAtTile,
+    watched,
     watch,
     unwatch,
     animate,

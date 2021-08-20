@@ -78,10 +78,12 @@ export function makeMacroViewModel(viewModel, {}) {
    */
   function take(external, directionOcturns) {
     const internal = entity(external);
-    viewModel.transition(internal, {
-      directionOcturns,
-      stage: 'exit'
-    });
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        stage: 'exit'
+      });
+    }
     removes.set(external, internal);
   }
   /**
@@ -89,11 +91,13 @@ export function makeMacroViewModel(viewModel, {}) {
    */
   function fell(external) {
     const internal = entity(external);
-    viewModel.transition(internal, {
-      rotation: 1,
-      bump: true,
-      stage: 'exit',
-    });
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        rotation: 1,
+        bump: true,
+        stage: 'exit',
+      });
+    }
     removes.set(external, internal);
   }
 
@@ -103,10 +107,12 @@ export function makeMacroViewModel(viewModel, {}) {
   function exit(...externals) {
     for (const external of externals) {
       const internal = entity(external);
-      viewModel.transition(internal, {
-        bump: true,
-        stage: 'exit',
-      });
+      if (viewModel.watched(internal)) {
+        viewModel.transition(internal, {
+          bump: true,
+          stage: 'exit',
+        });
+      }
       removes.set(external, internal);
     }
   }
@@ -117,10 +123,12 @@ export function makeMacroViewModel(viewModel, {}) {
   function enter(...externals) {
     for (const external of externals) {
       const internal = entity(external);
-      viewModel.transition(internal, {
-        bump: true,
-        stage: 'enter',
-      });
+      if (viewModel.watched(internal)) {
+        viewModel.transition(internal, {
+          bump: true,
+          stage: 'enter',
+        });
+      }
     }
   }
 
@@ -138,14 +146,16 @@ export function makeMacroViewModel(viewModel, {}) {
     entities.set(external, replacement);
 
     viewModel.put(replacement, location, type);
-    viewModel.transition(internal, {
-      bump: true,
-      stage: 'exit',
-    });
-    viewModel.transition(replacement, {
-      bump: true,
-      stage: 'enter',
-    });
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'exit',
+      });
+      viewModel.transition(replacement, {
+        bump: true,
+        stage: 'enter',
+      });
+    }
   }
 
   /**
@@ -158,10 +168,12 @@ export function makeMacroViewModel(viewModel, {}) {
     const internal = entity(external);
     moves.set(internal, destination);
     locations.set(external, destination);
-    viewModel.transition(internal, {
-      directionOcturns,
-      rotation: turn,
-    });
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        rotation: turn,
+      });
+    }
   }
 
   /**
@@ -170,10 +182,12 @@ export function makeMacroViewModel(viewModel, {}) {
    */
   function bounce(external, directionOcturns) {
     const internal = entity(external);
-    viewModel.transition(internal, {
-      directionOcturns,
-      bump: true,
-    });
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        bump: true,
+      });
+    }
   }
 
   /**
