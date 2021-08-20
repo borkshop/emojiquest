@@ -5,6 +5,7 @@
  *   name: string,
  *   tile?: string,
  *   wanders?: string,
+ *   dialog?: Array<string>,
  * }>}
  */
 export const agentTypes = [
