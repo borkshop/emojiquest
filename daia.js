@@ -1,6 +1,7 @@
-// @ts-check
-
-/*
+/**
+ * The daia module provides utilities for mapping the Daia world of Emoji
+ * Quest.
+ *
  * The Daia world is a cube.
  * Each face of Daia is a square.
  * Within each face, the Daia world has a grid of cells.
@@ -47,6 +48,8 @@
  *                G    ↓
  *                + ←F +
  */
+
+// @ts-check
 
 /** @typedef {import('./matrix3d.js').Matrix} Matrix */
 

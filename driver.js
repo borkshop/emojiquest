@@ -1,3 +1,17 @@
+/**
+ * The driver is an adapter that converts keyboard input into animated turns of
+ * the game engine.
+ * The driver receives input from button-key-handler.js (or eventually
+ * something more sophisticated that fuses input from other sources like DOM
+ * button presses or game controllers) and drives controller.js.
+ * This is the only component that observes the passage of time.
+ * All others receive pre-computed progress and see time as transitions between
+ * turns.
+ *
+ * The driver is also responsible for pacing repeated commands, which occur
+ * when a key is held for the duration of an entire turn or beyond.
+ */
+
 // @ts-check
 
 /**

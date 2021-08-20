@@ -1,3 +1,10 @@
+/**
+ * This module captures the a precomputed Progress object.
+ * Each property of the progress object represents a different curve.
+ * The progress object avoids repetition of common interpolation functions,
+ * since in Emoji Quest, every entity moves in tandem after each turn.
+ */
+
 // @ts-check
 
 const {min, max} = Math;

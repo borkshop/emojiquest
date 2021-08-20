@@ -1,3 +1,8 @@
+/**
+ * The brand module provides Emoji Quest branded color constants and
+ * potentially other shared styles.
+ */
+
 // @ts-check
 
 /**

@@ -1,3 +1,15 @@
+/**
+ * The macro view model is an adapter for a view model that provides
+ * higher-level commands for animated entity transitions, including
+ * transitions that require a single logical entity to have multiple
+ * actual entity representations, like the replacement of an entity
+ * with one representation with a new representation, where both
+ * representations exist while one waxes and the other wanes.
+ *
+ * Consequently, the macro view model has an internal mapping
+ * from external entity numbers to internal entity numbers.
+ */
+
 // @ts-check
 
 import {halfOcturn, fullOcturn} from './geometry2d.js';
@@ -226,5 +238,19 @@ export function makeMacroViewModel(viewModel, {}) {
 
   const { animate } = viewModel;
 
-  return { animate, reset, up, down, put, take, give, exit, enter, fell, move, bounce, replace };
+  return {
+    animate,
+    reset,
+    up,
+    down,
+    put,
+    take,
+    give,
+    exit,
+    enter,
+    fell,
+    move,
+    bounce,
+    replace
+  };
 }

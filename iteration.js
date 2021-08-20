@@ -1,3 +1,7 @@
+/**
+ * Provides missing language features for iterators.
+ */
+
 // @ts-check
 
 /**

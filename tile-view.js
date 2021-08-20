@@ -1,3 +1,9 @@
+/**
+ * A tile view manages the DOM elements for the entities in a 2D grid.
+ * Emoji Quest uses tile views for the control pad and inside each 2D facet of
+ * the 3D world.
+ */
+
 // @ts-check
 
 /**

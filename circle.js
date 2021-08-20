@@ -1,3 +1,16 @@
+/**
+ * The circle module provides a utility for enumerating all of the cells of a
+ * world with a particular topology that fall within a radius from a given
+ * cell.
+ * With Emoji Quest, this requires sensitivity around edges and corners
+ * of the cube and this module works generally on any topology that can
+ * provide a suitable `advance` function.
+ * The advance function takes a position and direction vector and returns a
+ * position and direction vector for the adjacent cell in the direction, and
+ * must compensate for changes in the direction when the adjacent cell transits
+ * an edge of the world.
+ */
+
 // @ts-check
 
 import {north, south, east, west} from './geometry2d.js';

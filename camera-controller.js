@@ -1,3 +1,13 @@
+/**
+ * The camera controller converts motion commands in the Emoji Quest cube world
+ * topology to the corresponding animated 3D transitional transformations on
+ * the actual camera.
+ * For example, the camera controller receives commands like "go north" and
+ * then queues up the corresponding animated transition for going north, which
+ * will depend on which face of the world the camera is currently oriented
+ * toward and whether going north transits to a different face of the world.
+ */
+
 // @ts-check
 
 import {translate, rotateX, rotateY, rotateZ} from './matrix3d.js';

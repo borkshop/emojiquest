@@ -1,5 +1,11 @@
+/**
+ * The animation2d module provides shaared utilities for Emoji Quest 2D
+ * animation, particularly setting the 'transform' property of an SVG element
+ * each animation frame.
+ */
+
 // @ts-check
-//
+
 import {octurnVectors} from './geometry2d.js';
 import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
 

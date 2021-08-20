@@ -1,3 +1,9 @@
+/**
+ * The mechanics module captures the mechanical elements of the Emoji Quest
+ * game, providing indexes into the game's data tables for entity types and
+ * formulae.
+ */
+
 // @ts-check
 
 import {assert} from './assert.js';

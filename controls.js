@@ -1,3 +1,16 @@
+/**
+ * The controls module manages a view of the player's control pad, receives
+ * commands, manages the commands that pertain to inventory management, and
+ * forwards other commands that pertain to player motion in the world.
+ * The control pad consists of a state machine that responds to the commands
+ * in the Emoji Quest command vocabulary, normalized to the digits 1-9 and
+ * arranged similarly on a 3x3 grid like a calculator.
+ * The controller is responsible for orchestrating the animated transitions of
+ * all the buttons on the control pad as the user flows between input modes and
+ * may also in the future take responsibility for orchestrating corresponding
+ * sounds.
+ */
+
 // @ts-check
 
 import {assert} from './assert.js';

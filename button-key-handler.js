@@ -1,8 +1,18 @@
-// @ts-check
+/**
+ * The button-key-handler module provides a factory for keyup and keydown DOM
+ * keyboard event handlers in a style consistent with the command vocabulary
+ * of Emoji Quest, which equates all styles of input to buttons on a 10-key
+ * calculator keyboard.
+ *
+ *   7 8 9
+ *   4 5 6
+ *   1 2 3
+ */
 
-// 7 8 9
-// 4 5 6
-// 1 2 3
+// TODO mux-demux equivalent commands so command sequences like [7-up, 7-up,
+// 7-down, 7-down] are not possible.
+
+// @ts-check
 
 /**
  * @param {(command: number) => void} command

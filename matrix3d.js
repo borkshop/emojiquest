@@ -1,3 +1,8 @@
+/**
+ * The 3D matrix module provides utilities for composing affine transforms in
+ * three dimensions, using quaternions.
+ */
+
 // @ts-check
 
 const { sin, cos } = Math;

@@ -1,3 +1,8 @@
+/**
+ * Easing is a collection of distortions to a progress curve.
+ * Emoji Quest does not yet use these.
+ */
+
 // @ts-check
 
 // https://gist.github.com/gre/1650294

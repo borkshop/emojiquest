@@ -1,3 +1,9 @@
+/**
+ * The 2D geometry module provides utilities for performing math on
+ * coordinates, including quarturns (four per turn) aand octurns (eight per
+ * turn).
+ */
+
 // @ts-check
 
 /**

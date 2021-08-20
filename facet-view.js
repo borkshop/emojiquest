@@ -1,3 +1,25 @@
+/**
+ * The open cube world of Emoji Quest is too big to render in its entirety.
+ * The facet view receives requests to retain or release individual cells of
+ * the world and aggregates these commands into commands that retain or release
+ * facets: small, 2D regions within each face of the 3D cube.
+ *
+ * Each facet has four flaps consisting of the cells immediately adjacent to
+ * each of its edge cells, just outside of view.
+ * These are held because animations that cross edges must render the same
+ * entity on both sides of the boundary.
+ * When these boundaries cross edges of the whole cube, animated transitions
+ * may involve rotation.
+ *
+ * Each facet is a 2D tile view that the facet view retains or releases
+ * according to the point of focus on the world.
+ * Within each facet, the individual tile views watch overlapping regions of
+ * the game's simulation model.
+ *
+ * The simulation model itself effects events for the creation, placement, and
+ * destruction of individual entities within the facet.
+ */
+
 // @ts-check
 
 import {makeTileView} from './tile-view.js';

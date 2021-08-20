@@ -1,3 +1,8 @@
+/**
+ * The 2D matrix module provides utilities for composing affine transforms in
+ * two dimensions.
+ */
+
 // @ts-check
 
 const { sin, cos } = Math;

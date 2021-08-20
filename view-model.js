@@ -1,3 +1,15 @@
+/**
+ * A view model interposes between a model and a view, allowing the view to
+ * observe the entrance, exit, and animated placement of entities in its region
+ * of interest.
+ * The view model is topology-agnostic and sees the world as arbitrary numbered
+ * cells.
+ * The view model allows multiple views to subscribe to overlapping regions of
+ * the model, as is necessary since some cells must be rendered on both sides
+ * of borders, like the along the edges of a cube-shaped world or between the
+ * boundaries between facets.
+ */
+
 // @ts-check
 
 import {setDifference} from './set.js';
@@ -82,7 +94,7 @@ export function makeViewModel() {
   const watchers = new Map();
 
   /**
-   * From entity number animated transition.
+   * From entity number to animated transition.
    * @type {Map<number, Transition>}
    */
   const animating = new Map();

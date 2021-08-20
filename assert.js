@@ -1,3 +1,8 @@
+/**
+ * The assert module provides a small assertion utility that is useful
+ * for type narrowing and capturing failed invariants.
+ */
+
 // @ts-check
 
 /**

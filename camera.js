@@ -1,3 +1,8 @@
+/**
+ * The camera manages the animation of the 3D traansform that applies to the
+ * whole world such that the camera is oriented over the player cursor.
+ */
+
 // @ts-check
 
 import {multiply, matrix3dStyle} from './matrix3d.js';

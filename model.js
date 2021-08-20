@@ -1,3 +1,18 @@
+/**
+ * The model represents the simulation of the Emoji Quest world.
+ * The world is not sharded and every turn visits the entire world.
+ * The simulation works by gathering intents from the player and any simulated
+ * non-player entities, then running an auction to determine which intents
+ * succeed or fail to effect results for the simulated turn.
+ *
+ * The model emits transitions to a macro view model, which renders animated
+ * transitions for a section of the simulation for the player.
+ * The simulation is not responsible for choosing which entities to render, but
+ * broadcasts all world transitions and expects the view layer to cull
+ * irrelevant information.
+ */
+
+// @ts-check
 
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
@@ -68,6 +83,13 @@ export function makeModel({
   const locations = new Map();
   /** @type {Map<number, number>} */
   const entityTypes = new Map();
+
+  // TODO hands for each entity
+  // TODO inventories for each entity
+  // TODO effects for each entity
+  // TODO health for each entity
+  // TODO stamina for each entity
+  // TODO observers for hands and inventories
 
   // Ephemeral state
 

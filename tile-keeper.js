@@ -1,3 +1,10 @@
+/**
+ * The tile keeper tracks which cells need to be retained around the player by
+ * a view.
+ * Every turn, the engine declares the cell of interest and the tile keeper
+ * notes which cells enter or exit the radius around the player.
+ */
+
 // @ts-check
 
 import {circle} from './circle.js';

@@ -1,3 +1,7 @@
+/**
+ * The async module provides promise utilities.
+ */
+
 // @ts-check
 
 /**

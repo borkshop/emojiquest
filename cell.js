@@ -1,6 +1,10 @@
-
-// Not an ambient type module:
-export default null;
+/**
+ * A cell is an object with accessor and mutator functions that close over a
+ * mutable value.
+ * Cells are useful for creating property descriptors, but also generally for
+ * distributing read and write authority over a value to different producers
+ * and consumers.
+ */
 
 /**
  * @template T
