@@ -1,0 +1,14 @@
+digraph emojiquest {
+  buttonKeyHandler -> driver;
+  driver -> controller;
+  controller -> "controller macroViewModel";
+  "controller macroViewModel" -> "controller modelView";
+  "controller modelView" -> "controller tileView";
+  controller -> "world model";
+  "world model" -> "world follow hook";
+  "world follow hook" -> "world cameraController";
+  "world cameraController" -> "world camera";
+  "world model" -> "world modelView";
+  "world modelView" -> "world facetView";
+  "world facetView" -> "world tileViews";
+}
