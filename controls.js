@@ -17,6 +17,7 @@ import {assert} from './assert.js';
 import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
+import {makeTileKeeper} from './tile-keeper.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {
@@ -38,7 +39,12 @@ import {commandDirection} from './driver.js';
 /** @typedef {import('./view-model.js').Watcher} Watcher */
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
-/** @typedef {ReturnType<makeController>} Controls */
+
+/**
+ * @callback FollowCursorFn
+ * @param {number} destination
+ * @param {import('./daia.js').CursorChange} change
+ */
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -130,20 +136,38 @@ const tileMap = makeTileMap();
 
 /**
  * @param {Element} $controls
- * @param {Object} options
- * @param {(direction: number, repeat: boolean, inventory: import('./model.js').Inventory) => void} options.commandWorld
- * @param {() => void} options.resetWorld - to be called when an animated
- * transition ends
- * @param {(progress: Progress) => void} options.animateWorld
+ * @param {Object} args
+ * @param {number} args.agent
+ * @param {number} args.frustumRadius
+ * @param {import('./daia.js').AdvanceFn} args.advance,
+ * @param {import('./daia.js').CameraTransformFn} args.cameraTransform
+ * @param {import('./daia.js').Cursor} args.cursor
+ * @param {import('./model.js').Model} args.worldModel
+ * @param {import('./facet-view.js').FacetView} args.facetView
+ * @param {import('./view-model.js').ViewModel} args.worldViewModel
+ * @param {import('./macro-view-model.js').MacroViewModel} args.worldMacroViewModel
+ * @param {import('./camera.js').Camera} args.camera
  * so the frustum can update its retained facets.
+ * @param {FollowCursorFn} args.followCursor
+ * @returns {import('./driver.js').Delegate}
  */
 export function makeController($controls, {
-  commandWorld,
-  resetWorld,
-  animateWorld,
+  agent,
+  cursor,
+  frustumRadius,
+  worldModel,
+  worldViewModel,
+  worldMacroViewModel,
+  advance,
+  cameraTransform,
+  facetView,
+  camera,
+  followCursor,
 }) {
 
   // State:
+
+  let lastAgentCursor = cursor;
 
   const elements = new Map();
 
@@ -179,6 +203,12 @@ export function makeController($controls, {
     elements.delete(entity);
   }
 
+  const {keepTilesAround} = makeTileKeeper({
+    enter: facetView.enter,
+    exit: facetView.exit,
+    advance: advance
+  });
+
   const tileView = makeTileView($controls, createElement, collectElement);
   const {enter, exit} = tileView;
 
@@ -193,6 +223,14 @@ export function makeController($controls, {
   const macroViewModel = makeMacroViewModel(controlsViewModel, {name: 'controls'});
 
   controlsViewModel.watch(tileMap, {enter, exit, place});
+
+  /** @type {import('./model.js').FollowFn} */
+  function followAgent(_entity, change, destination) {
+    cursor = {...change, position: destination};
+    followCursor(destination, change);
+  }
+
+  worldModel.follow(agent, followAgent);
 
   let items = [
     emptyItem, // command === 1
@@ -312,8 +350,12 @@ export function makeController($controls, {
   function playMode(command, repeat) {
     const direction = commandDirection[command];
     if (direction !== undefined) {
-      commandWorld(direction, repeat, inventory);
-
+      worldModel.intend(agent, direction, repeat);
+      worldModel.tick(inventory);
+      return playMode;
+    } else if (command === 5) { // stay
+      worldModel.tick(inventory);
+      return playMode;
     } else if (command === 1 && isNotEmptyItem(leftItemType)) { // && left non-empty
       return handleLeftItem();
     } else if (command === 3 && isNotEmptyItem(rightItemType)) {
@@ -322,8 +364,11 @@ export function makeController($controls, {
       return openStash();
     } else if (command === 9 && effects !== 0) { // effect chooser
       return openEffects();
+    } else if (command === 0) {
+      return openEditor();
+    } else {
+      assert(false);
     }
-    return playMode;
   }
 
   /**
@@ -347,6 +392,8 @@ export function makeController($controls, {
         return placeItemInRightHand(itemType, otherItemType, packWasVisible);
       } else if (command === 7) { // stash
         return stashItem(itemType, otherItemType, leftOrRight);
+      } else {
+        assert(false);
       }
       return mode;
     };
@@ -370,7 +417,7 @@ export function makeController($controls, {
           macroViewModel.up(entity);
         }
 
-      } else { // put or swap
+      } else if (command >= 1 && command <= 9) { // put or swap
         const inventoryIndex = inventoryIndexForCommand[command];
         assert(inventoryIndex !== undefined);
         const inventoryEntityIndex = entityIndexForInventoryIndex[inventoryIndex];
@@ -401,6 +448,8 @@ export function makeController($controls, {
         dismissPackItemsExcept(inventoryIndex);
 
         ([heldItemType, items[inventoryIndex]] = [items[inventoryIndex], heldItemType]);
+      } else {
+        assert(false);
       }
 
       if (isNotEmptyItem(heldItemType)) {
@@ -440,6 +489,7 @@ export function makeController($controls, {
         }
 
         restoreDpad();
+        restoreWatch();
         restoreEffect();
 
         if (packNotEmpty()) {
@@ -455,11 +505,32 @@ export function makeController($controls, {
 
   /** @type {Mode} */
   function effectMode(command) {
-    const chosenType = command - 1;
-    if ((effects & (1 << chosenType)) !== 0) {
-      return chooseEffect(chosenType);
+    if (command >= 1 && command <= 9) {
+      const chosenType = command - 1;
+      if ((effects & (1 << chosenType)) !== 0) {
+        return chooseEffect(chosenType);
+      }
+      return effectMode;
+    } else {
+      assert(false);
     }
-    return effectMode;
+  }
+
+  /** @type {Mode} */
+  function editMode(command) {
+    const direction = commandDirection[command];
+    if (direction !== undefined) {
+      const position = cursor.position;
+      const change = advance({...cursor, direction});
+      cursor = change;
+      followCursor(cursor.position, {...change, direction, position});
+      worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
+      return editMode;
+    } else if (command === 0) {
+      return closeEditor();
+    } else {
+      return editMode;
+    }
   }
 
   // Mode transitions:
@@ -467,6 +538,7 @@ export function makeController($controls, {
   function handleLeftItem() {
     // Transition from play mode to item handling mode.
     dismissDpad();
+    dismissWatch();
     dismissEffect();
 
     const leftItemEntity = entities[0];
@@ -496,6 +568,7 @@ export function makeController($controls, {
   function handleRightItem() {
     // Transition from play mode to item handling mode.
     dismissDpad();
+    dismissWatch();
     dismissEffect();
 
     const rightItemEntity = entities[2];
@@ -526,6 +599,7 @@ export function makeController($controls, {
     dismissPack();
     dismissEffect();
     dismissDpad();
+    dismissWatch();
 
     if (isEmptyItem(leftItemType)) {
       dismissLeft();
@@ -556,6 +630,7 @@ export function makeController($controls, {
     }
     dismissEffect();
     dismissDpad();
+    dismissWatch();
     dismissLeft();
     dismissRight();
 
@@ -605,6 +680,9 @@ export function makeController($controls, {
     }
     restoreCenterItem(otherItemType, leftOrRight);
     restoreDpad();
+    restoreWatch();
+
+    // TODO take a turn of the simulation
 
     return playMode;
   }
@@ -699,6 +777,7 @@ export function makeController($controls, {
 
     restoreCenterItem(otherItemType, -1);
     restoreDpad();
+    restoreWatch();
     restoreEffect();
 
     return playMode;
@@ -731,6 +810,7 @@ export function makeController($controls, {
 
     restoreCenterItem(otherItemType, 1);
     restoreDpad();
+    restoreWatch();
     restoreEffect();
 
     return playMode;
@@ -764,10 +844,46 @@ export function makeController($controls, {
     restoreLeft();
     restoreRight()
     restoreDpad();
+    restoreWatch();
     restoreEffect();
     if (packNotEmpty()) {
       restorePack();
     }
+
+    return playMode;
+  }
+
+  function openEditor() {
+    dismissLeft();
+    dismissRight();
+    dismissEffect();
+    if (packNotEmpty()) {
+      dismissPack();
+    }
+    dismissWatch();
+
+    lastAgentCursor = cursor;
+    worldModel.unfollow(agent, followAgent);
+    // Reveal editor reticle.
+    worldMacroViewModel.put(-1, cursor.position, -1);
+
+    return editMode;
+  }
+
+  function closeEditor() {
+    restoreLeft();
+    restoreRight();
+    restoreEffect();
+    if (packNotEmpty()) {
+      restorePack();
+    }
+    restoreWatch();
+
+    cursor = lastAgentCursor;
+    camera.reset(cameraTransform(cursor.position));
+    worldModel.follow(agent, followAgent);
+    // Hide editor reticle.
+    worldMacroViewModel.remove(-1);
 
     return playMode;
   }
@@ -790,7 +906,9 @@ export function makeController($controls, {
     const east = create(tileTypesByName.east, locate(3, 1));
     macroViewModel.move(east, locate(2, 1), ww, 0);
     entities[5] = east;
+  }
 
+  function restoreWatch() {
     const watch = create(tileTypesByName.watch, locate(1, 1));
     macroViewModel.enter(watch);
     entities[4] = watch;
@@ -966,7 +1084,6 @@ export function makeController($controls, {
   function dismissDpad() {
     const north = entities[7];
     const west = entities[3];
-    const watch = entities[4];
     const east = entities[5];
     const south = entities[1];
 
@@ -974,19 +1091,23 @@ export function makeController($controls, {
     assert(south !== undefined);
     assert(east !== undefined);
     assert(west !== undefined);
-    assert(watch !== undefined);
 
     macroViewModel.take(north, nn);
     macroViewModel.take(south, ss);
     macroViewModel.take(east, ee);
     macroViewModel.take(west, ww);
-    macroViewModel.exit(watch);
 
     entities[7] = undefined;
     entities[3] = undefined;
-    entities[4] = undefined;
     entities[5] = undefined;
     entities[1] = undefined;
+  }
+
+  function dismissWatch() {
+    const watch = entities[4];
+    assert(watch !== undefined);
+    macroViewModel.exit(watch);
+    entities[4] = undefined;
   }
 
   /**
@@ -1050,12 +1171,15 @@ export function makeController($controls, {
    * @param {Progress} progress
    */
   function animate(progress) {
-    animateWorld(progress);
+    camera.animate(progress.now);
+    worldViewModel.animate(progress);
     macroViewModel.animate(progress);
   }
 
   function reset() {
-    resetWorld();
+    keepTilesAround(cursor.position, frustumRadius);
+    worldModel.tock();
+    worldViewModel.reset();
     macroViewModel.reset();
   }
 

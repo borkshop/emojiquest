@@ -40,6 +40,7 @@ function clamp(lo, hi, value) {
  * @typedef {Object} Camera
  * @prop {TransitionFn} transition
  * @prop {(now: number) => void} animate
+ * @prop {(matrix: Matrix) => void} reset
  */
 
 /**
@@ -94,7 +95,16 @@ export function makeCamera($context, transform) {
     $context.style.transform = matrix3dStyle(current);
   }
 
-  $context.style.transform = matrix3dStyle(transform);
+  /**
+   * @param {Matrix} newTransform
+   */
+  function reset(newTransform) {
+    transform = newTransform;
+    transitions.length = 0;
+    $context.style.transform = matrix3dStyle(transform);
+  }
 
-  return {animate, transition};
+  reset(transform);
+
+  return {animate, transition, reset};
 }

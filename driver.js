@@ -22,7 +22,7 @@
 import {nextFrame} from 'cdom/anim';
 import {makeProgress} from './animation.js';
 import {delay, defer} from './async.js';
-import {north, east, south, west, same, fullQuarturn} from './geometry2d.js';
+import {north, east, south, west, fullQuarturn} from './geometry2d.js';
 
 /**
  * @template T
@@ -35,7 +35,6 @@ export const commandDirection = {
   4: west,
   6: east,
   2: south,
-  5: same,
 };
 
 /** @type {Record<number, number>} */
@@ -56,6 +55,9 @@ export const directionCommand = Object.fromEntries(
  */
 
 /**
+ * The delegate is an object that the driver will drive input, animation, turn
+ * reset, and command key up and down events.
+ *
  * @typedef {Object} Delegate
  * @property {() => void} reset
  * @property {CommandFn} command
@@ -111,7 +113,7 @@ export const makeDriver = (delegate, options) => {
    */
   async function issue(command) {
     const direction = commandDirection[command];
-    if (direction === undefined || direction === same) {
+    if (direction === undefined) {
       await tickTock(command, false);
     } else {
       const momentumAdjustedDirection = (direction + moment.get()) % fullQuarturn;

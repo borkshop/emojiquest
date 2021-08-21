@@ -126,7 +126,7 @@
  * @returns {string}
  */
 
-import {north, east, south, west, same, moddivpoint} from './geometry2d.js';
+import {north, east, south, west, moddivpoint} from './geometry2d.js';
 import {compose, inverse, identity, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
 
 const no =  0; // steady as she goes
@@ -250,7 +250,7 @@ export function makeDaia({
     if (x === faceSize - 1 && direction === east) return east;
     if (y === faceSize - 1 && direction === south) return south;
     if (x === 0 && direction === west) return west;
-    return same;
+    return -1;
   }
 
   /**
@@ -321,7 +321,7 @@ export function makeDaia({
     const coord = tileCoordinate(t);
     const {f} = coord;
     const c = transitCase(coord, direction);
-    if (c === same) {
+    if (c === -1) {
       return knits[direction](t);
     } else {
       return seams[f][c](coord);
@@ -333,7 +333,7 @@ export function makeDaia({
     const coord = tileCoordinate(position);
     const {f} = coord;
     const c = transitCase(coord, direction);
-    if (c === same) {
+    if (c === -1) {
       return {
         position: knits[direction](position),
         direction,

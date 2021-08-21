@@ -17,10 +17,10 @@
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
  * @typedef {import('./macro-view-model.js').MacroViewModel} MacroViewModel
- * @typedef {import('./controls.js').Controls} Controls
  */
 
-import {same, quarturnToOcturn} from './geometry2d.js';
+import {assert} from './assert.js';
+import {quarturnToOcturn} from './geometry2d.js';
 import {agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, bump} from './mechanics.js';
 
 /**
@@ -65,13 +65,11 @@ import {agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, effectTy
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
  * @param {MacroViewModel} args.macroViewModel
- * @param {FollowFn} args.follow
  */
 export function makeModel({
   size,
   advance,
   macroViewModel,
-  follow,
 }) {
   /** @type {Array<number | undefined>} */
   let entitiesPrev = new Array(size);
@@ -90,6 +88,9 @@ export function makeModel({
   // TODO health for each entity
   // TODO stamina for each entity
   // TODO observers for hands and inventories
+
+  /** @type {Map<number, Set<FollowFn>>} */
+  const followers = new Map();
 
   // Ephemeral state
 
@@ -149,6 +150,46 @@ export function makeModel({
       throw new Error(`Simulation assertion error: cannot locate entity ${e}`);
     }
     return t;
+  }
+
+  /**
+   * @param {number} e
+   * @param {FollowFn} follower
+   */
+  function follow(e, follower) {
+    let entityFollowers = followers.get(e);
+    if (entityFollowers === undefined) {
+      /** @type {Set<FollowFn>} */
+      entityFollowers = new Set();
+      followers.set(e, entityFollowers);
+    }
+    assert(!entityFollowers.has(follower));
+    entityFollowers.add(follower);
+  }
+
+  /**
+   * @param {number} e
+   * @param {FollowFn} follower
+   */
+  function unfollow(e, follower) {
+    const entityFollowers = followers.get(e);
+    assert(entityFollowers !== undefined);
+    assert(entityFollowers.has(follower));
+    entityFollowers.delete(follower);
+  }
+
+  /**
+   * @param {number} e
+   * @param {CursorChange} change
+   * @param {number} destination
+   */
+  function notifyFollowers(e, change, destination) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const notifyFollower of entityFollowers) {
+        notifyFollower(e, change, destination);
+      }
+    }
   }
 
   /**
@@ -215,9 +256,6 @@ export function makeModel({
    */
   function intend(e, direction, repeat = false) {
     const source = locate(e);
-    if (direction === same) {
-      return;
-    }
     const {position: target, turn, transit} = advance({position: source, direction});
     bids(target).set(e, {position: source, direction, turn, transit, repeat});
     intents.set(e, direction);
@@ -263,7 +301,7 @@ export function makeModel({
       if (patient === undefined) {
         // Move
         macroViewModel.move(winner, destination, direction * quarturnToOcturn, turn);
-        follow(winner, change, destination);
+        notifyFollowers(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
         entitiesNext[destination] = winner;
@@ -324,5 +362,8 @@ export function makeModel({
     intents.clear();
   }
 
-  return {intend, tick, tock, init};
+  /**
+   */
+
+  return {intend, tick, tock, init, follow, unfollow};
 }

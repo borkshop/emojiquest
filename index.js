@@ -2,14 +2,13 @@
 
 import {mustFind} from 'cdom/wiring';
 import {cell} from './cell.js';
-import {linear} from './easing.js';
+import {linear, easeInOutQuart} from './easing.js';
 import {north, fullQuarturn} from './geometry2d.js';
 import {scale, matrix3dStyle} from './matrix3d.js';
 import {faceColors} from './brand.js';
 import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
 import {makeCameraController} from './camera-controller.js';
-import {makeTileKeeper} from './tile-keeper.js';
 import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
@@ -39,7 +38,7 @@ const fastCameraTransitionDuration = 300;
 
 const position = (81 * 81 * 5.5) | 0;
 
-let cursor = {position, direction: north};
+const cursor = {position, direction: north};
 
 /**
  * The moment preserves the intended heading of the player agent if they
@@ -179,6 +178,7 @@ const cameraController = makeCameraController({
   advance: world.advance,
   tileSize,
   ease: linear,
+  easeRoll: easeInOutQuart,
   slow: slowCameraTransitionDuration,
   fast: fastCameraTransitionDuration,
 });
@@ -189,10 +189,17 @@ const cameraController = makeCameraController({
  * @returns {SVGElement}
  */
 function createEntity(_entity, type) {
-  const $entity = document.createElementNS(svgNS, 'text');
-  $entity.setAttributeNS(null, 'class', 'moji');
-  $entity.appendChild(document.createTextNode(viewText[type]));
-  return $entity;
+  if (type === -1) {
+    const $entity = document.createElementNS(svgNS, 'circle');
+    $entity.setAttributeNS(null, 'class', 'reticle');
+    $entity.setAttributeNS(null, 'r', '0.75');
+    return $entity;
+  } else {
+    const $entity = document.createElementNS(svgNS, 'text');
+    $entity.setAttributeNS(null, 'class', 'moji');
+    $entity.appendChild(document.createTextNode(viewText[type]));
+    return $entity;
+  }
 }
 
 const worldViewModel = makeViewModel();
@@ -214,59 +221,36 @@ const facetView = makeFacetView({
   unwatchEntities: worldViewModel.unwatch,
 });
 
-const {keepTilesAround} = makeTileKeeper({
-  enter: facetView.enter,
-  exit: facetView.exit,
-  advance: world.advance
-});
-
-/**
- * @typedef {import('./camera-controller.js').CursorChange} CursorChange
- */
-
-/**
- * @callback FollowFn
- * @param {number} e - entity that moved
- * @param {CursorChange} change
- * @param {number} destination
- */
-
-/** @type {FollowFn} */
-function follow(e, change, destination) {
-  if (e === agent) {
-    cameraController.go(change);
-    cursor = change;
-    moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
-    $debug.innerText = world.toponym(destination);
-  }
-}
-
 const worldModel = makeModel({
   size: world.worldArea,
   advance: world.advance,
   macroViewModel: worldMacroViewModel,
-  follow,
 });
 
 const agent = worldModel.init(position);
 
+/**
+ * @param {number} destination
+ * @param {import('./camera-controller.js').CursorChange} change
+ */
+function followCursor(destination, change) {
+  cameraController.go(change);
+  moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
+  $debug.innerText = world.toponym(destination);
+}
+
 const controls = makeController($controls, {
-  commandWorld(direction, repeat, inventory) {
-    worldModel.intend(agent, direction, repeat);
-    worldModel.tick(inventory);
-  },
-  resetWorld() {
-    worldModel.tock();
-    worldViewModel.reset();
-    keepTilesAround(cursor.position, radius);
-  },
-  /**
-   * @param {import('./animation.js').Progress} progress
-   */
-  animateWorld(progress) {
-    camera.animate(progress.now);
-    worldViewModel.animate(progress);
-  },
+  agent,
+  worldModel,
+  worldViewModel,
+  worldMacroViewModel,
+  frustumRadius: radius,
+  cursor,
+  facetView,
+  advance: world.advance,
+  cameraTransform: world.cameraTransform,
+  camera,
+  followCursor,
 });
 
 const driver = makeDriver(controls, {

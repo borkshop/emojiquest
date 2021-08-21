@@ -16,7 +16,7 @@
 import {count} from './iteration.js';
 
 /* quarter turns */
-export const [north, east, south, west, same] = count();
+export const [north, east, south, west] = count();
 
 /** @type {Array<Point>} */
 export const quarturnVectors = [

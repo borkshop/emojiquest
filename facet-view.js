@@ -36,6 +36,7 @@ import {placeEntity} from './animation2d.js';
 /** @typedef {import('./view-model.js').Watcher} Watcher */
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {ReturnType<makeFacetView>} FacetView */
 
 /**
  * @param {Object} options

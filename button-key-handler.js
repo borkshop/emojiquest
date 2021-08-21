@@ -83,6 +83,10 @@ export function makeButtonKeyHandler(command) {
         command(3);
         break;
 
+      case '0':
+        command(0);
+        break;
+
       default:
         console.log(key);
     }

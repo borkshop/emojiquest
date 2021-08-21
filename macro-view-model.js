@@ -12,6 +12,7 @@
 
 // @ts-check
 
+import {assert} from './assert.js';
 import {halfOcturn, fullOcturn} from './geometry2d.js';
 
 /**
@@ -74,6 +75,17 @@ export function makeMacroViewModel(viewModel, {}) {
     entities.set(external, internal);
     locations.set(external, location);
     viewModel.put(internal, location, type);
+  }
+
+  /**
+   * @param {number} external
+   */
+  function remove(external) {
+    const internal = entities.get(external);
+    assert(internal !== undefined);
+    viewModel.remove(internal);
+    entities.delete(external);
+    locations.delete(external);
   }
 
   /**
@@ -244,6 +256,7 @@ export function makeMacroViewModel(viewModel, {}) {
     up,
     down,
     put,
+    remove,
     take,
     give,
     exit,

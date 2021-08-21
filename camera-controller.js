@@ -20,6 +20,8 @@ import {quarturnVectors} from './geometry2d.js';
 /** @typedef {import('./daia.js').Cursor} Cursor */
 /** @typedef {import('./daia.js').CursorChange} CursorChange */
 
+/** @typedef {ReturnType<makeCameraController>} CameraController */
+
 /**
  * @callback EaseFn
  * @param {number} p
@@ -39,19 +41,20 @@ const linear = (/** @type {number} */p) => p;
  * @param {number} options.tileSize
  * @param {AdvanceFn} options.advance
  * @param {EaseFn} [options.ease]
+ * @param {EaseFn} [options.easeRoll]
  * @param {number} [options.slow]
  * @param {number} [options.fast]
  *
  */
-export function makeCameraController({camera, tileSize, advance, ease = linear, fast = 500, slow = 1500}) {
+export function makeCameraController({camera, tileSize, advance, ease = linear, easeRoll = ease, fast = 500, slow = 1500}) {
   /**
    * @type {Array<Roll>}
    */
   const rolls = [
-    (/** @type {number} */ p) => rotateX(-Math.PI/2 * ease(p)),
-    (/** @type {number} */ p) => rotateY(-Math.PI/2 * ease(p)),
-    (/** @type {number} */ p) => rotateX(Math.PI/2 * ease(p)),
-    (/** @type {number} */ p) => rotateY(Math.PI/2 * ease(p)),
+    (/** @type {number} */ p) => rotateX(-Math.PI/2 * easeRoll(p)),
+    (/** @type {number} */ p) => rotateY(-Math.PI/2 * easeRoll(p)),
+    (/** @type {number} */ p) => rotateX(Math.PI/2 * easeRoll(p)),
+    (/** @type {number} */ p) => rotateY(Math.PI/2 * easeRoll(p)),
   ];
 
   /**
