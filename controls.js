@@ -341,35 +341,42 @@ export function makeController($controls, {
   // Modes:
 
   /**
-   * @callback Mode
+   * @callback PressFn
    * @param {number} command
    * @param {boolean} repeat
    */
 
+  /**
+   * @typedef {Object} Mode
+   * @prop {PressFn} press
+   */
+
   /** @type {Mode} */
-  function playMode(command, repeat) {
-    const direction = commandDirection[command];
-    if (direction !== undefined) {
-      worldModel.intend(agent, direction, repeat);
-      worldModel.tick(inventory);
-      return playMode;
-    } else if (command === 5) { // stay
-      worldModel.tick(inventory);
-      return playMode;
-    } else if (command === 1 && isNotEmptyItem(leftItemType)) { // && left non-empty
-      return handleLeftItem();
-    } else if (command === 3 && isNotEmptyItem(rightItemType)) {
-      return handleRightItem();
-    } else if (command === 7 && packNotEmpty()) { // stash
-      return openStash();
-    } else if (command === 9 && effects !== 0) { // effect chooser
-      return openEffects();
-    } else if (command === 0) {
-      return openEditor();
-    } else {
-      assert(false);
+  const playMode = {
+    press(command, repeat) {
+      const direction = commandDirection[command];
+      if (direction !== undefined) {
+        worldModel.intend(agent, direction, repeat);
+        worldModel.tick(inventory);
+        return playMode;
+      } else if (command === 5) { // stay
+        worldModel.tick(inventory);
+        return playMode;
+      } else if (command === 1 && isNotEmptyItem(leftItemType)) { // && left non-empty
+        return handleLeftItem();
+      } else if (command === 3 && isNotEmptyItem(rightItemType)) {
+        return handleRightItem();
+      } else if (command === 7 && packNotEmpty()) { // stash
+        return openStash();
+      } else if (command === 9 && effects !== 0) { // effect chooser
+        return openEffects();
+      } else if (command === 0) {
+        return openEditor();
+      } else {
+        return playMode;
+      }
     }
-  }
+  };
 
   /**
    * @param {number} itemType
@@ -381,21 +388,21 @@ export function makeController($controls, {
     // Invariant: the pack should be visible iff there are any empty slots.
 
     /** @type {Mode} */
-    const mode = command => {
-      if (command === 9) { // trash / consume / convert to effect
-        return useItem(itemType, otherItemType, leftOrRight, packWasVisible);
-      } else if (command === 2 && isNotEmptyItem(otherItemType)) { // craft
-        return craftItems(itemType, otherItemType, leftOrRight, packWasVisible);
-      } else if (command === 1) { // place in left hand
-        return placeItemInLeftHand(itemType, otherItemType, packWasVisible);
-      } else if (command === 3) { // place in right hand
-        return placeItemInRightHand(itemType, otherItemType, packWasVisible);
-      } else if (command === 7) { // stash
-        return stashItem(itemType, otherItemType, leftOrRight);
-      } else {
-        assert(false);
-      }
-      return mode;
+    const mode = {
+      press(command) {
+        if (command === 9) { // trash / consume / convert to effect
+          return useItem(itemType, otherItemType, leftOrRight, packWasVisible);
+        } else if (command === 2 && isNotEmptyItem(otherItemType)) { // craft
+          return craftItems(itemType, otherItemType, leftOrRight, packWasVisible);
+        } else if (command === 1) { // place in left hand
+          return placeItemInLeftHand(itemType, otherItemType, packWasVisible);
+        } else if (command === 3) { // place in right hand
+          return placeItemInRightHand(itemType, otherItemType, packWasVisible);
+        } else if (command === 7) { // stash
+          return stashItem(itemType, otherItemType, leftOrRight);
+        }
+        return mode;
+      },
     };
     return mode;
   }
@@ -407,131 +414,137 @@ export function makeController($controls, {
    */
   function packMode(heldItemType, otherItemType, leftOrRight) {
     /** @type {Mode} */
-    function mode(command) {
-      if (command === 5) { // keep
-        dismissPackItemsExcept(-1);
+    const mode = {
+      press(command) {
+        if (command === 5) { // keep
+          dismissPackItemsExcept(-1);
 
-        if (isNotEmptyItem(heldItemType)) {
-          const entity = entities[4];
-          assert(entity !== undefined);
-          macroViewModel.up(entity);
-        }
+          if (isNotEmptyItem(heldItemType)) {
+            const entity = entities[4];
+            assert(entity !== undefined);
+            macroViewModel.up(entity);
+          }
 
-      } else if (command >= 1 && command <= 9) { // put or swap
-        const inventoryIndex = inventoryIndexForCommand[command];
-        assert(inventoryIndex !== undefined);
-        const inventoryEntityIndex = entityIndexForInventoryIndex[inventoryIndex];
-        const toItemDirection = directionToForInventoryIndex[inventoryIndex];
-        const fromItemDirection = directionFromForInventoryIndex[inventoryIndex];
-        const inventoryItemType = items[inventoryIndex];
+        } else if (command >= 1 && command <= 9) { // put or swap
+          const inventoryIndex = inventoryIndexForCommand[command];
+          assert(inventoryIndex !== undefined);
+          const inventoryEntityIndex = entityIndexForInventoryIndex[inventoryIndex];
+          const toItemDirection = directionToForInventoryIndex[inventoryIndex];
+          const fromItemDirection = directionFromForInventoryIndex[inventoryIndex];
+          const inventoryItemType = items[inventoryIndex];
 
-        const inventoryEntity = entities[inventoryEntityIndex];
-        assert(inventoryEntity !== undefined);
-        macroViewModel.up(inventoryEntity);
+          const inventoryEntity = entities[inventoryEntityIndex];
+          assert(inventoryEntity !== undefined);
+          macroViewModel.up(inventoryEntity);
 
-        // From hand to inventory (which is immediately disappearing)
-        if (isNotEmptyItem(heldItemType)) {
-          const itemEntity = entities[4];
-          assert(itemEntity !== undefined);
-          macroViewModel.take(itemEntity, toItemDirection);
-        }
+          // From hand to inventory (which is immediately disappearing)
+          if (isNotEmptyItem(heldItemType)) {
+            const itemEntity = entities[4];
+            assert(itemEntity !== undefined);
+            macroViewModel.take(itemEntity, toItemDirection);
+          }
 
-        // From inventory to hand (everything else disappearing)
-        if (isNotEmptyItem(inventoryItemType)) {
-          macroViewModel.move(inventoryEntity, locate(1, 1), fromItemDirection, 0);
-          entities[4] = inventoryEntity;
-          entities[inventoryEntityIndex] = undefined;
+          // From inventory to hand (everything else disappearing)
+          if (isNotEmptyItem(inventoryItemType)) {
+            macroViewModel.move(inventoryEntity, locate(1, 1), fromItemDirection, 0);
+            entities[4] = inventoryEntity;
+            entities[inventoryEntityIndex] = undefined;
+          } else {
+            dismiss(command - 1);
+          }
+
+          dismissPackItemsExcept(inventoryIndex);
+
+          ([heldItemType, items[inventoryIndex]] = [items[inventoryIndex], heldItemType]);
         } else {
-          dismiss(command - 1);
+          assert(false);
         }
 
-        dismissPackItemsExcept(inventoryIndex);
-
-        ([heldItemType, items[inventoryIndex]] = [items[inventoryIndex], heldItemType]);
-      } else {
-        assert(false);
-      }
-
-      if (isNotEmptyItem(heldItemType)) {
-        restoreLeftHand();
-        restoreRightHand();
-        restoreRecepticle(heldItemType);
-        restorePack();
-        if (isNotEmptyItem(otherItemType)) {
-          const otherItemTileType = tileTypeForItemType[otherItemType];
-          const centerItemEntity = create(otherItemTileType, locate(1, 3));
-          macroViewModel.move(centerItemEntity, locate(1, 2), nn, 0);
-          entities[1] = centerItemEntity;
-        }
-        return itemMode(heldItemType, otherItemType, leftOrRight);
-      } else { // back to play mode with an empty hand
-
-        if (leftOrRight < 0) {
-          leftItemType = emptyItem;
+        if (isNotEmptyItem(heldItemType)) {
           restoreLeftHand();
-
-          rightItemType = otherItemType;
-          if (isEmptyItem(otherItemType)) {
-            restoreRightHand();
-          } else {
-            restoreRightItem();
-          }
-        } else if (leftOrRight > 0) {
-          rightItemType = emptyItem;
           restoreRightHand();
-
-          leftItemType = otherItemType;
-          if (isEmptyItem(otherItemType)) {
-            restoreLeftHand();
-          } else {
-            restoreLeftItem();
-          }
-        }
-
-        restoreDpad();
-        restoreWatch();
-        restoreEffect();
-
-        if (packNotEmpty()) {
+          restoreRecepticle(heldItemType);
           restorePack();
-        }
+          if (isNotEmptyItem(otherItemType)) {
+            const otherItemTileType = tileTypeForItemType[otherItemType];
+            const centerItemEntity = create(otherItemTileType, locate(1, 3));
+            macroViewModel.move(centerItemEntity, locate(1, 2), nn, 0);
+            entities[1] = centerItemEntity;
+          }
+          return itemMode(heldItemType, otherItemType, leftOrRight);
+        } else { // back to play mode with an empty hand
 
-        return playMode;
+          if (leftOrRight < 0) {
+            leftItemType = emptyItem;
+            restoreLeftHand();
+
+            rightItemType = otherItemType;
+            if (isEmptyItem(otherItemType)) {
+              restoreRightHand();
+            } else {
+              restoreRightItem();
+            }
+          } else if (leftOrRight > 0) {
+            rightItemType = emptyItem;
+            restoreRightHand();
+
+            leftItemType = otherItemType;
+            if (isEmptyItem(otherItemType)) {
+              restoreLeftHand();
+            } else {
+              restoreLeftItem();
+            }
+          }
+
+          restoreDpad();
+          restoreWatch();
+          restoreEffect();
+
+          if (packNotEmpty()) {
+            restorePack();
+          }
+
+          return playMode;
+        }
       }
-    }
+    };
 
     return mode;
   }
 
   /** @type {Mode} */
-  function effectMode(command) {
-    if (command >= 1 && command <= 9) {
-      const chosenType = command - 1;
-      if ((effects & (1 << chosenType)) !== 0) {
-        return chooseEffect(chosenType);
+  const effectMode = {
+    press(command) {
+      if (command >= 1 && command <= 9) {
+        const chosenType = command - 1;
+        if ((effects & (1 << chosenType)) !== 0) {
+          return chooseEffect(chosenType);
+        }
+        return effectMode;
+      } else {
+        assert(false);
       }
-      return effectMode;
-    } else {
-      assert(false);
     }
-  }
+  };
 
   /** @type {Mode} */
-  function editMode(command) {
-    const direction = commandDirection[command];
-    if (direction !== undefined) {
-      const position = cursor.position;
-      const change = advance({...cursor, direction});
-      cursor = change;
-      followCursor(cursor.position, {...change, direction, position});
-      worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
-      return editMode;
-    } else if (command === 0) {
-      return closeEditor();
-    } else {
-      return editMode;
+  const editMode = {
+    press(command) {
+      const direction = commandDirection[command];
+      if (direction !== undefined) {
+        const position = cursor.position;
+        const change = advance({...cursor, direction});
+        cursor = change;
+        followCursor(cursor.position, {...change, direction, position});
+        worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
+        return editMode;
+      } else if (command === 0) {
+        return closeEditor();
+      } else {
+        return editMode;
+      }
     }
-  }
+  };
 
   // Mode transitions:
 
@@ -1185,9 +1198,9 @@ export function makeController($controls, {
 
   let mode = playMode;
 
-  /** @type {Mode} */
+  /** @type {PressFn} */
   function command(command, repeat) {
-    mode = mode(command, repeat);
+    mode = mode.press(command, repeat);
   }
 
   return {
