@@ -26,7 +26,6 @@ import {
   itemTypes,
   itemTypesByName,
   effectTypesByName,
-  agentTypesByName,
   tileTypeForItemType,
   tileTypeForEffectType,
   defaultTileTypeForAgentType,
@@ -57,7 +56,6 @@ import {commandDirection} from './driver.js';
 /**
  * @typedef {Object} Mode
  * @prop {PressFn} press
- * @prop {InterpretFn} [interpret]
  */
 
 const svgNS = "http://www.w3.org/2000/svg";
