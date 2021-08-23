@@ -29,6 +29,7 @@ import {
   agentTypesByName,
   tileTypeForItemType,
   tileTypeForEffectType,
+  defaultTileTypeForAgentType,
   craft
 } from './mechanics.js';
 import {commandDirection} from './driver.js';
@@ -529,7 +530,9 @@ export function makeController($controls, {
     }
   };
 
-  let editType = agentTypesByName.empty;
+
+  /** @type {number | undefined} */
+  let editType;
 
   /** @type {Mode} */
   const editMode = {
@@ -543,16 +546,36 @@ export function makeController($controls, {
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
         return editMode;
       } else if (command === 1) { // fill
-        worldModel.set(cursor.position, editType);
+        if (editType !== undefined) {
+          worldModel.set(cursor.position, editType);
+        }
         return editMode;
       } else if (command === 3) { // dig
         worldModel.remove(cursor.position);
         return editMode;
+      } else if (command === 9) { // cut
+        const type = worldModel.get(cursor.position);
+        if (type !== undefined) {
+          worldModel.remove(cursor.position);
+          editType = type;
+          const entity = entities[4];
+          if (entity !== undefined) {
+            macroViewModel.replace(entity, defaultTileTypeForAgentType[editType]);
+          } else {
+            restoreCc(defaultTileTypeForAgentType[editType]);
+          }
+        }
+        return editMode;
       } else if (command === 7) { // copy
         const type = worldModel.get(cursor.position);
-        console.log(type);
         if (type !== undefined) {
           editType = type;
+          const entity = entities[4];
+          if (entity !== undefined) {
+            macroViewModel.replace(entity, defaultTileTypeForAgentType[editType]);
+          } else {
+            restoreCc(defaultTileTypeForAgentType[editType]);
+          }
         }
         return editMode;
       } else if (command === 0) {
@@ -857,7 +880,7 @@ export function makeController($controls, {
     dismissLeft();
     dismissRight();
     if (isNotEmptyItem(otherItemType)) {
-      dismissCenter();
+      dismissSs();
     }
     restorePackItems();
 
@@ -891,6 +914,13 @@ export function makeController($controls, {
       dismissPack();
     }
     dismissWatch();
+    restoreNe(tileTypesByName.scissors);
+    restoreNw(tileTypesByName.twin);
+    restoreSw(tileTypesByName.paint);
+    restoreSe(tileTypesByName.spoon);
+    if (editType !== undefined) {
+      restoreCc(defaultTileTypeForAgentType[editType]);
+    }
 
     lastAgentCursor = cursor;
     worldModel.unfollow(agent, followAgent);
@@ -901,6 +931,14 @@ export function makeController($controls, {
   }
 
   function closeEditor() {
+    dismissNw();
+    dismissNe();
+    dismissSw();
+    dismissSe();
+    if (editType !== undefined) {
+      dismissCc();
+    }
+
     restoreLeft();
     restoreRight();
     restoreEffect();
@@ -919,6 +957,101 @@ export function makeController($controls, {
   }
 
   // Entity management:
+
+  /** @param {number} slot */
+  function dismiss(slot) {
+    const entity = entities[slot];
+    assert(entity !== undefined);
+    macroViewModel.exit(entity);
+    entities[slot] = undefined;
+  }
+
+  /**
+   * @param {number} tileType
+   */
+  function restoreCc(tileType) {
+    const entity = create(tileType, locate(1, 1));
+    macroViewModel.enter(entity);
+    entities[4] = entity;
+  }
+
+  /**
+   * @param {number} tileType
+   */
+  function restoreNw(tileType) {
+    const entity = create(tileType, locate(-1, -1));
+    macroViewModel.move(entity, locate(0, 0), se, 0);
+    entities[6] = entity;
+  }
+
+  /**
+   * @param {number} tileType
+   */
+  function restoreNe(tileType) {
+    const entity = create(tileType, locate(3, -1));
+    macroViewModel.move(entity, locate(2, 0), sw, 0);
+    entities[8] = entity;
+  }
+
+  /**
+   * @param {number} tileType
+   */
+  function restoreSw(tileType) {
+    const entity = create(tileType, locate(-1, 3));
+    macroViewModel.move(entity, locate(0, 2), ne, 0);
+    entities[0] = entity;
+  }
+
+  /**
+   * @param {number} tileType
+   */
+  function restoreSe(tileType) {
+    const entity = create(tileType, locate(3, 3));
+    macroViewModel.move(entity, locate(2, 2), nw, 0);
+    entities[2] = entity;
+  }
+
+  function dismissSs() {
+    const entity = entities[1];
+    assert(entity !== undefined);
+    macroViewModel.take(entity, ss);
+    entities[1] = undefined;
+  }
+
+  function dismissCc() {
+    const watch = entities[4];
+    assert(watch !== undefined);
+    macroViewModel.exit(watch);
+    entities[4] = undefined;
+  }
+
+  function dismissNw() {
+    const entity = entities[6];
+    assert(entity !== undefined);
+    macroViewModel.take(entity, nw);
+    entities[6] = undefined;
+  }
+
+  function dismissNe() {
+    const entity = entities[8];
+    assert(entity !== undefined);
+    macroViewModel.take(entity, ne);
+    entities[8] = undefined;
+  }
+
+  function dismissSw() {
+    const entity = entities[0];
+    assert(entity !== undefined);
+    macroViewModel.take(entity, sw);
+    entities[0] = undefined;
+  }
+
+  function dismissSe() {
+    const entity = entities[2];
+    assert(entity !== undefined);
+    macroViewModel.take(entity, se);
+    entities[2] = undefined;
+  }
 
   function restoreDpad() {
     const north = create(tileTypesByName.north, locate(1, -1));
@@ -939,9 +1072,7 @@ export function makeController($controls, {
   }
 
   function restoreWatch() {
-    const watch = create(tileTypesByName.watch, locate(1, 1));
-    macroViewModel.enter(watch);
-    entities[4] = watch;
+    restoreCc(tileTypesByName.watch);
   }
 
   function restoreLeft() {
@@ -961,37 +1092,19 @@ export function makeController($controls, {
   }
 
   function restoreLeftHand() {
-    const leftHandEntity = create(tileTypesByName.left, locate(-1, 3));
-    macroViewModel.move(leftHandEntity, locate(0, 2), ne, 0);
-    entities[0] = leftHandEntity;
+    restoreSw(tileTypesByName.left);
   }
 
   function restoreRightHand() {
-    const rightHandEntity = create(tileTypesByName.right, locate(3, 3));
-    macroViewModel.move(rightHandEntity, locate(2, 2), nw, 0);
-    entities[2] = rightHandEntity;
+    restoreSe(tileTypesByName.right);
   }
 
   function restoreLeftItem() {
-    const leftTileType = tileTypeForItemType[leftItemType];
-    const leftItemEntity = create(leftTileType, locate(3, 3));
-    macroViewModel.move(leftItemEntity, locate(0, 2), ne, 0);
-    entities[0] = leftItemEntity;
+    restoreSw(tileTypeForItemType[leftItemType]);
   }
 
   function restoreRightItem() {
-    const rightTileType = tileTypeForItemType[rightItemType];
-    const rightItemEntity = create(rightTileType, locate(3, 3));
-    macroViewModel.move(rightItemEntity, locate(2, 2), nw, 0);
-    entities[2] = rightItemEntity;
-  }
-
-  /** @param {number} slot */
-  function dismiss(slot) {
-    const entity = entities[slot];
-    assert(entity !== undefined);
-    macroViewModel.exit(entity);
-    entities[slot] = undefined;
+    restoreSe(tileTypeForItemType[rightItemType]);
   }
 
   /**
@@ -1005,17 +1118,13 @@ export function makeController($controls, {
     } else if (comestible) {
       recepticleTileType = tileTypesByName.mouth;
     }
-    const recepticleEntity = create(recepticleTileType, locate(3, -1));
-    macroViewModel.move(recepticleEntity, locate(2, 0), sw, 0);
-    entities[8] = recepticleEntity;
+    restoreNe(recepticleTileType);
   }
 
   function restoreEffect() {
     const effectTileType = tileTypeForEffectType[effectType];
     assert(effectTileType !== undefined);
-    const effectEntity = create(effectTileType, locate(3, -1));
-    macroViewModel.move(effectEntity, locate(2, 0), sw, 0);
-    entities[8] = effectEntity;
+    restoreNe(effectTileType);
   }
 
   /**
@@ -1032,16 +1141,11 @@ export function makeController($controls, {
   }
 
   function restorePack() {
-    const packEntity = create(packTileType, locate(-1, -1));
-    macroViewModel.move(packEntity, locate(0, 0), se, 0);
-    entities[6] = packEntity;
+    restoreNw(packTileType);
   }
 
   function dismissPack() {
-    const packEntity = entities[6];
-    assert(packEntity !== undefined);
-    macroViewModel.take(packEntity, nw);
-    entities[6] = undefined;
+    dismissNw();
   }
 
   function dismissEffect() {
@@ -1049,24 +1153,11 @@ export function makeController($controls, {
   }
 
   function dismissLeft() {
-    const leftItemEntity = entities[0];
-    assert(leftItemEntity !== undefined);
-    macroViewModel.take(leftItemEntity, sw);
-    entities[0] = undefined;
+    dismissSw();
   }
 
   function dismissRight() {
-    const leftItemEntity = entities[2];
-    assert(leftItemEntity !== undefined);
-    macroViewModel.take(leftItemEntity, se);
-    entities[2] = undefined;
-  }
-
-  function dismissCenter() {
-    const centerItemEntity = entities[1];
-    assert(centerItemEntity !== undefined);
-    macroViewModel.take(centerItemEntity, ss);
-    entities[1] = undefined;
+    dismissSe();
   }
 
   function restorePackItems() {
@@ -1134,10 +1225,7 @@ export function makeController($controls, {
   }
 
   function dismissWatch() {
-    const watch = entities[4];
-    assert(watch !== undefined);
-    macroViewModel.exit(watch);
-    entities[4] = undefined;
+    dismissCc();
   }
 
   /**
@@ -1207,9 +1295,9 @@ export function makeController($controls, {
   }
 
   function reset() {
-    keepTilesAround(cursor.position, frustumRadius);
     worldModel.tock();
     worldViewModel.reset();
+    keepTilesAround(cursor.position, frustumRadius);
     macroViewModel.reset();
   }
 
