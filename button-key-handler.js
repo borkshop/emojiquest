@@ -62,7 +62,7 @@ export function makeButtonKeyHandler(command) {
 
       case '1': // numpad
       case 'm': // hjkl
-      case 'd':
+      case 'f':
         command(1);
         break;
 
@@ -75,7 +75,7 @@ export function makeButtonKeyHandler(command) {
 
       case '3': // numpad
       case '.': // hjkl
-      case 'f':
+      case 'd':
         command(3);
         break;
 

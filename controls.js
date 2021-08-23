@@ -26,6 +26,7 @@ import {
   itemTypes,
   itemTypesByName,
   effectTypesByName,
+  agentTypesByName,
   tileTypeForItemType,
   tileTypeForEffectType,
   craft
@@ -44,6 +45,18 @@ import {commandDirection} from './driver.js';
  * @callback FollowCursorFn
  * @param {number} destination
  * @param {import('./daia.js').CursorChange} change
+ */
+
+/**
+ * @callback PressFn
+ * @param {number} command
+ * @param {boolean} repeat
+ */
+
+/**
+ * @typedef {Object} Mode
+ * @prop {PressFn} press
+ * @prop {InterpretFn} [interpret]
  */
 
 const svgNS = "http://www.w3.org/2000/svg";
@@ -340,17 +353,6 @@ export function makeController($controls, {
 
   // Modes:
 
-  /**
-   * @callback PressFn
-   * @param {number} command
-   * @param {boolean} repeat
-   */
-
-  /**
-   * @typedef {Object} Mode
-   * @prop {PressFn} press
-   */
-
   /** @type {Mode} */
   const playMode = {
     press(command, repeat) {
@@ -527,6 +529,8 @@ export function makeController($controls, {
     }
   };
 
+  let editType = agentTypesByName.empty;
+
   /** @type {Mode} */
   const editMode = {
     press(command) {
@@ -538,12 +542,25 @@ export function makeController($controls, {
         followCursor(cursor.position, {...change, direction, position});
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
         return editMode;
+      } else if (command === 1) { // fill
+        worldModel.set(cursor.position, editType);
+        return editMode;
+      } else if (command === 3) { // dig
+        worldModel.remove(cursor.position);
+        return editMode;
+      } else if (command === 7) { // copy
+        const type = worldModel.get(cursor.position);
+        console.log(type);
+        if (type !== undefined) {
+          editType = type;
+        }
+        return editMode;
       } else if (command === 0) {
         return closeEditor();
       } else {
         return editMode;
       }
-    }
+    },
   };
 
   // Mode transitions:
@@ -1209,5 +1226,5 @@ export function makeController($controls, {
     up,
     down,
     command,
-  }
+  };
 }

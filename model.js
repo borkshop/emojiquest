@@ -21,7 +21,7 @@
 
 import {assert} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
-import {agentTypesByName, defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, bump} from './mechanics.js';
+import {defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, agentTypesByName, bump} from './mechanics.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -89,7 +89,16 @@ export function makeModel({
   // TODO stamina for each entity
   // TODO observers for hands and inventories
 
-  /** @type {Map<number, Set<FollowFn>>} */
+  /**
+   * Functions to inform of the motion of an entity.
+   * The entity does not need to still exist, and this invariant should be
+   * revisited if entity numbers get collected and reused in the future.
+   * This would complicate the unfollow function, which currently is able to
+   * distinguish an accidental call from a deliberate call by balancing follow
+   * and unfollow calls.
+   *
+   * @type {Map<number, Set<FollowFn>>}
+   */
   const followers = new Map();
 
   // Ephemeral state
@@ -109,6 +118,13 @@ export function makeModel({
   let nextModelEntity = 0;
 
   /**
+   * Note that entity numbers are not reused and this could lead to problems if
+   * the next ID counter fills the double precision mantissa.
+   * The follow / unfollow functions would need to be revisited if we were to
+   * collect and reuse entity identifiers.
+   * Specifically, we would probably need to have follow return an opaque token
+   * (possibly a closure) to balance unfollow calls.
+   *
    * @param {number} type
    * @returns {number} entity
    */
@@ -363,7 +379,62 @@ export function makeModel({
   }
 
   /**
+   * @param {number} location
+   * @returns {number | undefined} entityType
    */
+  function get(location) {
+    const entity = entitiesPrev[location];
+    if (entity === undefined) {
+      return undefined;
+    }
+    return entityTypes.get(entity);
+  }
 
-  return {intend, tick, tock, init, follow, unfollow};
+  /**
+   * @param {number} location
+   * @param {number} entityType
+   */
+  function set(location, entityType) {
+    remove(location);
+    if (entityType !== agentTypesByName.player) {
+      const entity = createEntity(entityType);
+      entitiesPrev[location] = entity;
+      const tileType = defaultTileTypeForAgentType[entityType];
+      macroViewModel.put(entity, location, tileType);
+      macroViewModel.enter(entity);
+    }
+  }
+
+  /**
+   * @param {number} location
+   */
+  function remove(location) {
+    const entity = entitiesPrev[location];
+    if (entity !== undefined) {
+      const entityType = entityTypes.get(entity);
+      assert(entityType !== undefined);
+      if (entityType === agentTypesByName.player) {
+        // There is not yet special logic in the controller to ensure that the
+        // player agent still exists when exiting editor mode.
+        return;
+      }
+      macroViewModel.exit(entity);
+      locations.delete(entity);
+      entityTypes.delete(entity);
+      mobiles.delete(entity);
+      entitiesPrev[location] = undefined;
+    }
+  }
+
+  return {
+    get,
+    set,
+    remove,
+    intend,
+    tick,
+    tock,
+    init,
+    follow,
+    unfollow,
+  };
 }
