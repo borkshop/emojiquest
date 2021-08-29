@@ -27,7 +27,7 @@ import {makeDriver} from './driver.js';
 const $context = mustFind('#context');
 const $debug = mustFind('#debug');
 
-const radius = 7;
+const radius = 10;
 const tileSize = 100;
 const facetSize = 9;
 const faceSize = 9 * facetSize;
