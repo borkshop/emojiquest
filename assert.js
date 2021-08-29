@@ -15,3 +15,13 @@ export function assert(condition, message) {
     throw new Error(`Assertion failed${message ? ` ${message}` : ''}`);
   }
 }
+
+/**
+ * @template T
+ * @param {T | undefined} value
+ * @returns {T}
+ */
+export function check(value) {
+  assert(value !== undefined);
+  return value;
+}

@@ -13,8 +13,8 @@
 
 // @ts-check
 
-import {assert} from './assert.js';
-import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn} from './geometry2d.js';
+import {assert, check} from './assert.js';
+import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn, octurnVectors} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeTileKeeper} from './tile-keeper.js';
@@ -24,6 +24,7 @@ import {
   viewText,
   tileTypesByName,
   itemTypes,
+  agentTypes,
   itemTypesByName,
   effectTypesByName,
   tileTypeForItemType,
@@ -95,17 +96,35 @@ const itemGridIndexes = [
   6, 7, 8,
 ]
 
-const gridLocations = [
-  locate(0, 2),
-  locate(1, 2),
-  locate(2, 2),
-  locate(0, 1),
-  locate(1, 1),
-  locate(2, 1),
-  locate(0, 0),
-  locate(1, 0),
-  locate(2, 0),
+const octurnGridIndexes = [
+  7, 8, 5, 2, 1, 0, 3, 6,
 ];
+
+const agentOffsets = [
+  -4, -1,  2,
+  -3,      3,
+  -2,  1,  4,
+];
+
+const agentOffsetForGridIndex = [
+  -4, -1,  2,
+  -3,  0,  3,
+  -2,  1,  4,
+];
+
+const gridCoordinates = [
+  {x: 0, y: 2},
+  {x: 1, y: 2},
+  {x: 2, y: 2},
+  {x: 0, y: 1},
+  {x: 1, y: 1},
+  {x: 2, y: 1},
+  {x: 0, y: 0},
+  {x: 1, y: 0},
+  {x: 2, y: 0},
+];
+
+const gridLocations = gridCoordinates.map(({x, y}) => locate(x, y));
 
 const gridTileTypes = [
   tileTypesByName.one,
@@ -118,7 +137,6 @@ const gridTileTypes = [
   tileTypesByName.eight,
   tileTypesByName.nine,
 ];
-
 
 // itemIndex to vector to or from that item index
 const directionToForInventoryIndex = [sw, ss, se, ww, ee, nw, nn, ne];
@@ -196,16 +214,35 @@ export function makeController($controls, {
   }
 
   /**
+   * @param {number} index
+   * @param {number} tileType
+   */
+  function spawn(index, tileType) {
+    const location = gridLocations[index];
+    const entity = create(tileType, location);
+    macroViewModel.enter(entity);
+    entities[index] = entity;
+  }
+
+  /**
    * @param {number} entity
    * @param {number} type
    */
   function createElement(entity, type) {
-    const text = viewText[type];
-    const element = document.createElementNS(svgNS, 'text');
-    element.setAttributeNS(null, 'class', 'moji');
-    element.appendChild(document.createTextNode(text));
-    elements.set(entity, element);
-    return element;
+    if (type === -1) {
+      const element = document.createElementNS(svgNS, 'circle');
+      element.setAttributeNS(null, 'class', 'reticle');
+      element.setAttributeNS(null, 'r', '0.75');
+      elements.set(entity, element);
+      return element;
+    } else {
+      const text = viewText[type];
+      const element = document.createElementNS(svgNS, 'text');
+      element.setAttributeNS(null, 'class', 'moji');
+      element.appendChild(document.createTextNode(text));
+      elements.set(entity, element);
+      return element;
+    }
   }
 
   /**
@@ -458,7 +495,7 @@ export function makeController($controls, {
 
           ([heldItemType, items[inventoryIndex]] = [items[inventoryIndex], heldItemType]);
         } else {
-          assert(false);
+          return mode;
         }
 
         if (isNotEmptyItem(heldItemType)) {
@@ -523,7 +560,7 @@ export function makeController($controls, {
         }
         return effectMode;
       } else {
-        assert(false);
+        return effectMode;
       }
     }
   };
@@ -576,12 +613,44 @@ export function makeController($controls, {
           }
         }
         return editMode;
+      } else if (command === 5) {
+        return openAgentChooser();
       } else if (command === 0) {
         return closeEditor();
       } else {
         return editMode;
       }
     },
+  };
+
+  /** @type {Mode} */
+  const chooseAgentMode = {
+    press(command) {
+      if (command === 8) {
+        macroViewModel.up(check(entities[7]));
+        assert(editType !== undefined);
+        editType = agentTypeForOffset(1);
+        shiftAgentsSouth();
+      } else if (command === 2) {
+        macroViewModel.up(check(entities[1]));
+        assert(editType !== undefined);
+        editType = agentTypeForOffset(-1);
+        shiftAgentsNorth();
+      } else if (command === 6) {
+        macroViewModel.up(check(entities[5]));
+        assert(editType !== undefined);
+        editType = agentTypeForOffset(3);
+        shiftAgentsWest();
+      } else if (command === 4) {
+        macroViewModel.up(check(entities[3]));
+        assert(editType !== undefined);
+        editType = agentTypeForOffset(-3);
+        shiftAgentsEast();
+      } else if (command === 5) {
+        return closeAgentChooser();
+      }
+      return chooseAgentMode;
+    }
   };
 
   // Mode transitions:
@@ -878,7 +947,7 @@ export function makeController($controls, {
     dismissLeft();
     dismissRight();
     if (isNotEmptyItem(otherItemType)) {
-      dismissSs();
+      dismissOctant(ss);
     }
     restorePackItems();
 
@@ -912,27 +981,22 @@ export function makeController($controls, {
       dismissPack();
     }
     dismissWatch();
-    restoreNe(tileTypesByName.scissors);
-    restoreNw(tileTypesByName.twin);
-    restoreSw(tileTypesByName.paint);
-    restoreSe(tileTypesByName.spoon);
+
+    restoreEditorBezel();
+
     if (editType !== undefined) {
       restoreCc(defaultTileTypeForAgentType[editType]);
     }
 
     lastAgentCursor = cursor;
     worldModel.unfollow(agent, followAgent);
-    // Reveal editor reticle.
-    worldMacroViewModel.put(-1, cursor.position, -1);
+    restoreEditorReticle();
 
     return editMode;
   }
 
   function closeEditor() {
-    dismissNw();
-    dismissNe();
-    dismissSw();
-    dismissSe();
+    dismissEditorBezel();
     if (editType !== undefined) {
       dismissCc();
     }
@@ -948,10 +1012,66 @@ export function makeController($controls, {
     cursor = lastAgentCursor;
     camera.reset(cameraTransform(cursor.position));
     worldModel.follow(agent, followAgent);
-    // Hide editor reticle.
-    worldMacroViewModel.remove(-1);
+    dismissEditorReticle();
 
     return playMode;
+  }
+
+  /** @type {number | undefined} */
+  let reticleEntity = undefined;
+
+  const firstEligibleEntityType = 4;
+  const eligibleEntityCount = agentTypes.length - firstEligibleEntityType;
+
+  /**
+   * @param {number} offset
+   */
+  function agentTypeForOffset(offset) {
+    assert(editType !== undefined);
+    return (
+      (eligibleEntityCount + editType - firstEligibleEntityType + offset) % eligibleEntityCount +
+      firstEligibleEntityType
+    );
+  }
+
+  function openAgentChooser() {
+    dismissEditorReticle();
+    dismissEditorBezel();
+    dismissDpad();
+
+    if (editType === undefined) {
+      editType = 4;
+      spawn(4, defaultTileTypeForAgentType[editType]);
+    }
+
+    // Initialize board with agent type neighborhood around current edit type.
+    for (let index = 0; index < agentOffsets.length; index += 1) {
+      const offset = agentOffsets[index];
+      const gridIndex = itemGridIndexes[index];
+      const agentType = agentTypeForOffset(offset)
+      const tileType = defaultTileTypeForAgentType[agentType];
+      spawn(gridIndex, tileType);
+    }
+
+    reticleEntity = create(-1, locate(1, 1)); // reticle
+    macroViewModel.enter(reticleEntity);
+    return chooseAgentMode;
+  }
+
+  function closeAgentChooser() {
+    assert(reticleEntity !== undefined);
+    macroViewModel.exit(reticleEntity);
+    reticleEntity = undefined;
+
+    for (let direction = 0; direction < fullOcturn; direction += 1) {
+      dismissOctant(direction);
+    }
+
+    restoreEditorReticle();
+    restoreEditorBezel();
+    restoreDpad();
+
+    return editMode;
   }
 
   // Entity management:
@@ -1009,11 +1129,15 @@ export function makeController($controls, {
     entities[2] = entity;
   }
 
-  function dismissSs() {
-    const entity = entities[1];
+  /**
+   * @param {number} directionOcturns
+   */
+  function dismissOctant(directionOcturns) {
+    const gridIndex = octurnGridIndexes[directionOcturns];
+    const entity = entities[gridIndex];
     assert(entity !== undefined);
-    macroViewModel.take(entity, ss);
-    entities[1] = undefined;
+    macroViewModel.take(entity, directionOcturns);
+    entities[gridIndex] = undefined;
   }
 
   function dismissCc() {
@@ -1021,34 +1145,6 @@ export function makeController($controls, {
     assert(watch !== undefined);
     macroViewModel.exit(watch);
     entities[4] = undefined;
-  }
-
-  function dismissNw() {
-    const entity = entities[6];
-    assert(entity !== undefined);
-    macroViewModel.take(entity, nw);
-    entities[6] = undefined;
-  }
-
-  function dismissNe() {
-    const entity = entities[8];
-    assert(entity !== undefined);
-    macroViewModel.take(entity, ne);
-    entities[8] = undefined;
-  }
-
-  function dismissSw() {
-    const entity = entities[0];
-    assert(entity !== undefined);
-    macroViewModel.take(entity, sw);
-    entities[0] = undefined;
-  }
-
-  function dismissSe() {
-    const entity = entities[2];
-    assert(entity !== undefined);
-    macroViewModel.take(entity, se);
-    entities[2] = undefined;
   }
 
   function restoreDpad() {
@@ -1143,7 +1239,7 @@ export function makeController($controls, {
   }
 
   function dismissPack() {
-    dismissNw();
+    dismissOctant(nw);
   }
 
   function dismissEffect() {
@@ -1151,11 +1247,11 @@ export function makeController($controls, {
   }
 
   function dismissLeft() {
-    dismissSw();
+    dismissOctant(sw);
   }
 
   function dismissRight() {
-    dismissSe();
+    dismissOctant(se);
   }
 
   function restorePackItems() {
@@ -1226,6 +1322,28 @@ export function makeController($controls, {
     dismissCc();
   }
 
+  function restoreEditorBezel() {
+    restoreNe(tileTypesByName.scissors);
+    restoreNw(tileTypesByName.twin);
+    restoreSw(tileTypesByName.paint);
+    restoreSe(tileTypesByName.spoon);
+  }
+
+  function dismissEditorBezel() {
+    dismissOctant(nw);
+    dismissOctant(ne);
+    dismissOctant(sw);
+    dismissOctant(se);
+  }
+
+  function restoreEditorReticle() {
+    worldMacroViewModel.put(-1, cursor.position, -1);
+  }
+
+  function dismissEditorReticle() {
+    worldMacroViewModel.remove(-1);
+  }
+
   /**
    * @param {number} otherItemType
    * @param {number} leftOrRight
@@ -1255,6 +1373,83 @@ export function makeController($controls, {
       } else {
         assert(false);
       }
+    }
+  }
+
+  /**
+   * @param {number} gridIndex
+   * @param {number} directionOcturns
+   */
+  function enterAgent(gridIndex, directionOcturns) {
+    const agentOffset = agentOffsetForGridIndex[gridIndex];
+    const {x, y} = gridCoordinates[gridIndex];
+    const {x: dx, y: dy} = octurnVectors[directionOcturns];
+    const startLocation = locate(x - dx, y - dy);
+    const endLocation = locate(x, y);
+    const agentType = agentTypeForOffset(agentOffset);
+    const tileType = defaultTileTypeForAgentType[agentType];
+    const agentEntity = create(tileType, startLocation);
+    macroViewModel.move(agentEntity, endLocation, directionOcturns, 0);
+    return agentEntity;
+  }
+
+  function shiftAgentsWest() {
+    for (let start = 0; start < 3; start += 1) {
+      macroViewModel.take(check(entities[start * 3]), ww);
+    }
+    for (let index = 0; index < 9; index += 3) {
+      macroViewModel.move(check(entities[1 + index]), gridLocations[0 + index], ww, 0);
+      macroViewModel.move(check(entities[2 + index]), gridLocations[1 + index], ww, 0);
+    }
+    for (let index = 0; index < 9; index += 3) {
+      entities[0 + index] = entities[1 + index];
+      entities[1 + index] = entities[2 + index];
+    }
+    for (let index = 0; index < 9; index += 3) {
+      entities[2 + index] = enterAgent(2 + index, ww);
+    }
+  }
+
+  function shiftAgentsEast() {
+    for (let index = 2; index < 9; index += 3) {
+      macroViewModel.take(check(entities[index]), ee);
+    }
+    for (let index = 0; index < 9; index += 3) {
+      macroViewModel.move(check(entities[0 + index]), gridLocations[1 + index], ee, 0);
+      macroViewModel.move(check(entities[1 + index]), gridLocations[2 + index], ee, 0);
+    }
+    for (let index = 6; index >= 0; index -= 3) {
+      entities[2 + index] = entities[1 + index];
+      entities[1 + index] = entities[0 + index];
+    }
+    for (let index = 0; index < 9; index += 3) {
+      entities[index] = enterAgent(index, ee);
+    }
+  }
+
+  function shiftAgentsNorth() {
+    for (let start = 0; start < 3; start += 1) {
+      macroViewModel.take(check(entities[start + 6]), ne);
+    }
+    for (let start = 0; start < 6; start += 1) {
+      macroViewModel.move(check(entities[start]), gridLocations[start + 3], nn, 0);
+    }
+    entities.copyWithin(3, 0);
+    for (let start = 0; start < 3; start += 1) {
+      entities[start] = enterAgent(start, ne);
+    }
+  }
+
+  function shiftAgentsSouth() {
+    for (let start = 0; start < 3; start += 1) {
+      macroViewModel.take(check(entities[start]), sw);
+    }
+    for (let start = 0; start < 6; start += 1) {
+      macroViewModel.move(check(entities[start + 3]), gridLocations[start], ss, 0);
+    }
+    entities.copyWithin(0, 3);
+    for (let start = 0; start < 3; start += 1) {
+      entities[start + 6] = enterAgent(start + 6, sw);
     }
   }
 
