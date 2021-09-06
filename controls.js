@@ -13,7 +13,7 @@
 
 // @ts-check
 
-import {assert, check} from './assert.js';
+import {assert, assertNonZero, assumeDefined} from './assert.js';
 import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn, octurnVectors} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
@@ -61,9 +61,9 @@ import {commandDirection} from './driver.js';
 
 const svgNS = "http://www.w3.org/2000/svg";
 
-const inventoryIndexForCommand = [undefined, 0, 1, 2, 3, undefined, 4, 5, 6, 7];
+const inventoryIndexForCommand = [-1, 0, 1, 2, 3, -1, 4, 5, 6, 7];
 const entityIndexForInventoryIndex = [0, 1, 2, 3, 5, 6, 7, 8];
-// const inventoryIndexForEntityIndex = [0, 1, 2, 3, undefined, 4, 5, 6, 7];
+// const inventoryIndexForEntityIndex = [0, 1, 2, 3, -1, 4, 5, 6, 7];
 
 // const emptyTile = tileTypesByName.empty;
 const emptyItem = itemTypesByName.empty;
@@ -201,7 +201,7 @@ export function makeController($controls, {
 
   const elements = new Map();
 
-  let next = 0;
+  let next = 1; // 0 is a sentinel for absence.
   /**
    * @param {number} type
    * @param {number} location
@@ -263,8 +263,7 @@ export function makeController($controls, {
 
   /** @type {PlaceFn} */
   function place(entity, coord, pressure, progress, transition) {
-    const element = elements.get(entity);
-    assert(element !== undefined);
+    const element = assumeDefined(elements.get(entity));
     placeEntity(element, coord, pressure, progress, transition);
   }
 
@@ -300,7 +299,7 @@ export function makeController($controls, {
   // bit mask of owned effect types
   let effects = 1 << effectType;
   // indexed by command - 1
-  /** @type {Array<number | undefined>} */
+  /** @type {Array<number>} */
   let entities = [
     create(tileTypesByName.left, locate(0, 2)),
     create(tileTypesByName.south, locate(1, 2)),
@@ -308,7 +307,7 @@ export function makeController($controls, {
     create(tileTypesByName.west, locate(0, 1)),
     create(tileTypesByName.watch, locate(1, 1)),
     create(tileTypesByName.east, locate(2, 1)),
-    packEmpty() ? undefined : create(tileTypesByName.backpack, locate(0, 0)),
+    packEmpty() ? 0 : create(tileTypesByName.backpack, locate(0, 0)),
     create(tileTypesByName.north, locate(1, 0)),
     create(tileTypeForEffectType[effectType], locate(2, 0)),
   ];
@@ -332,13 +331,13 @@ export function makeController($controls, {
 
       leftItemType = type;
       if (isEmptyItem(type)) {
-        if (entities[0] !== undefined) {
+        if (entities[0] !== 0) {
           macroViewModel.replace(entities[0], tileTypesByName.left);
         }
       } else {
         const itemType = itemTypes[type];
         const tileName = itemType.tile || itemType.name;
-        if (entities[0] !== undefined) {
+        if (entities[0] !== 0) {
           macroViewModel.replace(entities[0], tileTypesByName[tileName]);
         }
       }
@@ -357,13 +356,13 @@ export function makeController($controls, {
 
       rightItemType = type;
       if (isEmptyItem(type)) {
-        if (entities[2] !== undefined) {
+        if (entities[2] !== 0) {
           macroViewModel.replace(entities[2], tileTypesByName.right);
         }
       } else {
         const itemType = itemTypes[type];
         const tileName = itemType.tile || itemType.name;
-        if (entities[2] !== undefined) {
+        if (entities[2] !== 0) {
           macroViewModel.replace(entities[2], tileTypesByName[tileName]);
         }
       }
@@ -459,26 +458,26 @@ export function makeController($controls, {
 
           if (isNotEmptyItem(heldItemType)) {
             const entity = entities[4];
-            assert(entity !== undefined);
+            assertNonZero(entity);
             macroViewModel.up(entity);
           }
 
         } else if (command >= 1 && command <= 9) { // put or swap
           const inventoryIndex = inventoryIndexForCommand[command];
-          assert(inventoryIndex !== undefined);
+          assert(inventoryIndex !== -1);
           const inventoryEntityIndex = entityIndexForInventoryIndex[inventoryIndex];
           const toItemDirection = directionToForInventoryIndex[inventoryIndex];
           const fromItemDirection = directionFromForInventoryIndex[inventoryIndex];
           const inventoryItemType = items[inventoryIndex];
 
           const inventoryEntity = entities[inventoryEntityIndex];
-          assert(inventoryEntity !== undefined);
+          assertNonZero(inventoryEntity);
           macroViewModel.up(inventoryEntity);
 
           // From hand to inventory (which is immediately disappearing)
           if (isNotEmptyItem(heldItemType)) {
             const itemEntity = entities[4];
-            assert(itemEntity !== undefined);
+            assertNonZero(itemEntity);
             macroViewModel.take(itemEntity, toItemDirection);
           }
 
@@ -486,7 +485,7 @@ export function makeController($controls, {
           if (isNotEmptyItem(inventoryItemType)) {
             macroViewModel.move(inventoryEntity, locate(1, 1), fromItemDirection, 0);
             entities[4] = inventoryEntity;
-            entities[inventoryEntityIndex] = undefined;
+            entities[inventoryEntityIndex] = 0;
           } else {
             dismiss(command - 1);
           }
@@ -566,8 +565,8 @@ export function makeController($controls, {
   };
 
 
-  /** @type {number | undefined} */
-  let editType;
+  /** @type {number} */
+  let editType = 0;
 
   /** @type {Mode} */
   const editMode = {
@@ -581,7 +580,7 @@ export function makeController($controls, {
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
         return editMode;
       } else if (command === 1) { // fill
-        if (editType !== undefined) {
+        if (editType !== 0) {
           worldModel.set(cursor.position, editType);
         }
         return editMode;
@@ -594,7 +593,7 @@ export function makeController($controls, {
           worldModel.remove(cursor.position);
           editType = type;
           const entity = entities[4];
-          if (entity !== undefined) {
+          if (entity !== 0) {
             macroViewModel.replace(entity, defaultTileTypeForAgentType[editType]);
           } else {
             restoreCc(defaultTileTypeForAgentType[editType]);
@@ -606,7 +605,7 @@ export function makeController($controls, {
         if (type !== undefined) {
           editType = type;
           const entity = entities[4];
-          if (entity !== undefined) {
+          if (entity !== 0) {
             macroViewModel.replace(entity, defaultTileTypeForAgentType[editType]);
           } else {
             restoreCc(defaultTileTypeForAgentType[editType]);
@@ -627,23 +626,23 @@ export function makeController($controls, {
   const chooseAgentMode = {
     press(command) {
       if (command === 8) {
-        macroViewModel.up(check(entities[7]));
-        assert(editType !== undefined);
+        macroViewModel.up(assumeDefined(entities[7]));
+        assertNonZero(editType);
         editType = agentTypeForOffset(1);
         shiftAgentsSouth();
       } else if (command === 2) {
-        macroViewModel.up(check(entities[1]));
-        assert(editType !== undefined);
+        macroViewModel.up(assumeDefined(entities[1]));
+        assertNonZero(editType);
         editType = agentTypeForOffset(-1);
         shiftAgentsNorth();
       } else if (command === 6) {
-        macroViewModel.up(check(entities[5]));
-        assert(editType !== undefined);
+        macroViewModel.up(assumeDefined(entities[5]));
+        assertNonZero(editType);
         editType = agentTypeForOffset(3);
         shiftAgentsWest();
       } else if (command === 4) {
-        macroViewModel.up(check(entities[3]));
-        assert(editType !== undefined);
+        macroViewModel.up(assumeDefined(entities[3]));
+        assertNonZero(editType);
         editType = agentTypeForOffset(-3);
         shiftAgentsEast();
       } else if (command === 5) {
@@ -662,15 +661,15 @@ export function makeController($controls, {
     dismissEffect();
 
     const leftItemEntity = entities[0];
-    assert(leftItemEntity !== undefined);
+    assertNonZero(leftItemEntity);
     macroViewModel.move(leftItemEntity, locate(1, 1), ne, 0);
-    entities[0] = undefined;
+    entities[0] = 0;
     entities[4] = leftItemEntity;
     macroViewModel.up(leftItemEntity);
 
     if (isNotEmptyItem(rightItemType)) {
       const rightItemEntity = entities[2];
-      assert(rightItemEntity !== undefined);
+      assertNonZero(rightItemEntity);
       macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
       entities[1] = rightItemEntity;
       restoreRightHand();
@@ -692,15 +691,15 @@ export function makeController($controls, {
     dismissEffect();
 
     const rightItemEntity = entities[2];
-    assert(rightItemEntity !== undefined);
+    assertNonZero(rightItemEntity);
     macroViewModel.move(rightItemEntity, locate(1, 1), nw, 0);
-    entities[2] = undefined;
+    entities[2] = 0;
     entities[4] = rightItemEntity;
     macroViewModel.up(rightItemEntity);
 
     if (isNotEmptyItem(leftItemType)) {
       const leftItemEntity = entities[0];
-      assert(leftItemEntity !== undefined);
+      assertNonZero(leftItemEntity);
       macroViewModel.move(leftItemEntity, locate(1, 2), ee, 0);
       entities[1] = leftItemEntity;
       restoreLeftHand();
@@ -733,10 +732,10 @@ export function makeController($controls, {
       return packMode(rightItemType, leftItemType, 1);
     } else {
       const leftEntity = entities[0];
-      assert(leftEntity !== undefined);
+      assertNonZero(leftEntity);
       macroViewModel.move(leftEntity, locate(1, 1), ne, 0);
       entities[4] = leftEntity;
-      entities[0] = undefined;
+      entities[0] = 0;
       dismissRight();
       restorePackItems();
       return packMode(leftItemType, rightItemType, -1);
@@ -768,7 +767,7 @@ export function makeController($controls, {
   function useItem(itemType, otherItemType, leftOrRight, packWasVisible) {
     const effectName = itemTypes[itemType].effect;
     const itemEntity = entities[4];
-    assert(itemEntity !== undefined);
+    assertNonZero(itemEntity);
 
     dismiss(8); // trash / mouth / or effect
 
@@ -777,7 +776,7 @@ export function makeController($controls, {
       effects |= 1 << effectType;
       macroViewModel.move(itemEntity, locate(2, 0), ne, 0);
       entities[8] = itemEntity;
-      entities[4] = undefined;
+      entities[4] = 0;
 
     } else {
       macroViewModel.take(itemEntity, ne);
@@ -815,9 +814,9 @@ export function makeController($controls, {
    */
   function craftItems(itemType, otherItemType, leftOrRight, packWasVisible) {
     const entity = entities[4];
-    assert(entity !== undefined);
+    assertNonZero(entity);
     const otherEntity = entities[1];
-    assert(otherEntity !== undefined);
+    assertNonZero(otherEntity);
 
     const [productType, byproductType] = craft(itemType, otherItemType);
 
@@ -863,8 +862,14 @@ export function makeController($controls, {
         macroViewModel.enter(byproductEntity);
         entities[1] = byproductEntity;
       } else {
-        entities[1] = undefined;
+        entities[1] = 0;
       }
+    }
+
+    // Correct recepticle tile type, if necessary.
+    const newRecepticleTileType = recepticleTileType(productType);
+    if (recepticleTileType(itemType) !== newRecepticleTileType) {
+      macroViewModel.replace(entities[8], newRecepticleTileType);
     }
 
     return itemMode(productType, byproductType, leftOrRight, packWasVisible);
@@ -884,8 +889,8 @@ export function makeController($controls, {
     const leftItemEntity = entities[4];
     const leftHand = entities[0];
 
-    assert(leftItemEntity !== undefined);
-    assert(leftHand !== undefined);
+    assertNonZero(leftItemEntity);
+    assertNonZero(leftHand);
 
     macroViewModel.move(leftItemEntity, locate(0, 2), sw, 0);
     macroViewModel.exit(leftHand);
@@ -917,8 +922,8 @@ export function makeController($controls, {
     const rightItemEntity = entities[4];
     const rightHandEntity = entities[2];
 
-    assert(rightItemEntity !== undefined);
-    assert(rightHandEntity !== undefined);
+    assertNonZero(rightItemEntity);
+    assertNonZero(rightHandEntity);
 
     macroViewModel.move(rightItemEntity, locate(2, 2), se, 0);
     macroViewModel.exit(rightHandEntity);
@@ -984,7 +989,7 @@ export function makeController($controls, {
 
     restoreEditorBezel();
 
-    if (editType !== undefined) {
+    if (editType !== 0) {
       restoreCc(defaultTileTypeForAgentType[editType]);
     }
 
@@ -997,7 +1002,7 @@ export function makeController($controls, {
 
   function closeEditor() {
     dismissEditorBezel();
-    if (editType !== undefined) {
+    if (editType !== 0) {
       dismissCc();
     }
 
@@ -1017,8 +1022,8 @@ export function makeController($controls, {
     return playMode;
   }
 
-  /** @type {number | undefined} */
-  let reticleEntity = undefined;
+  /** @type {number} */
+  let reticleEntity = 0;
 
   const firstEligibleEntityType = 4;
   const eligibleEntityCount = agentTypes.length - firstEligibleEntityType;
@@ -1027,7 +1032,7 @@ export function makeController($controls, {
    * @param {number} offset
    */
   function agentTypeForOffset(offset) {
-    assert(editType !== undefined);
+    assertNonZero(editType);
     return (
       (eligibleEntityCount + editType - firstEligibleEntityType + offset) % eligibleEntityCount +
       firstEligibleEntityType
@@ -1039,7 +1044,7 @@ export function makeController($controls, {
     dismissEditorBezel();
     dismissDpad();
 
-    if (editType === undefined) {
+    if (editType === 0) {
       editType = 4;
       spawn(4, defaultTileTypeForAgentType[editType]);
     }
@@ -1059,9 +1064,9 @@ export function makeController($controls, {
   }
 
   function closeAgentChooser() {
-    assert(reticleEntity !== undefined);
+    assertNonZero(reticleEntity);
     macroViewModel.exit(reticleEntity);
-    reticleEntity = undefined;
+    reticleEntity = 0;
 
     for (let direction = 0; direction < fullOcturn; direction += 1) {
       dismissOctant(direction);
@@ -1079,9 +1084,9 @@ export function makeController($controls, {
   /** @param {number} slot */
   function dismiss(slot) {
     const entity = entities[slot];
-    assert(entity !== undefined);
+    assertNonZero(entity);
     macroViewModel.exit(entity);
-    entities[slot] = undefined;
+    entities[slot] = 0;
   }
 
   /**
@@ -1135,34 +1140,35 @@ export function makeController($controls, {
   function dismissOctant(directionOcturns) {
     const gridIndex = octurnGridIndexes[directionOcturns];
     const entity = entities[gridIndex];
-    assert(entity !== undefined);
+    assertNonZero(entity, `Expected an entity at gridIndex ${gridIndex} for direction ${directionOcturns}/8th turn clockwise from north`);
     macroViewModel.take(entity, directionOcturns);
-    entities[gridIndex] = undefined;
+    entities[gridIndex] = 0;
+  }
+
+  /**
+   * @param {number} tileType
+   * @param {number} directionOcturns
+   */
+  function restoreOctant(tileType, directionOcturns) {
+    const gridIndex = octurnGridIndexes[directionOcturns];
+    const {x, y} = octurnVectors[directionOcturns];
+    const entity = create(tileType, locate(1 + x * 2, 1 + y * 2));
+    macroViewModel.move(entity, locate(1 + x, 1 + y), (directionOcturns + halfOcturn) % fullOcturn, 0);
+    entities[gridIndex] = entity;
   }
 
   function dismissCc() {
     const watch = entities[4];
-    assert(watch !== undefined);
+    assertNonZero(watch);
     macroViewModel.exit(watch);
-    entities[4] = undefined;
+    entities[4] = 0;
   }
 
   function restoreDpad() {
-    const north = create(tileTypesByName.north, locate(1, -1));
-    macroViewModel.move(north, locate(1, 0), ss, 0);
-    entities[7] = north;
-
-    const south = create(tileTypesByName.south, locate(1, 3));
-    macroViewModel.move(south, locate(1, 2), nn, 0);
-    entities[1] = south;
-
-    const west = create(tileTypesByName.west, locate(-1, 1));
-    macroViewModel.move(west, locate(0, 1), ee, 0);
-    entities[3] = west;
-
-    const east = create(tileTypesByName.east, locate(3, 1));
-    macroViewModel.move(east, locate(2, 1), ww, 0);
-    entities[5] = east;
+    restoreOctant(tileTypesByName.north, nn);
+    restoreOctant(tileTypesByName.east, ee);
+    restoreOctant(tileTypesByName.south, ss);
+    restoreOctant(tileTypesByName.west, ww);
   }
 
   function restoreWatch() {
@@ -1204,7 +1210,7 @@ export function makeController($controls, {
   /**
    * @param {number} itemType
    */
-  function restoreRecepticle(itemType) {
+  function recepticleTileType(itemType) {
     const { comestible = false, effect = undefined } = itemTypes[itemType];
     let recepticleTileType = tileTypesByName.trash;
     if (effect !== undefined) {
@@ -1212,12 +1218,18 @@ export function makeController($controls, {
     } else if (comestible) {
       recepticleTileType = tileTypesByName.mouth;
     }
-    restoreNe(recepticleTileType);
+    return recepticleTileType;
+  }
+
+  /**
+   * @param {number} itemType
+   */
+  function restoreRecepticle(itemType) {
+    restoreNe(recepticleTileType(itemType));
   }
 
   function restoreEffect() {
-    const effectTileType = tileTypeForEffectType[effectType];
-    assert(effectTileType !== undefined);
+    const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
     restoreNe(effectTileType);
   }
 
@@ -1297,25 +1309,10 @@ export function makeController($controls, {
   }
 
   function dismissDpad() {
-    const north = entities[7];
-    const west = entities[3];
-    const east = entities[5];
-    const south = entities[1];
-
-    assert(north !== undefined);
-    assert(south !== undefined);
-    assert(east !== undefined);
-    assert(west !== undefined);
-
-    macroViewModel.take(north, nn);
-    macroViewModel.take(south, ss);
-    macroViewModel.take(east, ee);
-    macroViewModel.take(west, ww);
-
-    entities[7] = undefined;
-    entities[3] = undefined;
-    entities[5] = undefined;
-    entities[1] = undefined;
+    dismissOctant(nn);
+    dismissOctant(ee);
+    dismissOctant(ss);
+    dismissOctant(ww);
   }
 
   function dismissWatch() {
@@ -1354,21 +1351,21 @@ export function makeController($controls, {
         // If the primary item was on the left,
         // the secondary item goes back to the right.
         const rightHandEntity = entities[2];
-        assert(rightHandEntity !== undefined);
+        assertNonZero(rightHandEntity);
         const rightItemEntity = entities[1];
-        assert(rightItemEntity !== undefined);
+        assertNonZero(rightItemEntity);
         macroViewModel.move(rightItemEntity, locate(2, 2), ee, 0);
         macroViewModel.take(rightHandEntity, se);
-        entities[1] = undefined;
+        entities[1] = 0;
         entities[2] = rightItemEntity;
       } else if (leftOrRight > 0) {
         const leftHand = entities[0];
-        assert(leftHand !== undefined);
+        assertNonZero(leftHand);
         const leftItemEntity = entities[1];
-        assert(leftItemEntity !== undefined);
+        assertNonZero(leftItemEntity);
         macroViewModel.move(leftItemEntity, locate(0, 2), ww, 0);
         macroViewModel.take(leftHand, sw);
-        entities[1] = undefined;
+        entities[1] = 0;
         entities[0] = leftItemEntity;
       } else {
         assert(false);
@@ -1395,11 +1392,11 @@ export function makeController($controls, {
 
   function shiftAgentsWest() {
     for (let start = 0; start < 3; start += 1) {
-      macroViewModel.take(check(entities[start * 3]), ww);
+      macroViewModel.take(assumeDefined(entities[start * 3]), ww);
     }
     for (let index = 0; index < 9; index += 3) {
-      macroViewModel.move(check(entities[1 + index]), gridLocations[0 + index], ww, 0);
-      macroViewModel.move(check(entities[2 + index]), gridLocations[1 + index], ww, 0);
+      macroViewModel.move(assumeDefined(entities[1 + index]), gridLocations[0 + index], ww, 0);
+      macroViewModel.move(assumeDefined(entities[2 + index]), gridLocations[1 + index], ww, 0);
     }
     for (let index = 0; index < 9; index += 3) {
       entities[0 + index] = entities[1 + index];
@@ -1412,11 +1409,11 @@ export function makeController($controls, {
 
   function shiftAgentsEast() {
     for (let index = 2; index < 9; index += 3) {
-      macroViewModel.take(check(entities[index]), ee);
+      macroViewModel.take(assumeDefined(entities[index]), ee);
     }
     for (let index = 0; index < 9; index += 3) {
-      macroViewModel.move(check(entities[0 + index]), gridLocations[1 + index], ee, 0);
-      macroViewModel.move(check(entities[1 + index]), gridLocations[2 + index], ee, 0);
+      macroViewModel.move(assumeDefined(entities[0 + index]), gridLocations[1 + index], ee, 0);
+      macroViewModel.move(assumeDefined(entities[1 + index]), gridLocations[2 + index], ee, 0);
     }
     for (let index = 6; index >= 0; index -= 3) {
       entities[2 + index] = entities[1 + index];
@@ -1429,10 +1426,10 @@ export function makeController($controls, {
 
   function shiftAgentsNorth() {
     for (let start = 0; start < 3; start += 1) {
-      macroViewModel.take(check(entities[start + 6]), ne);
+      macroViewModel.take(assumeDefined(entities[start + 6]), ne);
     }
     for (let start = 0; start < 6; start += 1) {
-      macroViewModel.move(check(entities[start]), gridLocations[start + 3], nn, 0);
+      macroViewModel.move(assumeDefined(entities[start]), gridLocations[start + 3], nn, 0);
     }
     entities.copyWithin(3, 0);
     for (let start = 0; start < 3; start += 1) {
@@ -1442,10 +1439,10 @@ export function makeController($controls, {
 
   function shiftAgentsSouth() {
     for (let start = 0; start < 3; start += 1) {
-      macroViewModel.take(check(entities[start]), sw);
+      macroViewModel.take(assumeDefined(entities[start]), sw);
     }
     for (let start = 0; start < 6; start += 1) {
-      macroViewModel.move(check(entities[start + 3]), gridLocations[start], ss, 0);
+      macroViewModel.move(assumeDefined(entities[start + 3]), gridLocations[start], ss, 0);
     }
     entities.copyWithin(0, 3);
     for (let start = 0; start < 3; start += 1) {
@@ -1462,8 +1459,11 @@ export function makeController($controls, {
    * @param {number} command
    */
   function down(command) {
-    const entity = entities[command - 1];
-    if (entity !== undefined) {
+    if (command < 1 || command > 9) {
+      return;
+    }
+    const entity = assumeDefined(entities[command - 1], `Failed invariant of controller, entity at index ${command - 1} for command ${command} is not defined`);
+    if (entity !== 0) {
       macroViewModel.down(entity);
     }
   }
@@ -1472,8 +1472,11 @@ export function makeController($controls, {
    * @param {number} command
    */
   function up(command) {
-    const entity = entities[command - 1];
-    if (entity !== undefined) {
+    if (command < 1 || command > 9) {
+      return;
+    }
+    const entity = assumeDefined(entities[command - 1], `Failed invariant of controller, entity at index ${command - 1} for command ${command} is not defined`);
+    if (entity !== 0) {
       macroViewModel.up(entity);
     }
   }

@@ -12,7 +12,7 @@
 
 // @ts-check
 
-import {assert} from './assert.js';
+import {assert, assumeDefined} from './assert.js';
 import {halfOcturn, fullOcturn} from './geometry2d.js';
 
 /**
@@ -48,18 +48,14 @@ export function makeMacroViewModel(viewModel, {}) {
    * @param {number} external
    */
   function entity(external) {
-    const internal = entities.get(external);
-    if (internal === undefined) throw new Error(`Assertion failed`);
-    return internal;
+    return assumeDefined(entities.get(external), `Failed invariant of macro view model: no internal entity for external entity ${external}`);
   }
 
   /**
    * @param {number} external
    */
   function locate(external) {
-    const location = locations.get(external);
-    if (location === undefined) throw new Error(`Assertion failed`);
-    return location;
+    return assumeDefined(locations.get(external), `Failed invariant of macro view model: no known location for external entity ${external}`);
   }
 
   /**

@@ -19,7 +19,7 @@
  * @typedef {import('./macro-view-model.js').MacroViewModel} MacroViewModel
  */
 
-import {assert} from './assert.js';
+import {assert, assertDefined, assumeDefined} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
 import {defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, agentTypesByName, bump} from './mechanics.js';
 
@@ -71,9 +71,9 @@ export function makeModel({
   advance,
   macroViewModel,
 }) {
-  /** @type {Array<number | undefined>} */
-  let entitiesPrev = new Array(size);
-  let entitiesNext = new Array(size);
+  /** @type {Array<number>} */
+  let entitiesPrev = new Array(size).fill(0);
+  let entitiesNext = new Array(size).fill(0);
   // const priorities = new Array(size);
   /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
   const intents = new Map();
@@ -115,7 +115,7 @@ export function makeModel({
   /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
   const bumps = [];
 
-  let nextModelEntity = 0;
+  let nextModelEntity = 1; // 0 implies non-existant.
 
   /**
    * Note that entity numbers are not reused and this could lead to problems if
@@ -144,15 +144,13 @@ export function makeModel({
     entityTypes.delete(entity);
     mobiles.delete(entity);
     locations.delete(entity);
-    entitiesNext[location] = undefined;
+    entitiesNext[location] = 0;
   }
 
   /** @type {TypeFn} */
   function entityType(entity) {
     const type = entityTypes.get(entity);
-    if (type === undefined) {
-      throw new Error(`Cannot get type for non-existent model entity ${entity}`);
-    }
+    assertDefined(type, `Cannot get type for non-existent model entity ${entity}`);
     return type;
   }
 
@@ -162,9 +160,7 @@ export function makeModel({
    */
   function locate(e) {
     const t = locations.get(e);
-    if (t === undefined) {
-      throw new Error(`Simulation assertion error: cannot locate entity ${e}`);
-    }
+    assertDefined(t, `Simulation assertion error: cannot locate entity ${e}`);
     return t;
   }
 
@@ -189,7 +185,7 @@ export function makeModel({
    */
   function unfollow(e, follower) {
     const entityFollowers = followers.get(e);
-    assert(entityFollowers !== undefined);
+    assertDefined(entityFollowers);
     assert(entityFollowers.has(follower));
     entityFollowers.delete(follower);
   }
@@ -306,22 +302,19 @@ export function makeModel({
     // Considering every tile that an entity wishes to move into or act upon
     for (const [destination, options] of targets.entries()) {
       const candidates = [...options.keys()].sort(() => Math.random() - 0.5);
-      if (location === undefined) throw new Error(`Assertion failed`);
       // TODO: pluck less lazy
-      const winner = candidates.pop();
-      if (winner === undefined) throw new Error(`Assertion failed`);
-      const change = options.get(winner);
-      if (change === undefined) throw new Error(`Assertion failed`);
+      const winner = assumeDefined(candidates.pop());
+      const change = assumeDefined(options.get(winner));
       const {position: origin, direction, turn, repeat} = change;
       const patient = entitiesPrev[destination];
-      if (patient === undefined) {
+      if (patient === 0) {
         // Move
         macroViewModel.move(winner, destination, direction * quarturnToOcturn, turn);
         notifyFollowers(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
         entitiesNext[destination] = winner;
-        entitiesNext[origin] = undefined;
+        entitiesNext[origin] = 0;
       } else {
         // Bounce
         macroViewModel.bounce(winner, direction * quarturnToOcturn);
@@ -333,8 +326,7 @@ export function makeModel({
       // Bounce all of the candidates that did not get to procede in the
       // direction they intended.
       for (const loser of candidates) {
-        const change = options.get(loser);
-        if (change === undefined) throw new Error(`Assertion failed`);
+        const change = assumeDefined(options.get(loser));
         const {direction} = change;
         macroViewModel.bounce(loser, direction * quarturnToOcturn);
       }
@@ -380,14 +372,18 @@ export function makeModel({
 
   /**
    * @param {number} location
-   * @returns {number | undefined} entityType
+   * @returns {number} entityType or (zero for no-type)
    */
   function get(location) {
-    const entity = entitiesPrev[location];
-    if (entity === undefined) {
-      return undefined;
+    const entity = assumeDefined(entitiesPrev[location]);
+    if (entity === 0) {
+      return 0;
     }
-    return entityTypes.get(entity);
+    const entityType = entityTypes.get(entity);
+    if (entityType === undefined) {
+      return 0;
+    }
+    return entityType;
   }
 
   /**
@@ -410,9 +406,9 @@ export function makeModel({
    */
   function remove(location) {
     const entity = entitiesPrev[location];
-    if (entity !== undefined) {
+    if (entity !== 0) {
       const entityType = entityTypes.get(entity);
-      assert(entityType !== undefined);
+      assertDefined(entityType);
       if (entityType === agentTypesByName.player) {
         // There is not yet special logic in the controller to ensure that the
         // player agent still exists when exiting editor mode.
@@ -422,7 +418,7 @@ export function makeModel({
       locations.delete(entity);
       entityTypes.delete(entity);
       mobiles.delete(entity);
-      entitiesPrev[location] = undefined;
+      entitiesPrev[location] = 0;
     }
   }
 

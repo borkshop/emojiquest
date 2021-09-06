@@ -6,7 +6,7 @@
 
 // @ts-check
 
-import {assert} from './assert.js';
+import {assertDefined} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
 import {tileTypes, agentTypes, itemTypes, effectTypes, actions, recipes} from './data.js';
 export {tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
@@ -45,10 +45,10 @@ export function registerRecipe(agent, reagent, product, byproduct = 'empty') {
   const reagentType = itemTypesByName[reagent];
   const productType = itemTypesByName[product];
   const byproductType = itemTypesByName[byproduct];
-  assert(agentType !== undefined, `agent item type not defined ${agent}`);
-  assert(reagentType !== undefined, `reeagent item type not defined ${reagent}`);
-  assert(productType !== undefined, `product item type not defined ${product}`);
-  assert(byproductType !== undefined, `byproduct item type not defined ${byproduct}`);
+  assertDefined(agentType, `agent item type not defined ${agent}`);
+  assertDefined(reagentType, `reeagent item type not defined ${reagent}`);
+  assertDefined(productType, `product item type not defined ${product}`);
+  assertDefined(byproductType, `byproduct item type not defined ${byproduct}`);
   craftingFormulae.set(agentType * itemTypes.length + reagentType, [productType, byproductType]);
 }
 
@@ -151,7 +151,7 @@ const verbs = {
   split([leftType, rightType]) {
     /** @type {Handler} */
     function splitHandler({inventory}) {
-      assert(rightType !== undefined);
+      assertDefined(rightType);
       inventory.left = leftType;
       inventory.right = rightType;
     }
@@ -181,22 +181,22 @@ const bumpingFormulae = new Map();
 
 for (const [agent, patient, left, right, effect, verb, items] of actions) {
   const productType = itemTypesByName[items[0]];
-  assert(productType !== undefined, items[0]);
+  assertDefined(productType, items[0]);
   const byproductType = itemTypesByName[items[1]];
   const makeVerb = verbs[verb];
-  assert(makeVerb !== undefined);
+  assertDefined(makeVerb);
   const handler = makeVerb([productType, byproductType]);
 
   const agentType = agentTypesByName[agent];
-  assert(agentType !== undefined, agent);
+  assertDefined(agentType, agent);
   const patientType = agentTypesByName[patient];
-  assert(patientType !== undefined, patient);
+  assertDefined(patientType, patient);
   const leftType = itemTypesByName[left];
-  assert(leftType !== undefined, left);
+  assertDefined(leftType, left);
   const rightType = itemTypesByName[right];
-  assert(rightType !== undefined, right);
+  assertDefined(rightType, right);
   const effectType = effectTypesByName[effect];
-  assert(effectType !== undefined, effect);
+  assertDefined(effectType, effect);
 
   const key = bumpKey({
     agentType,

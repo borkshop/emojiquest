@@ -12,6 +12,7 @@
 
 // @ts-check
 
+import {assertDefined} from './assert.js';
 import {setDifference} from './set.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -72,8 +73,8 @@ import {setDifference} from './set.js';
  */
 
 export function makeViewModel() {
-  /** @type {number | undefined} time of last animation frame */
-  let last;
+  /** @type {number} time of last animation frame */
+  let last = -Infinity;
 
   /**
    * Entity number to tile number.
@@ -153,9 +154,7 @@ export function makeViewModel() {
     pressures.delete(entity);
     animating.delete(entity);
     const tile = tiles.get(entity);
-    if (tile === undefined) {
-      throw new Error(`Cannot remove entity with unknown location ${entity}`);
-    }
+    assertDefined(tile, `Cannot remove entity with unknown location ${entity}`);
     const {location} = tile;
     entityExitsTile(entity, location);
     const tileWatchers = watchers.get(location);
@@ -169,7 +168,7 @@ export function makeViewModel() {
   /** @type {MoveFn} */
   function move(entity, to) {
     const tile = tiles.get(entity);
-    if (tile === undefined) throw new Error(`Assertion failed: cannot move absent entity ${entity}`);
+    assertDefined(tile, `Assertion failed: cannot move absent entity ${entity}`);
     const {location: from, type} = tile;
 
     if (from === to) {
@@ -256,7 +255,7 @@ export function makeViewModel() {
 
     // Unregister watcher.
     const tileWatchers = watchers.get(location);
-    if (!tileWatchers) throw new Error(`Assertion failed`);
+    assertDefined(tileWatchers);
     tileWatchers.delete(watcher);
     if (tileWatchers.size === 0) {
       watchers.delete(location);
@@ -299,9 +298,7 @@ export function makeViewModel() {
   /** @type {TransitionFn} */
   function transition(entity, transition) {
     const tile = tiles.get(entity);
-    if (tile === undefined) {
-      throw new Error(`Assertion failed: no location for entity ${entity}`);
-    }
+    assertDefined(tile, `Assertion failed: no location for entity ${entity}`);
     animating.set(entity, transition);
   }
 
@@ -309,7 +306,7 @@ export function makeViewModel() {
   function animate(progress) {
     const {now} = progress;
 
-    if (last === undefined) {
+    if (last === -Infinity) {
       last = now;
       return;
     }
