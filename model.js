@@ -71,9 +71,8 @@ export function makeModel({
   advance,
   macroViewModel,
 }) {
-  /** @type {Array<number>} */
-  let entitiesPrev = new Array(size).fill(0);
-  let entitiesNext = new Array(size).fill(0);
+  let entitiesPrev = new Uint16Array(size);
+  let entitiesNext = new Uint16Array(size);
   // const priorities = new Array(size);
   /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
   const intents = new Map();
