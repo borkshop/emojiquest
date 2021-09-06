@@ -399,7 +399,7 @@ export function makeController($controls, {
       } else if (command === 5) { // stay
         worldModel.tick(inventory);
         return playMode;
-      } else if (command === 1 && isNotEmptyItem(leftItemType)) { // && left non-empty
+      } else if (command === 1 && isNotEmptyItem(leftItemType)) {
         return handleLeftItem();
       } else if (command === 3 && isNotEmptyItem(rightItemType)) {
         return handleRightItem();
@@ -498,6 +498,7 @@ export function makeController($controls, {
         }
 
         if (isNotEmptyItem(heldItemType)) {
+          restoreControllerReticle();
           restoreLeftHand();
           restoreRightHand();
           restoreRecepticle(heldItemType);
@@ -680,6 +681,7 @@ export function makeController($controls, {
     }
     restoreRecepticle(leftItemType);
     restoreLeftHand();
+    restoreControllerReticle();
 
     return itemMode(leftItemType, rightItemType, -1);
   }
@@ -710,6 +712,7 @@ export function makeController($controls, {
     }
     restoreRecepticle(rightItemType);
     restoreRightHand();
+    restoreControllerReticle();
 
     return itemMode(rightItemType, leftItemType, 1);
   }
@@ -800,6 +803,7 @@ export function makeController($controls, {
     restoreCenterItem(otherItemType, leftOrRight);
     restoreDpad();
     restoreWatch();
+    dismissControllerReticle();
 
     worldModel.tick(inventory);
 
@@ -881,6 +885,7 @@ export function makeController($controls, {
    * @param {boolean} packWasVisible
    */
   function placeItemInLeftHand(itemType, otherItemType, packWasVisible) {
+    dismissControllerReticle();
     dismiss(8); // trash
     if (packWasVisible && packEmpty()) {
       dismissPack();
@@ -914,6 +919,7 @@ export function makeController($controls, {
    * @param {boolean} packWasVisible
    */
   function placeItemInRightHand(itemType, otherItemType, packWasVisible) {
+    dismissControllerReticle();
     dismiss(8); // trash
     if (packWasVisible && packEmpty()) {
       dismissPack();
@@ -947,6 +953,7 @@ export function makeController($controls, {
    * @param {number} leftOrRight
    */
   function stashItem(itemType, otherItemType, leftOrRight) {
+    dismissControllerReticle();
     dismissPack();
     dismiss(8); // trash
     dismissLeft();
@@ -1058,15 +1065,12 @@ export function makeController($controls, {
       spawn(gridIndex, tileType);
     }
 
-    reticleEntity = create(-1, locate(1, 1)); // reticle
-    macroViewModel.enter(reticleEntity);
+    restoreControllerReticle();
     return chooseAgentMode;
   }
 
   function closeAgentChooser() {
-    assertNonZero(reticleEntity);
-    macroViewModel.exit(reticleEntity);
-    reticleEntity = 0;
+    dismissControllerReticle();
 
     for (let direction = 0; direction < fullOcturn; direction += 1) {
       dismissOctant(direction);
@@ -1080,6 +1084,17 @@ export function makeController($controls, {
   }
 
   // Entity management:
+
+  function dismissControllerReticle() {
+    assertNonZero(reticleEntity);
+    macroViewModel.exit(reticleEntity);
+    reticleEntity = 0;
+  }
+
+  function restoreControllerReticle() {
+    reticleEntity = create(-1, locate(1, 1)); // reticle
+    macroViewModel.enter(reticleEntity);
+  }
 
   /** @param {number} slot */
   function dismiss(slot) {
