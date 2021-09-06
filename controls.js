@@ -801,7 +801,7 @@ export function makeController($controls, {
     restoreDpad();
     restoreWatch();
 
-    // TODO take a turn of the simulation
+    worldModel.tick(inventory);
 
     return playMode;
   }
