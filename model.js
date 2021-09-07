@@ -28,9 +28,7 @@ import {defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, agentTy
  */
 
 /**
- * @typedef {Object} Inventory
- * @property {number} left
- * @property {number} right
+ * @typedef {Array<number>} Inventory
  */
 
 /**

@@ -315,14 +315,8 @@ export function makeController($controls, {
   /** @type {number} */
   let packTileType = tileTypesByName.backpack;
 
-  const inventory = {
-    left: emptyItem,
-    right: emptyItem,
-  };
-  const priorInventory = {
-    left: emptyItem,
-    right: emptyItem,
-  };
+  const inventory = [emptyItem, emptyItem];
+  const priorInventory = [emptyItem, emptyItem];
 
   // Common queries:
 
@@ -351,9 +345,9 @@ export function makeController($controls, {
       } else if (command === 5) { // stay
         tick();
         return playMode;
-      } else if (command === 1 && isNotEmptyItem(inventory.left)) {
+      } else if (command === 1 && isNotEmptyItem(inventory[0])) {
         return handleLeftItem();
-      } else if (command === 3 && isNotEmptyItem(inventory.right)) {
+      } else if (command === 3 && isNotEmptyItem(inventory[1])) {
         return handleRightItem();
       } else if (command === 7 && packNotEmpty()) { // stash
         return openStash();
@@ -465,20 +459,20 @@ export function makeController($controls, {
         } else { // back to play mode with an empty hand
 
           if (leftOrRight < 0) {
-            inventory.left = emptyItem;
+            inventory[0] = emptyItem;
             restoreLeftHand();
 
-            inventory.right = otherItemType;
+            inventory[1] = otherItemType;
             if (isEmptyItem(otherItemType)) {
               restoreRightHand();
             } else {
               restoreRightItem();
             }
           } else if (leftOrRight > 0) {
-            inventory.right = emptyItem;
+            inventory[1] = emptyItem;
             restoreRightHand();
 
-            inventory.left = otherItemType;
+            inventory[0] = otherItemType;
             if (isEmptyItem(otherItemType)) {
               restoreLeftHand();
             } else {
@@ -620,7 +614,7 @@ export function makeController($controls, {
     entities[4] = leftItemEntity;
     macroViewModel.up(leftItemEntity);
 
-    if (isNotEmptyItem(inventory.right)) {
+    if (isNotEmptyItem(inventory[1])) {
       const rightItemEntity = entities[2];
       assertNonZero(rightItemEntity);
       macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
@@ -631,11 +625,11 @@ export function makeController($controls, {
     if (packEmpty()) {
       restorePack();
     }
-    restoreRecepticle(inventory.left);
+    restoreRecepticle(inventory[0]);
     restoreLeftHand();
     restoreControllerReticle();
 
-    return itemMode(inventory.left, inventory.right, -1);
+    return itemMode(inventory[0], inventory[1], -1);
   }
 
   function handleRightItem() {
@@ -651,7 +645,7 @@ export function makeController($controls, {
     entities[4] = rightItemEntity;
     macroViewModel.up(rightItemEntity);
 
-    if (isNotEmptyItem(inventory.left)) {
+    if (isNotEmptyItem(inventory[0])) {
       const leftItemEntity = entities[0];
       assertNonZero(leftItemEntity);
       macroViewModel.move(leftItemEntity, locate(1, 2), ee, 0);
@@ -662,11 +656,11 @@ export function makeController($controls, {
     if (packEmpty()) {
       restorePack();
     }
-    restoreRecepticle(inventory.right);
+    restoreRecepticle(inventory[1]);
     restoreRightHand();
     restoreControllerReticle();
 
-    return itemMode(inventory.right, inventory.left, 1);
+    return itemMode(inventory[1], inventory[0], 1);
   }
 
   function openStash() {
@@ -675,16 +669,16 @@ export function makeController($controls, {
     dismissDpad();
     dismissWatch();
 
-    if (isEmptyItem(inventory.left)) {
+    if (isEmptyItem(inventory[0])) {
       dismissLeft();
       dismissRight();
       restorePackItems();
-      return packMode(inventory.left, inventory.right, -1);
-    } else if (isEmptyItem(inventory.right)) {
+      return packMode(inventory[0], inventory[1], -1);
+    } else if (isEmptyItem(inventory[1])) {
       dismissLeft();
       dismissRight();
       restorePackItems();
-      return packMode(inventory.right, inventory.left, 1);
+      return packMode(inventory[1], inventory[0], 1);
     } else {
       const leftEntity = entities[0];
       assertNonZero(leftEntity);
@@ -693,7 +687,7 @@ export function makeController($controls, {
       entities[0] = 0;
       dismissRight();
       restorePackItems();
-      return packMode(inventory.left, inventory.right, -1);
+      return packMode(inventory[0], inventory[1], -1);
     }
   }
 
@@ -746,11 +740,11 @@ export function makeController($controls, {
     }
 
     if (leftOrRight < 0) {
-      inventory.left = emptyItem;
-      inventory.right = otherItemType;
+      inventory[0] = emptyItem;
+      inventory[1] = otherItemType;
     } else if (leftOrRight > 0) {
-      inventory.right = emptyItem;
-      inventory.left = otherItemType;
+      inventory[1] = emptyItem;
+      inventory[0] = otherItemType;
     }
     restoreCenterItem(otherItemType, leftOrRight);
     restoreDpad();
@@ -852,8 +846,8 @@ export function makeController($controls, {
 
     entities[0] = leftItemEntity;
 
-    inventory.left = itemType;
-    inventory.right = otherItemType;
+    inventory[0] = itemType;
+    inventory[1] = otherItemType;
 
     restoreCenterItem(otherItemType, -1);
     restoreDpad();
@@ -886,8 +880,8 @@ export function makeController($controls, {
 
     entities[2] = rightItemEntity;
 
-    inventory.right = itemType;
-    inventory.left = otherItemType;
+    inventory[1] = itemType;
+    inventory[0] = otherItemType;
 
     restoreCenterItem(otherItemType, 1);
     restoreDpad();
@@ -1038,8 +1032,8 @@ export function makeController($controls, {
   function updateHands() {
     const packWasVisible = packNotEmpty();
 
-    updateHand(0, 'left', tileTypesByName.left);
-    updateHand(2, 'right', tileTypesByName.right);
+    updateHand(0, 0, tileTypesByName.left);
+    updateHand(2, 1, tileTypesByName.right);
 
     const packIsVisible = packNotEmpty();
     updatePack(packWasVisible, packIsVisible);
@@ -1047,7 +1041,7 @@ export function makeController($controls, {
 
   /**
    * @param {number} gridIndex
-   * @param {'left' | 'right'} inventoryIndex
+   * @param {number} inventoryIndex
    * @param {number} handTileType
    */
   function updateHand(gridIndex, inventoryIndex, handTileType) {
@@ -1172,7 +1166,7 @@ export function makeController($controls, {
   }
 
   function restoreLeft() {
-    if (isEmptyItem(inventory.left)) {
+    if (isEmptyItem(inventory[0])) {
       restoreLeftHand();
     } else {
       restoreLeftItem();
@@ -1180,7 +1174,7 @@ export function makeController($controls, {
   }
 
   function restoreRight() {
-    if (isEmptyItem(inventory.right)) {
+    if (isEmptyItem(inventory[1])) {
       restoreRightHand();
     } else {
       restoreRightItem();
@@ -1196,11 +1190,11 @@ export function makeController($controls, {
   }
 
   function restoreLeftItem() {
-    restoreSw(tileTypeForItemType[inventory.left]);
+    restoreSw(tileTypeForItemType[inventory[0]]);
   }
 
   function restoreRightItem() {
-    restoreSe(tileTypeForItemType[inventory.right]);
+    restoreSe(tileTypeForItemType[inventory[1]]);
   }
 
   /**
@@ -1487,8 +1481,8 @@ export function makeController($controls, {
   }
 
   function tick() {
-    priorInventory.left = inventory.left;
-    priorInventory.right = inventory.right;
+    priorInventory[0]= inventory[0];
+    priorInventory[1] = inventory[1];
     worldModel.tick(inventory);
     updateHands();
   }
