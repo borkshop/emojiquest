@@ -63,7 +63,6 @@ const svgNS = "http://www.w3.org/2000/svg";
 
 const inventoryIndexForCommand = [-1, 0, 1, 2, 3, -1, 4, 5, 6, 7];
 const entityIndexForInventoryIndex = [0, 1, 2, 3, 5, 6, 7, 8];
-// const inventoryIndexForEntityIndex = [0, 1, 2, 3, -1, 4, 5, 6, 7];
 
 // const emptyTile = tileTypesByName.empty;
 const emptyItem = itemTypesByName.empty;

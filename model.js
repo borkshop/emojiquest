@@ -21,7 +21,14 @@
 
 import {assert, assertDefined, assumeDefined} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
-import {defaultTileTypeForAgentType, tileTypesByName, effectTypesByName, agentTypesByName, bump} from './mechanics.js';
+import {
+  defaultTileTypeForAgentType,
+  tileTypesByName,
+  effectTypesByName,
+  agentTypesByName,
+  bump,
+  craft,
+} from './mechanics.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -69,22 +76,37 @@ export function makeModel({
   advance,
   macroViewModel,
 }) {
-  let entitiesPrev = new Uint16Array(size);
-  let entitiesNext = new Uint16Array(size);
+
+  let entities = new Uint16Array(size);
+  let entitiesWriteBuffer = new Uint16Array(size);
+
+  // TODO consider assigning every position a priority, then shuffling
+  // priorities locally each turn.
   // const priorities = new Array(size);
+
   /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
   const intents = new Map();
+
   /** @type {Map<number, number>} entity number -> location number */
   const locations = new Map();
+
   /** @type {Map<number, number>} */
   const entityTypes = new Map();
 
-  // TODO hands for each entity
-  // TODO inventories for each entity
-  // TODO effects for each entity
-  // TODO health for each entity
-  // TODO stamina for each entity
-  // TODO observers for hands and inventories
+  /** @type {Map<number, Map<number, Bid>>} target tile number -> intended
+   * entity number -> transition */
+  const targets = new Map();
+  /** @type {Set<number>} entity numbers of mobile entities */
+  const mobiles = new Set();
+  /** @type {Set<number>} */
+  const moves = new Set();
+  /** @type {Set<number>} */
+  const removes = new Set();
+  /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
+  const bumps = [];
+
+  /** @type {Set<number>} */
+  const craftIntents = new Set();
 
   /**
    * Functions to inform of the motion of an entity.
@@ -98,21 +120,34 @@ export function makeModel({
    */
   const followers = new Map();
 
-  // Ephemeral state
-
-  /** @type {Map<number, Map<number, Bid>>} target tile number -> intended
-   * entity number -> transition */
-  const targets = new Map();
-  /** @type {Set<number>} entity numbers of automobile entities */
-  const mobiles = new Set();
-  /** @type {Set<number>} */
-  const moves = new Set();
-  /** @type {Set<number>} */
-  const removes = new Set();
-  /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
-  const bumps = [];
-
   let nextModelEntity = 1; // 0 implies non-existant.
+
+  /**
+   * Some entities may have an inventory.
+   * Each inventory is an array of item types, and type zero indicates an empty
+   * slot.
+   * This is sufficiently general to model inventories for arbitrary entities.
+   *
+   * Crafting mechanics apply only to the first two slots of the inventory
+   * array regardless of length.
+   *
+   * The player entity specifically has two hand slots followed by eight pack
+   * slots.
+   *
+   * The mechanics do not yet necessitate item entities to track item instance
+   * state.
+   * Concepts like "wear" would require this, but can also be cheaply but
+   * imperfectly modeled with a probability of wearing out on any use.
+   *
+   * @type {Map<number, Array<number>>}
+   */
+
+  const inventories = new Map();
+
+  // TODO effects for each entity
+  // TODO health for each entity
+  // TODO stamina for each entity
+  // TODO observers for hands and inventories
 
   /**
    * Note that entity numbers are not reused and this could lead to problems if
@@ -141,7 +176,7 @@ export function makeModel({
     entityTypes.delete(entity);
     mobiles.delete(entity);
     locations.delete(entity);
-    entitiesNext[location] = 0;
+    entitiesWriteBuffer[location] = 0;
   }
 
   /** @type {TypeFn} */
@@ -220,7 +255,7 @@ export function makeModel({
    */
   function init(spawn) {
     const agent = createEntity(agentTypesByName.player);
-    entitiesPrev[spawn] = agent;
+    entities[spawn] = agent;
     locations.set(agent, spawn);
     macroViewModel.put(agent, spawn, tileTypesByName.happy);
 
@@ -246,7 +281,7 @@ export function makeModel({
         const tileType = defaultTileTypeForAgentType[modelType];
         const entity = createEntity(modelType);
         macroViewModel.put(entity, location, tileType);
-        entitiesPrev[location] = entity;
+        entities[location] = entity;
         if (Math.random() < 0.0625) {
           mobiles.add(entity);
           locations.set(entity, location);
@@ -258,16 +293,25 @@ export function makeModel({
   }
 
   /**
-   * @param {number} e - entity number
+   * @param {number} entity
    * @param {number} direction - in quarters clockwise from north
    * @param {boolean} repeat - whether the agent intends to act upon the
    * patient before them.
    */
-  function intend(e, direction, repeat = false) {
-    const source = locate(e);
+  function intend(entity, direction, repeat = false) {
+    const source = locate(entity);
     const {position: target, turn, transit} = advance({position: source, direction});
-    bids(target).set(e, {position: source, direction, turn, transit, repeat});
-    intents.set(e, direction);
+    bids(target).set(entity, {position: source, direction, turn, transit, repeat});
+    intents.set(entity, direction);
+    craftIntents.delete(entity);
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function intendToCraft(entity) {
+    craftIntents.add(entity);
+    intents.delete(entity);
   }
 
   /**
@@ -285,15 +329,13 @@ export function makeModel({
     // }
 
     // Think
-    for (const mobile of mobiles) {
+    for (const entity of mobiles) {
       // TODO select from eleigible directions.
-      intend(mobile, Math.floor(Math.random() * 4));
+      intend(entity, Math.floor(Math.random() * 4));
     }
 
     // Prepare the next generation
-    for (let i = 0; i < size; i++) {
-      entitiesNext[i] = entitiesPrev[i];
-    }
+    entitiesWriteBuffer.set(entities);
 
     // Auction
     // Considering every tile that an entity wishes to move into or act upon
@@ -303,15 +345,15 @@ export function makeModel({
       const winner = assumeDefined(candidates.pop());
       const change = assumeDefined(options.get(winner));
       const {position: origin, direction, turn, repeat} = change;
-      const patient = entitiesPrev[destination];
+      const patient = entities[destination];
       if (patient === 0) {
         // Move
         macroViewModel.move(winner, destination, direction * quarturnToOcturn, turn);
         notifyFollowers(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
-        entitiesNext[destination] = winner;
-        entitiesNext[origin] = 0;
+        entitiesWriteBuffer[destination] = winner;
+        entitiesWriteBuffer[origin] = 0;
       } else {
         // Bounce
         macroViewModel.bounce(winner, direction * quarturnToOcturn);
@@ -339,8 +381,6 @@ export function makeModel({
           agentType: entityType(agent),
           patient,
           patientType: entityType(patient),
-          leftType: inventory.left,
-          rightType: inventory.right,
           effectType: effectTypesByName.empty,
           destination,
           direction,
@@ -351,8 +391,16 @@ export function makeModel({
       }
     }
 
-    // Swap generations
-    [entitiesNext, entitiesPrev] = [entitiesPrev, entitiesNext];
+    // Craft.
+    for (const entity of craftIntents) {
+      const inventory = inventories.get(entity);
+      if (inventory !== undefined && inventory.length >= 2) {
+        [inventory[0], inventory[1]] = craft(inventory[0], inventory[1]);
+      }
+    }
+
+    // Swap generations.
+    [entitiesWriteBuffer, entities] = [entities, entitiesWriteBuffer];
   }
 
   /**
@@ -365,6 +413,7 @@ export function makeModel({
     bumps.length = 0;
     targets.clear();
     intents.clear();
+    craftIntents.clear();
   }
 
   /**
@@ -372,7 +421,7 @@ export function makeModel({
    * @returns {number} entityType or (zero for no-type)
    */
   function get(location) {
-    const entity = assumeDefined(entitiesPrev[location]);
+    const entity = assumeDefined(entities[location]);
     if (entity === 0) {
       return 0;
     }
@@ -391,7 +440,7 @@ export function makeModel({
     remove(location);
     if (entityType !== agentTypesByName.player) {
       const entity = createEntity(entityType);
-      entitiesPrev[location] = entity;
+      entities[location] = entity;
       const tileType = defaultTileTypeForAgentType[entityType];
       macroViewModel.put(entity, location, tileType);
       macroViewModel.enter(entity);
@@ -402,7 +451,7 @@ export function makeModel({
    * @param {number} location
    */
   function remove(location) {
-    const entity = entitiesPrev[location];
+    const entity = entities[location];
     if (entity !== 0) {
       const entityType = entityTypes.get(entity);
       assertDefined(entityType);
@@ -415,8 +464,18 @@ export function makeModel({
       locations.delete(entity);
       entityTypes.delete(entity);
       mobiles.delete(entity);
-      entitiesPrev[location] = 0;
+      entities[location] = 0;
     }
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} slot
+   */
+  function item(entity, slot) {
+    const inventory = assumeDefined(inventories.get(entity));
+    assert(slot < inventory.length);
+    return inventory[slot];
   }
 
   return {
@@ -424,6 +483,8 @@ export function makeModel({
     set,
     remove,
     intend,
+    intendToCraft,
+    item,
     tick,
     tock,
     init,
