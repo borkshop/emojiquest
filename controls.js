@@ -13,7 +13,7 @@
 
 // @ts-check
 
-import {assert, assertNonZero, assumeDefined} from './assert.js';
+import {assert, assertNonZero, assumeDefined, assumeGreaterThanZero} from './assert.js';
 import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn, octurnVectors} from './geometry2d.js';
 import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
@@ -313,63 +313,15 @@ export function makeController($controls, {
   ];
 
   /** @type {number} */
-  let leftItemType = emptyItem;
-  /** @type {number} */
-  let rightItemType = emptyItem;
-  /** @type {number} */
   let packTileType = tileTypesByName.backpack;
 
   const inventory = {
-    get left() {
-      return leftItemType;
-    },
-    /**
-     * @param {number} type
-     */
-    set left(type) {
-      const packWasVisible = packNotEmpty();
-
-      leftItemType = type;
-      if (isEmptyItem(type)) {
-        if (entities[0] !== 0) {
-          macroViewModel.replace(entities[0], tileTypesByName.left);
-        }
-      } else {
-        const itemType = itemTypes[type];
-        const tileName = itemType.tile || itemType.name;
-        if (entities[0] !== 0) {
-          macroViewModel.replace(entities[0], tileTypesByName[tileName]);
-        }
-      }
-
-      const packIsVisible = packNotEmpty();
-      updatePack(packWasVisible, packIsVisible);
-    },
-    get right() {
-      return rightItemType;
-    },
-    /**
-     * @param {number} type
-     */
-    set right(type) {
-      const packWasVisible = packNotEmpty();
-
-      rightItemType = type;
-      if (isEmptyItem(type)) {
-        if (entities[2] !== 0) {
-          macroViewModel.replace(entities[2], tileTypesByName.right);
-        }
-      } else {
-        const itemType = itemTypes[type];
-        const tileName = itemType.tile || itemType.name;
-        if (entities[2] !== 0) {
-          macroViewModel.replace(entities[2], tileTypesByName[tileName]);
-        }
-      }
-
-      const packIsVisible = packNotEmpty();
-      updatePack(packWasVisible, packIsVisible);
-    },
+    left: emptyItem,
+    right: emptyItem,
+  };
+  const priorInventory = {
+    left: emptyItem,
+    right: emptyItem,
   };
 
   // Common queries:
@@ -394,14 +346,14 @@ export function makeController($controls, {
       const direction = commandDirection[command];
       if (direction !== undefined) {
         worldModel.intend(agent, direction, repeat);
-        worldModel.tick(inventory);
+        tick();
         return playMode;
       } else if (command === 5) { // stay
-        worldModel.tick(inventory);
+        tick();
         return playMode;
-      } else if (command === 1 && isNotEmptyItem(leftItemType)) {
+      } else if (command === 1 && isNotEmptyItem(inventory.left)) {
         return handleLeftItem();
-      } else if (command === 3 && isNotEmptyItem(rightItemType)) {
+      } else if (command === 3 && isNotEmptyItem(inventory.right)) {
         return handleRightItem();
       } else if (command === 7 && packNotEmpty()) { // stash
         return openStash();
@@ -513,20 +465,20 @@ export function makeController($controls, {
         } else { // back to play mode with an empty hand
 
           if (leftOrRight < 0) {
-            leftItemType = emptyItem;
+            inventory.left = emptyItem;
             restoreLeftHand();
 
-            rightItemType = otherItemType;
+            inventory.right = otherItemType;
             if (isEmptyItem(otherItemType)) {
               restoreRightHand();
             } else {
               restoreRightItem();
             }
           } else if (leftOrRight > 0) {
-            rightItemType = emptyItem;
+            inventory.right = emptyItem;
             restoreRightHand();
 
-            leftItemType = otherItemType;
+            inventory.left = otherItemType;
             if (isEmptyItem(otherItemType)) {
               restoreLeftHand();
             } else {
@@ -668,7 +620,7 @@ export function makeController($controls, {
     entities[4] = leftItemEntity;
     macroViewModel.up(leftItemEntity);
 
-    if (isNotEmptyItem(rightItemType)) {
+    if (isNotEmptyItem(inventory.right)) {
       const rightItemEntity = entities[2];
       assertNonZero(rightItemEntity);
       macroViewModel.move(rightItemEntity, locate(1, 2), ww, 0);
@@ -679,11 +631,11 @@ export function makeController($controls, {
     if (packEmpty()) {
       restorePack();
     }
-    restoreRecepticle(leftItemType);
+    restoreRecepticle(inventory.left);
     restoreLeftHand();
     restoreControllerReticle();
 
-    return itemMode(leftItemType, rightItemType, -1);
+    return itemMode(inventory.left, inventory.right, -1);
   }
 
   function handleRightItem() {
@@ -699,7 +651,7 @@ export function makeController($controls, {
     entities[4] = rightItemEntity;
     macroViewModel.up(rightItemEntity);
 
-    if (isNotEmptyItem(leftItemType)) {
+    if (isNotEmptyItem(inventory.left)) {
       const leftItemEntity = entities[0];
       assertNonZero(leftItemEntity);
       macroViewModel.move(leftItemEntity, locate(1, 2), ee, 0);
@@ -710,11 +662,11 @@ export function makeController($controls, {
     if (packEmpty()) {
       restorePack();
     }
-    restoreRecepticle(rightItemType);
+    restoreRecepticle(inventory.right);
     restoreRightHand();
     restoreControllerReticle();
 
-    return itemMode(rightItemType, leftItemType, 1);
+    return itemMode(inventory.right, inventory.left, 1);
   }
 
   function openStash() {
@@ -723,16 +675,16 @@ export function makeController($controls, {
     dismissDpad();
     dismissWatch();
 
-    if (isEmptyItem(leftItemType)) {
+    if (isEmptyItem(inventory.left)) {
       dismissLeft();
       dismissRight();
       restorePackItems();
-      return packMode(leftItemType, rightItemType, -1);
-    } else if (isEmptyItem(rightItemType)) {
+      return packMode(inventory.left, inventory.right, -1);
+    } else if (isEmptyItem(inventory.right)) {
       dismissLeft();
       dismissRight();
       restorePackItems();
-      return packMode(rightItemType, leftItemType, 1);
+      return packMode(inventory.right, inventory.left, 1);
     } else {
       const leftEntity = entities[0];
       assertNonZero(leftEntity);
@@ -741,7 +693,7 @@ export function makeController($controls, {
       entities[0] = 0;
       dismissRight();
       restorePackItems();
-      return packMode(leftItemType, rightItemType, -1);
+      return packMode(inventory.left, inventory.right, -1);
     }
   }
 
@@ -794,18 +746,18 @@ export function makeController($controls, {
     }
 
     if (leftOrRight < 0) {
-      leftItemType = emptyItem;
-      rightItemType = otherItemType;
+      inventory.left = emptyItem;
+      inventory.right = otherItemType;
     } else if (leftOrRight > 0) {
-      rightItemType = emptyItem;
-      leftItemType = otherItemType;
+      inventory.right = emptyItem;
+      inventory.left = otherItemType;
     }
     restoreCenterItem(otherItemType, leftOrRight);
     restoreDpad();
     restoreWatch();
     dismissControllerReticle();
 
-    worldModel.tick(inventory);
+    tick();
 
     return playMode;
   }
@@ -817,10 +769,8 @@ export function makeController($controls, {
    * @param {boolean} packWasVisible
    */
   function craftItems(itemType, otherItemType, leftOrRight, packWasVisible) {
-    const entity = entities[4];
-    assertNonZero(entity);
-    const otherEntity = entities[1];
-    assertNonZero(otherEntity);
+    const entity = assumeGreaterThanZero(entities[4]);
+    const otherEntity = assumeGreaterThanZero(entities[1]);
 
     const [productType, byproductType] = craft(itemType, otherItemType);
 
@@ -902,8 +852,8 @@ export function makeController($controls, {
 
     entities[0] = leftItemEntity;
 
-    leftItemType = itemType;
-    rightItemType = otherItemType;
+    inventory.left = itemType;
+    inventory.right = otherItemType;
 
     restoreCenterItem(otherItemType, -1);
     restoreDpad();
@@ -936,8 +886,8 @@ export function makeController($controls, {
 
     entities[2] = rightItemEntity;
 
-    rightItemType = itemType;
-    leftItemType = otherItemType;
+    inventory.right = itemType;
+    inventory.left = otherItemType;
 
     restoreCenterItem(otherItemType, 1);
     restoreDpad();
@@ -1085,6 +1035,37 @@ export function makeController($controls, {
 
   // Entity management:
 
+  function updateHands() {
+    const packWasVisible = packNotEmpty();
+
+    updateHand(0, 'left', tileTypesByName.left);
+    updateHand(2, 'right', tileTypesByName.right);
+
+    const packIsVisible = packNotEmpty();
+    updatePack(packWasVisible, packIsVisible);
+  }
+
+  /**
+   * @param {number} gridIndex
+   * @param {'left' | 'right'} inventoryIndex
+   * @param {number} handTileType
+   */
+  function updateHand(gridIndex, inventoryIndex, handTileType) {
+    const itemType = inventory[inventoryIndex];
+    const priorItemType = priorInventory[inventoryIndex];
+    if (itemType !== priorItemType) {
+      priorInventory[inventoryIndex] = itemType;
+
+      const entity = entities[gridIndex];
+      if (isEmptyItem(itemType)) {
+        macroViewModel.replace(entity, handTileType);
+      } else {
+        const tileType = tileTypeForItemType[itemType];
+        macroViewModel.replace(entity, tileType);
+      }
+    }
+  }
+
   function dismissControllerReticle() {
     assertNonZero(reticleEntity);
     macroViewModel.exit(reticleEntity);
@@ -1191,7 +1172,7 @@ export function makeController($controls, {
   }
 
   function restoreLeft() {
-    if (isEmptyItem(leftItemType)) {
+    if (isEmptyItem(inventory.left)) {
       restoreLeftHand();
     } else {
       restoreLeftItem();
@@ -1199,7 +1180,7 @@ export function makeController($controls, {
   }
 
   function restoreRight() {
-    if (isEmptyItem(rightItemType)) {
+    if (isEmptyItem(inventory.right)) {
       restoreRightHand();
     } else {
       restoreRightItem();
@@ -1215,11 +1196,11 @@ export function makeController($controls, {
   }
 
   function restoreLeftItem() {
-    restoreSw(tileTypeForItemType[leftItemType]);
+    restoreSw(tileTypeForItemType[inventory.left]);
   }
 
   function restoreRightItem() {
-    restoreSe(tileTypeForItemType[rightItemType]);
+    restoreSe(tileTypeForItemType[inventory.right]);
   }
 
   /**
@@ -1503,6 +1484,13 @@ export function makeController($controls, {
     camera.animate(progress.now);
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
+  }
+
+  function tick() {
+    priorInventory.left = inventory.left;
+    priorInventory.right = inventory.right;
+    worldModel.tick(inventory);
+    updateHands();
   }
 
   function reset() {

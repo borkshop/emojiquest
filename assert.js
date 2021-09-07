@@ -47,3 +47,13 @@ export function assumeDefined(value, message) {
   assert(value !== undefined, message);
   return value;
 }
+
+/**
+ * @param {number} value
+ * @param {string} [message]
+ * @returns {number}
+ */
+export function assumeGreaterThanZero(value, message) {
+  assert(value > 0, message);
+  return value;
+}
