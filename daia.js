@@ -163,7 +163,7 @@ const faceTransforms = [
   [rotateY(Math.PI)], // 5 back
 ].map(matrixes => compose(...matrixes));
 
-const faceNames = [
+export const faceNames = [
   'Dysia',
   'Oria',
   'Infra',
@@ -172,7 +172,16 @@ const faceNames = [
   'Euia',
 ];
 
-const arrows = [
+export const faceSymbols = [
+  '⚀',
+  '⚁',
+  '⚂',
+  '⚃',
+  '⚄',
+  '⚅',
+];
+
+export const arrows = [
   ['↘', '↓', '↙'],
   ['→', '⨯', '←'],
   ['↗', '↑', '↖'],
@@ -385,7 +394,7 @@ export function makeDaia({
     const {q: {x: qx, y: qy}, r: {x: rx, y: ry}} = moddivpoint({x, y}, {x: faceSize / 3, y: faceSize / 3})
     const {q: {x: sx, y: sy}, r: {x: tx, y: ty}} = moddivpoint({x: rx, y: ry}, {x: faceSize / 9, y: faceSize / 9})
     const {q: {x: ux, y: uy}, r: {x: vx, y: vy}} = moddivpoint({x: tx, y: ty}, {x: faceSize / 27, y: faceSize / 27})
-    return `${faceNames[f]} ${arrows[qy][qx]} ${arrows[sy][sx]} ${arrows[uy][ux]} ${arrows[vy][vx]} @${t}`;
+    return `${faceSymbols[f]} ${arrows[qy][qx]} ${arrows[sy][sx]} ${arrows[uy][ux]} ${arrows[vy][vx]} @${t}`;
   }
 
   return {
