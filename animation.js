@@ -7,17 +7,7 @@
 
 // @ts-check
 
-const {min, max} = Math;
-
-/**
- * @param {number} lo
- * @param {number} hi
- * @param {number} value
- * @returns {number}
- */
-function clamp(lo, hi, value) {
-  return max(lo, min(hi, value));
-}
+import { clamp } from './math.js';
 
 /**
  * @typedef {Object} Progress
