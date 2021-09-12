@@ -281,18 +281,8 @@ export function makeController($controls, {
 
   worldModel.follow(agent, followAgent);
 
-  const inventory = [
-    emptyItem, // held in left hand
-    emptyItem, // held in right hand
-    emptyItem, // command === 1
-    emptyItem, // command === 2
-    emptyItem, // command === 3
-    emptyItem, // command === 4 (5 skipped)
-    emptyItem, // command === 6
-    emptyItem, // command === 7
-    emptyItem, // command === 8
-    emptyItem, // command === 9
-  ];
+  const inventory = worldModel.inventoryForEntity(agent);
+  assert(inventory.length === 10);
 
   const priorHands = [emptyItem, emptyItem];
 
@@ -1523,7 +1513,7 @@ export function makeController($controls, {
   function tick() {
     priorHands[0] = leftHandItemType();
     priorHands[1] = rightHandItemType();
-    worldModel.tick(inventory);
+    worldModel.tick();
     updateHands();
   }
 

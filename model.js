@@ -23,6 +23,7 @@ import {assert, assertDefined, assumeDefined} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
 import {
   defaultTileTypeForAgentType,
+  itemTypesByName,
   tileTypesByName,
   effectTypesByName,
   agentTypesByName,
@@ -64,6 +65,8 @@ import {
 /**
  * @typedef {ReturnType<makeModel>} Model
  */
+
+const emptyItem = itemTypesByName.empty;
 
 /**
  * @param {Object} args
@@ -259,6 +262,19 @@ export function makeModel({
     locations.set(agent, spawn);
     macroViewModel.put(agent, spawn, tileTypesByName.happy);
 
+    inventories.set(agent, [
+      emptyItem, // held in left hand
+      emptyItem, // held in right hand
+      emptyItem, // command === 1
+      emptyItem, // command === 2
+      emptyItem, // command === 3
+      emptyItem, // command === 4 (5 skipped)
+      emptyItem, // command === 6
+      emptyItem, // command === 7
+      emptyItem, // command === 8
+      emptyItem, // command === 9
+    ]);
+
     for (let location = 0; location < size; location++) {
       if (Math.random() < 0.25 && location !== spawn) {
         const modelType = [
@@ -316,9 +332,8 @@ export function makeModel({
 
   /**
    * effects transitions
-   * @param {Inventory} inventory
    */
-  function tick(inventory) {
+  function tick() {
     // Measure
     // let treeCount = 0;
     // for (let i = 0; i < size; i++) {
@@ -376,18 +391,21 @@ export function makeModel({
     // be destroyed by another bump and therein may lay race conditions.
     for (const { agent, patient, destination, direction } of bumps) {
       if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
-        bump({
-          agent,
-          agentType: entityType(agent),
-          patient,
-          patientType: entityType(patient),
-          effectType: effectTypesByName.empty,
-          destination,
-          direction,
-          inventory,
-          macroViewModel,
-          destroyEntity,
-        });
+        const inventory = inventories.get(agent);
+        if (inventory !== undefined && inventory.length >= 2) {
+          bump({
+            agent,
+            agentType: entityType(agent),
+            patient,
+            patientType: entityType(patient),
+            effectType: effectTypesByName.empty,
+            destination,
+            direction,
+            inventory,
+            macroViewModel,
+            destroyEntity,
+          });
+        }
       }
     }
 
@@ -470,12 +488,9 @@ export function makeModel({
 
   /**
    * @param {number} entity
-   * @param {number} slot
    */
-  function item(entity, slot) {
-    const inventory = assumeDefined(inventories.get(entity));
-    assert(slot < inventory.length);
-    return inventory[slot];
+  function inventoryForEntity(entity) {
+    return assumeDefined(inventories.get(entity));
   }
 
   return {
@@ -484,7 +499,7 @@ export function makeModel({
     remove,
     intend,
     intendToCraft,
-    item,
+    inventoryForEntity,
     tick,
     tock,
     init,
