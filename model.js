@@ -508,6 +508,15 @@ export function makeModel({
 
   /**
    * @param {number} entity
+   * @param {number} inventoryIndex
+   */
+  function inventory(entity, inventoryIndex) {
+    const inventory = entityInventory(entity);
+    assert(inventoryIndex < inventory.length);
+    return inventory[inventoryIndex];
+  }
+  /**
+   * @param {number} entity
    * @param {number} effect
    */
   function availEffect(entity, effect) {
@@ -574,11 +583,14 @@ export function makeModel({
 
   /**
    * @param {number} entity
-   * @param {number} itemType TODO inventoryIndex
+   * @param {number} inventoryIndex
    * @returns {'effect' | 'discard'}
    */
-  function use(entity, itemType) {
+  function use(entity, inventoryIndex) {
+    const inventory = entityInventory(entity);
+    const itemType = inventory[inventoryIndex];
     const effectName = itemTypes[itemType].effect;
+    inventory[inventoryIndex] = emptyItem; // poof
     if (effectName !== undefined) {
       const effectType = assumeDefined(effectTypesByName[effectName]);
       availEffect(entity, effectType);
@@ -603,16 +615,46 @@ export function makeModel({
     [inventory[i], inventory[j]] = [inventory[j], inventory[i]];
   }
 
+  /**
+   * @param {number} entity
+   * @param {number} start
+   */
+  function anyPacked(entity, start = 0) {
+    const inventory = entityInventory(entity);
+    for (let i = start; i < inventory.length; i += 1) {
+      if (inventory[i] !== emptyItem) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} start
+   */
+  function allPacked(entity, start = 0) {
+    const inventory = entityInventory(entity);
+    for (let i = start; i < inventory.length; i += 1) {
+      if (inventory[i] === emptyItem) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   return {
     get,
     set,
     remove,
     intend,
     intendToCraft,
+    inventory,
+    anyPacked,
+    allPacked,
     swap,
     use,
     craft,
-    entityInventory, // XXX remove
     entityStamina,
     entityHealth,
     entityEffect,

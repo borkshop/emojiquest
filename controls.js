@@ -29,7 +29,6 @@ import {
   tileTypeForItemType,
   tileTypeForEffectType,
   defaultTileTypeForAgentType,
-  craft
 } from './mechanics.js';
 import {commandDirection} from './driver.js';
 
@@ -280,9 +279,6 @@ export function makeController($controls, {
 
   worldModel.follow(agent, followAgent);
 
-  const inventory = worldModel.entityInventory(agent);
-  assert(inventory.length === 10);
-
   const priorHands = [emptyItem, emptyItem];
 
   // index of enabled effect, or -1 for no effect
@@ -306,59 +302,25 @@ export function makeController($controls, {
 
   // Common queries:
 
-  /**
-   * @param {number} inventoryIndex
-   * @param {number} itemType
-   */
-  function setInventoryItemType(inventoryIndex, itemType) {
-    inventory[inventoryIndex] = itemType;
-  }
-
-  /**
-   * @param {number} inventoryIndex
-   */
-  function getInventoryItemType(inventoryIndex) {
-    return inventory[inventoryIndex];
-  }
-
-  /**
-   * @param {number} itemType
-   */
-  function setLeftHandItemType(itemType) {
-    setInventoryItemType(leftHandInventoryIndex, itemType);
-  }
-
-  /**
-   * @param {number} itemType
-   */
-  function setRightHandItemType(itemType) {
-    setInventoryItemType(rightHandInventoryIndex, itemType);
-  }
-
   function leftHandItemType() {
-    return getInventoryItemType(leftHandInventoryIndex);
+    return worldModel.inventory(agent, leftHandInventoryIndex);
   }
 
   function rightHandItemType() {
-    return getInventoryItemType(rightHandInventoryIndex);
+    return worldModel.inventory(agent, rightHandInventoryIndex);
   }
 
   function packNotFull() {
-    return inventory.slice(2).some(isEmptyItem);
+    return !worldModel.allPacked(agent, 2);
   }
 
   function packNotEmpty() {
-    return !inventory.slice(2).every(isEmptyItem);
+    return worldModel.anyPacked(agent, 2);
   }
 
   function packEmpty() {
-    return inventory.slice(2).every(isEmptyItem);
+    return !worldModel.anyPacked(agent, 2);
   }
-
-  // Superfluous:
-  // function packFull() {
-  //   return !inventory.slice(2).some(isEmptyItem);
-  // }
 
   // Modes:
 
@@ -439,7 +401,7 @@ export function makeController($controls, {
           const inventoryEntityIndex = entityIndexForInventoryIndex[inventoryIndex];
           const toItemDirection = directionToForPackIndex[inventoryIndex - 2];
           const fromItemDirection = directionFromForPackIndex[inventoryIndex - 2];
-          const inventoryItemType = getInventoryItemType(inventoryIndex);
+          const inventoryItemType = worldModel.inventory(agent, inventoryIndex);
 
           const inventoryEntity = entities[inventoryEntityIndex];
           assertNonZero(inventoryEntity);
@@ -484,7 +446,6 @@ export function makeController($controls, {
         } else { // back to play mode with an empty hand
 
           if (leftOrRight < 0) {
-            setLeftHandItemType(emptyItem);
             restoreLeftHand();
 
             if (isEmptyItem(rightHandItemType())) {
@@ -742,8 +703,7 @@ export function makeController($controls, {
 
     dismiss(8); // trash / mouth / or effect
 
-    const use = worldModel.use(agent, leftHandItemType());
-    setLeftHandItemType(emptyItem); // TODO should be inventoryIndex above and this line should be implied
+    const use = worldModel.use(agent, leftHandInventoryIndex);
 
     if (use === 'effect') {
       macroViewModel.move(itemEntity, locate(2, 0), ne, 0);
@@ -784,30 +744,34 @@ export function makeController($controls, {
     const entity = assumeGreaterThanZero(entities[4]);
     const otherEntity = assumeGreaterThanZero(entities[1]);
 
-    const itemType = leftHandItemType();
-    const otherItemType = rightHandItemType();
+    const agentType = leftHandItemType();
+    const reagentType = rightHandItemType();
 
-    const [productType, byproductType] = craft(itemType, otherItemType);
+    worldModel.intendToCraft(agent);
+    tick();
+
+    const productType = leftHandItemType();
+    const byproductType = rightHandItemType();
 
     console.table({
-      agent: itemTypes[itemType].name,
-      reagent: itemTypes[otherItemType].name,
+      agent: itemTypes[agentType].name,
+      reagent: itemTypes[reagentType].name,
       product: itemTypes[productType].name,
       byproduct: itemTypes[byproductType].name,
     });
 
-    assert(otherItemType !== productType);
+    assert(reagentType !== productType);
     assert(isNotEmptyItem(productType));
     const productTileType = tileTypeForItemType[productType];
 
-    if (otherItemType === byproductType && isNotEmptyItem(byproductType)) {
+    if (reagentType === byproductType && isNotEmptyItem(byproductType)) {
       // The agent is replaced with the product.  The reagent is also the
       // byproduct, in other words, it is a catalyst and just bounces in
       // place.
       macroViewModel.replace(entity, productTileType);
       macroViewModel.bounce(otherEntity, nn);
 
-    } else if (itemType === byproductType) {
+    } else if (agentType === byproductType) {
       // The agent becomes the byproduct when the formula above gets
       // reversed.  In this case, the agent becomes the byproduct, or
       // rather, it just moves from the top to the bottom slot.
@@ -837,12 +801,10 @@ export function makeController($controls, {
 
     // Correct recepticle tile type, if necessary.
     const newRecepticleTileType = recepticleTileType(productType);
-    if (recepticleTileType(itemType) !== newRecepticleTileType) {
+    if (recepticleTileType(agentType) !== newRecepticleTileType) {
       macroViewModel.replace(entities[8], newRecepticleTileType);
     }
 
-    setLeftHandItemType(productType);
-    setRightHandItemType(byproductType);
     return itemMode(leftOrRight, packWasVisible);
   }
 
@@ -1063,7 +1025,7 @@ export function makeController($controls, {
    * @param {number} handTileType
    */
   function updateHand(gridIndex, inventoryIndex, handTileType) {
-    const itemType = getInventoryItemType(inventoryIndex)
+    const itemType = worldModel.inventory(agent, inventoryIndex)
     const priorItemType = priorHands[inventoryIndex];
     if (itemType !== priorItemType) {
       priorHands[inventoryIndex] = itemType;
@@ -1278,7 +1240,7 @@ export function makeController($controls, {
   function restorePackItems() {
     for (let i = 0; i < 8; i++) {
       const inventoryIndex = i + 2;
-      const itemType = getInventoryItemType(inventoryIndex);
+      const itemType = worldModel.inventory(agent, inventoryIndex);
       const entityIndex = entityIndexForInventoryIndex[inventoryIndex];
       const itemGridIndex = itemGridIndexes[i];
       const itemLocation = gridLocations[itemGridIndex];
@@ -1309,7 +1271,7 @@ export function makeController($controls, {
    * @param {number} exceptItem
    */
   function dismissPackItemsExcept(exceptItem) {
-    for (let i = 2; i < inventory.length; i++) {
+    for (let i = 2; i < 10; i++) {
       if (i !== exceptItem) {
         const inventoryEntityIndex = entityIndexForInventoryIndex[i];
         dismiss(inventoryEntityIndex);
