@@ -574,7 +574,7 @@ export function makeModel({
 
   /**
    * @param {number} entity
-   * @param {number} itemType
+   * @param {number} itemType TODO inventoryIndex
    * @returns {'effect' | 'discard'}
    */
   function use(entity, itemType) {
@@ -589,13 +589,30 @@ export function makeModel({
     return 'discard';
   }
 
+  /**
+   * @param {number} entity
+   * @param {number} i
+   * @param {number} j
+   */
+  function swap(entity, i, j) {
+    const inventory = entityInventory(entity);
+    assert(i >= 0);
+    assert(j >= 0);
+    assert(i < inventory.length);
+    assert(j < inventory.length);
+    [inventory[i], inventory[j]] = [inventory[j], inventory[i]];
+  }
+
   return {
     get,
     set,
     remove,
     intend,
     intendToCraft,
-    entityInventory,
+    swap,
+    use,
+    craft,
+    entityInventory, // XXX remove
     entityStamina,
     entityHealth,
     entityEffect,
@@ -603,7 +620,6 @@ export function makeModel({
     entityEffects,
     entityEffectChoice,
     chooseEffect,
-    use,
     tick,
     tock,
     init,
