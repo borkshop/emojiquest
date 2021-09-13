@@ -85,19 +85,14 @@ export function craft(agentType, reagentType) {
 /**
  * @typedef {Object} HandlerParameters
  * @property {number} agent
- * @property {number} agentType
  * @property {number} patient
- * @property {number} patientType
  * @property {number} direction
  * @property {number} destination
- * @property {number} effectType,
- * @property {(entity: number, location: number) => void} destroyEntity
- * @property {import('./model.js').Inventory} inventory
- * @property {import('./macro-view-model.js').MacroViewModel} macroViewModel
  */
 
 /**
  * @callback Handler
+ * @param {Kit} kit
  * @param {HandlerParameters} params
  */
 
@@ -112,46 +107,51 @@ const verbs = {
   take([yieldType]) {
 
     /** @type {Handler} */
-    function takeHandler({ inventory, patient, direction, destination, macroViewModel, destroyEntity }) {
+    function takeHandler(kit, {agent, patient, direction, destination}) {
+      const inventory = kit.entityInventory(agent);
       inventory[0] = yieldType;
-      macroViewModel.give(patient, direction * quarturnToOcturn);
-      destroyEntity(patient, destination);
+      kit.macroViewModel.give(patient, direction * quarturnToOcturn);
+      kit.destroyEntity(patient, destination);
     }
     return takeHandler;
   },
 
   reap([yieldType]) {
     /** @type {Handler} */
-    function reapHandler({ inventory, agent, patient, direction, destination, macroViewModel, destroyEntity }) {
+    function reapHandler(kit, { agent, patient, direction, destination }) {
+      const inventory = kit.entityInventory(agent);
       inventory[1] = yieldType;
-      macroViewModel.bounce(agent, direction * quarturnToOcturn);
-      macroViewModel.fell(patient);
-      destroyEntity(patient, destination);
+      kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
+      kit.macroViewModel.fell(patient);
+      kit.destroyEntity(patient, destination);
     }
     return reapHandler;
   },
 
   cut([yieldType]) {
     /** @type {Handler} */
-    function cutHandler({inventory, macroViewModel, agent, direction}) {
+    function cutHandler(kit, {agent, direction}) {
+      const inventory = kit.entityInventory(agent);
       inventory[1] = yieldType;
-      macroViewModel.bounce(agent, direction * quarturnToOcturn);
+      kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
     }
     return cutHandler;
   },
 
   pick([yieldType]) {
     /** @type {Handler} */
-    function cutHandler({inventory, macroViewModel, agent, direction}) {
+    function cutHandler(kit, {agent, direction}) {
+      const inventory = kit.entityInventory(agent);
       inventory[0] = yieldType;
-      macroViewModel.bounce(agent, direction * quarturnToOcturn);
+      kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
     }
     return cutHandler;
   },
 
   split([leftType, rightType]) {
     /** @type {Handler} */
-    function splitHandler({inventory}) {
+    function splitHandler(kit, {agent}) {
+      const inventory = kit.entityInventory(agent);
       assertDefined(rightType);
       inventory[0] = leftType;
       inventory[1] = rightType;
@@ -161,7 +161,8 @@ const verbs = {
 
   merge([changeType]) {
     /** @type {Handler} */
-    function mergeHandler({inventory}) {
+    function mergeHandler(kit, {agent}) {
+      const inventory = kit.entityInventory(agent);
       inventory[0] = changeType;
       inventory[1] = itemTypesByName.empty;
     }
@@ -170,9 +171,10 @@ const verbs = {
 
   replace([yieldType]) {
     /** @type {Handler} */
-    function replaceHandler({inventory, macroViewModel, agent, direction}) {
+    function replaceHandler(kit, {agent, direction}) {
+      const inventory = kit.entityInventory(agent);
       inventory[0] = yieldType;
-      macroViewModel.bounce(agent, direction * quarturnToOcturn);
+      kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
     }
     return replaceHandler;
   },
@@ -234,9 +236,10 @@ function bumpKey({agentType, patientType, leftType, rightType, effectType}) {
 }
 
 /**
+ * @param {Kit} kit
  * @param {BumpKeyParameters & HandlerParameters} parameters
  */
-function bumpCombination(parameters) {
+function bumpCombination(kit, parameters) {
   const key = bumpKey(parameters);
   const handler = bumpingFormulae.get(key);
   if (handler !== undefined) {
@@ -247,21 +250,35 @@ function bumpCombination(parameters) {
       rightType: itemTypes[parameters.rightType].name,
       effectType: effectTypes[parameters.effectType].name,
     });
-    handler(parameters);
+    handler(kit, parameters);
     return true;
   }
   return false;
 }
 
 /**
+ * @typedef {Object} Kit
+ * @property {(entity: number) => number} entityType
+ * @property {(entity: number) => number} entityEffect
+ * @property {(entity: number) => Array<number>} entityInventory
+ * @property {import('./macro-view-model.js').MacroViewModel} macroViewModel
+ * @property {(entity: number, location: number) => void} destroyEntity
+ */
+
+/**
+ * @param {Kit} kit
  * @param {HandlerParameters} parameters
  */
-export function bump(parameters) {
-  const [left, right] = parameters.inventory;
-  for (const effectType of [parameters.effectType, effectTypesByName.any]) {
+export function bump(kit, parameters) {
+  const agentType = kit.entityType(parameters.agent);
+  const patientType = kit.entityType(parameters.patient);
+  const agentEffectType = kit.entityEffect(parameters.agent);
+  const inventory = kit.entityInventory(parameters.agent);
+  const [left, right] = inventory;
+  for (const effectType of [agentEffectType, effectTypesByName.any]) {
     for (const rightType of [right, itemTypesByName.any]) {
       for (const leftType of [left, itemTypesByName.any]) {
-        if (bumpCombination({...parameters, leftType, rightType, effectType})) {
+        if (bumpCombination(kit, {...parameters, agentType, patientType, leftType, rightType, effectType})) {
           return;
         }
       }

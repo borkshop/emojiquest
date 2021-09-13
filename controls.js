@@ -26,7 +26,6 @@ import {
   itemTypes,
   agentTypes,
   itemTypesByName,
-  effectTypesByName,
   tileTypeForItemType,
   tileTypeForEffectType,
   defaultTileTypeForAgentType,
@@ -281,15 +280,13 @@ export function makeController($controls, {
 
   worldModel.follow(agent, followAgent);
 
-  const inventory = worldModel.inventoryForEntity(agent);
+  const inventory = worldModel.entityInventory(agent);
   assert(inventory.length === 10);
 
   const priorHands = [emptyItem, emptyItem];
 
   // index of enabled effect, or -1 for no effect
-  let effectType = effectTypesByName.none;
-  // bit mask of owned effect types
-  let effects = 1 << effectType;
+  const effectType = worldModel.entityEffect(agent);
   // indexed by command - 1
   /** @type {Array<number>} */
   let entities = [
@@ -382,7 +379,7 @@ export function makeController($controls, {
         return handleRightItem();
       } else if (command === 7 && packNotEmpty()) { // stash
         return openStash();
-      } else if (command === 9 && effects !== 0) { // effect chooser
+      } else if (command === 9 && worldModel.entityEffects(agent) !== 0) { // effect chooser
         return openEffects();
       } else if (command === 0) {
         return openEditor();
@@ -535,7 +532,7 @@ export function makeController($controls, {
     press(command) {
       if (command >= 1 && command <= 9) {
         const chosenType = command - 1;
-        if ((effects & (1 << chosenType)) !== 0) {
+        if (worldModel.entityHasEffect(agent, chosenType)) {
           return chooseEffect(chosenType);
         }
         return effectMode;
@@ -748,26 +745,22 @@ export function makeController($controls, {
    * @param {boolean} packWasVisible
    */
   function useItem(itemType, otherItemType, leftOrRight, packWasVisible) {
-    const effectName = itemTypes[itemType].effect;
     const itemEntity = entities[4];
     assertNonZero(itemEntity);
 
     dismiss(8); // trash / mouth / or effect
 
-    if (effectName !== undefined) {
-      effectType = effectTypesByName[effectName];
-      effects |= 1 << effectType;
+    const use = worldModel.use(agent, itemType);
+
+    if (use === 'effect') {
       macroViewModel.move(itemEntity, locate(2, 0), ne, 0);
       entities[8] = itemEntity;
       entities[4] = 0;
 
     } else {
       macroViewModel.take(itemEntity, ne);
-
       restoreEffect();
     }
-
-    // TODO effects of eating (+health, +stamina)
 
     if (packWasVisible && packEmpty()) {
       dismissPack();
@@ -948,7 +941,7 @@ export function makeController($controls, {
    * @param {number} chosenType
    */
   function chooseEffect(chosenType) {
-    effectType = chosenType;
+    worldModel.chooseEffect(agent, chosenType);
 
     dismissEffects();
     restoreLeft();
@@ -1253,6 +1246,7 @@ export function makeController($controls, {
   }
 
   function restoreEffect() {
+    const effectType = worldModel.entityEffect(agent);
     const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
     restoreNe(effectTileType);
   }
@@ -1306,8 +1300,7 @@ export function makeController($controls, {
 
   function restoreEffects() {
     for (let i = 0; i < 9; i++) {
-      const effectBit = 1 << i;
-      const effectTileType = effects & effectBit ? tileTypeForEffectType[i] : gridTileTypes[i];
+      const effectTileType = worldModel.entityHasEffect(agent, i) ? tileTypeForEffectType[i] : gridTileTypes[i];
       const effectLocation = gridLocations[i];
       const effectEntity = create(effectTileType, effectLocation);
       macroViewModel.enter(effectEntity);

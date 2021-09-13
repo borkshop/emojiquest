@@ -23,6 +23,7 @@ import {assert, assertDefined, assumeDefined} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
 import {
   defaultTileTypeForAgentType,
+  itemTypes,
   itemTypesByName,
   tileTypesByName,
   effectTypesByName,
@@ -123,6 +124,8 @@ export function makeModel({
    */
   const followers = new Map();
 
+  // TODO other kinds of observers, beyond just following an entity's location.
+
   let nextModelEntity = 1; // 0 implies non-existant.
 
   /**
@@ -147,10 +150,14 @@ export function makeModel({
 
   const inventories = new Map();
 
-  // TODO effects for each entity
-  // TODO health for each entity
-  // TODO stamina for each entity
-  // TODO observers for hands and inventories
+  /** @type {Map<number, number>} */
+  const effectsOwned = new Map();
+  /** @type {Map<number, number>} */
+  const effectsChosen = new Map();
+  /** @type {Map<number, number>} */
+  const healths = new Map();
+  /** @type {Map<number, number>} */
+  const staminas = new Map();
 
   /**
    * Note that entity numbers are not reused and this could lead to problems if
@@ -274,6 +281,10 @@ export function makeModel({
       emptyItem, // command === 8
       emptyItem, // command === 9
     ]);
+    healths.set(agent, 0);
+    staminas.set(agent, 0);
+    effectsOwned.set(agent, 1 << effectTypesByName.none);
+    effectsChosen.set(agent, effectTypesByName.none);
 
     for (let location = 0; location < size; location++) {
       if (Math.random() < 0.25 && location !== spawn) {
@@ -329,6 +340,14 @@ export function makeModel({
     craftIntents.add(entity);
     intents.delete(entity);
   }
+
+  const bumpKit = {
+    entityType,
+    entityEffect,
+    entityInventory,
+    destroyEntity,
+    macroViewModel,
+  };
 
   /**
    * effects transitions
@@ -393,17 +412,11 @@ export function makeModel({
       if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
         const inventory = inventories.get(agent);
         if (inventory !== undefined && inventory.length >= 2) {
-          bump({
+          bump(bumpKit, {
             agent,
-            agentType: entityType(agent),
             patient,
-            patientType: entityType(patient),
-            effectType: effectTypesByName.empty,
             destination,
             direction,
-            inventory,
-            macroViewModel,
-            destroyEntity,
           });
         }
       }
@@ -489,8 +502,91 @@ export function makeModel({
   /**
    * @param {number} entity
    */
-  function inventoryForEntity(entity) {
+  function entityInventory(entity) {
     return assumeDefined(inventories.get(entity));
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} effect
+   */
+  function availEffect(entity, effect) {
+    const effects = assumeDefined(effectsOwned.get(entity)) | 1 << effect;
+    effectsOwned.set(entity, effects);
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function entityEffect(entity) {
+    const effect = assumeDefined(effectsChosen.get(entity));
+    const mask = assumeDefined(effectsOwned.get(entity));
+    assert((mask & (1 << effect)) !== 0);
+    return effect;
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} effect
+   */
+  function entityHasEffect(entity, effect) {
+    const mask = assumeDefined(effectsOwned.get(entity));
+    return (mask & (1 << effect)) !== 0;
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function entityEffects(entity) {
+    return assumeDefined(effectsOwned.get(entity));
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function entityEffectChoice(entity) {
+    return assumeDefined(effectsChosen.get(entity));
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} effect
+   */
+  function chooseEffect(entity, effect) {
+    const entityEffects = assumeDefined(effectsOwned.get(entity));
+    assert((entityEffects & (1 << effect)) !== 0);
+    effectsChosen.set(entity, effect);
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function entityStamina(entity) {
+    return assumeDefined(staminas.get(entity));
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function entityHealth(entity) {
+    return assumeDefined(healths.get(entity));
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} itemType
+   * @returns {'effect' | 'discard'}
+   */
+  function use(entity, itemType) {
+    const effectName = itemTypes[itemType].effect;
+    if (effectName !== undefined) {
+      const effectType = assumeDefined(effectTypesByName[effectName]);
+      availEffect(entity, effectType);
+      chooseEffect(entity, effectType);
+      return 'effect';
+    }
+    // TODO eat for health, eat for stamina
+    return 'discard';
   }
 
   return {
@@ -499,7 +595,15 @@ export function makeModel({
     remove,
     intend,
     intendToCraft,
-    inventoryForEntity,
+    entityInventory,
+    entityStamina,
+    entityHealth,
+    entityEffect,
+    entityHasEffect,
+    entityEffects,
+    entityEffectChoice,
+    chooseEffect,
+    use,
     tick,
     tock,
     init,
