@@ -7,7 +7,7 @@
 // @ts-check
 
 import {assertDefined} from './assert.js';
-import {quarturnToOcturn} from './geometry2d.js';
+import {halfOcturn, fullOcturn, quarturnToOcturn} from './geometry2d.js';
 import {tileTypes, agentTypes, itemTypes, effectTypes, actions, recipes} from './data.js';
 export {tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
 
@@ -110,7 +110,7 @@ const verbs = {
     function takeHandler(kit, {agent, patient, direction, destination}) {
       const inventory = kit.entityInventory(agent);
       inventory[0] = yieldType;
-      kit.macroViewModel.give(patient, direction * quarturnToOcturn);
+      kit.macroViewModel.take(patient, (direction * quarturnToOcturn + halfOcturn) % fullOcturn);
       kit.destroyEntity(patient, destination);
     }
     return takeHandler;

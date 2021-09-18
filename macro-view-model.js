@@ -64,9 +64,7 @@ export function makeMacroViewModel(viewModel, {}) {
    * @param {number} type
    */
   function put(external, location, type) {
-    if (entities.get(external) !== undefined) {
-      throw new Error(`Assertion error`);
-    }
+    assert(entities.get(external) === undefined);
     const internal = create();
     entities.set(external, internal);
     locations.set(external, location);
@@ -86,10 +84,24 @@ export function makeMacroViewModel(viewModel, {}) {
 
   /**
    * @param {number} external
+   * @param {number} origin
+   * @param {number} destination
+   * @param {number} type
    * @param {number} directionOcturns
    */
-  function give(external, directionOcturns) {
-    take(external, (directionOcturns + halfOcturn) % fullOcturn);
+  function give(external, origin, destination, type, directionOcturns) {
+    assert(entities.get(external) === undefined);
+    const internal = create();
+    entities.set(external, internal);
+    viewModel.put(internal, origin, type);
+    locations.set(external, destination);
+    moves.set(internal, destination);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        stage: 'enter'
+      });
+    }
   }
 
   /**
