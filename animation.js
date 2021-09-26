@@ -19,9 +19,15 @@ import { clamp } from './math.js';
  */
 
 /**
+ * @callback AnimateFn
+ * @param {Progress} progress
+ */
+
+/**
  * @param {number} start
  * @param {number} now
  * @param {number} duration
+ * @returns {Progress}
  */
 export function makeProgress(start, now, duration) {
   const linear = clamp(0, 1, (now - start) / duration);
@@ -36,8 +42,3 @@ export function makeProgress(start, now, duration) {
     bounce,
   };
 }
-
-/**
- * @callback AnimateFn
- * @param {Progress} progress
- */
