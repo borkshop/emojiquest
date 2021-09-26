@@ -13,7 +13,6 @@
 // @ts-check
 
 import {assert, assumeDefined} from './assert.js';
-import {halfOcturn, fullOcturn} from './geometry2d.js';
 
 /**
  * @typedef {import('./view-model.js').ViewModel} ViewModel
