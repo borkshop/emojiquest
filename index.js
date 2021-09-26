@@ -14,9 +14,10 @@ import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
 import {makeController} from './controls.js';
-import {viewText} from './mechanics.js';
 import {makeButtonKeyHandler} from './button-key-handler.js';
 import {makeDriver} from './driver.js';
+import {makeMechanics} from './mechanics.js';
+import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
 
 
 /**
@@ -197,7 +198,7 @@ function createEntity(_entity, type) {
   } else {
     const $entity = document.createElementNS(svgNS, 'text');
     $entity.setAttributeNS(null, 'class', 'moji');
-    $entity.appendChild(document.createTextNode(viewText[type]));
+    $entity.appendChild(document.createTextNode(mechanics.viewText[type]));
     return $entity;
   }
 }
@@ -221,10 +222,20 @@ const facetView = makeFacetView({
   unwatchEntities: worldViewModel.unwatch,
 });
 
+const mechanics = makeMechanics({
+  recipes,
+  actions,
+  tileTypes,
+  agentTypes,
+  itemTypes,
+  effectTypes,
+});
+
 const worldModel = makeModel({
   size: world.worldArea,
   advance: world.advance,
   macroViewModel: worldMacroViewModel,
+  mechanics,
 });
 
 const agent = worldModel.init(position);
@@ -251,6 +262,7 @@ const controls = makeController($controls, {
   cameraTransform: world.cameraTransform,
   camera,
   followCursor,
+  mechanics,
 });
 
 const driver = makeDriver(controls, {

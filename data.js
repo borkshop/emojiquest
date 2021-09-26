@@ -9,12 +9,7 @@
 // @ts-check
 
 /**
- * @type {Array<{
- *   name: string,
- *   tile?: string,
- *   wanders?: string,
- *   dialog?: Array<string>,
- * }>}
+ * @type {Array<import('./mechanics.js').AgentType>}
  */
 export const agentTypes = [
   { name: 'invalid' },
@@ -33,14 +28,8 @@ export const agentTypes = [
   { name: 'coat' }, // temporary
 ];
 
-
 /**
- * @type {Array<{
- *   name: string,
- *   tile?: string,
- *   comestible?: boolean,
- *   effect?: string,
- * }>}
+ * @type {Array<import('./mechanics.js').ItemType>}
  */
 export const itemTypes = [
   { name: 'invalid' },
@@ -83,11 +72,7 @@ export const itemTypes = [
 ];
 
 /**
- * @type {Array<{
- *   name: string,
- *   text: string,
- *   turn?: number,
- * }>}
+ * @type {Array<import('./mechanics.js').TileType>}
  */
 export const tileTypes = [
   { name: 'invalid', text: '�' },
@@ -174,12 +159,7 @@ export const tileTypes = [
 ];
 
 /**
- * @type {Array<[
- *   agent: string,
- *   reagent: string,
- *   product: string,
- *   byproduct?: string,
- * ]>}
+ * @type {Array<import('./mechanics.js').Recipe>}
  */
 export const recipes = [
 
@@ -221,19 +201,7 @@ export const recipes = [
 ];
 
 /**
- * @typedef {[
- *   agent: string,
- *   patient: string,
- *   left: string,
- *   right: string,
- *   effect: string,
- *   verb: string,
- *   object: Array<string>,
- * ]} Action
- */
-
-/**
- * @type {Array<Action>}
+ * @type {Array<import('./mechanics.js').Action>}
  */
 export const actions = [
   // raw material
@@ -265,10 +233,7 @@ export const actions = [
   ['player', 'forge', 'gold', 'any', 'any', 'replace', ['gear']],
 ];
 
-/** @type {Array<{
- *   name: string,
- *   tile?: string,
- * }>} */
+/** @type {Array<import('./mechanics.js').EffectType>} */
 export const effectTypes = [
   { name: 'warm', tile: 'coat' }, // 1
   { name: 'fire'  }, // 2

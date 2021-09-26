@@ -21,16 +21,6 @@
 
 import {assert, assertDefined, assumeDefined} from './assert.js';
 import {quarturnToOcturn} from './geometry2d.js';
-import {
-  defaultTileTypeForAgentType,
-  itemTypes,
-  itemTypesByName,
-  tileTypesByName,
-  effectTypesByName,
-  agentTypesByName,
-  bump,
-  craft,
-} from './mechanics.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -67,19 +57,38 @@ import {
  * @typedef {ReturnType<makeModel>} Model
  */
 
-const emptyItem = itemTypesByName.empty;
-
 /**
  * @param {Object} args
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
  * @param {MacroViewModel} args.macroViewModel
+ * @param {import('./mechanics.js').Mechanics} args.mechanics
  */
 export function makeModel({
   size,
   advance,
   macroViewModel,
+  mechanics,
 }) {
+
+  const {
+    itemTypes,
+    // agentTypes,
+    // tileTypes,
+    // effectTypes,
+    tileTypesByName,
+    agentTypesByName,
+    itemTypesByName,
+    effectTypesByName,
+    defaultTileTypeForAgentType,
+    // tileTypeForItemType,
+    // tileTypeForEffectType,
+    craft,
+    bump,
+    // viewText,
+  } = mechanics;
+
+  const emptyItem = itemTypesByName.empty;
 
   let entities = new Uint16Array(size);
   let entitiesWriteBuffer = new Uint16Array(size);

@@ -20,16 +20,6 @@ import {makeTileView} from './tile-view.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
-import {
-  viewText,
-  tileTypesByName,
-  itemTypes,
-  agentTypes,
-  itemTypesByName,
-  tileTypeForItemType,
-  tileTypeForEffectType,
-  defaultTileTypeForAgentType,
-} from './mechanics.js';
 import {commandDirection} from './driver.js';
 import {tileMap, locate, makeNineKeyView} from './nine-key-view.js';
 
@@ -65,23 +55,6 @@ const rightHandInventoryIndex = 1;
 const inventoryIndexForCommand = [-1, 2, 3, 4, 5, -1, 6, 7, 8, 9];
 const entityIndexForInventoryIndex = [-1, -1, 0, 1, 2, 3, 5, 6, 7, 8];
 
-// const emptyTile = tileTypesByName.empty;
-const emptyItem = itemTypesByName.empty;
-
-/**
- * @param {number} itemType
- */
-function isEmptyItem(itemType) {
-  return itemType === emptyItem;
-}
-
-/**
- * @param {number} itemType
- */
-function isNotEmptyItem(itemType) {
-  return itemType !== emptyItem;
-}
-
 // /**
 //  * @param {number} effectType
 //  */
@@ -108,18 +81,6 @@ const agentOffsetForGridIndex = [
   -2,  1,  4,
 ];
 
-const gridTileTypes = [
-  tileTypesByName.one,
-  tileTypesByName.two,
-  tileTypesByName.three,
-  tileTypesByName.four,
-  tileTypesByName.five,
-  tileTypesByName.six,
-  tileTypesByName.seven,
-  tileTypesByName.eight,
-  tileTypesByName.nine,
-];
-
 // itemIndex to vector to or from that item index
 const directionToForPackIndex = [sw, ss, se, ww, ee, nw, nn, ne];
 const directionFromForPackIndex = directionToForPackIndex.map(
@@ -141,6 +102,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./camera.js').Camera} args.camera
  * so the frustum can update its retained facets.
  * @param {FollowCursorFn} args.followCursor
+ * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @returns {import('./driver.js').Delegate}
  */
 export function makeController($controls, {
@@ -155,7 +117,54 @@ export function makeController($controls, {
   facetView,
   camera,
   followCursor,
+  mechanics,
 }) {
+
+  const {
+    agentTypes,
+    itemTypes,
+    // tileTypes,
+    // effectTypes,
+    tileTypesByName,
+    // agentTypesByName,
+    itemTypesByName,
+    // effectTypesByName,
+    defaultTileTypeForAgentType,
+    tileTypeForItemType,
+    tileTypeForEffectType,
+    // craft,
+    // bump,
+    viewText,
+  } = mechanics;
+
+  // const emptyTile = tileTypesByName.empty;
+  const emptyItem = itemTypesByName.empty;
+
+  /**
+   * @param {number} itemType
+   */
+  function isEmptyItem(itemType) {
+    return itemType === emptyItem;
+  }
+
+  /**
+   * @param {number} itemType
+   */
+  function isNotEmptyItem(itemType) {
+    return itemType !== emptyItem;
+  }
+
+  const gridTileTypes = [
+    tileTypesByName.one,
+    tileTypesByName.two,
+    tileTypesByName.three,
+    tileTypesByName.four,
+    tileTypesByName.five,
+    tileTypesByName.six,
+    tileTypesByName.seven,
+    tileTypesByName.eight,
+    tileTypesByName.nine,
+  ];
 
   // State:
 
