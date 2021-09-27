@@ -346,10 +346,6 @@ export function makeController($controls, {
         if (command === 5) { // keep
           dismissPackItemsExcept(-1);
 
-          if (isNotEmptyItem(leftHandItemType())) {
-            nineKeyView.up(4);
-          }
-
         } else if (command >= 1 && command <= 9) { // put or swap
           const inventoryIndex = inventoryIndexForCommand[command];
           assertDefined(inventoryIndex);
@@ -358,8 +354,6 @@ export function makeController($controls, {
           const toItemDirection = directionToForPackIndex[inventoryIndex - 2];
           const fromItemDirection = directionFromForPackIndex[inventoryIndex - 2];
           const inventoryItemType = worldModel.inventory(agent, inventoryIndex);
-
-          nineKeyView.up(inventoryEntityIndex);
 
           // From hand to inventory (which is immediately disappearing)
           if (isNotEmptyItem(leftHandItemType())) {
@@ -495,22 +489,18 @@ export function makeController($controls, {
   const chooseAgentMode = {
     press(command) {
       if (command === 8) {
-        nineKeyView.up(7);
         assertNonZero(editType);
         editType = agentTypeForOffset(1);
         shiftAgentsSouth();
       } else if (command === 2) {
-        nineKeyView.up(1);
         assertNonZero(editType);
         editType = agentTypeForOffset(-1);
         shiftAgentsNorth();
       } else if (command === 6) {
-        nineKeyView.up(5);
         assertNonZero(editType);
         editType = agentTypeForOffset(3);
         shiftAgentsWest();
       } else if (command === 4) {
-        nineKeyView.up(3);
         assertNonZero(editType);
         editType = agentTypeForOffset(-3);
         shiftAgentsEast();
@@ -529,7 +519,6 @@ export function makeController($controls, {
     dismissWatch();
     dismissEffect();
 
-    nineKeyView.up(0);
     nineKeyView.move(0, 4, ne, 0);
 
     if (isNotEmptyItem(rightHandItemType())) {
@@ -553,7 +542,6 @@ export function makeController($controls, {
     dismissWatch();
     dismissEffect();
 
-    nineKeyView.up(2);
     nineKeyView.move(2, 4, nw, 0);
 
     if (isNotEmptyItem(leftHandItemType())) {
