@@ -31,6 +31,8 @@ import {tileMap, locate, makeNineKeyView} from './nine-key-view.js';
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
 
+const noop = () => {};
+
 /**
  * @callback FollowCursorFn
  * @param {number} destination
@@ -1182,19 +1184,9 @@ export function makeController($controls, {
    */
   function down(command) {
     if (command < 1 || command > 9) {
-      return;
+      return noop;
     }
-    nineKeyView.down(command - 1);
-  }
-
-  /**
-   * @param {number} command
-   */
-  function up(command) {
-    if (command < 1 || command > 9) {
-      return;
-    }
-    nineKeyView.up(command - 1);
+    return nineKeyView.down(command - 1);
   }
 
   /**
@@ -1230,7 +1222,6 @@ export function makeController($controls, {
   return {
     reset,
     animate,
-    up,
     down,
     command,
   };

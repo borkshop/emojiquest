@@ -225,8 +225,10 @@ export function makeMacroViewModel(viewModel, {}) {
    * @param {number} external
    */
   function up(external) {
-    const internal = entity(external);
-    viewModel.up(internal);
+    const internal = entities.get(external);
+    if (internal !== undefined) {
+      viewModel.up(internal);
+    }
   }
 
   /**

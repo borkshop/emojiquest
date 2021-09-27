@@ -192,6 +192,9 @@ export function makeNineKeyView(macroViewModel) {
     if (entity !== 0) {
       macroViewModel.down(entity);
     }
+    return () => {
+      macroViewModel.up(entity);
+    };
   }
 
   return {

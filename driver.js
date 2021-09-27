@@ -20,6 +20,7 @@
  */
 
 import {nextFrame} from 'cdom/anim';
+import {assert} from './assert.js';
 import {makeProgress} from './animation.js';
 import {delay, defer} from './async.js';
 import {north, east, south, west, fullQuarturn} from './geometry2d.js';
@@ -61,8 +62,7 @@ export const directionCommand = Object.fromEntries(
  * @typedef {Object} Delegate
  * @property {() => void} reset
  * @property {CommandFn} command
- * @property {(command: number) => void} up
- * @property {(command: number) => void} down
+ * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
  */
 
@@ -81,7 +81,7 @@ export const makeDriver = (delegate, options) => {
   let abort = defer();
   /** @type {Array<number>} directions */
   const queue = [];
-  /** @type {Map<number, number>} direction to timestamp */
+  /** @type {Map<number, {start: number, up: () => void}>} direction to timestamp */
   const held = new Map();
   // TODO const vector = {x: 0, y: 0};
 
@@ -136,7 +136,7 @@ export const makeDriver = (delegate, options) => {
       // Repeat
       while (held.size) {
         const now = Date.now();
-        for (const [heldCommand, start] of held.entries()) {
+        for (const [heldCommand, {start}] of held.entries()) {
           const duration = now - start;
           if (duration > animatedTransitionDuration) {
             command = heldCommand;
@@ -162,7 +162,9 @@ export const makeDriver = (delegate, options) => {
    * @param {number} command
    */
   function down(command) {
-    delegate.down(command);
+    assert(!held.has(command));
+    const up = delegate.down(command);
+    held.set(command, {start: Date.now(), up});
 
     // If a command key goes down during an animated transition for a prior
     // command, we abort that animation so the next move advances immediately
@@ -171,12 +173,6 @@ export const makeDriver = (delegate, options) => {
       abort.resolve();
       abort = defer();
       queue.length = 0;
-    }
-    // We add the command command to both the command queue and the held
-    // commands. We keep the older command if redundant command keys are
-    // pressed.
-    if (!held.has(command)) {
-      held.set(command, Date.now());
     }
     queue.push(command);
     // Kick the command processor into gear if it hasn't been provoked
@@ -189,8 +185,11 @@ export const makeDriver = (delegate, options) => {
    * @param {number} command
    */
   function up(command) {
-    delegate.up(command);
-
+    const key = held.get(command);
+    if (key === undefined) {
+      return;
+    }
+    key.up();
     held.delete(command);
     // Clear the momentum heading if the player releases all keys.
     if (held.size === 0) {

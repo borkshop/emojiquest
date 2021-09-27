@@ -14,8 +14,8 @@ import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
 import {makeController} from './controls.js';
-import {makeButtonKeyHandler} from './button-key-handler.js';
 import {makeDriver} from './driver.js';
+import {makeCommandDispatcher} from './commands.js';
 import {makeMechanics} from './mechanics.js';
 import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
 
@@ -270,5 +270,4 @@ const driver = makeDriver(controls, {
   animatedTransitionDuration,
 });
 
-window.addEventListener('keydown', makeButtonKeyHandler(driver.down));
-window.addEventListener('keyup', makeButtonKeyHandler(driver.up));
+makeCommandDispatcher(window, driver);
