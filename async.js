@@ -36,7 +36,6 @@ export function defer() {
   if (resolve === undefined || reject === undefined) {
     throw new Error('The type system, it deceived us!');
   }
-  /** @type {Deferred<T>} */
   return { promise, resolve, reject };
 }
 
