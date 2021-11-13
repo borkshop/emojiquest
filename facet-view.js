@@ -169,7 +169,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
  * @param {TileNumberFn} options.tileNumber
  * @param {TileCoordinateFn} options.tileCoordinate
  * @param {TileCoordinateFn} options.facetCoordinate
- * @param {(tile:number, tiles:Map<number, Coord>) => {$facet: SVGElement, $layer: SVGElement}} options.createFacet
+ * @param {(faceNumber:number, facetNumber:number, tiles:Map<number, Coord>) => {$facet: SVGElement, $layer: SVGElement}} options.createFacet
  * @param {EntityWatchFn} options.watchEntities
  * @param {EntityWatchFn} options.unwatchEntities
  * @param {(entity:number, type:number) => SVGElement} options.createEntity
@@ -207,7 +207,8 @@ export function makeFacetView({
    */
   function createMappedFacet(f) {
     const tiles = tilesForFacet(f);
-    const {$facet, $layer} = createFacet(f, tiles);
+    const {f: faceNumber} = facetCoordinate(f);
+    const {$facet, $layer} = createFacet(f, faceNumber, tiles);
 
     const transform = facetTransform(f);
     // Placed using HTML transform, not SVG transform.

@@ -122,22 +122,46 @@ const svgNS = "http://www.w3.org/2000/svg";
 
 function makeFacetCreator() {
   /**
-   * @param {number} _f
-   * @param {Map<number, Coord>} _tiles
+   * @param {number} _facetNumber
+   * @param {number} faceNumber
+   * @param {Map<number, Coord>} tiles
    * @returns {{$facet: SVGElement, $layer: SVGElement}}
    */
-  function createFacet(_f, _tiles) {
+  function createFacet(_facetNumber, faceNumber, tiles) {
     const $facet = document.createElementNS(svgNS, 'svg');
     $facet.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
     $facet.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
     $facet.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
     $facet.setAttributeNS(null, 'class', 'facet');
+
     const $back = document.createElementNS(svgNS, 'g');
     const $layer = document.createElementNS(svgNS, 'g');
     const $front = document.createElementNS(svgNS, 'g');
+
+    for (const [_location, {x, y}] of tiles.entries()) {
+      const $backTile = document.createElementNS(svgNS, 'rect');
+      $backTile.setAttributeNS(null, 'height', `1`);
+      $backTile.setAttributeNS(null, 'width', `1`);
+      $backTile.setAttributeNS(null, 'x', `${x}`);
+      $backTile.setAttributeNS(null, 'y', `${y}`);
+      $backTile.setAttributeNS(null, 'style', `fill: ${faceColors[faceNumber]}`);
+      $back.appendChild($backTile);
+    }
+
+    for (const [_location, {x, y}] of tiles.entries()) {
+      const $frontTile = document.createElementNS(svgNS, 'rect');
+      $frontTile.setAttributeNS(null, 'height', `1`);
+      $frontTile.setAttributeNS(null, 'width', `1`);
+      $frontTile.setAttributeNS(null, 'x', `${x}`);
+      $frontTile.setAttributeNS(null, 'y', `${y}`);
+      $frontTile.setAttributeNS(null, 'style', `fill: ${faceColors[faceNumber]}; filter: opacity(0)`);
+      $front.appendChild($frontTile);
+    }
+
     $facet.appendChild($back);
     $facet.appendChild($layer);
     $facet.appendChild($front);
+
     return {$facet, $layer};
   }
 
