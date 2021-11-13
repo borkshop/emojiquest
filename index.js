@@ -120,20 +120,24 @@ function createFoundationTile(t) {
 
 const svgNS = "http://www.w3.org/2000/svg";
 
-/**
- * @param {number} _f
- * @param {Map<number, Coord>} _tiles
- * @returns {{$facet: SVGElement, $layer: SVGElement}}
- */
-function createFacet(_f, _tiles) {
-  const $facet = document.createElementNS(svgNS, 'svg');
-  $facet.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
-  $facet.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
-  $facet.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
-  $facet.setAttributeNS(null, 'class', 'facet');
-  const $layer = document.createElementNS(svgNS, 'g');
-  $facet.appendChild($layer);
-  return {$facet, $layer};
+function makeFacetCreator() {
+  /**
+   * @param {number} _f
+   * @param {Map<number, Coord>} _tiles
+   * @returns {{$facet: SVGElement, $layer: SVGElement}}
+   */
+  function createFacet(_f, _tiles) {
+    const $facet = document.createElementNS(svgNS, 'svg');
+    $facet.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
+    $facet.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
+    $facet.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
+    $facet.setAttributeNS(null, 'class', 'facet');
+    const $layer = document.createElementNS(svgNS, 'g');
+    $facet.appendChild($layer);
+    return {$facet, $layer};
+  }
+
+  return createFacet;
 }
 
 /**
@@ -210,6 +214,8 @@ function createEntity(_entity, type) {
 
 const worldViewModel = makeViewModel();
 const worldMacroViewModel = makeMacroViewModel(worldViewModel, {name: 'world'});
+
+const createFacet = makeFacetCreator();
 
 const facetView = makeFacetView({
   context: $context,
