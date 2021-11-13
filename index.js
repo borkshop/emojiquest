@@ -25,6 +25,8 @@ import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from '.
  * @typedef {import('./async.js').Deferred<T>} Deferred
  */
 
+/** @typedef {import('./animation2d.js').Coord} Coord */
+
 const $context = mustFind('#context');
 const $debug = mustFind('#debug');
 
@@ -120,15 +122,18 @@ const svgNS = "http://www.w3.org/2000/svg";
 
 /**
  * @param {number} _f
- * @returns {SVGElement}
+ * @param {Map<number, Coord>} _tiles
+ * @returns {{$facet: SVGElement, $layer: SVGElement}}
  */
-function createFacet(_f) {
-  const $tile = document.createElementNS(svgNS, 'svg');
-  $tile.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
-  $tile.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
-  $tile.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
-  $tile.setAttributeNS(null, 'class', 'facet');
-  return $tile;
+function createFacet(_f, _tiles) {
+  const $facet = document.createElementNS(svgNS, 'svg');
+  $facet.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
+  $facet.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
+  $facet.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
+  $facet.setAttributeNS(null, 'class', 'facet');
+  const $layer = document.createElementNS(svgNS, 'g');
+  $facet.appendChild($layer);
+  return {$facet, $layer};
 }
 
 /**

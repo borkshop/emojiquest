@@ -169,7 +169,7 @@ function makeFacetMapper({worldSize, facetSize, tileNumber, facetCoordinate, adv
  * @param {TileNumberFn} options.tileNumber
  * @param {TileCoordinateFn} options.tileCoordinate
  * @param {TileCoordinateFn} options.facetCoordinate
- * @param {(tile:number) => SVGElement} options.createFacet
+ * @param {(tile:number, tiles:Map<number, Coord>) => {$facet: SVGElement, $layer: SVGElement}} options.createFacet
  * @param {EntityWatchFn} options.watchEntities
  * @param {EntityWatchFn} options.unwatchEntities
  * @param {(entity:number, type:number) => SVGElement} options.createEntity
@@ -206,7 +206,8 @@ export function makeFacetView({
    * @param {number} f
    */
   function createMappedFacet(f) {
-    const $facet = createFacet(f);
+    const tiles = tilesForFacet(f);
+    const {$facet, $layer} = createFacet(f, tiles);
 
     const transform = facetTransform(f);
     // Placed using HTML transform, not SVG transform.
@@ -224,7 +225,7 @@ export function makeFacetView({
         const $entity = createEntity(e, t);
         if (!$entity) throw new Error(`Assertion failed, createEntity hook must return something`);
         entityMap.set(e, $entity);
-        $facet.appendChild($entity);
+        $layer.appendChild($entity);
       },
 
       /** @type {PlaceFn} */
@@ -241,11 +242,11 @@ export function makeFacetView({
         const $entity = entityMap.get(e);
         if (!$entity) throw new Error(`Assertion failed`);
         entityMap.delete(e);
-        $facet.removeChild($entity);
+        $layer.removeChild($entity);
       },
     };
 
-    watchEntities(tilesForFacet(f), watcher);
+    watchEntities(tiles, watcher);
     watchers.set(f, watcher);
     return $facet;
   }
