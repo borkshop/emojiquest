@@ -4,7 +4,6 @@ import {mustFind} from 'cdom/wiring';
 import {cell} from './cell.js';
 import {linear, easeInOutQuart} from './easing.js';
 import {north, fullQuarturn} from './geometry2d.js';
-import {scale, matrix3dStyle} from './matrix3d.js';
 import {faceColors} from './brand.js';
 import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
@@ -67,57 +66,6 @@ const facets = makeDaia({
   faceSize: facetSize,
 });
 
-const foundation = makeDaia({
-  tileSize,
-  faceSize: 1,
-  transform: scale(faceSize*0.9999),
-});
-
-// const atmosquare = makeDaia({
-//   tileSize: tileSize,
-//   faceSize: 3,
-//   transform: scale(faceSize*2/3),
-// });
-
-// const firmament = makeDaia({
-//   tileSize: 100,
-//   faceSize: 3,
-//   transform: scale(faceSize*3/3),
-// });
-
-/**
- * @param {number} t
- * @returns {HTMLElement}
- */
-function createFoundationTile(t) {
-  const $tile = document.createElement('div');
-  $tile.className = 'foundation';
-  $tile.style.backgroundColor = faceColors[t];
-  return $tile;
-}
-
-// /**
-//  * @param {number} _t
-//  * @returns {HTMLElement}
-//  */
-// function createAtmosquare(_t) {
-//   const $tile = document.createElement('div');
-//   $tile.className = 'atmosquare';
-//   $tile.innerText = Math.random() < 0.25 ? `☁️` : '';
-//   return $tile;
-// }
-
-// /**
-//  * @param {number} _t
-//  * @returns {HTMLElement}
-//  */
-// function createFirmamentTile(_t) {
-//   const $tile = document.createElement('div');
-//   $tile.className = 'firmament';
-//   $tile.innerText = Math.random() < 0.75 ? `⭐️` : '';
-//   return $tile;
-// }
-
 const svgNS = "http://www.w3.org/2000/svg";
 
 function makeFacetCreator() {
@@ -177,24 +125,6 @@ function makeFacetCreator() {
  * @prop {number} worldArea
  * @prop {(tile: number) => Matrix} tileTransform
  */
-
-/**
- * @param {HTMLElement} context
- * @param {Cube} cube
- * @param {(tile: number) => HTMLElement} createTile
- */
-function createAllTiles3d(context, cube, createTile) {
-  for (let t = 0; t < cube.worldArea; t++) {
-    const $tile = createTile(t);
-    const transform = cube.tileTransform(t);
-    $tile.style.transform = matrix3dStyle(transform);
-    context.appendChild($tile);
-  }
-}
-
-createAllTiles3d($context, foundation, createFoundationTile);
-// createAllTiles3d($context, firmament, createFirmamentTile);
-// createAllTiles3d($context, atmosquare, createAtmosquare);
 
 export function createControls() {
   const $controls = document.createElementNS(svgNS, 'svg');
