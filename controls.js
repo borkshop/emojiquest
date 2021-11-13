@@ -208,7 +208,7 @@ export function makeController($controls, {
     advance: advance
   });
 
-  const tileView = makeTileView($controls, createElement, collectElement);
+  const tileView = makeTileView($controls, null, createElement, collectElement);
   const {enter, exit} = tileView;
 
   /** @type {PlaceFn} */

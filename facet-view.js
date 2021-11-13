@@ -262,7 +262,7 @@ export function makeFacetView({
     unwatchEntities(tiles, watcher);
   }
 
-  const facetView = makeTileView(context, createMappedFacet, collectMappedFacet);
+  const facetView = makeTileView(context, null, createMappedFacet, collectMappedFacet);
 
   /**
    * Tracks numbered tiles in the numbered facets.

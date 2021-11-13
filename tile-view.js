@@ -45,13 +45,15 @@ const noop = () => {};
  */
 
 /**
- * @template Element
- * @param {ParentElement<Element>} $context
- * @param {(tile: number, type: number) => Element} createElement
+ * @template {Element} ParentElement
+ * @template {Element} ChildElement
+ * @param {ParentElement} $parent
+ * @param {ChildElement?} $nextSibling
+ * @param {(tile: number, type: number) => ChildElement} createElement
  * @param {(tile: number) => void} [collectElement]
  * @return {TileView}
  */
-export function makeTileView($context, createElement, collectElement = noop) {
+export function makeTileView($parent, $nextSibling, createElement, collectElement = noop) {
   const $tiles = new Map();
 
   /**
@@ -60,7 +62,7 @@ export function makeTileView($context, createElement, collectElement = noop) {
    */
   function enter(t, type) {
     const $tile = createElement(t, type);
-    $context.appendChild($tile);
+    $parent.insertBefore($tile, $nextSibling);
     $tiles.set(t, $tile);
   }
 
@@ -70,7 +72,7 @@ export function makeTileView($context, createElement, collectElement = noop) {
   function exit(t) {
     const $tile = $tiles.get(t);
     if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
-    $context.removeChild($tile);
+    $parent.removeChild($tile);
     collectElement(t);
   }
 
