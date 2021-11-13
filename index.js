@@ -132,8 +132,12 @@ function makeFacetCreator() {
     $facet.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
     $facet.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
     $facet.setAttributeNS(null, 'class', 'facet');
+    const $back = document.createElementNS(svgNS, 'g');
     const $layer = document.createElementNS(svgNS, 'g');
+    const $front = document.createElementNS(svgNS, 'g');
+    $facet.appendChild($back);
     $facet.appendChild($layer);
+    $facet.appendChild($front);
     return {$facet, $layer};
   }
 
