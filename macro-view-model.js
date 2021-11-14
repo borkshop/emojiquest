@@ -22,9 +22,15 @@ import {assert, assumeDefined} from './assert.js';
 /**
  * @param {ViewModel} viewModel
  * @param {Object} options
- * @param {string} options.name
+ * @param {string} [options.name]
+ * @param {number} [options.start]
+ * @param {number} [options.stride]
  */
-export function makeMacroViewModel(viewModel, {}) {
+export function makeMacroViewModel(viewModel, {
+  // name = '<unknown>',
+  start = 0,
+  stride = 1,
+} = {}) {
   /** @type {Map<number, number>} external to internal */
   const entities = new Map();
   /** @type {Map<number, number>} internal to location */
@@ -36,10 +42,10 @@ export function makeMacroViewModel(viewModel, {}) {
   /** @type {Set<number>} internal */
   const replaced = new Set();
 
-  let nextId = 0;
+  let nextId = start;
   function create() {
     const id = nextId;
-    nextId += 1;
+    nextId += stride;
     return id;
   }
 
@@ -237,6 +243,7 @@ export function makeMacroViewModel(viewModel, {}) {
   function down(external) {
     const internal = entity(external);
     viewModel.down(internal);
+    return () => viewModel.up(internal);
   }
 
   function reset() {

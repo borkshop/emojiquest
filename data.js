@@ -156,6 +156,7 @@ export const tileTypes = [
   { name: 'balloon', text: '🎈 ' },
   { name: 'arm', text: '💪 ' },
   { name: 'shirt', text: '👕' },
+  { name: 'hamburger', text: '🍔 ' },
 ];
 
 /**

@@ -125,17 +125,6 @@ text.moji {
   text-anchor: middle;
 }
 
-#debug {
-  font-family: monospace;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  font-size: 30px;
-  color: black;
-  backdrop-filter: blur(5px);
-  padding: 10px;
-}
-
 .panel {
   font-size: 30px;
   color: black;
@@ -150,6 +139,24 @@ text.moji {
   position: absolute;
   bottom: 0;
   right: 0;
+}
+
+#hamburger {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+#debug {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+
+  font-family: monospace;
+  font-size: 30px;
+  color: black;
+  backdrop-filter: blur(5px);
+  padding: 10px;
 }
 
 #health {

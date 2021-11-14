@@ -27,7 +27,6 @@ import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from '.
 /** @typedef {import('./animation2d.js').Coord} Coord */
 
 const $context = mustFind('#context');
-const $debug = mustFind('#debug');
 
 const radius = 10;
 const tileSize = 100;
@@ -59,7 +58,7 @@ const world = makeDaia({
   faceSize,
 });
 
-$debug.innerText = world.toponym(position);
+// $debug.innerText = world.toponym(position);
 
 const facets = makeDaia({
   tileSize: tileSize * faceSize / facetSize,
@@ -195,8 +194,21 @@ export function createControls() {
   return $controls;
 }
 
+export function createHamburger() {
+  const $hamburger = document.createElementNS(svgNS, 'svg');
+  $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
+  $hamburger.setAttributeNS(null, 'height', `${1 * tileSize}`);
+  $hamburger.setAttributeNS(null, 'width', `${1 * tileSize}`);
+  $hamburger.setAttributeNS(null, 'id', 'hamburger');
+  $hamburger.setAttributeNS(null, 'class', 'panel');
+  return $hamburger;
+}
+
 const $controls = createControls();
 document.body.appendChild($controls);
+
+const $hamburger = createHamburger();
+document.body.appendChild($hamburger);
 
 const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
@@ -275,16 +287,16 @@ const facetView = makeFacetView({
 });
 
 /**
- * @param {number} destination
+ * @param {number} _destination
  * @param {import('./camera-controller.js').CursorChange} change
  */
-function followCursor(destination, change) {
+function followCursor(_destination, change) {
   cameraController.go(change);
   moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
-  $debug.innerText = world.toponym(destination);
+  // $debug.innerText = world.toponym(destination);
 }
 
-const controls = makeController($controls, {
+const controls = makeController($controls, $hamburger, {
   agent,
   worldModel,
   worldViewModel,

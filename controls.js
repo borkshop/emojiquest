@@ -91,6 +91,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
 
 /**
  * @param {Element} $controls
+ * @param {Element} $hamburger
  * @param {Object} args
  * @param {number} args.agent
  * @param {number} args.frustumRadius
@@ -108,7 +109,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {(progress: Progress) => void} args.animateAux
  * @returns {import('./driver.js').Delegate}
  */
-export function makeController($controls, {
+export function makeController($controls, $hamburger, {
   agent,
   cursor,
   frustumRadius,
@@ -212,6 +213,17 @@ export function makeController($controls, {
 
   const tileView = makeTileView($controls, null, createElement, collectElement);
   const {enter, exit} = tileView;
+
+  const hamburgerView = makeTileView($hamburger, null, createElement, collectElement);
+  const hamburgerViewModel = makeViewModel();
+  const oneTileMap = new Map([[0, {x: 0, y: 0, a: 0}]]);
+  hamburgerViewModel.watch(oneTileMap, {
+    enter: hamburgerView.enter,
+    exit: hamburgerView.exit,
+    place,
+  })
+  const oneKeyView = makeMacroViewModel(hamburgerViewModel, { name: 'hamburger', start: -2, stride: -1 });
+  oneKeyView.put(0, 0, tileTypesByName.hamburger);
 
   /** @type {PlaceFn} */
   function place(entity, coord, pressure, progress, transition) {
@@ -803,6 +815,8 @@ export function makeController($controls, {
     worldModel.unfollow(agent, followAgent);
     restoreEditorReticle();
 
+    oneKeyView.replace(0, tileTypesByName.back);
+
     return editMode;
   }
 
@@ -824,6 +838,8 @@ export function makeController($controls, {
     camera.reset(cameraTransform(cursor.position));
     worldModel.follow(agent, followAgent);
     dismissEditorReticle();
+
+    oneKeyView.replace(0, tileTypesByName.hamburger);
 
     return playMode;
   }
@@ -1173,10 +1189,13 @@ export function makeController($controls, {
    * @param {number} command
    */
   function down(command) {
-    if (command < 1 || command > 9) {
-      return noop;
+    if (command >= 1 && command <= 9) {
+      return nineKeyView.down(command - 1);
     }
-    return nineKeyView.down(command - 1);
+    if (command === 0) {
+      return oneKeyView.down(0);
+    }
+    return noop;
   }
 
   /**
@@ -1186,6 +1205,7 @@ export function makeController($controls, {
     camera.animate(progress.now);
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
+    hamburgerViewModel.animate(progress);
     animateAux(progress);
   }
 
@@ -1201,6 +1221,7 @@ export function makeController($controls, {
     worldViewModel.reset();
     keepTilesAround(cursor.position, frustumRadius);
     macroViewModel.reset();
+    oneKeyView.reset();
   }
 
   let mode = playMode;

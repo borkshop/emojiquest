@@ -190,7 +190,8 @@ export const makeDriver = (delegate, options) => {
     if (key === undefined) {
       return;
     }
-    key.up();
+    const { up } = key;
+    up();
     held.delete(command);
     // Clear the momentum heading if the player releases all keys.
     if (held.size === 0) {
