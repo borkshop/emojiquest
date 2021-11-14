@@ -99,3 +99,17 @@ export const faceHighlightColors = [
 ];
 
 export const magmaColor = darkRed;
+
+/**
+ * @param {number} faceNumber
+ * @param {number} terrainFlags
+ */
+export function tileColor(faceNumber, terrainFlags) {
+  if ((terrainFlags & 0b10) !== 0) { // magma
+    return magmaColor;
+  } else if ((terrainFlags & 0b1) !== 0) { // water
+    return faceWaterColors[faceNumber];
+  } else { // earth
+    return earthColors[faceNumber];
+  }
+}

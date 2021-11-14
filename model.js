@@ -93,6 +93,67 @@ export function makeModel({
   let entities = new Uint16Array(size);
   let entitiesWriteBuffer = new Uint16Array(size);
 
+  /**
+   * The terrain model is a 1 byte bit mask per world cell.
+   *
+   *   0: water
+   *   1: magma
+   */
+  const terrain = new Uint8Array(size);
+  /** @type {Map<number, Set<(location: number) => void>>} */
+  const terrainWatchers = new Map();
+
+  /**
+   * @param {Iterable<number>} locations
+   * @param {(location: number) => void} watcher
+   */
+  const watchTerrain = (locations, watcher) => {
+    for (const location of locations) {
+      let watchers = terrainWatchers.get(location);
+      if (watchers === undefined) {
+        watchers = new Set();
+        terrainWatchers.set(location, watchers);
+      }
+      watchers.add(watcher);
+    }
+  };
+
+  /**
+   * @param {Iterable<number>} locations
+   * @param {(location: number) => void} watcher
+   */
+  const unwatchTerrain = (locations, watcher) => {
+    for (const location of locations) {
+      const watchers = assumeDefined(terrainWatchers.get(location));
+      assert(watchers.has(watcher));
+      watchers.delete(watcher);
+      if (watchers.size === 0) {
+        terrainWatchers.delete(location);
+      }
+    }
+  };
+
+  /**
+   * @param {number} location
+   */
+  const getTerrainFlags = (location) => {
+    return terrain[location];
+  };
+
+  /**
+   * @param {number} location
+   * @param {number} terrainFlags
+   */
+  const setTerrainFlags = (location, terrainFlags) => {
+    terrain[location] = terrainFlags;
+    const watchers = terrainWatchers.get(location);
+    if (watchers !== undefined) {
+      for (const watch of watchers) {
+        watch(location);
+      }
+    }
+  };
+
   // TODO consider assigning every position a priority, then shuffling
   // priorities locally each turn.
   // const priorities = new Array(size);
@@ -664,6 +725,7 @@ export function makeModel({
     swap,
     use,
     craft,
+    locate,
     entityStamina,
     entityHealth,
     entityEffect,
@@ -671,6 +733,10 @@ export function makeModel({
     entityEffects,
     entityEffectChoice,
     chooseEffect,
+    watchTerrain,
+    unwatchTerrain,
+    getTerrainFlags,
+    setTerrainFlags,
     tick,
     tock,
     init,

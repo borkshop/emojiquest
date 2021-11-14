@@ -105,6 +105,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * so the frustum can update its retained facets.
  * @param {FollowCursorFn} args.followCursor
  * @param {import('./mechanics.js').Mechanics} args.mechanics
+ * @param {(progress: Progress) => void} args.animateAux
  * @returns {import('./driver.js').Delegate}
  */
 export function makeController($controls, {
@@ -120,6 +121,7 @@ export function makeController($controls, {
   camera,
   followCursor,
   mechanics,
+  animateAux,
 }) {
 
   const {
@@ -1184,6 +1186,7 @@ export function makeController($controls, {
     camera.animate(progress.now);
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
+    animateAux(progress);
   }
 
   function tick() {
