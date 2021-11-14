@@ -110,14 +110,15 @@ export const makeDriver = (delegate, options) => {
 
   /**
    * @param {number} command
+   * @param {boolean} repeat
    */
-  async function issue(command) {
+  async function issue(command, repeat) {
     const direction = commandDirection[command];
     if (direction === undefined) {
-      await tickTock(command, false);
+      await tickTock(command, repeat);
     } else {
       const momentumAdjustedDirection = (direction + moment.get()) % fullQuarturn;
-      await tickTock(directionCommand[momentumAdjustedDirection], false);
+      await tickTock(directionCommand[momentumAdjustedDirection], repeat);
     }
   }
 
@@ -130,7 +131,7 @@ export const makeDriver = (delegate, options) => {
       // keys sequentially, as opposed to holding them down.
       let command;
       while (command = queue.shift(), command !== undefined) {
-        await issue(command);
+        await issue(command, false);
       }
 
       // Repeat
@@ -143,7 +144,7 @@ export const makeDriver = (delegate, options) => {
           }
         }
         if (command !== undefined) {
-          await issue(command);
+          await issue(command, true);
         }
       }
     }

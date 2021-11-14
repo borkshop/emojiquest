@@ -303,7 +303,7 @@ export function makeController($controls, {
         return openStash();
       } else if (command === 9 && worldModel.entityEffects(agent) !== 0) { // effect chooser
         return openEffects();
-      } else if (command === 0) {
+      } else if (command === 0 && !repeat) {
         return openEditor();
       } else {
         return playMode;
@@ -445,7 +445,7 @@ export function makeController($controls, {
 
   /** @type {Mode} */
   const editMode = {
-    press(command) {
+    press(command, repeat) {
       const direction = commandDirection[command];
       if (direction !== undefined) {
         const position = cursor.position;
@@ -479,7 +479,7 @@ export function makeController($controls, {
         return editMode;
       } else if (command === 5) {
         return openAgentChooser();
-      } else if (command === 0) {
+      } else if (command === 0 && !repeat) {
         return closeEditor();
       } else {
         return editMode;
