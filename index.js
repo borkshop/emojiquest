@@ -125,7 +125,8 @@ function makeFacetCreator({ watchTerrain, unwatchTerrain, getTerrainFlags }) {
 
     $facet.appendChild($back);
     $facet.appendChild($layer);
-    $facet.appendChild($front);
+    // TODO: front tile opacity filtering does not work on Safari, ergo iOS
+    // $facet.appendChild($front);
 
     const marked = new Set();
 
