@@ -1305,19 +1305,17 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
     const command = controlEventToCommand(mouseEvent);
     onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
     $controls.addEventListener('mousemove', onControlsMouseChange);
-    $controls.addEventListener('mouseup', onControlsMouseChange);
-    $controls.addEventListener('mousedown', onControlsMouseChange);
   };
 
   const onControlsMouseLeave = () => {
     onControlMouseStateChange(-1, false);
     $controls.removeEventListener('mousemove', onControlsMouseChange);
-    $controls.removeEventListener('mouseup', onControlsMouseChange);
-    $controls.removeEventListener('mousedown', onControlsMouseChange);
   };
 
   $controls.addEventListener('mouseenter', onControlsMouseEnter);
   $controls.addEventListener('mouseleave', onControlsMouseLeave);
+  $controls.addEventListener('mouseup', onControlsMouseChange);
+  $controls.addEventListener('mousedown', onControlsMouseChange);
 
   const onHamburgerMouseDown = () => {
     dispatcher.down('Mouse', 0);
