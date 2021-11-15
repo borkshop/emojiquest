@@ -4,6 +4,7 @@ import {mustFind} from 'cdom/wiring';
 import {cell} from './cell.js';
 import {linear, easeInOutQuart} from './easing.js';
 import {north, fullQuarturn} from './geometry2d.js';
+import {rotate, matrixStyle} from './matrix2d.js';
 import {tileColor} from './brand.js';
 import {makeDaia} from './daia.js';
 import {makeCamera} from './camera.js';
@@ -33,6 +34,8 @@ const tileSize = 100;
 const facetSize = 9;
 const faceSize = 9 * facetSize;
 
+document.documentElement.style.setProperty('--tileSize', `${tileSize}`);
+
 const animatedTransitionDuration = 300;
 const slowCameraTransitionDuration = 900;
 const fastCameraTransitionDuration = 300;
@@ -57,8 +60,6 @@ const world = makeDaia({
   tileSize,
   faceSize,
 });
-
-// $debug.innerText = world.toponym(position);
 
 const facets = makeDaia({
   tileSize: tileSize * faceSize / facetSize,
@@ -204,11 +205,29 @@ export function createHamburger() {
   return $hamburger;
 }
 
+export function createDebug() {
+  const $coordBlade = document.createElement('div');
+  $coordBlade.setAttribute('id', 'coordBlade');
+  $coordBlade.setAttribute('class', 'blade');
+  // TODO Animate rotation of blades.
+  $coordBlade.style.transform = matrixStyle(rotate(0));
+  const $coord = document.createElement('div');
+  $coord.setAttribute('id', 'coord');
+  $coord.setAttribute('class', 'panel');
+  $coordBlade.appendChild($coord);
+  return {$coordBlade, $coord};
+}
+
 const $controls = createControls();
 document.body.appendChild($controls);
 
 const $hamburger = createHamburger();
 document.body.appendChild($hamburger);
+
+const {$coordBlade, $coord} = createDebug();
+document.body.appendChild($coordBlade);
+
+$coord.innerText = world.toponym(position);
 
 const camera = makeCamera($context, world.cameraTransform(cursor.position));
 
@@ -287,13 +306,13 @@ const facetView = makeFacetView({
 });
 
 /**
- * @param {number} _destination
+ * @param {number} destination
  * @param {import('./camera-controller.js').CursorChange} change
  */
-function followCursor(_destination, change) {
+function followCursor(destination, change) {
   cameraController.go(change);
   moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
-  // $debug.innerText = world.toponym(destination);
+  $coord.innerText = world.toponym(destination);
 }
 
 const controls = makeController($controls, $hamburger, {
