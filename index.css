@@ -2,6 +2,7 @@
 *,
 ::before,
 ::after {
+  user-select: none;
   margin: 0;
   box-sizing: border-box;
 }
@@ -136,6 +137,8 @@ text.moji {
 }
 
 #controls {
+  user-select: none;
+  cursor: pointer;
   position: absolute;
   bottom: 0;
   right: 0;

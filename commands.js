@@ -42,19 +42,52 @@ const commandForKey = {
  * @param {(command: number) => void} driver.up
  * @param {(command: number) => void} driver.down
  */
-export const makeCommandDispatcher = (window, {up, down}) => {
+export const makeCommandDispatcher = (window, driver) => {
   const commandHolders = new Array(10).fill(undefined).map(() => new Set());
+
+  /**
+   * @param {string} holder
+   * @param {number} command
+   */
+  const down = (holder, command) => {
+    const holders = commandHolders[command];
+    if (holders.size === 0) {
+      driver.down(command);
+    }
+    holders.add(holder);
+  };
+
+  /**
+   * @param {string} holder
+   * @param {number} command
+   */
+  const up = (holder, command) => {
+    const holders = commandHolders[command];
+    holders.delete(holder);
+    if (holders.size === 0) {
+      driver.up(command);
+    }
+  };
+
+  const cancel = () => {
+    for (const [command, holders] of commandHolders.entries()) {
+      if (holders.size) {
+        holders.clear();
+        driver.up(command);
+      }
+    }
+  };
+
+  // TODO the keydown and keyup handlers below could be readily externalized
+  // and be on equal footing with the controller key dispatchers, making the
+  // command dispatcher purely a mux.
 
   window.addEventListener('keydown', event => {
     const {key, repeat, metaKey} = event;
     if (repeat || metaKey) return;
     const command = commandForKey[key];
     if (command === undefined) return;
-    const holders = commandHolders[command];
-    if (holders.size === 0) {
-      down(command);
-    }
-    holders.add(key);
+    down(key, command);
   });
 
   window.addEventListener('keyup', event => {
@@ -62,19 +95,16 @@ export const makeCommandDispatcher = (window, {up, down}) => {
     if (repeat || metaKey) return;
     const command = commandForKey[key];
     if (command === undefined) return;
-    const holders = commandHolders[command];
-    holders.delete(key);
-    if (holders.size === 0) {
-      up(command);
-    }
+    up(key, command);
   });
 
   window.addEventListener('blur', () => {
-    for (const [command, holders] of commandHolders.entries()) {
-      if (holders.size) {
-        holders.clear();
-        up(command);
-      }
-    }
+    cancel();
   });
+
+  return {down, up, cancel};
 };
+
+/**
+ * @typedef {ReturnType<makeCommandDispatcher>} CommandDispatcher
+ */

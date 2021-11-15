@@ -13,7 +13,7 @@ import {makeFacetView} from './facet-view.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
-import {makeController} from './controls.js';
+import {makeController, watchControllerCommands} from './controls.js';
 import {makeDriver} from './driver.js';
 import {makeCommandDispatcher} from './commands.js';
 import {makeMechanics} from './mechanics.js';
@@ -195,16 +195,6 @@ export function createControls() {
   return $controls;
 }
 
-export function createHamburger() {
-  const $hamburger = document.createElementNS(svgNS, 'svg');
-  $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
-  $hamburger.setAttributeNS(null, 'height', `${1 * tileSize}`);
-  $hamburger.setAttributeNS(null, 'width', `${1 * tileSize}`);
-  $hamburger.setAttributeNS(null, 'id', 'hamburger');
-  $hamburger.setAttributeNS(null, 'class', 'panel');
-  return $hamburger;
-}
-
 export function createDebug() {
   const $coordBlade = document.createElement('div');
   $coordBlade.setAttribute('id', 'coordBlade');
@@ -218,14 +208,24 @@ export function createDebug() {
   return {$coordBlade, $coord};
 }
 
+export function createHamburger() {
+  const $hamburger = document.createElementNS(svgNS, 'svg');
+  $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
+  $hamburger.setAttributeNS(null, 'height', `${1 * tileSize}`);
+  $hamburger.setAttributeNS(null, 'width', `${1 * tileSize}`);
+  $hamburger.setAttributeNS(null, 'id', 'hamburger');
+  $hamburger.setAttributeNS(null, 'class', 'panel');
+  return $hamburger;
+}
+
 const $controls = createControls();
 document.body.appendChild($controls);
 
-const $hamburger = createHamburger();
-document.body.appendChild($hamburger);
-
 const {$coordBlade, $coord} = createDebug();
 document.body.appendChild($coordBlade);
+
+const $hamburger = createHamburger();
+document.body.appendChild($hamburger);
 
 $coord.innerText = world.toponym(position);
 
@@ -350,4 +350,7 @@ window.addEventListener('keypress', event => {
   }
 });
 
-makeCommandDispatcher(window, driver);
+const dispatcher = makeCommandDispatcher(window, driver);
+
+console.log($hamburger);
+watchControllerCommands($controls, $hamburger, dispatcher, {tileSize});

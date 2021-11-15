@@ -90,8 +90,8 @@ const directionFromForPackIndex = directionToForPackIndex.map(
 );
 
 /**
- * @param {Element} $controls
- * @param {Element} $hamburger
+ * @param {SVGElement} $controls
+ * @param {SVGElement} $hamburger
  * @param {Object} args
  * @param {number} args.agent
  * @param {number} args.frustumRadius
@@ -1238,3 +1238,95 @@ export function makeController($controls, $hamburger, {
     command,
   };
 }
+
+/**
+ * @param {Element} $controls
+ * @param {Element} $hamburger
+ * @param {import('./commands.js').CommandDispatcher} dispatcher
+ * @param {Object} args
+ * @param {number} args.tileSize
+ */
+export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
+  tileSize,
+}) => {
+
+  let previousCommand = -1;
+
+  /**
+   * @param {MouseEvent} event
+   */
+  const controlEventToCommand = event => {
+    const {offsetX, offsetY} = event;
+    const coord = {x: Math.floor(offsetX / tileSize), y: Math.floor(offsetY / tileSize)};
+    const {x, y} = coord;
+    if (x >= 3 || y >= 3 || x < 0 || y < 0) return -1;
+    return x + (2 - y) * 3 + 1;
+  };
+
+  /**
+   * @param {number} command
+   * @param {boolean} pressed
+   */
+  const onControlMouseStateChange = (command, pressed) => {
+    if (pressed) {
+      if (previousCommand === -1) { // unpressed to pressed
+        previousCommand = command;
+        dispatcher.down('Mouse', previousCommand);
+      } else { // steadily down, maybe relocated
+        if (previousCommand !== command) {
+          dispatcher.up('Mouse', previousCommand);
+          previousCommand = command;
+          dispatcher.down('Mouse', previousCommand);
+        }
+      }
+    } else { // to unpressed
+      if (previousCommand !== -1) { // pressed to unpressed
+        dispatcher.up('Mouse', previousCommand);
+        previousCommand = -1;
+      } /* else { // steadily unpressed
+      } */
+    }
+  }
+
+  /**
+   * @param {Event} event
+   */
+  const onControlsMouseChange = event => {
+    const mouseEvent = /** @type {MouseEvent} */(event);
+    const command = controlEventToCommand(mouseEvent);
+    onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
+  };
+
+  /**
+   * @param {Event} event
+   */
+  const onControlsMouseEnter = event => {
+    const mouseEvent = /** @type {MouseEvent} */(event);
+    const command = controlEventToCommand(mouseEvent);
+    onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
+    $controls.addEventListener('mousemove', onControlsMouseChange);
+    $controls.addEventListener('mouseup', onControlsMouseChange);
+    $controls.addEventListener('mousedown', onControlsMouseChange);
+  };
+
+  const onControlsMouseLeave = () => {
+    onControlMouseStateChange(-1, false);
+    $controls.removeEventListener('mousemove', onControlsMouseChange);
+    $controls.removeEventListener('mouseup', onControlsMouseChange);
+    $controls.removeEventListener('mousedown', onControlsMouseChange);
+  };
+
+  $controls.addEventListener('mouseenter', onControlsMouseEnter);
+  $controls.addEventListener('mouseleave', onControlsMouseLeave);
+
+  const onHamburgerMouseDown = () => {
+    dispatcher.down('Mouse', 0);
+  };
+
+  const onHamburgerMouseUp = () => {
+    dispatcher.up('Mouse', 0);
+  };
+
+  $hamburger.addEventListener('mousedown', onHamburgerMouseDown);
+  $hamburger.addEventListener('mouseup', onHamburgerMouseUp);
+};
