@@ -2,6 +2,7 @@
 
 import {assert, assertNonZero} from './assert.js';
 import {halfOcturn, fullOcturn, octurnVectors} from './geometry2d.js';
+import {makeBoxTileMap} from './tile-map-box.js';
 
 /**
  * @typedef {[number, number, number, number, number, number, number, number, number]} NineNumbers
@@ -15,17 +16,7 @@ export function locate(x, y) {
   return (y + 1) * 5 + x + 1;
 }
 
-function makeTileMap() {
-  const map = new Map();
-  for (let x = -1; x < 4; x += 1) {
-    for (let y = -1; y < 4; y += 1) {
-      map.set(locate(x, y), {x, y, a: 0});
-    }
-  }
-  return map;
-}
-
-export const tileMap = makeTileMap();
+export const tileMap = makeBoxTileMap({x: 5, y: 5}, {x: -1, y: -1});
 
 const gridCoordinates = [
   {x: 0, y: 2},

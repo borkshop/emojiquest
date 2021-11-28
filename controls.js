@@ -22,6 +22,7 @@ import {makeMacroViewModel} from './macro-view-model.js';
 import {commandDirection} from './driver.js';
 import {tileMap, locate, makeNineKeyView} from './nine-key-view.js';
 import {makeElementTracker} from './element-tracker.js';
+import {makeBoxTileMap} from './tile-map-box.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -207,7 +208,7 @@ export function makeController($controls, $hamburger, {
 
   const hamburgerView = makeTileView($hamburger, null, create, collect);
   const hamburgerViewModel = makeViewModel();
-  const oneTileMap = new Map([[0, {x: 0, y: 0, a: 0}]]);
+  const oneTileMap = makeBoxTileMap();
   hamburgerViewModel.watch(oneTileMap, {
     enter: hamburgerView.enter,
     exit: hamburgerView.exit,
