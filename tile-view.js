@@ -6,6 +6,8 @@
 
 // @ts-check
 
+import {assumeDefined} from './assert.js';
+
 /**
  * @callback EnterFn
  * @param {number} tile
@@ -70,8 +72,7 @@ export function makeTileView($parent, $nextSibling, createElement, collectElemen
    * @param {number} t
    */
   function exit(t) {
-    const $tile = $tiles.get(t);
-    if ($tile == null) throw new Error(`Assertion failed: cannot remove absent tile ${t}`);
+    const $tile = assumeDefined($tiles.get(t), `Assertion failed: cannot remove absent tile ${t}`);
     $parent.removeChild($tile);
     collectElement(t);
   }

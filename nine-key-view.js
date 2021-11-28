@@ -58,14 +58,14 @@ export function makeNineKeyView(macroViewModel) {
   }
 
   /**
-   * @param {number} index
+   * @param {number} slot
    * @param {number} tileType
    */
-  function spawn(index, tileType) {
-    const location = gridLocations[index];
+  function spawn(slot, tileType) {
+    const location = gridLocations[slot];
     const entity = create(tileType, location);
     macroViewModel.enter(entity);
-    entities[index] = entity;
+    entities[slot] = entity;
   }
 
   /** @param {number} slot */

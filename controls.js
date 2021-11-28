@@ -108,6 +108,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {FollowCursorFn} args.followCursor
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {(progress: Progress) => void} args.animateAux
+ * @param {import('./menu.js').MenuController} args.menuController
  * @returns {import('./driver.js').Delegate}
  */
 export function makeController($controls, $hamburger, {
@@ -124,6 +125,7 @@ export function makeController($controls, $hamburger, {
   followCursor,
   mechanics,
   animateAux,
+  menuController,
 }) {
 
   const {
@@ -302,7 +304,7 @@ export function makeController($controls, $hamburger, {
       } else if (command === 9 && worldModel.entityEffects(agent) !== 0) { // effect chooser
         return openEffects();
       } else if (command === 0 && !repeat) {
-        return openEditor();
+        return playToMenuMode();
       } else {
         return playMode;
       }
@@ -437,6 +439,30 @@ export function makeController($controls, $hamburger, {
     }
   };
 
+  /** @type {Mode} */
+  const menuMode = {
+    press(command) {
+      if (command === 8) {
+        menuController.goNorth();
+      } else if (command === 2) {
+        menuController.goSouth();
+      } else if (command === 0) {
+        const state = menuController.getState();
+        if (state === 'play') {
+          return menuToPlayMode();
+        } else if (state === 'edit') {
+          return menuToEditMode();
+        } else if (state === 'load') {
+          // TODO
+          return menuToPlayMode();
+        } else if (state === 'save') {
+          // TODO
+          return menuToPlayMode();
+        }
+      }
+      return menuMode;
+    }
+  };
 
   /** @type {number} */
   let editType = 0;
@@ -478,7 +504,7 @@ export function makeController($controls, $hamburger, {
       } else if (command === 5) {
         return openAgentChooser();
       } else if (command === 0 && !repeat) {
-        return closeEditor();
+        return editToMenuMode();
       } else {
         return editMode;
       }
@@ -782,7 +808,9 @@ export function makeController($controls, $hamburger, {
     return playMode;
   }
 
-  function openEditor() {
+  function playToMenuMode() {
+    nineKeyView.despawnOutward(ee);
+    nineKeyView.despawnOutward(ww);
     dismissLeft();
     dismissRight();
     dismissEffect();
@@ -790,6 +818,40 @@ export function makeController($controls, $hamburger, {
       dismissPack();
     }
     dismissWatch();
+    oneKeyView.replace(0, tileTypesByName.thumbUp);
+
+    menuController.show();
+
+    return menuMode;
+  }
+
+  function menuToPlayMode() {
+    menuController.hide();
+
+    oneKeyView.replace(0, tileTypesByName.hamburger);
+
+    nineKeyView.spawnInward(tileTypesByName.east, ee);
+    nineKeyView.spawnInward(tileTypesByName.west, ww);
+    restoreLeft();
+    restoreRight();
+    restoreEffect();
+    if (packNotEmpty()) {
+      restorePack();
+    }
+    restoreWatch();
+
+    oneKeyView.replace(0, tileTypesByName.hamburger);
+
+    return playMode;
+  }
+
+  function menuToEditMode() {
+    menuController.hide();
+
+    oneKeyView.replace(0, tileTypesByName.hamburger);
+
+    nineKeyView.spawnInward(tileTypesByName.west, ww);
+    nineKeyView.spawnInward(tileTypesByName.east, ee);
 
     restoreEditorBezel();
 
@@ -801,33 +863,32 @@ export function makeController($controls, $hamburger, {
     worldModel.unfollow(agent, followAgent);
     restoreEditorReticle();
 
-    oneKeyView.replace(0, tileTypesByName.back);
+    oneKeyView.replace(0, tileTypesByName.hamburger);
 
     return editMode;
   }
 
-  function closeEditor() {
+  function editToMenuMode() {
     dismissEditorBezel();
     if (editType !== 0) {
       nineKeyView.despawn(4);
     }
-
-    restoreLeft();
-    restoreRight();
-    restoreEffect();
-    if (packNotEmpty()) {
-      restorePack();
-    }
-    restoreWatch();
 
     cursor = lastAgentCursor;
     camera.reset(cameraTransform(cursor.position));
     worldModel.follow(agent, followAgent);
     dismissEditorReticle();
 
-    oneKeyView.replace(0, tileTypesByName.hamburger);
+    oneKeyView.replace(0, tileTypesByName.back);
 
-    return playMode;
+    menuController.show();
+
+    nineKeyView.despawnOutward(ee);
+    nineKeyView.despawnOutward(ww);
+
+    oneKeyView.replace(0, tileTypesByName.thumbUp);
+
+    return menuMode;
   }
 
   /** @type {number} */
@@ -1192,6 +1253,7 @@ export function makeController($controls, $hamburger, {
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
     hamburgerViewModel.animate(progress);
+    menuController.animate(progress);
     animateAux(progress);
   }
 
@@ -1208,6 +1270,7 @@ export function makeController($controls, $hamburger, {
     keepTilesAround(cursor.position, frustumRadius);
     macroViewModel.reset();
     oneKeyView.reset();
+    menuController.reset();
   }
 
   let mode = playMode;

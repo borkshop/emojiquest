@@ -18,6 +18,7 @@ import {makeCommandDispatcher} from './commands.js';
 import {makeMechanics} from './mechanics.js';
 import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
 import {makeFacetCreator} from './facet-creator.js';
+import {createMenuBlade} from './menu.js';
 
 /**
  * @template T
@@ -79,7 +80,7 @@ const svgNS = "http://www.w3.org/2000/svg";
  * @prop {(tile: number) => Matrix} tileTransform
  */
 
-export function createControls() {
+function createControls() {
   const $controls = document.createElementNS(svgNS, 'svg');
   $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
   $controls.setAttributeNS(null, 'height', `${3 * tileSize}`);
@@ -89,7 +90,7 @@ export function createControls() {
   return $controls;
 }
 
-export function createDebug() {
+function createCoordBlade() {
   const $coordBlade = document.createElement('div');
   $coordBlade.setAttribute('id', 'coordBlade');
   $coordBlade.setAttribute('class', 'blade');
@@ -102,7 +103,7 @@ export function createDebug() {
   return {$coordBlade, $coord};
 }
 
-export function createHamburger() {
+function createHamburger() {
   const $hamburger = document.createElementNS(svgNS, 'svg');
   $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
   $hamburger.setAttributeNS(null, 'height', `${1 * tileSize}`);
@@ -112,11 +113,28 @@ export function createHamburger() {
   return $hamburger;
 }
 
+const mechanics = makeMechanics({
+  recipes,
+  actions,
+  tileTypes,
+  agentTypes,
+  itemTypes,
+  effectTypes,
+});
+
+
 const $controls = createControls();
 document.body.appendChild($controls);
 
-const {$coordBlade, $coord} = createDebug();
+const {$coordBlade, $coord} = createCoordBlade();
 document.body.appendChild($coordBlade);
+
+const {$menuBlade, menuController} = createMenuBlade({
+  tileSize,
+  pointerTileType: mechanics.tileTypesByName.east,
+  createElement: createEntity,
+});
+document.body.appendChild($menuBlade);
 
 const $hamburger = createHamburger();
 document.body.appendChild($hamburger);
@@ -156,15 +174,6 @@ function createEntity(_entity, type) {
 
 const worldViewModel = makeViewModel();
 const worldMacroViewModel = makeMacroViewModel(worldViewModel, {name: 'world'});
-
-const mechanics = makeMechanics({
-  recipes,
-  actions,
-  tileTypes,
-  agentTypes,
-  itemTypes,
-  effectTypes,
-});
 
 const worldModel = makeModel({
   size: world.worldArea,
@@ -225,6 +234,7 @@ const controls = makeController($controls, $hamburger, {
   followCursor,
   mechanics,
   animateAux: animateFacets,
+  menuController,
 });
 
 const driver = makeDriver(controls, {

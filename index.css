@@ -12,6 +12,7 @@ body {
   height: 100%;
   width: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 aside.menu {
@@ -151,8 +152,24 @@ text.moji {
 
 #coord {
   position: relative;
-  left: calc(var(--tileSize) * 1.1px);
+  left: calc(var(--tileSize) * 1.5px);
   bottom: 0px;
+
+  height: calc(var(--tileSize) * 1px);
+  line-height: calc(var(--tileSize) * 0.5px);
+
+  font-family: monospace;
+  font-size: calc(var(--tileSize) * 0.5px);
+  color: black;
+
+  padding-left: calc(var(--tileSize) * 0.5px);
+  padding-right: calc(var(--tileSize) * 0.5px);
+}
+
+#menu {
+  position: relative;
+  bottom: calc(var(--tileSize) * 1.5px);
+  left: 0px;
 
   font-family: monospace;
   font-size: 30px;
@@ -160,11 +177,30 @@ text.moji {
   padding: 10px;
 }
 
-.blade {
-  transform-origin: bottom left;
+#curb {
+  position: absolute;
+  /* position to compensate for padding */
+  top: 10px;
+  left: 10px;
 }
 
-#coordBlade {
+.menuLabel {
+  padding-left: calc(var(--tileSize) * 1px);
+  padding-right: calc(var(--tileSize) * 0.5px);
+  height: calc(var(--tileSize) * 1px);
+  line-height: calc(var(--tileSize) * 1px);
+  /* https://css-tricks.com/snippets/css/font-stacks/ */
+  /* font-family: "Palatino Linotype", Palatino, Palladio, "URW Palladio L", "Book Antiqua", Baskerville, "Bookman Old Style", "Bitstream Charter", "Nimbus Roman No9 L", Garamond, "Apple Garamond", "ITC Garamond Narrow", "New Century Schoolbook", "Century Schoolbook", "Century Schoolbook L", Georgia, serif; */
+  /* font-family: Constantia, "Lucida Bright", Lucidabright, "Lucida Serif", Lucida, "DejaVu Serif", "Bitstream Vera Serif", "Liberation Serif", Georgia, serif; */
+  /* font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace; */
+  /* font-family: Corbel, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", "Bitstream Vera Sans", "Liberation Sans", Verdana, "Verdana Ref", sans-serif; */
+  font-family: "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif;
+  font-size: calc(var(--tileSize) * 0.7px);
+  margin: 0;
+}
+
+.blade {
+  transform-origin: bottom left;
   position: absolute;
   bottom: 0;
   left: 0;
