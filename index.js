@@ -28,12 +28,14 @@ import {makeFacetCreator} from './facet-creator.js';
 
 const $context = mustFind('#context');
 
-const radius = 10;
-const tileSize = 100;
-const facetSize = 9;
-const faceSize = 9 * facetSize;
+const radius = 15; // the player's frustum radius in tiles
+const tileSize = 75; // the height and width of a tile in pixels
+const facetSize = 9; // the height and width of a facet in units of tiles
+const faceSize = 9 * facetSize; // the height and width of a face in tiles
 
 document.documentElement.style.setProperty('--tileSize', `${tileSize}`);
+document.documentElement.style.setProperty('--faceSize', `${faceSize}`);
+document.documentElement.style.setProperty('--facetSize', `${facetSize}`);
 
 const animatedTransitionDuration = 300;
 const slowCameraTransitionDuration = 900;

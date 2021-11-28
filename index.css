@@ -34,10 +34,10 @@ aside.menu {
 
 #retical {
   position: absolute;
-  width: 100px;
-  height: 100px;
-  top: calc(50% - 50px);
-  left: calc(50% - 50px);
+  width: calc(var(--tileSize) * 1px);
+  height: calc(var(--tileSize) * 1px);
+  top: calc((100% - var(--tileSize) * 1px) / 2);
+  left: calc((100% - var(--tileSize) * 1px) / 2);
   border: solid red 3px;
 }
 
@@ -52,8 +52,8 @@ aside.menu {
 
 .foundation {
   position: absolute;
-  height: 100px;
-  width: 100px;
+  width: calc(var(--tileSize) * 1px);
+  height: calc(var(--tileSize) * 1px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,14 +67,13 @@ aside.menu {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 900px;
-  width: 900px;
+  width: calc(var(--facetSize) * var(--tileSize) * 1px);
+  height: calc(var(--facetSize) * var(--tileSize) * 1px);
   color: white;
   border: 0;
   margin: 0;
   padding: 0;
   backface-visibility: hidden;
-  font-size: 450px;
   overflow: hidden;
 }
 
@@ -83,8 +82,8 @@ aside.menu {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100px;
-  width: 100px;
+  width: calc(var(--tileSize) * 1px);
+  height: calc(var(--tileSize) * 1px);
   font-size: 80px;
   color: black;
   overflow: hidden;
@@ -94,8 +93,8 @@ aside.menu {
 
 .atmosquare {
   position: absolute;
-  height: 100px;
-  width: 100px;
+  width: calc(var(--tileSize) * 1px);
+  height: calc(var(--tileSize) * 1px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,8 +106,8 @@ aside.menu {
 
 .firmament {
   position: absolute;
-  height: 100px;
-  width: 100px;
+  width: calc(var(--tileSize) * 1px);
+  height: calc(var(--tileSize) * 1px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,7 +131,7 @@ text.moji {
   backdrop-filter: blur(5px);
   padding: 10px;
   margin: 10px;
-  border: solid 4px rgba(0, 0, 0, 5%);
+  border: solid 4px rgba(0, 0, 0, 25%);
   border-radius: 50px;
 }
 
