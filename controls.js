@@ -15,13 +15,13 @@
 
 import {assert, assertDefined, assertNonZero, assumeDefined} from './assert.js';
 import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn} from './geometry2d.js';
-import {placeEntity} from './animation2d.js';
 import {makeTileView} from './tile-view.js';
 import {makeTileKeeper} from './tile-keeper.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {commandDirection} from './driver.js';
 import {tileMap, locate, makeNineKeyView} from './nine-key-view.js';
+import {makeElementTracker} from './element-tracker.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -175,34 +175,23 @@ export function makeController($controls, $hamburger, {
 
   let lastAgentCursor = cursor;
 
-  const elements = new Map();
-
   /**
-   * @param {number} entity
+   * @param {number} _entity
    * @param {number} type
    */
-  function createElement(entity, type) {
+  function createElement(_entity, type) {
     if (type === -1) {
       const element = document.createElementNS(svgNS, 'circle');
       element.setAttributeNS(null, 'class', 'reticle');
       element.setAttributeNS(null, 'r', '0.75');
-      elements.set(entity, element);
       return element;
     } else {
       const text = viewText[type];
       const element = document.createElementNS(svgNS, 'text');
       element.setAttributeNS(null, 'class', 'moji');
       element.appendChild(document.createTextNode(text));
-      elements.set(entity, element);
       return element;
     }
-  }
-
-  /**
-   * @param {number} entity
-   */
-  function collectElement(entity) {
-    elements.delete(entity);
   }
 
   const {keepTilesAround} = makeTileKeeper({
@@ -211,10 +200,12 @@ export function makeController($controls, $hamburger, {
     advance: advance
   });
 
-  const tileView = makeTileView($controls, null, createElement, collectElement);
+  const {create, collect, place} = makeElementTracker({ createElement });
+
+  const tileView = makeTileView($controls, null, create, collect);
   const {enter, exit} = tileView;
 
-  const hamburgerView = makeTileView($hamburger, null, createElement, collectElement);
+  const hamburgerView = makeTileView($hamburger, null, create, collect);
   const hamburgerViewModel = makeViewModel();
   const oneTileMap = new Map([[0, {x: 0, y: 0, a: 0}]]);
   hamburgerViewModel.watch(oneTileMap, {
@@ -224,12 +215,6 @@ export function makeController($controls, $hamburger, {
   })
   const oneKeyView = makeMacroViewModel(hamburgerViewModel, { name: 'hamburger', start: -2, stride: -1 });
   oneKeyView.put(0, 0, tileTypesByName.hamburger);
-
-  /** @type {PlaceFn} */
-  function place(entity, coord, pressure, progress, transition) {
-    const element = assumeDefined(elements.get(entity));
-    placeEntity(element, coord, pressure, progress, transition);
-  }
 
   const controlsViewModel = makeViewModel();
   const macroViewModel = makeMacroViewModel(controlsViewModel, {name: 'controls'});
