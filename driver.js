@@ -151,6 +151,18 @@ export const makeDriver = (delegate, options) => {
   }
 
   async function animate() {
+    // TODO(josh) this whole animation system is a bit too tied to
+    // start/end/now architecture, I wasn't able to refactor it to purer
+    // dT-integration in one go, although I to close with the camera
+    // transitions before backing it all out
+    //
+    // Have another go at:
+    //     for await (const elapsed of domkit.frameDeltas())
+    // or at least:
+    //     const now = await nextFrame();
+    // but that's not simple since there's so much code already coupled to
+    // global Date.now() and designed to constantly recompute absolute dT
+    // rather than continuously integrate dT updates
     for (;;) {
       await nextFrame();
       const now = Date.now();
