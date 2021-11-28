@@ -19,7 +19,7 @@
     "build": "snowpack build --clean"
   },
   "dependencies": {
-    "cdom": "0.1.0"
+    "domkit": "0.1.0"
   },
   "devDependencies": {
     "@snowpack/plugin-optimize": "^0.2.13",

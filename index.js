@@ -1,6 +1,6 @@
 // @ts-check
 
-import {mustFind} from 'cdom/wiring';
+import {mustFind} from 'domkit/wiring';
 import {cell} from './cell.js';
 import {linear, easeInOutQuart} from './easing.js';
 import {north, fullQuarturn} from './geometry2d.js';
