@@ -11,7 +11,7 @@ import { clamp } from './math.js';
 
 /**
  * @typedef {Object} Progress
- * @prop {number} now
+ * @prop {number} elapsed
  * @prop {number} linear
  * @prop {number} sinusoidal
  * @prop {number} sinusoidalQuarterTurn
@@ -24,18 +24,17 @@ import { clamp } from './math.js';
  */
 
 /**
- * @param {number} start
- * @param {number} now
- * @param {number} duration
+ * @param {number} elapsed
+ * @param {number} turns
  * @returns {Progress}
  */
-export function makeProgress(start, now, duration) {
-  const linear = clamp(0, 1, (now - start) / duration);
+export function makeProgress(elapsed, turns) {
+  const linear = clamp(0, 1, turns);
   const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
   const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
   const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
   return {
-    now,
+    elapsed,
     linear,
     sinusoidal,
     sinusoidalQuarterTurn,

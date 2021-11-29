@@ -1249,7 +1249,7 @@ export function makeController($controls, $hamburger, {
    * @param {Progress} progress
    */
   function animate(progress) {
-    camera.animate(progress.now);
+    camera.animate(progress.elapsed);
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
     hamburgerViewModel.animate(progress);

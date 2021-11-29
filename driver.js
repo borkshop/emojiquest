@@ -19,7 +19,7 @@
  * @typedef {import('./cell.js').Cell<T>} Cell
  */
 
-import {nextFrame} from 'domkit/anim';
+import {frameDeltas} from 'domkit/anim';
 import {assert} from './assert.js';
 import {makeProgress} from './animation.js';
 import {delay, defer} from './async.js';
@@ -85,10 +85,11 @@ export const makeDriver = (delegate, options) => {
   const held = new Map();
   // TODO const vector = {x: 0, y: 0};
 
-  let start = Date.now();
+  // Time elapsed since reset.
+  let timeSinceTransitionStart = 0;
 
   function reset() {
-    start = Date.now();
+    timeSinceTransitionStart = 0;
     delegate.reset();
   }
 
@@ -136,7 +137,7 @@ export const makeDriver = (delegate, options) => {
 
       // Repeat
       while (held.size) {
-        const now = Date.now();
+        const now = performance.now();
         for (const [heldCommand, {start}] of held.entries()) {
           const duration = now - start;
           if (duration > animatedTransitionDuration) {
@@ -151,22 +152,9 @@ export const makeDriver = (delegate, options) => {
   }
 
   async function animate() {
-    // TODO(josh) this whole animation system is a bit too tied to
-    // start/end/now architecture, I wasn't able to refactor it to purer
-    // dT-integration in one go, although I to close with the camera
-    // transitions before backing it all out
-    //
-    // Have another go at:
-    //     for await (const elapsed of domkit.frameDeltas())
-    // or at least:
-    //     const now = await nextFrame();
-    // but that's not simple since there's so much code already coupled to
-    // global Date.now() and designed to constantly recompute absolute dT
-    // rather than continuously integrate dT updates
-    for (;;) {
-      await nextFrame();
-      const now = Date.now();
-      const progress = makeProgress(start, now, animatedTransitionDuration);
+    for await (const elapsed of frameDeltas()) {
+      timeSinceTransitionStart += elapsed;
+      const progress = makeProgress(elapsed, timeSinceTransitionStart / animatedTransitionDuration);
       delegate.animate(progress);
     }
   }
@@ -177,7 +165,7 @@ export const makeDriver = (delegate, options) => {
   function down(command) {
     assert(!held.has(command));
     const up = delegate.down(command);
-    held.set(command, {start: Date.now(), up});
+    held.set(command, {start: performance.now(), up});
 
     // If a command key goes down during an animated transition for a prior
     // command, we abort that animation so the next move advances immediately

@@ -52,9 +52,11 @@ export function makeCamera($context, transform) {
   /** @type {Array<Transition>} */
   let transitions = [];
 
+  // Absolute time as measured in accumulated elapsed animation time.
+  let now = 0;
+
   /** @type {TransitionFn} */
   function transition(duration, matrix) {
-    const now = Date.now();
     transitions.push({
       start: now,
       end: now + duration,
@@ -63,9 +65,10 @@ export function makeCamera($context, transform) {
   }
 
   /**
-   * @param {number} now
+   * @param {number} elapsed
    */
-  function animate(now) {
+  function animate(elapsed) {
+    now += elapsed;
 
     // Consolidate completed transitions
     let completed = 0;
