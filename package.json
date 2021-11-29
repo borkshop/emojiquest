@@ -13,6 +13,7 @@
   },
   "private": true,
   "scripts": {
+    "test": "true",
     "lint": "tsc",
     "ci": "npm run lint",
     "start": "snowpack dev",
