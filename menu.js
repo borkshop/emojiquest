@@ -143,7 +143,7 @@ export function createMenuBlade({
     reset
   };
 
-  return {$menuBlade, $menu, menuController};
+  return {$menuBlade, menuController};
 }
 
 /**
