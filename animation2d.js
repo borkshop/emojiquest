@@ -38,7 +38,7 @@ const noTransition = {
 
 /** @type {Progress} */
 const noProgress = {
-  now: NaN,
+  elapsed: 0,
   linear: 0,
   sinusoidal: 0,
   sinusoidalQuarterTurn: 0,
