@@ -295,13 +295,13 @@ export function makeController($controls, $hamburger, {
       } else if (command === 5) { // stay
         tick();
         return playMode;
-      } else if (command === 1 && isNotEmptyItem(leftHandItemType())) {
+      } else if (command === 1 && isNotEmptyItem(leftHandItemType()) && !repeat) {
         return handleLeftItem();
-      } else if (command === 3 && isNotEmptyItem(rightHandItemType())) {
+      } else if (command === 3 && isNotEmptyItem(rightHandItemType()) && !repeat) {
         return handleRightItem();
-      } else if (command === 7 && packNotEmpty()) { // stash
+      } else if (command === 7 && packNotEmpty() && !repeat) { // stash
         return openStash();
-      } else if (command === 9 && worldModel.entityEffects(agent) !== 0) { // effect chooser
+      } else if (command === 9 && worldModel.entityEffects(agent) !== 0 && !repeat) { // effect chooser
         return openEffects();
       } else if (command === 0 && !repeat) {
         return playToMenuMode();
@@ -320,7 +320,8 @@ export function makeController($controls, $hamburger, {
 
     /** @type {Mode} */
     const mode = {
-      press(command) {
+      press(command, repeat) {
+        if (repeat) return mode;
         if (command === 9) { // trash / consume / convert to effect
           return useItem(leftOrRight, packWasVisible);
         } else if (command === 2 && isNotEmptyItem(rightHandItemType())) { // craft
@@ -344,7 +345,8 @@ export function makeController($controls, $hamburger, {
   function packMode(leftOrRight) {
     /** @type {Mode} */
     const mode = {
-      press(command) {
+      press(command, repeat) {
+        if (repeat) return mode;
         if (command === 5) { // keep
           dismissPackItemsExcept(-1);
 
@@ -426,7 +428,8 @@ export function makeController($controls, $hamburger, {
 
   /** @type {Mode} */
   const effectMode = {
-    press(command) {
+    press(command, repeat) {
+      if (repeat) return mode;
       if (command >= 1 && command <= 9) {
         const chosenType = command - 1;
         if (worldModel.entityHasEffect(agent, chosenType)) {
@@ -441,7 +444,8 @@ export function makeController($controls, $hamburger, {
 
   /** @type {Mode} */
   const menuMode = {
-    press(command) {
+    press(command, repeat) {
+      if (repeat) return mode;
       if (command === 8) {
         menuController.goNorth();
       } else if (command === 2) {
@@ -513,7 +517,8 @@ export function makeController($controls, $hamburger, {
 
   /** @type {Mode} */
   const chooseAgentMode = {
-    press(command) {
+    press(command, repeat) {
+      if (repeat) return mode;
       if (command === 8) {
         assertNonZero(editType);
         editType = agentTypeForOffset(1);
