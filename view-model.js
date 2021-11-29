@@ -73,9 +73,6 @@ import {setDifference} from './set.js';
  */
 
 export function makeViewModel() {
-  /** @type {number} time of last animation frame */
-  let last = -Infinity;
-
   /**
    * Entity number to tile number.
    * @type {Map<number, {location: number, type: number}>}
@@ -304,15 +301,10 @@ export function makeViewModel() {
 
   /** @type {AnimateFn} */
   function animate(progress) {
-    const {now} = progress;
-
-    if (last === -Infinity) {
-      last = now;
-      return;
-    }
+    const {elapsed} = progress;
 
     // Animate button pressure simulation.
-    const factor = 0.9999 ** (now - last);
+    const factor = 0.99 ** elapsed;
     for (const entry of pressures.entries()) {
       const [command] = entry;
       let [, pressure] = entry;
