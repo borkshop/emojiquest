@@ -55,10 +55,10 @@ export function createMenuBlade({
     $menu.appendChild($label);
   }
 
-  appendLabel('Play');
-  appendLabel('Save');
-  appendLabel('Load');
-  appendLabel('Edit');
+  appendLabel('🎭 Play');
+  appendLabel('🏦 Save');
+  appendLabel('🚚 Load');
+  appendLabel('🚧 Edit');
 
   const {create, collect, place} = makeElementTracker({ createElement, collectElement });
   const tileView = makeTileView($curb, null, create, collect);
