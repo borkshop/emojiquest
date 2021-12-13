@@ -23,6 +23,7 @@ import {commandDirection} from './driver.js';
 import {tileMap, locate, makeNineKeyView} from './nine-key-view.js';
 import {makeElementTracker} from './element-tracker.js';
 import {makeBoxTileMap} from './tile-map-box.js';
+import {load, save} from './file.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -109,7 +110,6 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {(progress: Progress) => void} args.animateAux
  * @param {import('./menu.js').MenuController} args.menuController
- * @returns {import('./driver.js').Delegate}
  */
 export function makeController($controls, $hamburger, {
   agent,
@@ -234,7 +234,7 @@ export function makeController($controls, $hamburger, {
 
   const priorHands = [emptyItem, emptyItem];
 
-  // index of enabled effect, or -1 for no effect
+  // index of enabled effect, or 0 for no effect
   const effectType = worldModel.entityEffect(agent);
 
   const nineKeyView = makeNineKeyView(macroViewModel);
@@ -457,11 +457,33 @@ export function makeController($controls, $hamburger, {
         } else if (state === 'edit') {
           return menuToEditMode();
         } else if (state === 'load') {
-          // TODO
-          return menuToPlayMode();
+          reset();
+          load(worldModel.restore)
+          .then((/** @type {undefined | number | Array<string>} */result) => {
+            if (typeof result === 'undefined') {
+              // TODO user dismissed dialog or selected no file
+            } else if (typeof result === 'number') {
+              worldModel.unfollow(agent, followAgent);
+              agent = result;
+              const location = worldModel.locate(agent);
+              camera.reset(cameraTransform(location));
+              worldModel.follow(agent, followAgent);
+            } else {
+              for (const error of result) {
+                console.error(error);
+              }
+              // TODO user visible error
+            }
+          })
+          .finally(() => {
+            mode = menuMode;
+          });
+          return pendingMode;
         } else if (state === 'save') {
-          // TODO
-          return menuToPlayMode();
+          save(worldModel.capture, agent).finally(() => {
+            mode = menuMode;
+          });
+          return pendingMode;
         }
       }
       return menuMode;
@@ -539,6 +561,13 @@ export function makeController($controls, $hamburger, {
         return closeAgentChooser();
       }
       return chooseAgentMode;
+    }
+  };
+
+  /** @type {Mode} */
+  const pendingMode = {
+    press() {
+      return pendingMode;
     }
   };
 
@@ -1285,11 +1314,16 @@ export function makeController($controls, $hamburger, {
     mode = mode.press(command, repeat);
   }
 
+  function currentAgent() {
+    return agent;
+  }
+
   return {
     reset,
     animate,
     down,
     command,
+    currentAgent,
   };
 }
 

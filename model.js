@@ -57,6 +57,10 @@ import {quarturnToOcturn} from './geometry2d.js';
  * @typedef {ReturnType<makeModel>} Model
  */
 
+/** @typedef {ReturnType<Model['capture']>} Snapshot */
+/** @typedef {Model['capture']} CaptureFn */
+/** @typedef {Model['restore']} RestoreFn */
+
 /**
  * @param {Object} args
  * @param {number} args.size
@@ -196,7 +200,7 @@ export function makeModel({
 
   // TODO other kinds of observers, beyond just following an entity's location.
 
-  let nextModelEntity = 1; // 0 implies non-existant.
+  let nextEntity = 1; // 0 implies non-existant.
 
   /**
    * Some entities may have an inventory.
@@ -241,8 +245,8 @@ export function makeModel({
    * @returns {number} entity
    */
   function createEntity(type) {
-    const entity = nextModelEntity;
-    nextModelEntity++;
+    const entity = nextEntity;
+    nextEntity++;
     entityTypes.set(entity, type);
     return entity;
   }
@@ -554,8 +558,7 @@ export function makeModel({
   function remove(location) {
     const entity = entities[location];
     if (entity !== 0) {
-      const entityType = entityTypes.get(entity);
-      assertDefined(entityType);
+      const entityType = assumeDefined(entityTypes.get(entity));
       if (entityType === agentTypesByName.player) {
         // There is not yet special logic in the controller to ensure that the
         // player agent still exists when exiting editor mode.
@@ -590,7 +593,7 @@ export function makeModel({
    * @param {number} effect
    */
   function availEffect(entity, effect) {
-    const effects = assumeDefined(effectsOwned.get(entity)) | 1 << effect;
+    const effects = entityEffects(entity) | 1 << effect;
     effectsOwned.set(entity, effects);
   }
 
@@ -598,9 +601,12 @@ export function makeModel({
    * @param {number} entity
    */
   function entityEffect(entity) {
-    const effect = assumeDefined(effectsChosen.get(entity));
-    const mask = assumeDefined(effectsOwned.get(entity));
-    assert((mask & (1 << effect)) !== 0);
+    const effect = effectsChosen.get(entity);
+    if (effect === undefined) {
+      return 0;
+    }
+    const effects = entityEffects(entity);
+    assert((effects & (1 << effect)) !== 0);
     return effect;
   }
 
@@ -609,15 +615,20 @@ export function makeModel({
    * @param {number} effect
    */
   function entityHasEffect(entity, effect) {
-    const mask = assumeDefined(effectsOwned.get(entity));
-    return (mask & (1 << effect)) !== 0;
+    assert(effect >= 0);
+    const effects = entityEffects(entity);
+    return (effects & (1 << effect)) !== 0;
   }
 
   /**
    * @param {number} entity
    */
   function entityEffects(entity) {
-    return assumeDefined(effectsOwned.get(entity));
+    const mask = effectsOwned.get(entity)
+    if (mask === undefined) {
+      return 0;
+    }
+    return mask;
   }
 
   /**
@@ -713,6 +724,250 @@ export function makeModel({
     return true;
   }
 
+  /**
+   * @param {number} agent
+   */
+  function capture(agent) {
+    const renames = new Map();
+    const relocations = [];
+
+    for (let location = 0; location < size; location += 1) {
+      const entity = entities[location];
+      if (entity !== 0) {
+        const reentity = relocations.length;
+        relocations.push(location);
+        renames.set(entity, reentity);
+      }
+    }
+
+    /** @type {Array<{entity: number, type: number}>} */
+    const retypes = [];
+    for (const [entity, type] of entityTypes.entries()) {
+      const reentity = assumeDefined(renames.get(entity));
+      retypes.push({
+        entity: reentity,
+        type: type,
+      });
+    }
+
+    /** @type {Array<{entity: number, inventory: Array<number>}>} */
+    const reinventories = [];
+    for (const [entity, inventory] of inventories.entries()) {
+      const reentity = assumeDefined(renames.get(entity));
+      reinventories.push({
+        entity: reentity,
+        inventory: inventory.slice(),
+      });
+    }
+
+    const reagent = assumeDefined(renames.get(agent));
+
+    // TODO capture agent entity id
+    return {
+      agent: reagent,
+      locations: relocations,
+      types: retypes,
+      inventories: reinventories,
+      terrain: [...terrain.slice()],
+      // effectsOwned,
+      // effectsChosen,
+      // healths,
+      // staminas,
+    };
+  }
+
+  /**
+   * @param {unknown} allegedSnapshot
+   * @returns {number | Array<string>} agent number if ok or corruption reasons
+   */
+  function restore(allegedSnapshot) {
+    if (typeof allegedSnapshot !== 'object') {
+      return ['expected to begin with an object'];
+    }
+    const snapshot = /** @type {{[name: string]: unknown}} */(allegedSnapshot);
+    const {
+      agent: allegedAgent,
+      locations: allegedLocations,
+      types: allegedTypes,
+      inventories: allegedInventories,
+      terrain: allegedTerrain,
+    } = snapshot;
+
+    if (allegedAgent === undefined) {
+      return ['missing "agent"'];
+    } else if (typeof allegedAgent !== 'number') {
+      return ['"agent" must be a number'];
+    }
+    if (allegedTypes === undefined) {
+      return ['missing "types"'];
+    } else if (!Array.isArray(allegedTypes)) {
+      return ['"types" must be an array'];
+    }
+    if (allegedLocations === undefined) {
+      return ['missing "locations"'];
+    } else if (!Array.isArray(allegedLocations)) {
+      return ['"locations" must be an array'];
+    }
+    if (allegedInventories === undefined) {
+      return ['missing "inventories"'];
+    } else if (!Array.isArray(allegedInventories)) {
+      return ['"inventories" must be an array'];
+    }
+    if (allegedTerrain === undefined) {
+      return ['missing "terrain"'];
+    } else if (!Array.isArray(allegedTerrain)) {
+      return ['"terrain" must be an array'];
+    }
+
+    /** @type {Map<number, number>} */
+    const allegedEntityTypes = new Map();
+    const errors = [];
+    for (const allegedEntry of allegedTypes) {
+      if (typeof allegedEntry !== 'object') {
+        errors.push(`every entry in "types" must be an object, got ${JSON.stringify(allegedEntry)}`);
+        continue;
+      }
+      const entry = /** @type {{[name: string]: unknown}} */(allegedEntry);
+      const {entity: allegedEntity, type: allegedType} = entry;
+      if (typeof allegedEntity !== 'number') {
+        errors.push(`every entry in "types" must be an object with an "entity" property, got ${JSON.stringify(allegedEntity)}`);
+        continue;
+      }
+      if (typeof allegedType !== 'number') {
+        errors.push(`every entry in "types" must be an object with an "type" property, got ${JSON.stringify(allegedType)}`);
+        continue;
+      }
+      allegedEntityTypes.set(allegedEntity, allegedType);
+    }
+
+    /** @type {Map<number, number>} */
+    const purportedEntityTypes = new Map();
+
+    /** @type {Map<number, number>} */
+    const renames = new Map();
+    const purportedEntities = new Uint16Array(size);
+    let nextPurportedEntity = nextEntity;
+    for (let entity = 0; entity < allegedLocations.length; entity += 1) {
+      const location = allegedLocations[entity];
+      const type = allegedEntityTypes.get(entity);
+      if (type === undefined) {
+        errors.push(`Missing entry in "types" for entity in "locations" ${entity} at location ${location}`);
+        continue;
+      }
+      const tileType = defaultTileTypeForAgentType[type];
+      if (tileType === undefined) {
+        errors.push(`No known tile type for entity ${entity} at ${location} with alleged type ${type}`);
+        continue;
+      }
+      const purportedEntity = nextPurportedEntity;
+      nextPurportedEntity += 1;
+      purportedEntities[location] = purportedEntity;
+      purportedEntityTypes.set(purportedEntity, type);
+      renames.set(entity, purportedEntity);
+      // The notion here is that deleting the consumed type prevents the
+      // entity from being reinstantiated.
+      // This is somewhat indirect, and means that the data integrity error
+      // above (when a type is missing) conflates the issue of not being
+      // present with being redundant.
+      // Other mechanisms would be worth considering.
+      allegedEntityTypes.delete(entity);
+    }
+
+    /** @type {Map<number, Array<number>>} */
+    const purportedInventories = new Map();
+    for (const allegedEntry of allegedInventories) {
+      if (typeof allegedEntry !== 'object') {
+        errors.push(`every entry in "inventories" must be an "object", got ${JSON.stringify(allegedEntry)}`);
+        continue;
+      }
+      const entry = /* @type {{[name: string]: unknown}} */(allegedEntry);
+      const {entity: allegedEntity, inventory: allegedInventory} = entry;
+      if (typeof allegedEntity !== 'number') {
+        errors.push(`every entry in "inventories" must have an "entry" number, got ${JSON.stringify(allegedEntity)}`);
+        continue;
+      }
+      if (!Array.isArray(allegedInventory)) {
+        errors.push(`every entry in "inventories" must have an "inventory" array, got ${JSON.stringify(allegedInventory)}`);
+        continue;
+      }
+      const reentity = renames.get(allegedEntity);
+      if (reentity === undefined) {
+        errors.push(`an entry in "inventories" for the alleged entity ${allegedEntity} is missing from the map`);
+        continue;
+      }
+      /** @type {Array<number>} */
+      const inventory = [];
+      for (const item of allegedInventory) {
+        if (typeof item !== 'number') {
+          errors.push(`all items in the "inventory" for entity ${allegedEntity} must be numbers, got ${JSON.stringify(item)}`);
+          continue;
+        }
+        if (item < 1 || item > itemTypes.length) {
+          errors.push(`all items in the "inventory" for entity ${allegedEntity} must be valid item numbers, got ${JSON.stringify(item)}`);
+          continue;
+        }
+        inventory.push(item);
+      }
+      purportedInventories.set(reentity, inventory);
+    }
+
+    const agent = renames.get(allegedAgent);
+    if (agent === undefined) {
+      errors.push(`Missing entity for alleged player agent ${allegedAgent}`);
+      return errors;
+    }
+
+    if (allegedTerrain.length !== size) {
+      errors.push(`"terrain" must be exactly ${size} long`);
+      return errors;
+    }
+
+    for (let location = 0; location < size; location += 1) {
+      const type = allegedTerrain[location];
+      if (typeof type !== 'number') {
+        errors.push(`every value in "terrain" must be a number, got ${JSON.stringify(type)} at location ${location}`);
+      }
+    }
+    const purportedTerrain = /* @type {Array<number>} */(allegedTerrain);
+
+    if (errors.length > 0) {
+      return errors;
+    }
+
+    // Commit!
+    // Reset just in case there's some dangling state transition in progress.
+    tock();
+    mobiles.clear();
+    for (let location = 0; location < size; location += 1) {
+      const entity = entities[location];
+      if (entity !== 0) {
+        destroyEntity(entity, location);
+        macroViewModel.exit(entity);
+        entities[location] = 0;
+      }
+      const purportedEntity = purportedEntities[location];
+      if (purportedEntity !== 0) {
+        const type = assumeDefined(purportedEntityTypes.get(purportedEntity));
+        const tileType = defaultTileTypeForAgentType[type];
+        const actualEntity = createEntity(type);
+        assert(actualEntity === purportedEntity);
+        macroViewModel.put(actualEntity, location, tileType);
+        entities[location] = actualEntity;
+        locations.set(actualEntity, location);
+      }
+    }
+    inventories.clear();
+    for (const [entity, inventory] of purportedInventories.entries()) {
+      inventories.set(entity, inventory);
+    }
+
+    for (let location = 0; location < size; location += 1) {
+      setTerrainFlags(location, purportedTerrain[location]);
+    }
+
+    return agent;
+  }
+
   return {
     get,
     set,
@@ -742,5 +997,7 @@ export function makeModel({
     init,
     follow,
     unfollow,
+    capture,
+    restore,
   };
 }
