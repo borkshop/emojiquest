@@ -30,7 +30,7 @@ import {createMenuBlade} from './menu.js';
 const $context = mustFind('#context');
 
 const radius = 15; // the player's frustum radius in tiles
-const tileSize = 75; // the height and width of a tile in pixels
+const tileSize = 100; // the height and width of a tile in pixels
 const facetSize = 9; // the height and width of a facet in units of tiles
 const faceSize = 9 * facetSize; // the height and width of a face in tiles
 
@@ -42,7 +42,7 @@ const animatedTransitionDuration = 300;
 const slowCameraTransitionDuration = 900;
 const fastCameraTransitionDuration = 300;
 
-const position = (81 * 81 * 5.5) | 0;
+const position = (faceSize ** 2 * 5.5) | 0;
 
 const cursor = {position, direction: north};
 

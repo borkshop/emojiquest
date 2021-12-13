@@ -59,7 +59,7 @@ aside.menu {
   align-items: center;
   justify-content: center;
   background-color: white;
-  font-size: 40px;
+  font-size: calc(var(--tileSize) * 0.4px);
   color: #aaa;
 }
 
@@ -101,7 +101,7 @@ aside.menu {
   justify-content: center;
   background-color: transparent;
   color: yellow;
-  font-size: 60px;
+  font-size: calc(var(--tileSize) * 0.6px);
   backface-visibility: visible;
 }
 
@@ -114,14 +114,14 @@ aside.menu {
   justify-content: center;
   background-color: rebeccapurple;
   color: white;
-  font-size: 20px;
+  font-size: calc(var(--tileSize) * 0.2px);
   backface-visibility: visible;
 }
 
 text.moji {
   font-size: 0.7px;
-  height: 1;
-  width: 1;
+  height: calc(var(--tileSize) * 1px);
+  width: calc(var(--tileSize) * 1px);
   dominant-baseline: central;
   text-anchor: middle;
 }
