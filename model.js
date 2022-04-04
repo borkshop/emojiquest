@@ -360,6 +360,7 @@ export function makeModel({
     effectsOwned.set(agent, 1 << effectTypesByName.none);
     effectsChosen.set(agent, effectTypesByName.none);
 
+    // random world population
     for (let location = 0; location < size; location++) {
       if (Math.random() < 0.25 && location !== spawn) {
         const modelType = [

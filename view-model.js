@@ -22,11 +22,20 @@ import {setDifference} from './set.js';
 
 /** @typedef {ReturnType<makeViewModel>} ViewModel */
 
+// TODO remove
 /**
  * @callback EntityWatchFn
  * @param {Map<number, Coord>} tiles - tile number to coordinate
  * @param {Watcher} watcher - notified when a tile enters, exits, or moves
  * within a region
+ */
+
+/**
+ * @callback WatchFn
+ * @param {Watcher} watcher - notified when a tile enters, exits, or moves
+ * within a region
+ * @param {number} tile - tile number
+ * @param {Coord} coordinate - coordinate of tile in watcher space
  */
 
 /**
@@ -198,23 +207,21 @@ export function makeViewModel() {
   }
 
   /** @type {EntityWatchFn} */
-  function watch(tiles, watcher) {
+  function watchEntities(tiles, watcher) {
     for (const [location, coord] of tiles.entries()) {
       watcherEntersTile(watcher, location, coord);
     }
   }
 
   /** @type {EntityWatchFn} */
-  function unwatch(tiles, watcher) {
+  function unwatchEntities(tiles, watcher) {
     for (const location of tiles.keys()) {
       watcherExitsTile(watcher, location);
     }
   }
 
   /**
-   * @param {Watcher} watcher - watcher
-   * @param {number} location - tile number
-   * @param {Coord} coord - coordinate of tile
+   * @type {WatchFn}
    */
   function watcherEntersTile(watcher, location, coord) {
     // Register watcher.
@@ -238,8 +245,7 @@ export function makeViewModel() {
   }
 
   /**
-   * @param {Watcher} watcher - watcher
-   * @param {number} location - tile number
+   * @type {WatchFn}
    */
   function watcherExitsTile(watcher, location) {
     // Final notification.
@@ -387,8 +393,10 @@ export function makeViewModel() {
     up,
     entitiesAtTile,
     watched,
-    watch,
-    unwatch,
+    watchEntities,
+    watcherEntersTile,
+    watcherExitsTile,
+    unwatchEntities,
     animate,
     transition,
     reset,

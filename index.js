@@ -1,14 +1,8 @@
 // @ts-check
 
-import {mustFind} from 'domkit/wiring';
-import {cell} from './cell.js';
-import {linear, easeInOutQuart} from './easing.js';
 import {north, fullQuarturn} from './geometry2d.js';
-import {rotate, matrixStyle} from './matrix2d.js';
 import {makeDaia} from './daia.js';
-import {makeCamera} from './camera.js';
-import {makeCameraController} from './camera-controller.js';
-import {makeFacetView} from './facet-view.js';
+import {cell} from './cell.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {makeModel} from './model.js';
@@ -17,246 +11,235 @@ import {makeDriver} from './driver.js';
 import {makeCommandDispatcher} from './commands.js';
 import {makeMechanics} from './mechanics.js';
 import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
-import {makeFacetCreator} from './facet-creator.js';
-import {createMenuBlade} from './menu.js';
 
-/**
- * @template T
- * @typedef {import('./async.js').Deferred<T>} Deferred
- */
-
-/** @typedef {import('./animation2d.js').Coord} Coord */
-
-const $context = mustFind('#context');
-
-const radius = 15; // the player's frustum radius in tiles
-const tileSizePx = 100; // the height and width of a tile in pixels
-const facetSize = 9; // the height and width of a facet in units of tiles
-const faceSize = 9 * facetSize; // the height and width of a face in tiles
-
-document.documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
-document.documentElement.style.setProperty('--faceSize', `${faceSize}`);
-document.documentElement.style.setProperty('--facetSize', `${facetSize}`);
-
-const animatedTransitionDuration = 300;
-const slowCameraTransitionDuration = 900;
-const fastCameraTransitionDuration = 300;
-
-const position = (faceSize ** 2 * 5.5) | 0;
-
-const cursor = {position, direction: north};
-
-/**
- * The moment preserves the intended heading of the player agent if they
- * transit from one face of the world to another and suffer a forced
- * orientation change. For example, transiting over the north edge of the north
- * polar facet of the world implies a 180 degree rotation, so if the player
- * continues "north", they would otherwise bounce back and forth between the
- * top and back face of the world.  Preserving the moment allows northward
- * travel to translate to southward travel along the back face, until the
- * player releases the "north" key.
- */
-let moment = cell(0);
-
-const world = makeDaia({
-  tileSizePx,
-  faceSize,
-});
-
-const facets = makeDaia({
-  tileSizePx: tileSizePx * faceSize / facetSize,
-  faceSize: facetSize,
-});
+import { createMenuBlade } from './menu.js';
+import { makeMap } from './map.js';
 
 const svgNS = "http://www.w3.org/2000/svg";
 
+/** @typedef {import('./animation2d.js').Coord} Coord */
+
 /**
- * @typedef {import('./matrix3d.js').Matrix} Matrix
+ * @callback CreateEntityFn
+ * @param {number} entity
+ * @param {number} type
+ * @returns {SVGElement}
  */
 
 /**
- * @typedef Cube
- * @prop {number} worldArea
- * @prop {(tile: number) => Matrix} tileTransform
+ * @param {import('./mechanics.js').Mechanics} mechanics
  */
+export const makeEntityCreator = mechanics => {
+  /** @type {CreateEntityFn} */
+  const createEntity = (_entity, type) => {
+    if (type === -1) {
+      const $entity = document.createElementNS(svgNS, 'circle');
+      $entity.setAttributeNS(null, 'class', 'reticle');
+      $entity.setAttributeNS(null, 'r', '0.75');
+      return $entity;
+    } else {
+      const $entity = document.createElementNS(svgNS, 'g');
+      const $text = document.createElementNS(svgNS, 'text');
+      $text.setAttributeNS(null, 'class', 'moji');
+      $text.appendChild(document.createTextNode(mechanics.viewText[type]));
+      $entity.appendChild($text);
+      return $entity;
+    }
+  }
+  return createEntity;
+};
 
-function createControls() {
+/**
+ * @param {Object} args
+ * @param {number} args.tileSizePx
+ */
+const createControls = ({tileSizePx}) => {
   const $controls = document.createElementNS(svgNS, 'svg');
   $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
   $controls.setAttributeNS(null, 'height', `${3 * tileSizePx}`);
   $controls.setAttributeNS(null, 'width', `${3 * tileSizePx}`);
-  $controls.setAttributeNS(null, 'id', 'controls');
-  $controls.setAttributeNS(null, 'class', 'panel');
+  $controls.setAttributeNS(null, 'class', 'panel controlPanel');
   return $controls;
-}
+};
 
-function createCoordBlade() {
-  const $coordBlade = document.createElement('div');
-  $coordBlade.setAttribute('id', 'coordBlade');
-  $coordBlade.setAttribute('class', 'blade');
-  // TODO Animate rotation of blades.
-  $coordBlade.style.transform = matrixStyle(rotate(0));
-  const $coord = document.createElement('div');
-  $coord.setAttribute('id', 'coord');
-  $coord.setAttribute('class', 'panel');
-  $coordBlade.appendChild($coord);
-  return {$coordBlade, $coord};
-}
-
-function createHamburger() {
+/**
+ * @param {Object} args
+ * @param {number} args.tileSizePx
+ */
+const createHamburger = ({tileSizePx}) => {
   const $hamburger = document.createElementNS(svgNS, 'svg');
   $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
   $hamburger.setAttributeNS(null, 'height', `${1 * tileSizePx}`);
   $hamburger.setAttributeNS(null, 'width', `${1 * tileSizePx}`);
-  $hamburger.setAttributeNS(null, 'id', 'hamburger');
-  $hamburger.setAttributeNS(null, 'class', 'panel');
+  $hamburger.setAttributeNS(null, 'class', 'panel hamburgerPanel');
   return $hamburger;
-}
+};
 
-const mechanics = makeMechanics({
-  recipes,
-  actions,
-  tileTypes,
-  agentTypes,
-  itemTypes,
-  effectTypes,
-});
+const main = async () => {
+  const tileSizePx = 130; // the height and width of a tile in pixels
+  const facetSize = 9; // the height and width of a facet in units of tiles
+  const facetsPerFaceSize = 9; // the height and width of a face in units of facets
+  const faceSize = facetsPerFaceSize * facetSize; // the height and width of a face in tiles
+  const facetSizePx = facetSize * tileSizePx;
+  const initialPosition = (faceSize ** 2 * 5.5) | 0;
+  const frustumRadius = 10;
+  const animatedTransitionDuration = 300;
 
+  // Model
 
-const $controls = createControls();
-document.body.appendChild($controls);
+  const faceWorld = makeDaia({
+    tileSizePx, // presumed irrelevant
+    faceSize: 1,
+  });
 
-const {$coordBlade, $coord} = createCoordBlade();
-document.body.appendChild($coordBlade);
+  const facetWorld = makeDaia({
+    tileSizePx, // presumed irrelevant
+    faceSize: facetsPerFaceSize,
+  });
 
-const {$menuBlade, menuController} = createMenuBlade({
-  tileSizePx,
-  pointerTileType: mechanics.tileTypesByName.east,
-  createElement: createEntity,
-});
-document.body.appendChild($menuBlade);
+  const world = makeDaia({
+    tileSizePx,
+    faceSize,
+  });
 
-const $hamburger = createHamburger();
-document.body.appendChild($hamburger);
+  const mechanics = makeMechanics({
+    recipes,
+    actions,
+    tileTypes,
+    agentTypes,
+    itemTypes,
+    effectTypes,
+  });
 
-$coord.innerText = world.toponym(position);
+  const cursor = {position: initialPosition, direction: north};
 
-const camera = makeCamera($context, world.cameraTransform(cursor.position));
+  // View
 
-const cameraController = makeCameraController({
-  camera,
-  advance: world.advance,
-  tileSizePx,
-  ease: linear,
-  easeRoll: easeInOutQuart,
-  slow: slowCameraTransitionDuration,
-  fast: fastCameraTransitionDuration,
-});
+  const worldViewModel = makeViewModel();
+  const worldMacroViewModel = makeMacroViewModel(worldViewModel, {name: 'world'});
 
-/**
- * @param {number} _entity
- * @param {number} type
- * @returns {SVGElement}
- */
-function createEntity(_entity, type) {
-  if (type === -1) {
-    const $entity = document.createElementNS(svgNS, 'circle');
-    $entity.setAttributeNS(null, 'class', 'reticle');
-    $entity.setAttributeNS(null, 'r', '0.75');
-    return $entity;
-  } else {
-    const $entity = document.createElementNS(svgNS, 'text');
-    $entity.setAttributeNS(null, 'class', 'moji');
-    $entity.appendChild(document.createTextNode(mechanics.viewText[type]));
-    return $entity;
-  }
-}
+  const worldModel = makeModel({
+    size: world.worldArea,
+    advance: world.advance,
+    macroViewModel: worldMacroViewModel,
+    mechanics,
+  });
 
-const worldViewModel = makeViewModel();
-const worldMacroViewModel = makeMacroViewModel(worldViewModel, {name: 'world'});
+  const agent = worldModel.init(cursor.position);
 
-const worldModel = makeModel({
-  size: world.worldArea,
-  advance: world.advance,
-  macroViewModel: worldMacroViewModel,
-  mechanics,
-});
+  const createEntity = makeEntityCreator(mechanics);
 
-const agent = worldModel.init(position);
+  const documentElement = document.documentElement;
+  const parentElement = document.body;
+  const nextSibling = null;
 
-const {watchTerrain, unwatchTerrain, getTerrainFlags} = worldModel;
+  documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
+  documentElement.style.setProperty('--faceSize', `${faceSize}`);
+  documentElement.style.setProperty('--facetSize', `${facetSize}`);
 
-const {createFacet, animateFacets} = makeFacetCreator({
-  watchTerrain,
-  unwatchTerrain,
-  getTerrainFlags,
-  facetSize,
-  tileSizePx,
-});
+  const {$map, cameraController} = makeMap({
+    faceSize,
+    facetSize,
+    facetsPerFaceSize,
+    tileSizePx,
+    facetSizePx,
+    frustumRadius,
+    createEntity,
 
-const facetView = makeFacetView({
-  context: $context,
-  createFacet,
-  createEntity,
-  worldSize: world.faceSize,
-  facetSize: facets.faceSize,
-  facetTransform: facets.tileTransform,
-  facetNumber: facets.tileNumber,
-  tileNumber: world.tileNumber,
-  tileCoordinate: world.tileCoordinate,
-  advance: world.advance,
-  facetCoordinate: facets.tileCoordinate,
-  watchEntities: worldViewModel.watch,
-  unwatchEntities: worldViewModel.unwatch,
-});
+    faceSizePx: world.faceSizePx,
+    tileNumber: world.tileNumber,
+    tileCoordinate: world.tileCoordinate,
+    tileCoordinateOnFace: world.tileCoordinateOnFace,
+    advance: world.advance,
 
-/**
- * @param {number} destination
- * @param {import('./camera-controller.js').CursorChange} change
- */
-function followCursor(destination, change) {
-  cameraController.go(change);
-  moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
-  $coord.innerText = world.toponym(destination);
-}
+    facetNumber: facetWorld.tileNumber,
+    facetCoordinate: facetWorld.tileCoordinate,
 
-const controls = makeController($controls, $hamburger, {
-  agent,
-  worldModel,
-  worldViewModel,
-  worldMacroViewModel,
-  frustumRadius: radius,
-  cursor,
-  facetView,
-  advance: world.advance,
-  cameraTransform: world.cameraTransform,
-  camera,
-  followCursor,
-  mechanics,
-  animateAux: animateFacets,
-  menuController,
-});
+    faceTileCoordinate: faceWorld.tileCoordinate,
+    faceAdvance: faceWorld.advance,
 
-const driver = makeDriver(controls, {
-  moment,
-  animatedTransitionDuration,
-});
+    watchTerrain: worldModel.watchTerrain,
+    unwatchTerrain: worldModel.unwatchTerrain,
+    getTerrainFlags: worldModel.getTerrainFlags,
 
-// TODO properly integrate water and magma in an editor mode
-window.addEventListener('keypress', event => {
-  if (event.key === 'w') {
-    event.stopPropagation();
-    const location = worldModel.locate(controls.currentAgent());
-    worldModel.setTerrainFlags(location, 0b1);
-  }
-  if (event.key === 'm') {
-    event.stopPropagation();
-    const location = worldModel.locate(controls.currentAgent());
-    worldModel.setTerrainFlags(location, 0b10);
-  }
-});
+    watchEntities: worldViewModel.watchEntities,
+    unwatchEntities: worldViewModel.unwatchEntities,
 
-const dispatcher = makeCommandDispatcher(window, driver);
+    cursor,
+  });
 
-console.log($hamburger);
-watchControllerCommands($controls, $hamburger, dispatcher, {tileSizePx});
+  parentElement.insertBefore($map, nextSibling);
+
+  const {$menuBlade, menuController} = createMenuBlade({
+    tileSizePx,
+    pointerTileType: mechanics.tileTypesByName.east,
+    createElement: createEntity,
+  });
+  parentElement.appendChild($menuBlade);
+
+  const $controls = createControls({tileSizePx});
+  parentElement.insertBefore($controls, nextSibling);
+
+  const $hamburger = createHamburger({tileSizePx});
+  parentElement.insertBefore($hamburger, nextSibling);
+
+  /**
+   * @param {number} _destination
+   * @param {import('./daia.js').CursorChange} change
+   */
+  const followCursor = (_destination, change) => {
+    moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
+  };
+
+  const controls = makeController($controls, $hamburger, {
+    agent,
+    worldModel,
+    worldViewModel,
+    worldMacroViewModel,
+    cursor,
+    toponym: world.toponym,
+    advance: world.advance,
+    followCursor,
+    mechanics,
+    menuController,
+    cameraController,
+  });
+
+  /**
+   * The moment preserves the intended heading of the player agent if they
+   * transit from one face of the world to another and suffer a forced
+   * orientation change. For example, transiting over the north edge of the north
+   * polar facet of the world implies a 180 degree rotation, so if the player
+   * continues "north", they would otherwise bounce back and forth between the
+   * top and back face of the world.  Preserving the moment allows northward
+   * travel to translate to southward travel along the back face, until the
+   * player releases the "north" key.
+   */
+  const moment = cell(0);
+
+  const driver = makeDriver(controls, {
+    moment,
+    animatedTransitionDuration,
+  });
+
+  const dispatcher = makeCommandDispatcher(window, driver);
+
+  watchControllerCommands($controls, $hamburger, dispatcher, {tileSizePx});
+
+  // TODO properly integrate water and magma in an editor mode
+  window.addEventListener('keypress', event => {
+    if (event.key === 'w') {
+      event.stopPropagation();
+      const location = worldModel.locate(controls.currentAgent());
+      worldModel.setTerrainFlags(location, 0b1);
+    }
+    if (event.key === 'm') {
+      event.stopPropagation();
+      const location = worldModel.locate(controls.currentAgent());
+      worldModel.setTerrainFlags(location, 0b10);
+    }
+  });
+
+};
+
+main();

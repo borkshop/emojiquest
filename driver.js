@@ -60,7 +60,7 @@ export const directionCommand = Object.fromEntries(
  * reset, and command key up and down events.
  *
  * @typedef {Object} Delegate
- * @property {() => void} reset
+ * @property {() => void} tock
  * @property {CommandFn} command
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
@@ -86,19 +86,16 @@ export const makeDriver = (delegate, options) => {
   // TODO const vector = {x: 0, y: 0};
 
   // Time elapsed since reset.
-  let timeSinceTransitionStart = 0;
-
-  function reset() {
-    timeSinceTransitionStart = 0;
-    delegate.reset();
-  }
+  let timeSinceTransitionStart = animatedTransitionDuration;
 
   /**
    * @param {number} command
    * @param {boolean} repeat
    */
   async function tickTock(command, repeat) {
-    reset();
+    // Pre-animated transition reset.
+    timeSinceTransitionStart = 0;
+
     delegate.command(command, repeat);
 
     await Promise.race([
@@ -106,7 +103,13 @@ export const makeDriver = (delegate, options) => {
       delay(animatedTransitionDuration),
     ]);
 
-    reset();
+    // Ensure that the animation gets all the way to 100%, regardless of
+    // animation frame timing.
+    const progress = makeProgress(animatedTransitionDuration, 1.0);
+    delegate.animate(progress);
+
+    // Post-animated transition reset.
+    delegate.tock();
   }
 
   /**
@@ -201,7 +204,6 @@ export const makeDriver = (delegate, options) => {
 
   run();
   animate();
-  delegate.reset();
 
   return {down, up};
 };

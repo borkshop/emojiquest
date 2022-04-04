@@ -16,7 +16,6 @@
 import {assert, assertDefined, assertNonZero, assumeDefined} from './assert.js';
 import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn} from './geometry2d.js';
 import {makeTileView} from './tile-view.js';
-import {makeTileKeeper} from './tile-keeper.js';
 import {makeViewModel} from './view-model.js';
 import {makeMacroViewModel} from './macro-view-model.js';
 import {commandDirection} from './driver.js';
@@ -54,6 +53,7 @@ const noop = () => {};
 
 const svgNS = "http://www.w3.org/2000/svg";
 
+const commandCount = 10;
 const leftHandInventoryIndex = 0;
 const rightHandInventoryIndex = 1;
 const inventoryIndexForCommand = [-1, 2, 3, 4, 5, -1, 6, 7, 8, 9];
@@ -92,39 +92,41 @@ const directionFromForPackIndex = directionToForPackIndex.map(
 );
 
 /**
+ * @typedef {Object} CameraController
+ * @prop {(location: number) => void} jump
+ * @prop {(destination: number, change: import('./daia.js').CursorChange) => void} move
+ * @prop {() => void} tick
+ * @prop {() => void} tock
+ * @prop {(progress: Progress) => void} animate
+ */
+
+/**
  * @param {SVGElement} $controls
  * @param {SVGElement} $hamburger
  * @param {Object} args
  * @param {number} args.agent
- * @param {number} args.frustumRadius
  * @param {import('./daia.js').AdvanceFn} args.advance,
- * @param {import('./daia.js').CameraTransformFn} args.cameraTransform
  * @param {import('./daia.js').Cursor} args.cursor
+ * @param {import('./daia.js').ToponymFn} args.toponym
  * @param {import('./model.js').Model} args.worldModel
- * @param {import('./facet-view.js').FacetView} args.facetView
  * @param {import('./view-model.js').ViewModel} args.worldViewModel
  * @param {import('./macro-view-model.js').MacroViewModel} args.worldMacroViewModel
- * @param {import('./camera.js').Camera} args.camera
- * so the frustum can update its retained facets.
  * @param {FollowCursorFn} args.followCursor
  * @param {import('./mechanics.js').Mechanics} args.mechanics
- * @param {(progress: Progress) => void} args.animateAux
  * @param {import('./menu.js').MenuController} args.menuController
+ * @param {CameraController} args.cameraController
  */
 export function makeController($controls, $hamburger, {
   agent,
   cursor,
-  frustumRadius,
   worldModel,
   worldViewModel,
   worldMacroViewModel,
+  cameraController,
+  toponym,
   advance,
-  cameraTransform,
-  facetView,
-  camera,
   followCursor,
   mechanics,
-  animateAux,
   menuController,
 }) {
 
@@ -190,20 +192,16 @@ export function makeController($controls, $hamburger, {
       return element;
     } else {
       const text = viewText[type];
-      const element = document.createElementNS(svgNS, 'text');
-      element.setAttributeNS(null, 'class', 'moji');
-      element.appendChild(document.createTextNode(text));
-      return element;
+      const $element = document.createElementNS(svgNS, 'g');
+      const $text = document.createElementNS(svgNS, 'text');
+      $text.setAttributeNS(null, 'class', 'moji');
+      $text.appendChild(document.createTextNode(text));
+      $element.appendChild($text);
+      return $element;
     }
   }
 
-  const {keepTilesAround} = makeTileKeeper({
-    enter: facetView.enter,
-    exit: facetView.exit,
-    advance: advance
-  });
-
-  const {create, collect, place} = makeElementTracker({ createElement });
+  const {create, collect, place} = makeElementTracker({createElement});
 
   const tileView = makeTileView($controls, null, create, collect);
   const {enter, exit} = tileView;
@@ -211,22 +209,23 @@ export function makeController($controls, $hamburger, {
   const hamburgerView = makeTileView($hamburger, null, create, collect);
   const hamburgerViewModel = makeViewModel();
   const oneTileMap = makeBoxTileMap();
-  hamburgerViewModel.watch(oneTileMap, {
+  hamburgerViewModel.watchEntities(oneTileMap, {
     enter: hamburgerView.enter,
     exit: hamburgerView.exit,
     place,
   })
-  const oneKeyView = makeMacroViewModel(hamburgerViewModel, { name: 'hamburger', start: -2, stride: -1 });
+  const oneKeyView = makeMacroViewModel(hamburgerViewModel, {name: 'hamburger', start: -2, stride: -1});
   oneKeyView.put(0, 0, tileTypesByName.hamburger);
 
   const controlsViewModel = makeViewModel();
   const macroViewModel = makeMacroViewModel(controlsViewModel, {name: 'controls'});
 
-  controlsViewModel.watch(tileMap, {enter, exit, place});
+  controlsViewModel.watchEntities(tileMap, {enter, exit, place});
 
   /** @type {import('./model.js').FollowFn} */
   function followAgent(_entity, change, destination) {
     cursor = {...change, position: destination};
+    cameraController.move(destination, change);
     followCursor(destination, change);
   }
 
@@ -457,7 +456,9 @@ export function makeController($controls, $hamburger, {
         } else if (state === 'edit') {
           return menuToEditMode();
         } else if (state === 'load') {
-          reset();
+          // TODO this call to tock() bypasses the driver.
+          // Perhaps this should be appealing to the driver instead.
+          tock();
           load(worldModel.restore)
           .then((/** @type {undefined | number | Array<string>} */result) => {
             if (typeof result === 'undefined') {
@@ -466,7 +467,7 @@ export function makeController($controls, $hamburger, {
               worldModel.unfollow(agent, followAgent);
               agent = result;
               const location = worldModel.locate(agent);
-              camera.reset(cameraTransform(location));
+              cameraController.jump(location);
               worldModel.follow(agent, followAgent);
             } else {
               for (const error of result) {
@@ -909,7 +910,7 @@ export function makeController($controls, $hamburger, {
     }
 
     cursor = lastAgentCursor;
-    camera.reset(cameraTransform(cursor.position));
+    cameraController.jump(cursor.position);
     worldModel.follow(agent, followAgent);
     dismissEditorReticle();
 
@@ -1069,7 +1070,7 @@ export function makeController($controls, $hamburger, {
    * @param {number} itemType
    */
   function recepticleTileType(itemType) {
-    const { comestible = false, effect = undefined } = itemTypes[itemType];
+    const {comestible = false, effect = undefined} = itemTypes[itemType];
     let recepticleTileType = tileTypesByName.trash;
     if (effect !== undefined) {
       recepticleTileType = tileTypesByName.arm;
@@ -1283,28 +1284,30 @@ export function makeController($controls, $hamburger, {
    * @param {Progress} progress
    */
   function animate(progress) {
-    camera.animate(progress.elapsed);
+    cameraController.animate(progress);
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
     hamburgerViewModel.animate(progress);
     menuController.animate(progress);
-    animateAux(progress);
   }
 
+  // The controller receives a command at the beginning of any driver-induced
+  // tick.  We arrive here only for ticks that take a game turn.
   function tick() {
     priorHands[0] = leftHandItemType();
     priorHands[1] = rightHandItemType();
     worldModel.tick();
+    cameraController.tick();
     updateHands();
   }
 
-  function reset() {
+  function tock() {
     worldModel.tock();
     worldViewModel.reset();
-    keepTilesAround(cursor.position, frustumRadius);
     macroViewModel.reset();
     oneKeyView.reset();
     menuController.reset();
+    cameraController.tock();
   }
 
   let mode = playMode;
@@ -1318,8 +1321,10 @@ export function makeController($controls, $hamburger, {
     return agent;
   }
 
+  cameraController.jump(cursor.position);
+
   return {
-    reset,
+    tock,
     animate,
     down,
     command,
@@ -1341,10 +1346,11 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
   let previousCommand = -1;
 
   /**
-   * @param {MouseEvent} event
+   * @param {Object} offset
+   * @param {number} offset.offsetX
+   * @param {number} offset.offsetY
    */
-  const controlEventToCommand = event => {
-    const {offsetX, offsetY} = event;
+  const controlEventToCommand = ({offsetX, offsetY}) => {
     const coord = {x: Math.floor(offsetX / tileSizePx), y: Math.floor(offsetY / tileSizePx)};
     const {x, y} = coord;
     if (x >= 3 || y >= 3 || x < 0 || y < 0) return -1;
@@ -1356,6 +1362,12 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
    * @param {boolean} pressed
    */
   const onControlMouseStateChange = (command, pressed) => {
+    const touchIdentifiers = commandToTouchIdentifiers.get(command);
+    if (touchIdentifiers !== undefined) {
+      pressed = pressed || touchIdentifiers.size > 0;
+    } else {
+      console.error(`Command outside the range of expected touch identifiers: ${command}`);
+    }
     if (pressed) {
       if (previousCommand === -1) { // unpressed to pressed
         previousCommand = command;
@@ -1374,7 +1386,7 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
       } /* else { // steadily unpressed
       } */
     }
-  }
+  };
 
   /**
    * @param {Event} event
@@ -1400,10 +1412,57 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
     $controls.removeEventListener('mousemove', onControlsMouseChange);
   };
 
+  const touchIdentifierToCommand = new Map();
+  const commandToTouchIdentifiers = new Map(
+    new Array(commandCount)
+      .fill(0)
+      .map((_, n) => [n, new Set()])
+  );
+
+  /**
+   * @param {Event} touchEvent
+   */
+  const onControlsTouchStart = touchEvent => {
+    const event = /** @type {TouchEvent} */(touchEvent);
+    event.preventDefault();
+    for (const touch of event.changedTouches) {
+      const {top, left} = $controls.getBoundingClientRect();
+      const command = controlEventToCommand({
+        offsetX: touch.pageX - left,
+        offsetY: touch.pageY - top,
+      });
+      touchIdentifierToCommand.set(touch.identifier, command);
+      const touchIdentifiers = commandToTouchIdentifiers.get(command);
+      if (touchIdentifiers !== undefined) {
+        touchIdentifiers.add(touch.identifier);
+      }
+      onControlMouseStateChange(command, true);
+    }
+  };
+
+  /**
+   * @param {Event} touchEvent
+   */
+  const onControlsTouchEnd = touchEvent => {
+    const event = /** @type {TouchEvent} */(touchEvent);
+    event.preventDefault();
+    for (const touch of event.changedTouches) {
+      const command = touchIdentifierToCommand.get(touch.identifier);
+      touchIdentifierToCommand.delete(touch.identifier);
+      const touchIdentifiers = commandToTouchIdentifiers.get(command);
+      if (touchIdentifiers !== undefined) {
+        touchIdentifiers.delete(touch.identifier);
+      }
+      onControlMouseStateChange(command, false);
+    }
+  };
+
   $controls.addEventListener('mouseenter', onControlsMouseEnter);
   $controls.addEventListener('mouseleave', onControlsMouseLeave);
   $controls.addEventListener('mouseup', onControlsMouseChange);
   $controls.addEventListener('mousedown', onControlsMouseChange);
+  $controls.addEventListener('touchstart', onControlsTouchStart);
+  $controls.addEventListener('touchend', onControlsTouchEnd);
 
   const onHamburgerMouseDown = () => {
     dispatcher.down('Mouse', 0);

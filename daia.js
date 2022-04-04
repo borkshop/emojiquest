@@ -52,6 +52,7 @@
 // @ts-check
 
 /** @typedef {import('./matrix3d.js').Matrix} Matrix */
+/** @typedef {import('./vector2d.js').Point} Point */
 
 /**
  * @typedef {Object} TileCoordinate
@@ -60,6 +61,13 @@
  * @prop {number} n - row major index of tile on face
  * @prop {number} x - horizontal position on face
  * @prop {number} y - vertical position on face
+ */
+
+/**
+ * @typedef {Object} TileCoordinateOnFace
+ * @prop {number} x - horizontal position on face
+ * @prop {number} y - vertical position on face
+ * @prop {number} a - angle
  */
 
 /**
@@ -73,6 +81,13 @@
  * @callback TileCoordinateFn
  * @param {number} t - tile index
  * @returns {TileCoordinate}
+ */
+
+/**
+ * @callback TileCoordinateOnFaceFn
+ * @param {number} t - tile index
+ * @param {number} f - face index
+ * @returns {TileCoordinateOnFace=}
  */
 
 /**
@@ -144,6 +159,8 @@ const cc = -1; // counter clockwise
 //   [3, 4, 2, 1], // 5
 // ];
 
+// TODO invert all these figures so coordinates can be added without inverting
+// the turn angle.
 export const faceRotations = [
 // n,  e,  s,  w
   [cc, no, cc, no], // 0
@@ -192,11 +209,12 @@ export const arrows = [
  * @prop {number} faceSize
  * @prop {number} tileSizePx
  * @prop {number} faceArea
- * @prop {number} worldSize
+ * @prop {number} faceSizePx
  * @prop {number} worldArea
  * @prop {NeighborFn} neighbor
  * @prop {AdvanceFn} advance
  * @prop {TileCoordinateFn} tileCoordinate
+ * @prop {TileCoordinateOnFaceFn} tileCoordinateOnFace
  * @prop {TileNumberFn} tileNumber
  * @prop {TileTransformFn} tileTransform
  * @prop {CameraTransformFn} cameraTransform
@@ -217,12 +235,12 @@ export function makeDaia({
 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
-  const worldSize = tileSizePx * faceSize;
+  const faceSizePx = tileSizePx * faceSize;
 
   const cornerTransform = translate({
-    x: -worldSize / 2 + tileSizePx / 2,
-    y: -worldSize / 2 + tileSizePx / 2,
-    z: worldSize / 2,
+    x: -faceSizePx / 2 + tileSizePx / 2,
+    y: -faceSizePx / 2 + tileSizePx / 2,
+    z: faceSizePx / 2,
   });
 
   const cornerAdjustment = translate({
@@ -232,9 +250,9 @@ export function makeDaia({
   });
 
   const centerTransform = translate({
-    x: worldSize / 2 - tileSizePx / 2,
-    y: worldSize / 2 - tileSizePx / 2,
-    z: -worldSize / 2 + tileSizePx / 2,
+    x: faceSizePx / 2 - tileSizePx / 2,
+    y: faceSizePx / 2 - tileSizePx / 2,
+    z: -faceSizePx / 2 + tileSizePx / 2,
   });
 
   const faceCorners = faceTransforms.map(matrix => compose(
@@ -265,44 +283,44 @@ export function makeDaia({
   };
 
   /**
-   * @type {Array<Array<(coord: TileCoordinate) => number>>}
+   * @type {Array<Array<(coord: Point) => number>>}
    */
   const seams = [
     [ // 0, front, dysia
-      (/** @type {TileCoordinate} */{x}) => 4 * faceArea - 1 - x * faceSize, // K northward
-      (/** @type {TileCoordinate} */{y}) => faceArea + y * faceSize, // A eastward
-      (/** @type {TileCoordinate} */{x}) => 3 * faceArea - faceSize - faceSize * x, // G southward
-      (/** @type {TileCoordinate} */{y}) => 4 * faceArea + faceSize - 1 + y * faceSize, // D westward
+      (/** @type {Point} */{x}) => 4 * faceArea - 1 - x * faceSize, // K northward
+      (/** @type {Point} */{y}) => faceArea + y * faceSize, // A eastward
+      (/** @type {Point} */{x}) => 3 * faceArea - faceSize - faceSize * x, // G southward
+      (/** @type {Point} */{y}) => 4 * faceArea + faceSize - 1 + y * faceSize, // D westward
     ],
     [ // 1, right, oria
-      (/** @type {TileCoordinate} */{x}) => 3 * faceArea + faceSize - 1 - x, // L northward
-      (/** @type {TileCoordinate} */{y}) => 5 * faceArea + faceSize * y, // B eastward
-      (/** @type {TileCoordinate} */{x}) => 2 * faceArea + x, // H southward
-      (/** @type {TileCoordinate} */{y}) => 1 * faceSize * y + faceSize - 1, // A westward
+      (/** @type {Point} */{x}) => 3 * faceArea + faceSize - 1 - x, // L northward
+      (/** @type {Point} */{y}) => 5 * faceArea + faceSize * y, // B eastward
+      (/** @type {Point} */{x}) => 2 * faceArea + x, // H southward
+      (/** @type {Point} */{y}) => 1 * faceSize * y + faceSize - 1, // A westward
     ],
     [ // 2, bottom, infra
-      (/** @type {TileCoordinate} */{x}) => 2 * faceArea - faceSize + x, // H northward
-      (/** @type {TileCoordinate} */{y}) => 6 * faceArea - faceSize + y, // E eastward
-      (/** @type {TileCoordinate} */{x}) => 5 * faceArea - 1 - x, // F southward
-      (/** @type {TileCoordinate} */{y}) => 1 * faceArea - 1 - y, // G westward
+      (/** @type {Point} */{x}) => 2 * faceArea - faceSize + x, // H northward
+      (/** @type {Point} */{y}) => 6 * faceArea - faceSize + y, // E eastward
+      (/** @type {Point} */{x}) => 5 * faceArea - 1 - x, // F southward
+      (/** @type {Point} */{y}) => 1 * faceArea - 1 - y, // G westward
     ],
     [ // 3, top, borea
-      (/** @type {TileCoordinate} */{x}) => faceArea + faceSize - 1 - x, // L northward
-      (/** @type {TileCoordinate} */{y}) => faceSize - y - 1, // K eastward
-      (/** @type {TileCoordinate} */{x}) => 4 * faceArea + x, // J southward
-      (/** @type {TileCoordinate} */{y}) => 5 * faceArea + y, // I westward
+      (/** @type {Point} */{x}) => faceArea + faceSize - 1 - x, // L northward
+      (/** @type {Point} */{y}) => faceSize - y - 1, // K eastward
+      (/** @type {Point} */{x}) => 4 * faceArea + x, // J southward
+      (/** @type {Point} */{y}) => 5 * faceArea + y, // I westward
     ],
     [ // 4, left, occia
-      (/** @type {TileCoordinate} */{x}) => 4 * faceArea - faceSize + x, // J northward
-      (/** @type {TileCoordinate} */{y}) => faceSize * y, // D eastward
-      (/** @type {TileCoordinate} */{x}) => 3 * faceArea - 1 - x, // F southward
-      (/** @type {TileCoordinate} */{y}) => 5 * faceArea + faceSize - 1 + faceSize * y, // C westward
+      (/** @type {Point} */{x}) => 4 * faceArea - faceSize + x, // J northward
+      (/** @type {Point} */{y}) => faceSize * y, // D eastward
+      (/** @type {Point} */{x}) => 3 * faceArea - 1 - x, // F southward
+      (/** @type {Point} */{y}) => 5 * faceArea + faceSize - 1 + faceSize * y, // C westward
     ],
     [ // 5, back, euia
-      (/** @type {TileCoordinate} */{x}) => 3 * faceArea + faceSize * x, // I northward
-      (/** @type {TileCoordinate} */{y}) => 4 * faceArea + faceSize * y, // C eastward
-      (/** @type {TileCoordinate} */{x}) => 2 * faceArea + faceSize - 1 + faceSize * x, // E southward
-      (/** @type {TileCoordinate} */{y}) => 1 * faceArea + faceSize - 1 + faceSize * y, // B westward
+      (/** @type {Point} */{x}) => 3 * faceArea + faceSize * x, // I northward
+      (/** @type {Point} */{y}) => 4 * faceArea + faceSize * y, // C eastward
+      (/** @type {Point} */{x}) => 2 * faceArea + faceSize - 1 + faceSize * x, // E southward
+      (/** @type {Point} */{y}) => 1 * faceArea + faceSize - 1 + faceSize * y, // B westward
     ],
   ];
 
@@ -320,6 +338,35 @@ export function makeDaia({
     const y = Math.floor(n / faceSize);
     const x = n % faceSize;
     return {t, f, n, x, y};
+  }
+
+  /** @type {TileCoordinateOnFaceFn} */
+  function tileCoordinateOnFace(t, g) {
+    const f = Math.floor(t / faceArea);
+    const n = t % faceArea;
+    const y = Math.floor(n / faceSize);
+    const x = n % faceSize;
+    if (g === f) {
+      return {x, y, a: 0};
+    }
+    return undefined;
+    // const f2g = faceNeighbors[f].indexOf(g);
+    // if (f2g === -1) {
+    //   return undefined;
+    // }
+    // if (!transits({x, y}, f2g)) {
+    //   return undefined;
+    // }
+    // const neighbor = seams[f][f2g]({x, y});
+    // const turn = faceRotations[f][f2g];
+    // const coord = tileCoordinate(neighbor);
+    // const g2f = (f2g + 4 - turn) % 4;
+    // const g2fv = quarturnVectors[f2g];
+    // return {
+    //   x: coord.x + g2fv.x,
+    //   y: coord.y + g2fv.y,
+    //   a: 0,
+    // };
   }
 
   /** @type {TileNumberFn} */
@@ -402,8 +449,9 @@ export function makeDaia({
     tileSizePx,
     faceArea,
     worldArea,
-    worldSize,
+    faceSizePx,
     tileCoordinate,
+    tileCoordinateOnFace,
     tileNumber,
     neighbor,
     advance,

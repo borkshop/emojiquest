@@ -122,6 +122,22 @@ export function rotate(a) {
   };
 }
 
+const quarturnSin = [0, 1, 0, -1, 0];
+
+/**
+ * @param {number} a
+ * @returns {Matrix}
+ */
+export function rotateQuarturn(a) {
+  const sin = a % 4;
+  const cos = (a + 1) % 4;
+  return {
+    a1:  quarturnSin[cos], b1: -quarturnSin[sin], c1:  0,
+    a2:  quarturnSin[sin], b2:  quarturnSin[cos], c2:  0,
+    a3:  0,                b3:  0,                c3:  1,
+  };
+}
+
 /**
  * @param {number} s
  * @returns {Matrix}

@@ -29,17 +29,15 @@ export function createMenuBlade({
   let next = false;
 
   const $menuBlade = document.createElement('div');
-  $menuBlade.setAttribute('id', 'menuBlade');
-  $menuBlade.setAttribute('class', 'blade');
+  $menuBlade.setAttribute('class', 'blade menuBlade');
   $menuBlade.style.transform = matrixStyle(rotate(-Math.PI/2));
 
   const $menu = document.createElement('div');
-  $menu.setAttribute('id', 'menu');
-  $menu.setAttribute('class', 'panel');
+  $menu.setAttribute('class', 'menu panel');
   $menuBlade.appendChild($menu);
 
   const $curb = document.createElementNS(svgNS, 'svg');
-  $curb.setAttribute('id', 'curb');
+  $curb.setAttribute('class', 'menuCurb');
   $curb.setAttributeNS(null, 'viewBox', `0 0 1 4`);
   $curb.setAttributeNS(null, 'height', `${4 * tileSizePx}`);
   $curb.setAttributeNS(null, 'width', `${1 * tileSizePx}`);
@@ -65,7 +63,7 @@ export function createMenuBlade({
   const {enter, exit} = tileView;
   const viewModel = makeViewModel();
   const tileMap = makeBoxTileMap({ x: 1, y: 4 });
-  viewModel.watch(tileMap, {enter, exit, place});
+  viewModel.watchEntities(tileMap, {enter, exit, place});
   const macroViewModel = makeMacroViewModel(viewModel, {name: 'menu-pointer-curb'});
 
   macroViewModel.put(entity, state, pointerTileType);

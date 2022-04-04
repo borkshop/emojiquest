@@ -48,11 +48,11 @@ export function makeTileKeeper({enter, exit, advance}) {
     for (const t of circle(at, advance, radius)) {
       nextTiles.add(t);
     }
-    for (const t of setDifference(prevTiles, nextTiles)) {
-      exit(t);
-    }
     for (const t of setDifference(nextTiles, prevTiles)) {
       enter(t);
+    }
+    for (const t of setDifference(prevTiles, nextTiles)) {
+      exit(t);
     }
     [nextTiles, prevTiles] = [prevTiles, nextTiles];
   }
