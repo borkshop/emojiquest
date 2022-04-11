@@ -19,7 +19,7 @@
  * @typedef {import('./cell.js').Cell<T>} Cell
  */
 
-import {frameDeltas} from 'domkit/anim';
+import {frameDeltas} from './animation.js';
 import {assert} from './assert.js';
 import {makeProgress} from './animation.js';
 import {delay, defer} from './async.js';
