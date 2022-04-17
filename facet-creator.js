@@ -11,7 +11,7 @@ const svgNS = "http://www.w3.org/2000/svg";
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {number} args.facetSize - the height and width of a facet in tiles
- * @param {number} args.tileSize - the height and width of a facet in pixels
+ * @param {number} args.tileSizePx - the height and width of a facet in pixels
  * @param {(location: number) => number} args.getTerrainFlags
  */
 export function makeFacetCreator({
@@ -19,7 +19,7 @@ export function makeFacetCreator({
   unwatchTerrain,
   getTerrainFlags,
   facetSize,
-  tileSize,
+  tileSizePx,
 }) {
   const animators = new Set();
 
@@ -35,8 +35,8 @@ export function makeFacetCreator({
 
     const $facet = document.createElementNS(svgNS, 'svg');
     $facet.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
-    $facet.setAttributeNS(null, 'height', `${facetSize * tileSize}`);
-    $facet.setAttributeNS(null, 'width', `${facetSize * tileSize}`);
+    $facet.setAttributeNS(null, 'height', `${facetSize * tileSizePx}`);
+    $facet.setAttributeNS(null, 'width', `${facetSize * tileSizePx}`);
     $facet.setAttributeNS(null, 'class', 'facet');
 
     const $back = document.createElementNS(svgNS, 'g');

@@ -38,7 +38,7 @@ const linear = (/** @type {number} */p) => p;
 /**
  * @param {Object} options
  * @param {Camera} options.camera
- * @param {number} options.tileSize
+ * @param {number} options.tileSizePx
  * @param {AdvanceFn} options.advance
  * @param {EaseFn} [options.ease]
  * @param {EaseFn} [options.easeRoll]
@@ -46,7 +46,7 @@ const linear = (/** @type {number} */p) => p;
  * @param {number} [options.fast]
  *
  */
-export function makeCameraController({camera, tileSize, advance, ease = linear, easeRoll = ease, fast = 500, slow = 1500}) {
+export function makeCameraController({camera, tileSizePx, advance, ease = linear, easeRoll = ease, fast = 500, slow = 1500}) {
   /**
    * @type {Array<Roll>}
    */
@@ -76,8 +76,8 @@ export function makeCameraController({camera, tileSize, advance, ease = linear, 
       camera.transition(fast, (/** @type {number} */ p) => {
         const e = ease(p);
         return translate({
-          x: -dx * tileSize * e,
-          y: -dy * tileSize * e,
+          x: -dx * tileSizePx * e,
+          y: -dy * tileSizePx * e,
           z: 0,
         })
       });

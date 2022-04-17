@@ -30,11 +30,11 @@ import {createMenuBlade} from './menu.js';
 const $context = mustFind('#context');
 
 const radius = 15; // the player's frustum radius in tiles
-const tileSize = 100; // the height and width of a tile in pixels
+const tileSizePx = 100; // the height and width of a tile in pixels
 const facetSize = 9; // the height and width of a facet in units of tiles
 const faceSize = 9 * facetSize; // the height and width of a face in tiles
 
-document.documentElement.style.setProperty('--tileSize', `${tileSize}`);
+document.documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
 document.documentElement.style.setProperty('--faceSize', `${faceSize}`);
 document.documentElement.style.setProperty('--facetSize', `${facetSize}`);
 
@@ -59,12 +59,12 @@ const cursor = {position, direction: north};
 let moment = cell(0);
 
 const world = makeDaia({
-  tileSize,
+  tileSizePx,
   faceSize,
 });
 
 const facets = makeDaia({
-  tileSize: tileSize * faceSize / facetSize,
+  tileSizePx: tileSizePx * faceSize / facetSize,
   faceSize: facetSize,
 });
 
@@ -83,8 +83,8 @@ const svgNS = "http://www.w3.org/2000/svg";
 function createControls() {
   const $controls = document.createElementNS(svgNS, 'svg');
   $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
-  $controls.setAttributeNS(null, 'height', `${3 * tileSize}`);
-  $controls.setAttributeNS(null, 'width', `${3 * tileSize}`);
+  $controls.setAttributeNS(null, 'height', `${3 * tileSizePx}`);
+  $controls.setAttributeNS(null, 'width', `${3 * tileSizePx}`);
   $controls.setAttributeNS(null, 'id', 'controls');
   $controls.setAttributeNS(null, 'class', 'panel');
   return $controls;
@@ -106,8 +106,8 @@ function createCoordBlade() {
 function createHamburger() {
   const $hamburger = document.createElementNS(svgNS, 'svg');
   $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
-  $hamburger.setAttributeNS(null, 'height', `${1 * tileSize}`);
-  $hamburger.setAttributeNS(null, 'width', `${1 * tileSize}`);
+  $hamburger.setAttributeNS(null, 'height', `${1 * tileSizePx}`);
+  $hamburger.setAttributeNS(null, 'width', `${1 * tileSizePx}`);
   $hamburger.setAttributeNS(null, 'id', 'hamburger');
   $hamburger.setAttributeNS(null, 'class', 'panel');
   return $hamburger;
@@ -130,7 +130,7 @@ const {$coordBlade, $coord} = createCoordBlade();
 document.body.appendChild($coordBlade);
 
 const {$menuBlade, menuController} = createMenuBlade({
-  tileSize,
+  tileSizePx,
   pointerTileType: mechanics.tileTypesByName.east,
   createElement: createEntity,
 });
@@ -146,7 +146,7 @@ const camera = makeCamera($context, world.cameraTransform(cursor.position));
 const cameraController = makeCameraController({
   camera,
   advance: world.advance,
-  tileSize,
+  tileSizePx,
   ease: linear,
   easeRoll: easeInOutQuart,
   slow: slowCameraTransitionDuration,
@@ -191,7 +191,7 @@ const {createFacet, animateFacets} = makeFacetCreator({
   unwatchTerrain,
   getTerrainFlags,
   facetSize,
-  tileSize,
+  tileSizePx,
 });
 
 const facetView = makeFacetView({
@@ -259,4 +259,4 @@ window.addEventListener('keypress', event => {
 const dispatcher = makeCommandDispatcher(window, driver);
 
 console.log($hamburger);
-watchControllerCommands($controls, $hamburger, dispatcher, {tileSize});
+watchControllerCommands($controls, $hamburger, dispatcher, {tileSizePx});

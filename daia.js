@@ -190,7 +190,7 @@ export const arrows = [
 /**
  * @typedef {Object} Daia
  * @prop {number} faceSize
- * @prop {number} tileSize
+ * @prop {number} tileSizePx
  * @prop {number} faceArea
  * @prop {number} worldSize
  * @prop {number} worldArea
@@ -206,35 +206,35 @@ export const arrows = [
 /**
  * @param {Object} options
  * @param {number} [options.faceSize]
- * @param {number} [options.tileSize]
+ * @param {number} [options.tileSizePx]
  * @param {Matrix} [options.transform]
  * @returns {Daia}
  */
 export function makeDaia({
   faceSize = 1,
-  tileSize = 100,
+  tileSizePx = 100,
   transform = identity
 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
-  const worldSize = tileSize * faceSize;
+  const worldSize = tileSizePx * faceSize;
 
   const cornerTransform = translate({
-    x: -worldSize / 2 + tileSize / 2,
-    y: -worldSize / 2 + tileSize / 2,
+    x: -worldSize / 2 + tileSizePx / 2,
+    y: -worldSize / 2 + tileSizePx / 2,
     z: worldSize / 2,
   });
 
   const cornerAdjustment = translate({
-    x: - tileSize / 2,
-    y: - tileSize / 2,
+    x: - tileSizePx / 2,
+    y: - tileSizePx / 2,
     z: 0,
   });
 
   const centerTransform = translate({
-    x: worldSize / 2 - tileSize / 2,
-    y: worldSize / 2 - tileSize / 2,
-    z: -worldSize / 2 + tileSize / 2,
+    x: worldSize / 2 - tileSizePx / 2,
+    y: worldSize / 2 - tileSizePx / 2,
+    z: -worldSize / 2 + tileSizePx / 2,
   });
 
   const faceCorners = faceTransforms.map(matrix => compose(
@@ -365,8 +365,8 @@ export function makeDaia({
     const {f, y, x} = tileCoordinate(t);
     return compose(
       translate({
-        x: tileSize * x,
-        y: tileSize * y,
+        x: tileSizePx * x,
+        y: tileSizePx * y,
         z: 0,
       }),
       faceCorners[f],
@@ -379,8 +379,8 @@ export function makeDaia({
     return compose(
       faceOrigins[f],
       translate({
-        x: -tileSize * x,
-        y: -tileSize * y,
+        x: -tileSizePx * x,
+        y: -tileSizePx * y,
         z: 0,
       }),
     );
@@ -399,7 +399,7 @@ export function makeDaia({
 
   return {
     faceSize,
-    tileSize,
+    tileSizePx,
     faceArea,
     worldArea,
     worldSize,

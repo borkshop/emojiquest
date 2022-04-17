@@ -35,10 +35,10 @@ aside.menu {
 
 #retical {
   position: absolute;
-  width: calc(var(--tileSize) * 1px);
-  height: calc(var(--tileSize) * 1px);
-  top: calc((100% - var(--tileSize) * 1px) / 2);
-  left: calc((100% - var(--tileSize) * 1px) / 2);
+  width: calc(var(--tileSizePx) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
+  top: calc((100% - var(--tileSizePx) * 1px) / 2);
+  left: calc((100% - var(--tileSizePx) * 1px) / 2);
   border: solid red 3px;
 }
 
@@ -53,13 +53,13 @@ aside.menu {
 
 .foundation {
   position: absolute;
-  width: calc(var(--tileSize) * 1px);
-  height: calc(var(--tileSize) * 1px);
+  width: calc(var(--tileSizePx) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: white;
-  font-size: calc(var(--tileSize) * 0.4px);
+  font-size: calc(var(--tileSizePx) * 0.4px);
   color: #aaa;
 }
 
@@ -68,8 +68,8 @@ aside.menu {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--facetSize) * var(--tileSize) * 1px);
-  height: calc(var(--facetSize) * var(--tileSize) * 1px);
+  width: calc(var(--facetSize) * var(--tileSizePx) * 1px);
+  height: calc(var(--facetSize) * var(--tileSizePx) * 1px);
   color: white;
   border: 0;
   margin: 0;
@@ -83,8 +83,8 @@ aside.menu {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--tileSize) * 1px);
-  height: calc(var(--tileSize) * 1px);
+  width: calc(var(--tileSizePx) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
   font-size: 80px;
   color: black;
   overflow: hidden;
@@ -94,34 +94,34 @@ aside.menu {
 
 .atmosquare {
   position: absolute;
-  width: calc(var(--tileSize) * 1px);
-  height: calc(var(--tileSize) * 1px);
+  width: calc(var(--tileSizePx) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: transparent;
   color: yellow;
-  font-size: calc(var(--tileSize) * 0.6px);
+  font-size: calc(var(--tileSizePx) * 0.6px);
   backface-visibility: visible;
 }
 
 .firmament {
   position: absolute;
-  width: calc(var(--tileSize) * 1px);
-  height: calc(var(--tileSize) * 1px);
+  width: calc(var(--tileSizePx) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: rebeccapurple;
   color: white;
-  font-size: calc(var(--tileSize) * 0.2px);
+  font-size: calc(var(--tileSizePx) * 0.2px);
   backface-visibility: visible;
 }
 
 text.moji {
   font-size: 0.7px;
-  height: calc(var(--tileSize) * 1px);
-  width: calc(var(--tileSize) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
+  width: calc(var(--tileSizePx) * 1px);
   dominant-baseline: central;
   text-anchor: middle;
 }
@@ -152,23 +152,23 @@ text.moji {
 
 #coord {
   position: relative;
-  left: calc(var(--tileSize) * 1.5px);
+  left: calc(var(--tileSizePx) * 1.5px);
   bottom: 0px;
 
-  height: calc(var(--tileSize) * 1px);
-  line-height: calc(var(--tileSize) * 0.5px);
+  height: calc(var(--tileSizePx) * 1px);
+  line-height: calc(var(--tileSizePx) * 0.5px);
 
   font-family: monospace;
-  font-size: calc(var(--tileSize) * 0.5px);
+  font-size: calc(var(--tileSizePx) * 0.5px);
   color: black;
 
-  padding-left: calc(var(--tileSize) * 0.5px);
-  padding-right: calc(var(--tileSize) * 0.5px);
+  padding-left: calc(var(--tileSizePx) * 0.5px);
+  padding-right: calc(var(--tileSizePx) * 0.5px);
 }
 
 #menu {
   position: relative;
-  bottom: calc(var(--tileSize) * 1.5px);
+  bottom: calc(var(--tileSizePx) * 1.5px);
   left: 0px;
 
   font-family: monospace;
@@ -185,17 +185,17 @@ text.moji {
 }
 
 .menuLabel {
-  padding-left: calc(var(--tileSize) * 1px);
-  padding-right: calc(var(--tileSize) * 0.5px);
-  height: calc(var(--tileSize) * 1px);
-  line-height: calc(var(--tileSize) * 1px);
+  padding-left: calc(var(--tileSizePx) * 1px);
+  padding-right: calc(var(--tileSizePx) * 0.5px);
+  height: calc(var(--tileSizePx) * 1px);
+  line-height: calc(var(--tileSizePx) * 1px);
   /* https://css-tricks.com/snippets/css/font-stacks/ */
   /* font-family: "Palatino Linotype", Palatino, Palladio, "URW Palladio L", "Book Antiqua", Baskerville, "Bookman Old Style", "Bitstream Charter", "Nimbus Roman No9 L", Garamond, "Apple Garamond", "ITC Garamond Narrow", "New Century Schoolbook", "Century Schoolbook", "Century Schoolbook L", Georgia, serif; */
   /* font-family: Constantia, "Lucida Bright", Lucidabright, "Lucida Serif", Lucida, "DejaVu Serif", "Bitstream Vera Serif", "Liberation Serif", Georgia, serif; */
   /* font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace; */
   /* font-family: Corbel, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", "Bitstream Vera Sans", "Liberation Sans", Verdana, "Verdana Ref", sans-serif; */
   font-family: "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif;
-  font-size: calc(var(--tileSize) * 0.7px);
+  font-size: calc(var(--tileSizePx) * 0.7px);
   margin: 0;
 }
 

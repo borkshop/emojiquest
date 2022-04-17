@@ -1332,10 +1332,10 @@ export function makeController($controls, $hamburger, {
  * @param {Element} $hamburger
  * @param {import('./commands.js').CommandDispatcher} dispatcher
  * @param {Object} args
- * @param {number} args.tileSize
+ * @param {number} args.tileSizePx
  */
 export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
-  tileSize,
+  tileSizePx,
 }) => {
 
   let previousCommand = -1;
@@ -1345,7 +1345,7 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
    */
   const controlEventToCommand = event => {
     const {offsetX, offsetY} = event;
-    const coord = {x: Math.floor(offsetX / tileSize), y: Math.floor(offsetY / tileSize)};
+    const coord = {x: Math.floor(offsetX / tileSizePx), y: Math.floor(offsetY / tileSizePx)};
     const {x, y} = coord;
     if (x >= 3 || y >= 3 || x < 0 || y < 0) return -1;
     return x + (2 - y) * 3 + 1;

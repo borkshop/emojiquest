@@ -12,13 +12,13 @@ const svgNS = "http://www.w3.org/2000/svg";
 
 /**
  * @param {Object} args
- * @param {number} args.tileSize
+ * @param {number} args.tileSizePx
  * @param {number} args.pointerTileType
  * @param {(tile: number, type: number) => Element} args.createElement
  * @param {(tile: number) => void} [args.collectElement]
  */
 export function createMenuBlade({
-  tileSize,
+  tileSizePx,
   pointerTileType,
   createElement,
   collectElement,
@@ -41,8 +41,8 @@ export function createMenuBlade({
   const $curb = document.createElementNS(svgNS, 'svg');
   $curb.setAttribute('id', 'curb');
   $curb.setAttributeNS(null, 'viewBox', `0 0 1 4`);
-  $curb.setAttributeNS(null, 'height', `${4 * tileSize}`);
-  $curb.setAttributeNS(null, 'width', `${1 * tileSize}`);
+  $curb.setAttributeNS(null, 'height', `${4 * tileSizePx}`);
+  $curb.setAttributeNS(null, 'width', `${1 * tileSizePx}`);
   $menu.appendChild($curb);
 
   /**
