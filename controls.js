@@ -1325,6 +1325,8 @@ export function makeController($controls, $hamburger, {
     staminaController.reset();
   }
 
+  tock();
+
   let mode = playMode;
 
   /** @type {PressFn} */
