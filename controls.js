@@ -882,8 +882,6 @@ export function makeController($controls, $hamburger, {
     }
     restoreWatch();
 
-    oneKeyView.replace(0, tileTypesByName.hamburger);
-
     return playMode;
   }
 
