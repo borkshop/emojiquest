@@ -1383,7 +1383,7 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
     if (touchIdentifiers !== undefined) {
       pressed = pressed || touchIdentifiers.size > 0;
     } else {
-      console.error(`Command outside the range of expected touch identifiers: ${command}`);
+      return;
     }
     if (pressed) {
       if (previousCommand === -1) { // unpressed to pressed
