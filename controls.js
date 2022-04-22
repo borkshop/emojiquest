@@ -115,6 +115,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {import('./menu.js').MenuController} args.menuController
  * @param {CameraController} args.cameraController
+ * @param {import('./dialog.js').DialogController} args.dialogController
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  */
@@ -130,6 +131,7 @@ export function makeController($controls, $hamburger, {
   followCursor,
   mechanics,
   menuController,
+  dialogController,
   healthController,
   staminaController,
 }) {
@@ -508,6 +510,7 @@ export function makeController($controls, $hamburger, {
         cursor = change;
         followCursor(cursor.position, {...change, direction, position});
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
+        dialogController.log(`${toponym(cursor.position)}`);
         return editMode;
       } else if (command === 1) { // fill
         if (editType !== 0) {
@@ -904,6 +907,8 @@ export function makeController($controls, $hamburger, {
 
     oneKeyView.replace(0, tileTypesByName.hamburger);
 
+    dialogController.log(`${toponym(cursor.position)}`);
+
     return editMode;
   }
 
@@ -926,6 +931,8 @@ export function makeController($controls, $hamburger, {
     nineKeyView.despawnOutward(ww);
 
     oneKeyView.replace(0, tileTypesByName.thumbUp);
+
+    dialogController.close();
 
     return menuMode;
   }
@@ -1293,6 +1300,7 @@ export function makeController($controls, $hamburger, {
     macroViewModel.animate(progress);
     hamburgerViewModel.animate(progress);
     menuController.animate(progress);
+    dialogController.animate(progress);
     healthController.animate(progress);
     staminaController.animate(progress);
   }
@@ -1313,6 +1321,7 @@ export function makeController($controls, $hamburger, {
     macroViewModel.reset();
     oneKeyView.reset();
     menuController.reset();
+    dialogController.reset();
     cameraController.tock();
     healthController.reset();
     staminaController.reset();

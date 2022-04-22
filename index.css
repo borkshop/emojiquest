@@ -200,6 +200,15 @@ text.moji {
   left: 0;
 }
 
+.dialog {
+  position: absolute;
+  font-size: calc(var(--tileSizePx) * 0.5px);
+  top: calc(var(--tileSizePx) * 0.5px);
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
 .menu {
   position: relative;
 

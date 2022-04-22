@@ -12,6 +12,7 @@ import {makeCommandDispatcher} from './commands.js';
 import {makeMechanics} from './mechanics.js';
 import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
 
+import { createDialogBox } from './dialog.js';
 import { createMenuBlade } from './menu.js';
 import { makeMap } from './map.js';
 import { writeHealthBar } from './health.js';
@@ -172,6 +173,9 @@ const main = async () => {
 
   parentElement.insertBefore($map, nextSibling);
 
+  const {element: $dialogBox, controller: dialogController} = createDialogBox();
+  parentElement.insertBefore($dialogBox, nextSibling);
+
   const {element: $staminaBar, controller: staminaController} = writeStaminaBar({
     tileSizePx,
     staminaTileType: mechanics.tileTypesByName.stamina,
@@ -219,6 +223,7 @@ const main = async () => {
     mechanics,
     menuController,
     cameraController,
+    dialogController,
     healthController,
     staminaController,
   });
