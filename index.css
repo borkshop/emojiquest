@@ -38,6 +38,21 @@ aside.menu {
   width: 40%;
 }
 
+.healthBar, .staminaBar {
+  position: absolute;
+  top: 0;
+  width: calc(var(--tileSizePx) / 2 * 5px);
+  flex: 0 1 auto;
+}
+
+.staminaBar {
+  right: 0;
+}
+
+.healthBar {
+  left: 0;
+}
+
 #context {
   top: 50%;
   left: 50%;

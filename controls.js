@@ -115,6 +115,8 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {import('./menu.js').MenuController} args.menuController
  * @param {CameraController} args.cameraController
+ * @param {import('./health.js').HealthController} args.healthController
+ * @param {import('./stamina.js').StaminaController} args.staminaController
  */
 export function makeController($controls, $hamburger, {
   agent,
@@ -128,6 +130,8 @@ export function makeController($controls, $hamburger, {
   followCursor,
   mechanics,
   menuController,
+  healthController,
+  staminaController,
 }) {
 
   const {
@@ -1289,6 +1293,8 @@ export function makeController($controls, $hamburger, {
     macroViewModel.animate(progress);
     hamburgerViewModel.animate(progress);
     menuController.animate(progress);
+    healthController.animate(progress);
+    staminaController.animate(progress);
   }
 
   // The controller receives a command at the beginning of any driver-induced
@@ -1308,6 +1314,8 @@ export function makeController($controls, $hamburger, {
     oneKeyView.reset();
     menuController.reset();
     cameraController.tock();
+    healthController.reset();
+    staminaController.reset();
   }
 
   let mode = playMode;

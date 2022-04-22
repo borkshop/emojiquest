@@ -14,6 +14,8 @@ import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from '.
 
 import { createMenuBlade } from './menu.js';
 import { makeMap } from './map.js';
+import { writeHealthBar } from './health.js';
+import { writeStaminaBar } from './stamina.js';
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -170,6 +172,20 @@ const main = async () => {
 
   parentElement.insertBefore($map, nextSibling);
 
+  const {element: $staminaBar, controller: staminaController} = writeStaminaBar({
+    tileSizePx,
+    staminaTileType: mechanics.tileTypesByName.stamina,
+    createElement: createEntity,
+  });
+  parentElement.insertBefore($staminaBar, nextSibling);
+
+  const {element: $healthBar, controller: healthController} = writeHealthBar({
+    tileSizePx,
+    healthTileType: mechanics.tileTypesByName.health,
+    createElement: createEntity,
+  });
+  parentElement.insertBefore($healthBar, nextSibling);
+
   const {$menuBlade, menuController} = createMenuBlade({
     tileSizePx,
     pointerTileType: mechanics.tileTypesByName.east,
@@ -203,6 +219,8 @@ const main = async () => {
     mechanics,
     menuController,
     cameraController,
+    healthController,
+    staminaController,
   });
 
   /**
