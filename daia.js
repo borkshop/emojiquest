@@ -252,15 +252,17 @@ export function makeDaia({
   /**
    * @param {{x: number, y: number}} position
    * @param {number} direction
-   * @returns {number}
+   * @returns {boolean}
    */
-  function transitCase({x, y}, direction) {
-    if (y === 0 && direction === north) return north;
-    if (x === faceSize - 1 && direction === east) return east;
-    if (y === faceSize - 1 && direction === south) return south;
-    if (x === 0 && direction === west) return west;
-    return -1;
-  }
+  const transits = ({x, y}, direction) => {
+    const end = faceSize - 1;
+    return (
+      (y === 0 && direction === north) ||
+      (x === 0 && direction === west) ||
+      (y === end && direction === south) ||
+      (x === end && direction === east)
+    );
+  };
 
   /**
    * @type {Array<Array<(coord: TileCoordinate) => number>>}
@@ -329,11 +331,10 @@ export function makeDaia({
   function neighbor(t, direction) {
     const coord = tileCoordinate(t);
     const {f} = coord;
-    const c = transitCase(coord, direction);
-    if (c === -1) {
+    if (transits(coord, direction)) {
       return knits[direction](t);
     } else {
-      return seams[f][c](coord);
+      return seams[f][direction](coord);
     }
   }
 
@@ -341,21 +342,20 @@ export function makeDaia({
   function advance({position, direction}) {
     const coord = tileCoordinate(position);
     const {f} = coord;
-    const c = transitCase(coord, direction);
-    if (c === -1) {
+    if (transits(coord, direction)) {
+      const turn = faceRotations[f][direction];
+      return {
+        position: seams[f][direction](coord),
+        direction: (direction + turn + 4) % 4,
+        turn,
+        transit: true,
+      };
+    } else {
       return {
         position: knits[direction](position),
         direction,
         turn: 0,
         transit: false,
-      };
-    } else {
-      const turn = faceRotations[f][direction];
-      return {
-        position: seams[f][c](coord),
-        direction: (direction + turn + 4) % 4,
-        turn,
-        transit: true,
       };
     }
   }
