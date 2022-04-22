@@ -106,6 +106,8 @@ const svgNS = "http://www.w3.org/2000/svg";
 
 const centerVector = {x: 0.5, y: 0.5};
 
+const epsilon = 0.01;
+
 /**
  * @param {Object} options
  * @param {number} options.facetSize
@@ -271,10 +273,10 @@ export function makeFacetCreator({
       const $backTile = document.createElementNS(svgNS, 'rect');
       const terrainFlags = getTerrainFlags(location);
       const color = tileColor(faceNumber, terrainFlags);
-      $backTile.setAttributeNS(null, 'height', `1`);
-      $backTile.setAttributeNS(null, 'width', `1`);
-      $backTile.setAttributeNS(null, 'x', `${x}`);
-      $backTile.setAttributeNS(null, 'y', `${y}`);
+      $backTile.setAttributeNS(null, 'height', `${1 + epsilon * 2}`);
+      $backTile.setAttributeNS(null, 'width', `${1 + epsilon * 2}`);
+      $backTile.setAttributeNS(null, 'x', `${x - epsilon}`);
+      $backTile.setAttributeNS(null, 'y', `${y - epsilon}`);
       $backTile.setAttributeNS(null, 'style', `fill: ${color}`);
       $back.appendChild($backTile);
       backTiles.set(location, $backTile);
