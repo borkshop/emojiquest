@@ -360,37 +360,6 @@ export function makeModel({
     effectsOwned.set(agent, 1 << effectTypesByName.none);
     effectsChosen.set(agent, effectTypesByName.none);
 
-    // random world population
-    for (let location = 0; location < size; location++) {
-      if (Math.random() < 0.25 && location !== spawn) {
-        const modelType = [
-          agentTypesByName.pineTree,
-          agentTypesByName.pineTree,
-          agentTypesByName.pineTree,
-          agentTypesByName.ram,
-          agentTypesByName.ewe,
-          agentTypesByName.appleTree,
-          agentTypesByName.appleTree,
-          agentTypesByName.mountain,
-          agentTypesByName.mountain,
-          agentTypesByName.mountain,
-          agentTypesByName.axe,
-          agentTypesByName.coat,
-          agentTypesByName.pick,
-          agentTypesByName.bank,
-          agentTypesByName.forge,
-        ].sort(() => Math.random() - 0.5).pop() || 0;
-        const tileType = defaultTileTypeForAgentType[modelType];
-        const entity = createEntity(modelType);
-        macroViewModel.put(entity, location, tileType);
-        entities[location] = entity;
-        if (Math.random() < 0.0625) {
-          mobiles.add(entity);
-          locations.set(entity, location);
-        }
-      }
-    }
-
     return agent;
   }
 

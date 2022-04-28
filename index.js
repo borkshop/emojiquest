@@ -240,6 +240,13 @@ const main = async () => {
    */
   const moment = cell(0);
 
+  const response = await fetch(new URL('daia.json', import.meta.url).href);
+  const worldData = await response.json();
+  const newAgent = worldModel.restore(worldData);
+  if (typeof newAgent === 'number') {
+    controls.jump(newAgent);
+  }
+
   const driver = makeDriver(controls, {
     moment,
     animatedTransitionDuration,

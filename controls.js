@@ -470,11 +470,7 @@ export function makeController($controls, $hamburger, {
             if (typeof result === 'undefined') {
               // TODO user dismissed dialog or selected no file
             } else if (typeof result === 'number') {
-              worldModel.unfollow(agent, followAgent);
-              agent = result;
-              const location = worldModel.locate(agent);
-              cameraController.jump(location);
-              worldModel.follow(agent, followAgent);
+              jump(result);
             } else {
               for (const error of result) {
                 console.error(error);
@@ -505,10 +501,13 @@ export function makeController($controls, $hamburger, {
     press(command, repeat) {
       const direction = commandDirection[command];
       if (direction !== undefined) {
-        const position = cursor.position;
-        const change = advance({...cursor, direction});
-        cursor = change;
-        followCursor(cursor.position, {...change, direction, position});
+        const {position: origin} = cursor;
+        const nextCursor = advance({position: origin, direction});
+        const {position: destination, turn, transit} = nextCursor;
+        const change = {position: origin, direction, turn, transit, repeat};
+        cursor = nextCursor;
+        cameraController.move(destination, change);
+        followCursor(destination, change);
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
         dialogController.log(`${toponym(cursor.position)}`);
         return editMode;
@@ -1338,6 +1337,16 @@ export function makeController($controls, $hamburger, {
     return agent;
   }
 
+  /** @param {number} newAgent */
+  const jump = newAgent => {
+    tock();
+    worldModel.unfollow(agent, followAgent);
+    agent = newAgent;
+    const location = worldModel.locate(agent);
+    cameraController.jump(location);
+    worldModel.follow(agent, followAgent);
+  };
+
   cameraController.jump(cursor.position);
 
   return {
@@ -1345,6 +1354,7 @@ export function makeController($controls, $hamburger, {
     animate,
     down,
     command,
+    jump,
     currentAgent,
   };
 }
