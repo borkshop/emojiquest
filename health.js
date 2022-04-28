@@ -44,11 +44,11 @@ export function writeHealthBar({
   macroViewModel.put(3, 3, healthTileType);
   macroViewModel.put(4, 4, healthTileType);
 
-  const { animate, reset } = macroViewModel;
+  const { animate, tock } = macroViewModel;
 
   const controller = {
     animate,
-    reset
+    tock
   };
 
   return {element, controller};

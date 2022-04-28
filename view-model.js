@@ -357,7 +357,7 @@ export function makeViewModel() {
     }
   }
 
-  function reset() {
+  function tock() {
     animating.clear();
   }
 
@@ -399,6 +399,6 @@ export function makeViewModel() {
     unwatchEntities,
     animate,
     transition,
-    reset,
+    tock,
   };
 }

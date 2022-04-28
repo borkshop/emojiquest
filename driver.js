@@ -85,7 +85,7 @@ export const makeDriver = (delegate, options) => {
   const held = new Map();
   // TODO const vector = {x: 0, y: 0};
 
-  // Time elapsed since reset.
+  // Time elapsed since tick.
   let timeSinceTransitionStart = animatedTransitionDuration;
 
   /**

@@ -1314,14 +1314,14 @@ export function makeController($controls, $hamburger, {
 
   function tock() {
     worldModel.tock();
-    worldViewModel.reset();
-    macroViewModel.reset();
-    oneKeyView.reset();
-    menuController.reset();
-    dialogController.reset();
+    worldViewModel.tock();
+    macroViewModel.tock();
+    oneKeyView.tock();
+    menuController.tock();
+    dialogController.tock();
     cameraController.tock();
-    healthController.reset();
-    staminaController.reset();
+    healthController.tock();
+    staminaController.tock();
   }
 
   tock();

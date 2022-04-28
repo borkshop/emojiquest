@@ -246,7 +246,7 @@ export function makeMacroViewModel(viewModel, {
     return () => viewModel.up(internal);
   }
 
-  function reset() {
+  function tock() {
     for (const [internal, destination] of moves.entries()) {
       viewModel.move(internal, destination);
     }
@@ -261,14 +261,14 @@ export function makeMacroViewModel(viewModel, {
     replaced.clear();
     removes.clear();
     moves.clear();
-    viewModel.reset();
+    viewModel.tock();
   }
 
   const { animate } = viewModel;
 
   return {
     animate,
-    reset,
+    tock,
     up,
     down,
     put,

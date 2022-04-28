@@ -88,8 +88,8 @@ export function createMenuBlade({
     }
   }
 
-  function reset() {
-    macroViewModel.reset();
+  function tock() {
+    macroViewModel.tock();
     prev = next;
   }
 
@@ -138,7 +138,7 @@ export function createMenuBlade({
     goSouth,
     getState,
     animate,
-    reset
+    tock
   };
 
   return {$menuBlade, menuController};

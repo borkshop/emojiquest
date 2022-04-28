@@ -42,7 +42,7 @@ export const createDialogBox = () => {
     }
   };
 
-  const reset = () => {
+  const tock = () => {
     if (waning !== null) {
       const { parentNode } = element;
       assert(parentNode !== null);
@@ -76,7 +76,7 @@ export const createDialogBox = () => {
     }
   };
 
-  const controller = {log, animate, close, reset};
+  const controller = {log, animate, close, tock};
 
   return {element, controller};
 };

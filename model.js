@@ -408,7 +408,7 @@ export function makeModel({
 
     // Think
     for (const entity of mobiles) {
-      // TODO select from eleigible directions.
+      // TODO select from eligible directions.
       intend(entity, Math.floor(Math.random() * 4));
     }
 
@@ -440,7 +440,7 @@ export function makeModel({
           bumps.push({agent: winner, patient, origin, destination, direction});
         }
       }
-      // Bounce all of the candidates that did not get to procede in the
+      // Bounce all of the candidates that did not get to proceed in the
       // direction they intended.
       for (const loser of candidates) {
         const change = assumeDefined(options.get(loser));
@@ -482,7 +482,7 @@ export function makeModel({
    * effects moves;
    */
   function tock() {
-    macroViewModel.reset();
+    macroViewModel.tock();
     moves.clear();
     removes.clear();
     bumps.length = 0;
