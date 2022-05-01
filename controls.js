@@ -228,14 +228,19 @@ export function makeController($controls, $hamburger, {
 
   controlsViewModel.watchEntities(tileMap, {enter, exit, place});
 
-  /** @type {import('./model.js').FollowFn} */
-  function followAgent(_entity, change, destination) {
-    cursor = {...change, position: destination};
-    cameraController.move(destination, change);
-    followCursor(destination, change);
+  /** @type {import('./model.js').Follower} */
+  const agentFollower = {
+    motion(_entity, change, destination) {
+      cursor = {...change, position: destination};
+      cameraController.move(destination, change);
+      followCursor(destination, change);
+    },
+    dialog(_entity, text) {
+      dialogController.log(text);
+    },
   }
 
-  worldModel.follow(agent, followAgent);
+  worldModel.follow(agent, agentFollower);
 
   const priorHands = [emptyItem, emptyItem];
 
@@ -899,7 +904,7 @@ export function makeController($controls, $hamburger, {
     }
 
     lastAgentCursor = cursor;
-    worldModel.unfollow(agent, followAgent);
+    worldModel.unfollow(agent, agentFollower);
     restoreEditorReticle();
 
     oneKeyView.replace(0, tileTypesByName.hamburger);
@@ -917,7 +922,7 @@ export function makeController($controls, $hamburger, {
 
     cursor = lastAgentCursor;
     cameraController.jump(cursor.position);
-    worldModel.follow(agent, followAgent);
+    worldModel.follow(agent, agentFollower);
     dismissEditorReticle();
 
     oneKeyView.replace(0, tileTypesByName.back);
@@ -1309,6 +1314,7 @@ export function makeController($controls, $hamburger, {
     priorHands[1] = rightHandItemType();
     worldModel.tick();
     cameraController.tick();
+    dialogController.close();
     updateHands();
   }
 
@@ -1340,11 +1346,11 @@ export function makeController($controls, $hamburger, {
   /** @param {number} newAgent */
   const jump = newAgent => {
     tock();
-    worldModel.unfollow(agent, followAgent);
+    worldModel.unfollow(agent, agentFollower);
     agent = newAgent;
     const location = worldModel.locate(agent);
     cameraController.jump(location);
-    worldModel.follow(agent, followAgent);
+    worldModel.follow(agent, agentFollower);
   };
 
   cameraController.jump(cursor.position);

@@ -293,11 +293,12 @@ export function makeMechanics({
       for (const rightType of [right, itemTypesByName.any]) {
         for (const leftType of [left, itemTypesByName.any]) {
           if (bumpCombination(kit, {...parameters, agentType, patientType, leftType, rightType, effectType})) {
-            return;
+            return true;
           }
         }
       }
     }
+    return false;
   }
 
   /**

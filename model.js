@@ -31,10 +31,22 @@ import {quarturnToOcturn} from './geometry2d.js';
  */
 
 /**
- * @callback FollowFn
+ * @callback DialogFn
+ * @param {number} entity - entity that received dialog
+ * @param {string} dialog
+ */
+
+/**
+ * @callback MotionFn
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
  * @param {number} destination
+ */
+
+/**
+ * @typedef {Object} Follower
+ * @property {MotionFn} motion
+ * @property {DialogFn} dialog
  */
 
 /**
@@ -194,7 +206,7 @@ export function makeModel({
    * distinguish an accidental call from a deliberate call by balancing follow
    * and unfollow calls.
    *
-   * @type {Map<number, Set<FollowFn>>}
+   * @type {Map<number, Set<Follower>>}
    */
   const followers = new Map();
 
@@ -282,12 +294,12 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {FollowFn} follower
+   * @param {Follower} follower
    */
   function follow(e, follower) {
     let entityFollowers = followers.get(e);
     if (entityFollowers === undefined) {
-      /** @type {Set<FollowFn>} */
+      /** @type {Set<Follower>} */
       entityFollowers = new Set();
       followers.set(e, entityFollowers);
     }
@@ -297,7 +309,7 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {FollowFn} follower
+   * @param {Follower} follower
    */
   function unfollow(e, follower) {
     const entityFollowers = followers.get(e);
@@ -314,8 +326,8 @@ export function makeModel({
   function notifyFollowers(e, change, destination) {
     const entityFollowers = followers.get(e);
     if (entityFollowers !== undefined) {
-      for (const notifyFollower of entityFollowers) {
-        notifyFollower(e, change, destination);
+      for (const follower of entityFollowers) {
+        follower.motion(e, change, destination);
       }
     }
   }
@@ -455,13 +467,28 @@ export function makeModel({
     for (const { agent, patient, destination, direction } of bumps) {
       if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
         const inventory = inventories.get(agent);
+        let bumped = false;
         if (inventory !== undefined && inventory.length >= 2) {
-          bump(bumpKit, {
+          bumped = bump(bumpKit, {
             agent,
             patient,
             destination,
             direction,
           });
+        }
+        if (!bumped) {
+          const patientType = assumeDefined(entityTypes.get(patient));
+          const patientDesc = mechanics.agentTypes[patientType];
+          const entityFollowers = followers.get(agent);
+          if (entityFollowers !== undefined && patientDesc.dialog) {
+            for (const follower of entityFollowers) {
+              // TODO rotate dialog:
+              // The dialog might cycle on repeated bumps and reset when the
+              // agent fails to repeat a bump, or for depending on the patient
+              // type, might not reset.
+              follower.dialog(agent, patientDesc.dialog[0]);
+            }
+          }
         }
       }
     }
