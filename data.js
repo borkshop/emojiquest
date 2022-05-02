@@ -11,10 +11,7 @@
 /**
  * @type {Array<import('./mechanics.js').AgentType>}
  */
-export const agentTypes = [
-  { name: 'invalid' },
-  { name: 'empty' },
-  { name: 'any' },
+export const validAgentTypes = [
   { name: 'player', tile: 'happy' },
   { name: 'pineTree' },
   { name: 'appleTree' },
@@ -24,17 +21,14 @@ export const agentTypes = [
   { name: 'bank' },
   { name: 'forge' },
   { name: 'ram', wanders: 'land' },
-  { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.'] },
+  { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.', '🐏 Ram.', '🐑 Ewe.'] },
   { name: 'coat' }, // temporary
 ];
 
 /**
  * @type {Array<import('./mechanics.js').ItemType>}
  */
-export const itemTypes = [
-  { name: 'invalid' },
-  { name: 'empty' },
-  { name: 'any' },
+export const validItemTypes = [
   { name: 'axe' },
   { name: 'softwood', tile: 'pineTree' },
   { name: 'hardwood', tile: 'appleTree' },

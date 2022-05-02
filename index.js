@@ -10,7 +10,7 @@ import {makeController, watchControllerCommands} from './controls.js';
 import {makeDriver} from './driver.js';
 import {makeCommandDispatcher} from './commands.js';
 import {makeMechanics} from './mechanics.js';
-import {recipes, actions, tileTypes, agentTypes, itemTypes, effectTypes} from './data.js';
+import {recipes, actions, tileTypes, validAgentTypes, validItemTypes, effectTypes} from './data.js';
 
 import { createDialogBox } from './dialog.js';
 import { createMenuBlade } from './menu.js';
@@ -109,8 +109,8 @@ const main = async () => {
     recipes,
     actions,
     tileTypes,
-    agentTypes,
-    itemTypes,
+    validAgentTypes,
+    validItemTypes,
     effectTypes,
   });
 

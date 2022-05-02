@@ -71,18 +71,32 @@ import {halfOcturn, fullOcturn, quarturnToOcturn} from './geometry2d.js';
  * @param {Array<Recipe>} [args.recipes]
  * @param {Array<Action>} [args.actions]
  * @param {Array<TileType>} [args.tileTypes]
- * @param {Array<AgentType>} [args.agentTypes]
- * @param {Array<ItemType>} [args.itemTypes]
+ * @param {Array<AgentType>} [args.validAgentTypes]
+ * @param {Array<ItemType>} [args.validItemTypes]
  * @param {Array<EffectType>} [args.effectTypes]
  */
 export function makeMechanics({
   recipes = [],
   actions = [],
   tileTypes = [],
-  agentTypes = [],
-  itemTypes = [],
+  validAgentTypes = [],
+  validItemTypes = [],
   effectTypes = [],
 } = {}) {
+
+  const agentTypes = [
+    { name: 'invalid' },
+    { name: 'empty' },
+    { name: 'any' },
+    ...validAgentTypes
+  ];
+
+  const itemTypes = [
+    { name: 'invalid' },
+    { name: 'empty' },
+    { name: 'any' },
+    ...validItemTypes
+  ];
 
   /**
    * @param {string} agent
