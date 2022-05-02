@@ -14,19 +14,29 @@ export const createDialogBox = () => {
   /** @type {HTMLElement?} */
   let waxing = null;
 
-  /** @param {string} message */
-  const log = message => {
-    close();
+  const logElement = () => {
+    const { parentNode } = element;
+    assert(parentNode !== null);
+
+    if (waxing !== null) {
+      console.warn('Log dropped because multiple logs in a single turn:', waxing.innerHTML);
+      parentNode.removeChild(waxing);
+      waxing = null;
+    }
 
     const dialogElement = document.createElement('div');
     dialogElement.className = 'dialog panel';
-    dialogElement.innerText = message;
     dialogElement.style.transform = 'scale(0)';
-    const { parentNode } = element;
-    assert(parentNode !== null);
     parentNode.insertBefore(dialogElement, element);
 
     waxing = dialogElement;
+    return dialogElement;
+  };
+
+  /** @param {string} message */
+  const log = message => {
+    const dialogElement = logElement();
+    dialogElement.innerText = message;
   };
 
   const close = () => {
@@ -65,18 +75,18 @@ export const createDialogBox = () => {
 
     if (waxing !== null) {
       waxing.style.transform = matrixStyle(scale(progress.sinusoidal));
-      waxing.style.transformOrigin = 'top left';
+      waxing.style.transformOrigin = 'bottom center';
     }
     if (showing !== null) {
       showing.style.transform = '';
     }
     if (waning !== null) {
       waning.style.transform = matrixStyle(scale(1 - progress.sinusoidal));
-      waning.style.transformOrigin = 'top right';
+      waning.style.transformOrigin = 'top center';
     }
   };
 
-  const controller = {log, animate, close, tock};
+  const controller = {logElement, log, animate, close, tock};
 
   return {element, controller};
 };
