@@ -59,14 +59,6 @@ const rightHandInventoryIndex = 1;
 const inventoryIndexForCommand = [-1, 2, 3, 4, 5, -1, 6, 7, 8, 9];
 const entityIndexForInventoryIndex = [-1, -1, 0, 1, 2, 3, 5, 6, 7, 8];
 
-// /**
-//  * @param {number} effectType
-//  */
-// function isEmptyEffect(effectType) {
-//   return effectType === emptyEffect;
-// }
-
-
 const itemGridIndexes = [
   0, 1, 2,
   3,    5,
@@ -119,7 +111,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  */
-export function makeController($controls, $hamburger, {
+export const makeController = ($controls, $hamburger, {
   agent,
   cursor,
   worldModel,
@@ -134,7 +126,7 @@ export function makeController($controls, $hamburger, {
   dialogController,
   healthController,
   staminaController,
-}) {
+}) => {
 
   const {
     agentTypes,
@@ -153,22 +145,26 @@ export function makeController($controls, $hamburger, {
     viewText,
   } = mechanics;
 
+  // Common queries:
+
+  const leftHandItemType = () => worldModel.inventory(agent, leftHandInventoryIndex);
+  const rightHandItemType = () => worldModel.inventory(agent, rightHandInventoryIndex);
+  const packNotFull = () => !worldModel.allPacked(agent, 2);
+  const packNotEmpty = () => worldModel.anyPacked(agent, 2);
+  const packEmpty = () => !worldModel.anyPacked(agent, 2);
+
   // const emptyTile = tileTypesByName.empty;
   const emptyItem = itemTypesByName.empty;
 
   /**
    * @param {number} itemType
    */
-  function isEmptyItem(itemType) {
-    return itemType === emptyItem;
-  }
+  const isEmptyItem = itemType => itemType === emptyItem;
 
   /**
    * @param {number} itemType
    */
-  function isNotEmptyItem(itemType) {
-    return itemType !== emptyItem;
-  }
+  const isNotEmptyItem = itemType => itemType !== emptyItem;
 
   const gridTileTypes = [
     tileTypesByName.one,
@@ -190,7 +186,7 @@ export function makeController($controls, $hamburger, {
    * @param {number} _entity
    * @param {number} type
    */
-  function createElement(_entity, type) {
+  const createElement = (_entity, type) => {
     if (type === -1) {
       const element = document.createElementNS(svgNS, 'circle');
       element.setAttributeNS(null, 'class', 'reticle');
@@ -205,7 +201,7 @@ export function makeController($controls, $hamburger, {
       $element.appendChild($text);
       return $element;
     }
-  }
+  };
 
   const {create, collect, place} = makeElementTracker({createElement});
 
@@ -270,28 +266,6 @@ export function makeController($controls, $hamburger, {
   /** @type {number} */
   let packTileType = tileTypesByName.backpack;
 
-  // Common queries:
-
-  function leftHandItemType() {
-    return worldModel.inventory(agent, leftHandInventoryIndex);
-  }
-
-  function rightHandItemType() {
-    return worldModel.inventory(agent, rightHandInventoryIndex);
-  }
-
-  function packNotFull() {
-    return !worldModel.allPacked(agent, 2);
-  }
-
-  function packNotEmpty() {
-    return worldModel.anyPacked(agent, 2);
-  }
-
-  function packEmpty() {
-    return !worldModel.anyPacked(agent, 2);
-  }
-
   // Modes:
 
   /** @type {Mode} */
@@ -325,7 +299,7 @@ export function makeController($controls, $hamburger, {
    * @param {number} leftOrRight
    * @param {boolean} packWasVisible
    */
-  function itemMode(leftOrRight, packWasVisible = packNotFull()) {
+  const itemMode = (leftOrRight, packWasVisible = packNotFull()) => {
     // Invariant: the pack should be visible iff there are any empty slots.
 
     /** @type {Mode} */
@@ -347,12 +321,12 @@ export function makeController($controls, $hamburger, {
       },
     };
     return mode;
-  }
+  };
 
   /**
    * @param {number} leftOrRight
    */
-  function packMode(leftOrRight) {
+  const packMode = leftOrRight => {
     /** @type {Mode} */
     const mode = {
       press(command, repeat) {
@@ -434,7 +408,7 @@ export function makeController($controls, $hamburger, {
     };
 
     return mode;
-  }
+  };
 
   /** @type {Mode} */
   const effectMode = {
@@ -585,7 +559,7 @@ export function makeController($controls, $hamburger, {
 
   // Mode transitions:
 
-  function handleLeftItem() {
+  const handleLeftItem = () => {
     // Transition from play mode to item handling mode.
     dismissDpad();
     dismissWatch();
@@ -606,9 +580,9 @@ export function makeController($controls, $hamburger, {
     restoreControllerReticle();
 
     return itemMode(-1);
-  }
+  };
 
-  function handleRightItem() {
+  const handleRightItem = () => {
     // Transition from play mode to item handling mode.
     dismissDpad();
     dismissWatch();
@@ -630,9 +604,9 @@ export function makeController($controls, $hamburger, {
 
     worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
     return itemMode(1);
-  }
+  };
 
-  function openStash() {
+  const openStash = () => {
     dismissPack();
     dismissEffect();
     dismissDpad();
@@ -655,9 +629,9 @@ export function makeController($controls, $hamburger, {
       restorePackItems();
       return packMode(-1);
     }
-  }
+  };
 
-  function openEffects() {
+  const openEffects = () => {
     // Transition from play mode to effect mode.
     if (packNotEmpty()) {
       dismissPack();
@@ -671,13 +645,13 @@ export function makeController($controls, $hamburger, {
     restoreEffects();
 
     return effectMode;
-  }
+  };
 
   /**
    * @param {number} leftOrRight
    * @param {boolean} packWasVisible
    */
-  function useItem(leftOrRight, packWasVisible) {
+  const useItem = (leftOrRight, packWasVisible) => {
     nineKeyView.despawn(8); // trash / mouth / or effect
 
     const use = worldModel.use(agent, leftHandInventoryIndex);
@@ -708,13 +682,13 @@ export function makeController($controls, $hamburger, {
     tick();
 
     return playMode;
-  }
+  };
 
   /**
    * @param {number} leftOrRight
    * @param {boolean} packWasVisible
    */
-  function craftItems(leftOrRight, packWasVisible) {
+  const craftItems = (leftOrRight, packWasVisible) => {
     const agentType = leftHandItemType();
     const reagentType = rightHandItemType();
 
@@ -767,12 +741,12 @@ export function makeController($controls, $hamburger, {
     }
 
     return itemMode(leftOrRight, packWasVisible);
-  }
+  };
 
   /**
    * @param {boolean} packWasVisible
    */
-  function placeItemInLeftHand(packWasVisible) {
+  const placeItemInLeftHand = packWasVisible => {
     dismissControllerReticle();
     nineKeyView.despawn(8); // trash
     if (packWasVisible && packEmpty()) {
@@ -791,12 +765,12 @@ export function makeController($controls, $hamburger, {
     restoreEffect();
 
     return playMode;
-  }
+  };
 
   /**
    * @param {boolean} packWasVisible
    */
-  function placeItemInRightHand(packWasVisible) {
+  const placeItemInRightHand = packWasVisible => {
     worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
 
     dismissControllerReticle();
@@ -816,12 +790,12 @@ export function makeController($controls, $hamburger, {
     restoreEffect();
 
     return playMode;
-  }
+  };
 
   /**
    * @param {number} leftOrRight
    */
-  function stashItem(leftOrRight) {
+  const stashItem = leftOrRight => {
     dismissControllerReticle();
     dismissPack();
     nineKeyView.despawn(8); // trash
@@ -833,12 +807,12 @@ export function makeController($controls, $hamburger, {
     restorePackItems();
 
     return packMode(leftOrRight);
-  }
+  };
 
   /**
    * @param {number} chosenType
    */
-  function chooseEffect(chosenType) {
+  const chooseEffect = chosenType => {
     worldModel.chooseEffect(agent, chosenType);
 
     dismissEffects();
@@ -852,9 +826,9 @@ export function makeController($controls, $hamburger, {
     }
 
     return playMode;
-  }
+  };
 
-  function playToMenuMode() {
+  const playToMenuMode = () => {
     nineKeyView.despawnOutward(ee);
     nineKeyView.despawnOutward(ww);
     dismissLeft();
@@ -869,9 +843,9 @@ export function makeController($controls, $hamburger, {
     menuController.show();
 
     return menuMode;
-  }
+  };
 
-  function menuToPlayMode() {
+  const menuToPlayMode = () => {
     menuController.hide();
 
     oneKeyView.replace(0, tileTypesByName.hamburger);
@@ -887,9 +861,9 @@ export function makeController($controls, $hamburger, {
     restoreWatch();
 
     return playMode;
-  }
+  };
 
-  function menuToEditMode() {
+  const menuToEditMode = () => {
     menuController.hide();
 
     oneKeyView.replace(0, tileTypesByName.hamburger);
@@ -912,9 +886,9 @@ export function makeController($controls, $hamburger, {
     dialogController.log(`${toponym(cursor.position)}`);
 
     return editMode;
-  }
+  };
 
-  function editToMenuMode() {
+  const editToMenuMode = () => {
     dismissEditorBezel();
     if (editType !== 0) {
       nineKeyView.despawn(4);
@@ -937,7 +911,7 @@ export function makeController($controls, $hamburger, {
     dialogController.close();
 
     return menuMode;
-  }
+  };
 
   /** @type {number} */
   let reticleEntity = 0;
@@ -948,15 +922,15 @@ export function makeController($controls, $hamburger, {
   /**
    * @param {number} offset
    */
-  function agentTypeForOffset(offset) {
+  const agentTypeForOffset = offset => {
     assertNonZero(editType);
     return (
       (eligibleEntityCount + editType - firstEligibleEntityType + offset) % eligibleEntityCount +
       firstEligibleEntityType
     );
-  }
+  };
 
-  function openAgentChooser() {
+  const openAgentChooser = () => {
     dismissEditorReticle();
     dismissEditorBezel();
     dismissDpad();
@@ -977,9 +951,9 @@ export function makeController($controls, $hamburger, {
 
     restoreControllerReticle();
     return chooseAgentMode;
-  }
+  };
 
-  function closeAgentChooser() {
+  const closeAgentChooser = () => {
     dismissControllerReticle();
 
     for (let direction = 0; direction < fullOcturn; direction += 1) {
@@ -991,11 +965,11 @@ export function makeController($controls, $hamburger, {
     restoreDpad();
 
     return editMode;
-  }
+  };
 
   // Entity management:
 
-  function updateHands() {
+  const updateHands = () => {
     const packWasVisible = packNotEmpty();
 
     updateHand(0, 0, tileTypesByName.left);
@@ -1003,14 +977,14 @@ export function makeController($controls, $hamburger, {
 
     const packIsVisible = packNotEmpty();
     updatePack(packWasVisible, packIsVisible);
-  }
+  };
 
   /**
    * @param {number} gridIndex
    * @param {number} inventoryIndex
    * @param {number} handTileType
    */
-  function updateHand(gridIndex, inventoryIndex, handTileType) {
+  const updateHand = (gridIndex, inventoryIndex, handTileType) => {
     const itemType = worldModel.inventory(agent, inventoryIndex)
     const priorItemType = priorHands[inventoryIndex];
     if (itemType !== priorItemType) {
@@ -1023,66 +997,66 @@ export function makeController($controls, $hamburger, {
         nineKeyView.replace(gridIndex, tileType);
       }
     }
-  }
+  };
 
-  function dismissControllerReticle() {
+  const dismissControllerReticle = () => {
     assertNonZero(reticleEntity);
     macroViewModel.exit(reticleEntity);
     reticleEntity = 0;
-  }
+  };
 
-  function restoreControllerReticle() {
+  const restoreControllerReticle = () => {
     reticleEntity = nineKeyView.create(-1, locate(1, 1)); // reticle
     macroViewModel.enter(reticleEntity);
-  }
+  };
 
-  function restoreDpad() {
+  const restoreDpad = () => {
     nineKeyView.spawnInward(tileTypesByName.north, nn);
     nineKeyView.spawnInward(tileTypesByName.east, ee);
     nineKeyView.spawnInward(tileTypesByName.south, ss);
     nineKeyView.spawnInward(tileTypesByName.west, ww);
-  }
+  };
 
-  function restoreWatch() {
+  const restoreWatch = () => {
     nineKeyView.spawn(4, tileTypesByName.watch);
-  }
+  };
 
-  function restoreLeft() {
+  const restoreLeft = () => {
     if (isEmptyItem(leftHandItemType())) {
       restoreLeftHand();
     } else {
       restoreLeftItem();
     }
-  }
+  };
 
-  function restoreRight() {
+  const restoreRight  = () => {
     if (isEmptyItem(rightHandItemType())) {
       restoreRightHand();
     } else {
       restoreRightItem();
     }
-  }
+  };
 
-  function restoreLeftHand() {
+  const restoreLeftHand = () => {
     nineKeyView.spawnInward(tileTypesByName.left, sw);
-  }
+  };
 
-  function restoreRightHand() {
+  const restoreRightHand = () => {
     nineKeyView.spawnInward(tileTypesByName.right, se);
-  }
+  };
 
-  function restoreLeftItem() {
+  const restoreLeftItem = () => {
     nineKeyView.spawnInward(tileTypeForItemType[leftHandItemType()], sw);
-  }
+  };
 
-  function restoreRightItem() {
+  const restoreRightItem = () => {
     nineKeyView.spawnInward(tileTypeForItemType[rightHandItemType()], se);
-  }
+  };
 
   /**
    * @param {number} itemType
    */
-  function recepticleTileType(itemType) {
+  const recepticleTileType = itemType => {
     const {comestible = false, effect = undefined} = itemTypes[itemType];
     let recepticleTileType = tileTypesByName.trash;
     if (effect !== undefined) {
@@ -1091,55 +1065,55 @@ export function makeController($controls, $hamburger, {
       recepticleTileType = tileTypesByName.mouth;
     }
     return recepticleTileType;
-  }
+  };
 
   /**
    * @param {number} itemType
    */
-  function restoreRecepticle(itemType) {
+  const restoreRecepticle = itemType => {
     nineKeyView.spawnInward(recepticleTileType(itemType), ne);
-  }
+  };
 
-  function restoreEffect() {
+  const restoreEffect = () => {
     const effectType = worldModel.entityEffect(agent);
     const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
     nineKeyView.spawnInward(effectTileType, ne);
-  }
+  };
 
   /**
    * @param {boolean} packWasVisible
    * @param {boolean} packIsVisible
    */
-  function updatePack(packWasVisible, packIsVisible) {
+  const updatePack = (packWasVisible, packIsVisible) => {
     if (packWasVisible && !packIsVisible) {
       dismissPack();
     }
     if (!packWasVisible && packIsVisible) {
       restorePack();
     }
-  }
+  };
 
-  function restorePack() {
+  const restorePack = () => {
     nineKeyView.spawnInward(packTileType, nw);
-  }
+  };
 
-  function dismissPack() {
+  const dismissPack = () => {
     nineKeyView.despawnOutward(nw);
-  }
+  };
 
-  function dismissEffect() {
+  const dismissEffect = () => {
     nineKeyView.despawn(8); // effect
-  }
+  };
 
-  function dismissLeft() {
+  const dismissLeft = () => {
     nineKeyView.despawnOutward(sw);
-  }
+  };
 
-  function dismissRight() {
+  const dismissRight = () => {
     nineKeyView.despawnOutward(se);
   }
 
-  function restorePackItems() {
+  const restorePackItems = () => {
     for (let i = 0; i < 8; i++) {
       const inventoryIndex = i + 2;
       const itemType = worldModel.inventory(agent, inventoryIndex);
@@ -1148,88 +1122,88 @@ export function makeController($controls, $hamburger, {
       const itemTileType = isNotEmptyItem(itemType) ? tileTypeForItemType[itemType] : gridTileTypes[itemGridIndex];
       nineKeyView.spawn(entityIndex, itemTileType);
     }
-  }
+  };
 
-  function restoreEffects() {
+  const restoreEffects = () => {
     for (let i = 0; i < 9; i++) {
       const effectTileType = worldModel.entityHasEffect(agent, i) ? tileTypeForEffectType[i] : gridTileTypes[i];
       nineKeyView.spawn(i, effectTileType);
     }
-  }
+  };
 
-  function dismissEffects() {
+  const dismissEffects = () => {
     for (let i = 0; i < 9; i++) {
       nineKeyView.despawn(i);
     }
-  }
+  };
 
   /**
    * @param {number} exceptItem
    */
-  function dismissPackItemsExcept(exceptItem) {
+  const dismissPackItemsExcept = exceptItem => {
     for (let i = 2; i < 10; i++) {
       if (i !== exceptItem) {
         const inventoryEntityIndex = entityIndexForInventoryIndex[i];
         nineKeyView.despawn(inventoryEntityIndex);
       }
     }
-  }
+  };
 
-  function dismissDpad() {
+  const dismissDpad = () => {
     nineKeyView.despawnOutward(nn);
     nineKeyView.despawnOutward(ee);
     nineKeyView.despawnOutward(ss);
     nineKeyView.despawnOutward(ww);
-  }
+  };
 
-  function dismissWatch() {
+  const dismissWatch = () => {
     nineKeyView.despawn(4);
-  }
+  };
 
-  function restoreEditorBezel() {
+  const restoreEditorBezel = () => {
     nineKeyView.spawnInward(tileTypesByName.scissors, ne);
     nineKeyView.spawnInward(tileTypesByName.twin, nw);
     nineKeyView.spawnInward(tileTypesByName.paint, sw);
     nineKeyView.spawnInward(tileTypesByName.spoon, se);
-  }
+  };
 
-  function dismissEditorBezel() {
+  const dismissEditorBezel = () => {
     nineKeyView.despawnOutward(nw);
     nineKeyView.despawnOutward(ne);
     nineKeyView.despawnOutward(sw);
     nineKeyView.despawnOutward(se);
-  }
+  };
 
-  function restoreEditorReticle() {
+  const restoreEditorReticle = () => {
     worldMacroViewModel.put(-1, cursor.position, -1);
-  }
+  };
 
-  function dismissEditorReticle() {
+  const dismissEditorReticle = () => {
     worldMacroViewModel.remove(-1);
-  }
+  };
 
-  function shiftBottomItemToLeftHand() {
+  const shiftBottomItemToLeftHand = () => {
     nineKeyView.despawnOutward(sw);
     nineKeyView.move(1, 0, ww, 0);
-  }
+  };
 
-  function shiftBottomItemToRightHand() {
+  const shiftBottomItemToRightHand = () => {
     nineKeyView.despawnOutward(se);
     nineKeyView.move(1, 2, ee, 0);
-  }
+  };
 
   /**
    * @param {number} gridIndex
    * @param {number} directionOcturns
    */
-  function enterAgent(gridIndex, directionOcturns) {
+  const enterAgent = (gridIndex, directionOcturns) => {
     const agentOffset = agentOffsetForGridIndex[gridIndex];
     const agentType = agentTypeForOffset(agentOffset);
     const tileType = defaultTileTypeForAgentType[agentType];
     nineKeyView.give(gridIndex, tileType, directionOcturns);
-  }
+  };
 
-  function shiftAgentsWest() {
+  const shiftAgentsWest = () => {
     for (let start = 0; start < 3; start += 1) {
       nineKeyView.take(start * 3, ww);
     }
@@ -1240,9 +1214,9 @@ export function makeController($controls, $hamburger, {
     for (let index = 0; index < 9; index += 3) {
       enterAgent(2 + index, ww);
     }
-  }
+  };
 
-  function shiftAgentsEast() {
+  const shiftAgentsEast = () => {
     for (let index = 2; index < 9; index += 3) {
       nineKeyView.take(index, ee);
     }
@@ -1253,9 +1227,9 @@ export function makeController($controls, $hamburger, {
     for (let index = 0; index < 9; index += 3) {
       enterAgent(index, ee);
     }
-  }
+  };
 
-  function shiftAgentsNorth() {
+  const shiftAgentsNorth = () => {
     for (let start = 0; start < 3; start += 1) {
       nineKeyView.take(start + 6, ne);
     }
@@ -1266,9 +1240,9 @@ export function makeController($controls, $hamburger, {
     for (let start = 0; start < 3; start += 1) {
       enterAgent(start, ne);
     }
-  }
+  };
 
-  function shiftAgentsSouth() {
+  const shiftAgentsSouth = () => {
     for (let start = 0; start < 3; start += 1) {
       nineKeyView.take(start, sw);
     }
@@ -1278,12 +1252,12 @@ export function makeController($controls, $hamburger, {
     for (let start = 0; start < 3; start += 1) {
       enterAgent(start + 6, sw);
     }
-  }
+  };
 
   /**
    * @param {number} command
    */
-  function down(command) {
+  const down = command => {
     if (command >= 1 && command <= 9) {
       return nineKeyView.down(command - 1);
     }
@@ -1291,12 +1265,12 @@ export function makeController($controls, $hamburger, {
       return oneKeyView.down(0);
     }
     return noop;
-  }
+  };
 
   /**
    * @param {Progress} progress
    */
-  function animate(progress) {
+  const animate = progress => {
     cameraController.animate(progress);
     worldViewModel.animate(progress);
     macroViewModel.animate(progress);
@@ -1305,20 +1279,20 @@ export function makeController($controls, $hamburger, {
     dialogController.animate(progress);
     healthController.animate(progress);
     staminaController.animate(progress);
-  }
+  };
 
   // The controller receives a command at the beginning of any driver-induced
   // tick.  We arrive here only for ticks that take a game turn.
-  function tick() {
+  const tick = () => {
     priorHands[0] = leftHandItemType();
     priorHands[1] = rightHandItemType();
     worldModel.tick();
     cameraController.tick();
     dialogController.close();
     updateHands();
-  }
+  };
 
-  function tock() {
+  const tock = () => {
     worldModel.tock();
     worldViewModel.tock();
     macroViewModel.tock();
@@ -1328,20 +1302,18 @@ export function makeController($controls, $hamburger, {
     cameraController.tock();
     healthController.tock();
     staminaController.tock();
-  }
+  };
 
   tock();
 
   let mode = playMode;
 
   /** @type {PressFn} */
-  function command(command, repeat) {
+  const command = (command, repeat) => {
     mode = mode.press(command, repeat);
-  }
+  };
 
-  function currentAgent() {
-    return agent;
-  }
+  const currentAgent = () => agent;
 
   /** @param {number} newAgent */
   const jump = newAgent => {
@@ -1363,7 +1335,7 @@ export function makeController($controls, $hamburger, {
     jump,
     currentAgent,
   };
-}
+};
 
 /**
  * @param {Element} $controls
