@@ -13,8 +13,8 @@
  */
 export const validAgentTypes = [
   { name: 'player', tile: 'happy' },
-  { name: 'pineTree' },
-  { name: 'appleTree' },
+  { name: 'pineTree', dialog: ['🌲 Knock knock?'] },
+  { name: 'appleTree', dialog: ['🌳 Knock knock?'] },
   { name: 'axe' }, // temporary
   { name: 'mountain' },
   { name: 'pick' }, // temporary
@@ -201,32 +201,30 @@ export const recipes = [
  */
 export const actions = [
   // raw material
-  ['player', 'axe', 'empty', 'empty', 'any', 'take', ['axe']],
-  ['player', 'coat', 'empty', 'empty', 'any', 'take', ['coat']],
-  ['player', 'pineTree', 'axe', 'empty', 'any', 'reap', ['softwood']],
-  ['player', 'appleTree', 'axe', 'empty', 'any', 'reap', ['hardwood']],
-  ['player', 'pick', 'empty', 'any', 'any', 'take', ['pick']],
-  ['player', 'mountain', 'pick', 'empty', 'any', 'cut', ['copper']],
-  ['player', 'ewe', 'scissors', 'empty', 'any', 'cut', ['yarn']],
-  ['player', 'ewe', 'knife', 'empty', 'any', 'reap', ['meat']],
-  ['player', 'ram', 'scissors', 'empty', 'any', 'cut', ['yarn']],
-  ['player', 'ram', 'knife', 'empty', 'any', 'reap', ['meat']],
-  ['player', 'appleTree', 'empty', 'any', 'any', 'pick', ['apple']],
-  ['player', 'pineTree', 'empty', 'any', 'any', 'pick', ['pineApple']],
-
+  { "patient": "axe", "verb": "take", "items": [ "axe" ] },
+  { "patient": "coat", "verb": "take", "items": [ "coat" ] },
+  { "patient": "pineTree", "left": "axe", "verb": "reap", "items": [ "softwood" ] },
+  { "patient": "appleTree", "left": "axe", "verb": "reap", "items": [ "hardwood" ] },
+  { "patient": "pick", "right": "any", "verb": "take", "items": [ "pick" ] },
+  { "patient": "mountain", "left": "pick", "verb": "cut", "items": [ "copper" ] },
+  { "patient": "ewe", "left": "scissors", "verb": "cut", "items": [ "yarn" ] },
+  { "patient": "ewe", "left": "knife", "verb": "reap", "items": [ "meat" ] },
+  { "patient": "ram", "left": "scissors", "verb": "cut", "items": [ "yarn" ] },
+  { "patient": "ram", "left": "knife", "verb": "reap", "items": [ "meat" ] },
+  { "patient": "appleTree", "right": "any", "verb": "pick", "items": [ "apple" ], "dialog": "🍎   Got apple?" },
+  { "patient": "pineTree", "right": "any", "verb": "pick", "items": [ "pineApple" ] },
   // monetary exchange
-  ['player', 'bank', 'copper', 'copper', 'any', 'merge', ['silver']],
-  ['player', 'bank', 'silver', 'copper', 'any', 'merge', ['gold']],
-  ['player', 'bank', 'copper', 'silver', 'any', 'merge', ['gold']],
-  ['player', 'bank', 'silver', 'empty', 'any', 'split', ['copper', 'copper']],
-  ['player', 'bank', 'empty', 'silver', 'any', 'split', ['copper', 'copper']],
-  ['player', 'bank', 'gold', 'empty', 'any', 'split', ['silver', 'copper']],
-  ['player', 'bank', 'empty', 'gold', 'any', 'split', ['silver', 'copper']],
-
+  { "patient": "bank", "left": "copper", "right": "copper", "verb": "merge", "items": [ "silver" ] },
+  { "patient": "bank", "left": "silver", "right": "copper", "verb": "merge", "items": [ "gold" ] },
+  { "patient": "bank", "left": "copper", "right": "silver", "verb": "merge", "items": [ "gold" ] },
+  { "patient": "bank", "left": "silver", "verb": "split", "items": [ "copper", "copper" ] },
+  { "patient": "bank", "right": "silver", "verb": "split", "items": [ "copper", "copper" ] },
+  { "patient": "bank", "left": "gold", "verb": "split", "items": [ "silver", "copper" ] },
+  { "patient": "bank", "right": "gold", "verb": "split", "items": [ "silver", "copper" ] },
   // forgery
-  ['player', 'forge', 'copper', 'any', 'any', 'replace', ['link']],
-  ['player', 'forge', 'silver', 'any', 'any', 'replace', ['bolt']],
-  ['player', 'forge', 'gold', 'any', 'any', 'replace', ['gear']],
+  { "patient": "forge", "left": "copper", "right": "any", "verb": "replace", "items": [ "link" ] },
+  { "patient": "forge", "left": "silver", "right": "any", "verb": "replace", "items": [ "bolt" ] },
+  { "patient": "forge", "left": "gold", "right": "any", "verb": "replace", "items": [ "gear" ] }
 ];
 
 /** @type {Array<import('./mechanics.js').EffectType>} */

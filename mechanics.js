@@ -45,15 +45,16 @@ import {halfOcturn, fullOcturn, quarturnToOcturn} from './geometry2d.js';
  */
 
 /**
- * @typedef {[
- *   agent: string,
+ * @typedef {{
+ *   agent?: string,
  *   patient: string,
- *   left: string,
- *   right: string,
- *   effect: string,
+ *   left?: string,
+ *   right?: string,
+ *   effect?: string,
  *   verb: string,
- *   object: Array<string>,
- * ]} Action
+ *   items: Array<string>,
+ *   dialog?: string,
+ * }} Action
  */
 
 /**
@@ -269,8 +270,8 @@ export function makeMechanics({
    */
   function bumpCombination(kit, parameters) {
     const key = bumpKey(parameters);
-    const handler = bumpingFormulae.get(key);
-    if (handler !== undefined) {
+    const match = bumpingFormulae.get(key);
+    if (match !== undefined) {
       console.table({
         agentType: agentTypes[parameters.agentType].name,
         patientType: agentTypes[parameters.patientType].name,
@@ -278,10 +279,11 @@ export function makeMechanics({
         rightType: itemTypes[parameters.rightType].name,
         effectType: effectTypes[parameters.effectType].name,
       });
+      const {handler} = match;
       handler(kit, parameters);
-      return true;
+      return match;
     }
-    return false;
+    return null;
   }
 
   /**
@@ -306,13 +308,14 @@ export function makeMechanics({
     for (const effectType of [agentEffectType, effectTypesByName.any]) {
       for (const rightType of [right, itemTypesByName.any]) {
         for (const leftType of [left, itemTypesByName.any]) {
-          if (bumpCombination(kit, {...parameters, agentType, patientType, leftType, rightType, effectType})) {
-            return true;
+          const match = bumpCombination(kit, {...parameters, agentType, patientType, leftType, rightType, effectType})
+          if (match !== null) {
+            return match;
           }
         }
       }
     }
-    return false;
+    return null;
   }
 
   /**
@@ -343,7 +346,18 @@ export function makeMechanics({
     registerRecipe(agent, reagent, product, byproduct);
   }
 
-  for (const [agent, patient, left, right, effect, verb, items] of actions) {
+  for (const action of actions) {
+    const {
+      agent = 'player',
+      patient,
+      left = 'empty',
+      right = 'empty',
+      effect = 'any',
+      verb,
+      items = [],
+      dialog,
+    } = action;
+
     const productType = itemTypesByName[items[0]];
     assertDefined(productType, items[0]);
     const byproductType = itemTypesByName[items[1]];
@@ -370,7 +384,7 @@ export function makeMechanics({
       effectType,
     });
 
-    bumpingFormulae.set(key, handler);
+    bumpingFormulae.set(key, {handler, dialog});
   }
 
   return {

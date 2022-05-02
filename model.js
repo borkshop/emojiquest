@@ -323,11 +323,24 @@ export function makeModel({
    * @param {CursorChange} change
    * @param {number} destination
    */
-  function notifyFollowers(e, change, destination) {
+  function onMotion(e, change, destination) {
     const entityFollowers = followers.get(e);
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
         follower.motion(e, change, destination);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
+   * @param {string} dialog
+   */
+  function onDialog(e, dialog) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.dialog(e, dialog);
       }
     }
   }
@@ -439,7 +452,7 @@ export function makeModel({
       if (patient === 0) {
         // Move
         macroViewModel.move(winner, destination, direction * quarturnToOcturn, turn);
-        notifyFollowers(winner, change, destination);
+        onMotion(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
         entitiesWriteBuffer[destination] = winner;
@@ -467,7 +480,7 @@ export function makeModel({
     for (const { agent, patient, destination, direction } of bumps) {
       if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
         const inventory = inventories.get(agent);
-        let bumped = false;
+        let bumped = null;
         if (inventory !== undefined && inventory.length >= 2) {
           bumped = bump(bumpKit, {
             agent,
@@ -476,18 +489,19 @@ export function makeModel({
             direction,
           });
         }
-        if (!bumped) {
+        if (bumped !== null) {
+          const {dialog} = bumped;
+          onDialog(agent, dialog);
+        } else {
           const patientType = assumeDefined(entityTypes.get(patient));
           const patientDesc = mechanics.agentTypes[patientType];
-          const entityFollowers = followers.get(agent);
-          if (entityFollowers !== undefined && patientDesc.dialog) {
-            for (const follower of entityFollowers) {
-              // TODO rotate dialog:
-              // The dialog might cycle on repeated bumps and reset when the
-              // agent fails to repeat a bump, or for depending on the patient
-              // type, might not reset.
-              follower.dialog(agent, patientDesc.dialog[0]);
-            }
+          const {dialog} = patientDesc;
+          if (dialog !== undefined) {
+            // TODO rotate dialog:
+            // The dialog might cycle on repeated bumps and reset when the
+            // agent fails to repeat a bump, or for depending on the patient
+            // type, might not reset.
+            onDialog(agent, dialog[0]);
           }
         }
       }
