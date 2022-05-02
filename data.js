@@ -211,7 +211,7 @@ export const actions = [
   { "patient": "ewe", "left": "knife", "verb": "reap", "items": [ "meat" ] },
   { "patient": "ram", "left": "scissors", "verb": "cut", "items": [ "yarn" ] },
   { "patient": "ram", "left": "knife", "verb": "reap", "items": [ "meat" ] },
-  { "patient": "appleTree", "right": "any", "verb": "pick", "items": [ "apple" ], "dialog": "🍎   Got apple?" },
+  { "patient": "appleTree", "right": "any", "verb": "pick", "items": [ "apple" ], "dialog": "🍎  Apple?" },
   { "patient": "pineTree", "right": "any", "verb": "pick", "items": [ "pineApple" ] },
   // monetary exchange
   { "patient": "bank", "left": "copper", "right": "copper", "verb": "merge", "items": [ "silver" ] },
