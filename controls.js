@@ -138,7 +138,7 @@ export const makeController = (
   const {
     agentTypes,
     itemTypes,
-    // tileTypes,
+    tileTypes,
     // effectTypes,
     tileTypesByName,
     // agentTypesByName,
@@ -579,18 +579,22 @@ export const makeController = (
       if (command === 8) {
         assertNonZero(editType);
         editType = agentTypeForOffset(1);
+        logAgentChoice();
         shiftAgentsSouth();
       } else if (command === 2) {
         assertNonZero(editType);
         editType = agentTypeForOffset(-1);
+        logAgentChoice();
         shiftAgentsNorth();
       } else if (command === 6) {
         assertNonZero(editType);
         editType = agentTypeForOffset(3);
+        logAgentChoice();
         shiftAgentsWest();
       } else if (command === 4) {
         assertNonZero(editType);
         editType = agentTypeForOffset(-3);
+        logAgentChoice();
         shiftAgentsEast();
       } else if (command === 5) {
         return closeAgentChooser();
@@ -997,6 +1001,8 @@ export const makeController = (
       nineKeyView.spawn(gridIndex, tileType);
     }
 
+    logAgentChoice();
+
     restoreControllerReticle();
     return chooseAgentMode;
   };
@@ -1013,6 +1019,14 @@ export const makeController = (
     restoreDpad();
 
     return editMode;
+  };
+
+  const logAgentChoice = () => {
+    const {name, tile} = agentTypes[editType];
+    const tileType = tile ? tileTypesByName[tile] : tileTypesByName[name];
+    const {text} = tileTypes[tileType];
+    dialogController.close();
+    dialogController.log(`${text} ${name}`);
   };
 
   // Entity management:
