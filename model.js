@@ -513,7 +513,11 @@ export function makeModel({
     for (const entity of craftIntents) {
       const inventory = inventories.get(entity);
       if (inventory !== undefined && inventory.length >= 2) {
-        [inventory[0], inventory[1]] = craft(inventory[0], inventory[1]);
+        let dialog;
+        [inventory[0], inventory[1], dialog] = craft(inventory[0], inventory[1]);
+        if (dialog !== undefined) {
+          onDialog(entity, dialog);
+        }
       }
     }
 

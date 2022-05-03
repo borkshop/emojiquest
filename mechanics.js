@@ -42,6 +42,7 @@ import {halfOcturn, fullOcturn, quarturnToOcturn} from './geometry2d.js';
  *   product: string,
  *   byproduct?: string,
  *   price?: number,
+ *   dialog?: string,
  * }} Recipe
  */
 
@@ -104,9 +105,10 @@ export function makeMechanics({
    * @param {string} agent
    * @param {string} reagent
    * @param {string} product
-   * @param {string} byproduct
+   * @param {string} [byproduct]
+   * @param {string} [dialog]
    */
-  function registerRecipe(agent, reagent, product, byproduct = 'empty') {
+  function registerRecipe(agent, reagent, product, byproduct = 'empty', dialog) {
     const agentType = itemTypesByName[agent];
     const reagentType = itemTypesByName[reagent];
     const productType = itemTypesByName[product];
@@ -115,24 +117,28 @@ export function makeMechanics({
     assertDefined(reagentType, `reeagent item type not defined ${reagent}`);
     assertDefined(productType, `product item type not defined ${product}`);
     assertDefined(byproductType, `byproduct item type not defined ${byproduct}`);
-    craftingFormulae.set(agentType * itemTypes.length + reagentType, [productType, byproductType]);
+    craftingFormulae.set(agentType * itemTypes.length + reagentType, [
+      productType,
+      byproductType,
+      dialog,
+    ]);
   }
 
   /**
    * @param {number} agentType
    * @param {number} reagentType
-   * @returns {[number, number]} productType and byproductType
+   * @returns {[number, number, string?]} productType and byproductType
    */
   function craft(agentType, reagentType) {
-    let productTypes = craftingFormulae.get(agentType * itemTypes.length + reagentType);
-    if (productTypes !== undefined) {
-      return productTypes;
+    let formula = craftingFormulae.get(agentType * itemTypes.length + reagentType);
+    if (formula !== undefined) {
+      return formula;
     }
-    productTypes = craftingFormulae.get(reagentType * itemTypes.length + agentType);
-    if (productTypes !== undefined) {
-      return productTypes;
+    formula = craftingFormulae.get(reagentType * itemTypes.length + agentType);
+    if (formula !== undefined) {
+      return formula;
     }
-    return [itemTypesByName.poop, itemTypesByName.empty];
+    return [itemTypesByName.poop, itemTypesByName.empty, '💩 These items do not combine.'];
   }
 
   /**
@@ -343,8 +349,8 @@ export function makeMechanics({
   const craftingFormulae = new Map();
   const bumpingFormulae = new Map();
 
-  for (const {agent, reagent, product, byproduct} of recipes) {
-    registerRecipe(agent, reagent, product, byproduct);
+  for (const {agent, reagent, product, byproduct, dialog} of recipes) {
+    registerRecipe(agent, reagent, product, byproduct, dialog);
   }
 
   for (const action of actions) {
