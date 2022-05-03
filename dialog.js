@@ -2,7 +2,7 @@
 
 import { assert } from './assert.js';
 
-import {scale, matrixStyle} from './matrix2d.js';
+import { scale, matrixStyle } from './matrix2d.js';
 
 export const createDialogBox = () => {
   const element = document.createComment('');
@@ -19,7 +19,10 @@ export const createDialogBox = () => {
     assert(parentNode !== null);
 
     if (waxing !== null) {
-      console.warn('Log dropped because multiple logs in a single turn:', waxing.innerHTML);
+      console.warn(
+        'Log dropped because multiple logs in a single turn:',
+        waxing.innerHTML,
+      );
       parentNode.removeChild(waxing);
       waxing = null;
     }
@@ -86,10 +89,9 @@ export const createDialogBox = () => {
     }
   };
 
-  const controller = {logElement, log, animate, close, tock};
+  const controller = { logElement, log, animate, close, tock };
 
-  return {element, controller};
+  return { element, controller };
 };
 
 /** @typedef {ReturnType<createDialogBox>['controller']} DialogController */
-

@@ -19,8 +19,8 @@
  * @typedef {import('./macro-view-model.js').MacroViewModel} MacroViewModel
  */
 
-import {assert, assertDefined, assumeDefined} from './assert.js';
-import {quarturnToOcturn} from './geometry2d.js';
+import { assert, assertDefined, assumeDefined } from './assert.js';
+import { quarturnToOcturn } from './geometry2d.js';
 
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
@@ -80,13 +80,7 @@ import {quarturnToOcturn} from './geometry2d.js';
  * @param {MacroViewModel} args.macroViewModel
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  */
-export function makeModel({
-  size,
-  advance,
-  macroViewModel,
-  mechanics,
-}) {
-
+export function makeModel({ size, advance, macroViewModel, mechanics }) {
   const {
     itemTypes,
     // agentTypes,
@@ -152,7 +146,7 @@ export function makeModel({
   /**
    * @param {number} location
    */
-  const getTerrainFlags = (location) => {
+  const getTerrainFlags = location => {
     return terrain[location];
   };
 
@@ -278,7 +272,10 @@ export function makeModel({
   /** @type {TypeFn} */
   function entityType(entity) {
     const type = entityTypes.get(entity);
-    assertDefined(type, `Cannot get type for non-existent model entity ${entity}`);
+    assertDefined(
+      type,
+      `Cannot get type for non-existent model entity ${entity}`,
+    );
     return type;
   }
 
@@ -396,8 +393,18 @@ export function makeModel({
    */
   function intend(entity, direction, repeat = false) {
     const source = locate(entity);
-    const {position: target, turn, transit} = advance({position: source, direction});
-    bids(target).set(entity, {position: source, direction, turn, transit, repeat});
+    const {
+      position: target,
+      turn,
+      transit,
+    } = advance({ position: source, direction });
+    bids(target).set(entity, {
+      position: source,
+      direction,
+      turn,
+      transit,
+      repeat,
+    });
     intents.set(entity, direction);
     craftIntents.delete(entity);
   }
@@ -447,11 +454,16 @@ export function makeModel({
       // TODO: pluck less lazy
       const winner = assumeDefined(candidates.pop());
       const change = assumeDefined(options.get(winner));
-      const {position: origin, direction, turn, repeat} = change;
+      const { position: origin, direction, turn, repeat } = change;
       const patient = entities[destination];
       if (patient === 0) {
         // Move
-        macroViewModel.move(winner, destination, direction * quarturnToOcturn, turn);
+        macroViewModel.move(
+          winner,
+          destination,
+          direction * quarturnToOcturn,
+          turn,
+        );
         onMotion(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
@@ -462,14 +474,20 @@ export function makeModel({
         macroViewModel.bounce(winner, direction * quarturnToOcturn);
         if (!repeat) {
           // Bump
-          bumps.push({agent: winner, patient, origin, destination, direction});
+          bumps.push({
+            agent: winner,
+            patient,
+            origin,
+            destination,
+            direction,
+          });
         }
       }
       // Bounce all of the candidates that did not get to proceed in the
       // direction they intended.
       for (const loser of candidates) {
         const change = assumeDefined(options.get(loser));
-        const {direction} = change;
+        const { direction } = change;
         macroViewModel.bounce(loser, direction * quarturnToOcturn);
       }
     }
@@ -490,14 +508,14 @@ export function makeModel({
           });
         }
         if (bumped !== null) {
-          const {dialog} = bumped;
+          const { dialog } = bumped;
           if (dialog !== undefined) {
             onDialog(agent, dialog);
           }
         } else {
           const patientType = assumeDefined(entityTypes.get(patient));
           const patientDesc = mechanics.agentTypes[patientType];
-          const {dialog} = patientDesc;
+          const { dialog } = patientDesc;
           if (dialog !== undefined) {
             // TODO rotate dialog:
             // The dialog might cycle on repeated bumps and reset when the
@@ -514,7 +532,10 @@ export function makeModel({
       const inventory = inventories.get(entity);
       if (inventory !== undefined && inventory.length >= 2) {
         let dialog;
-        [inventory[0], inventory[1], dialog] = craft(inventory[0], inventory[1]);
+        [inventory[0], inventory[1], dialog] = craft(
+          inventory[0],
+          inventory[1],
+        );
         if (dialog !== undefined) {
           onDialog(entity, dialog);
         }
@@ -610,7 +631,7 @@ export function makeModel({
    * @param {number} effect
    */
   function availEffect(entity, effect) {
-    const effects = entityEffects(entity) | 1 << effect;
+    const effects = entityEffects(entity) | (1 << effect);
     effectsOwned.set(entity, effects);
   }
 
@@ -641,7 +662,7 @@ export function makeModel({
    * @param {number} entity
    */
   function entityEffects(entity) {
-    const mask = effectsOwned.get(entity)
+    const mask = effectsOwned.get(entity);
     if (mask === undefined) {
       return 0;
     }
@@ -801,7 +822,7 @@ export function makeModel({
     if (typeof allegedSnapshot !== 'object') {
       return ['expected to begin with an object'];
     }
-    const snapshot = /** @type {{[name: string]: unknown}} */(allegedSnapshot);
+    const snapshot = /** @type {{[name: string]: unknown}} */ (allegedSnapshot);
     const {
       agent: allegedAgent,
       locations: allegedLocations,
@@ -841,17 +862,29 @@ export function makeModel({
     const errors = [];
     for (const allegedEntry of allegedTypes) {
       if (typeof allegedEntry !== 'object') {
-        errors.push(`every entry in "types" must be an object, got ${JSON.stringify(allegedEntry)}`);
+        errors.push(
+          `every entry in "types" must be an object, got ${JSON.stringify(
+            allegedEntry,
+          )}`,
+        );
         continue;
       }
-      const entry = /** @type {{[name: string]: unknown}} */(allegedEntry);
-      const {entity: allegedEntity, type: allegedType} = entry;
+      const entry = /** @type {{[name: string]: unknown}} */ (allegedEntry);
+      const { entity: allegedEntity, type: allegedType } = entry;
       if (typeof allegedEntity !== 'number') {
-        errors.push(`every entry in "types" must be an object with an "entity" property, got ${JSON.stringify(allegedEntity)}`);
+        errors.push(
+          `every entry in "types" must be an object with an "entity" property, got ${JSON.stringify(
+            allegedEntity,
+          )}`,
+        );
         continue;
       }
       if (typeof allegedType !== 'number') {
-        errors.push(`every entry in "types" must be an object with an "type" property, got ${JSON.stringify(allegedType)}`);
+        errors.push(
+          `every entry in "types" must be an object with an "type" property, got ${JSON.stringify(
+            allegedType,
+          )}`,
+        );
         continue;
       }
       allegedEntityTypes.set(allegedEntity, allegedType);
@@ -868,12 +901,16 @@ export function makeModel({
       const location = allegedLocations[entity];
       const type = allegedEntityTypes.get(entity);
       if (type === undefined) {
-        errors.push(`Missing entry in "types" for entity in "locations" ${entity} at location ${location}`);
+        errors.push(
+          `Missing entry in "types" for entity in "locations" ${entity} at location ${location}`,
+        );
         continue;
       }
       const tileType = defaultTileTypeForAgentType[type];
       if (tileType === undefined) {
-        errors.push(`No known tile type for entity ${entity} at ${location} with alleged type ${type}`);
+        errors.push(
+          `No known tile type for entity ${entity} at ${location} with alleged type ${type}`,
+        );
         continue;
       }
       const purportedEntity = nextPurportedEntity;
@@ -894,33 +931,55 @@ export function makeModel({
     const purportedInventories = new Map();
     for (const allegedEntry of allegedInventories) {
       if (typeof allegedEntry !== 'object') {
-        errors.push(`every entry in "inventories" must be an "object", got ${JSON.stringify(allegedEntry)}`);
+        errors.push(
+          `every entry in "inventories" must be an "object", got ${JSON.stringify(
+            allegedEntry,
+          )}`,
+        );
         continue;
       }
-      const entry = /* @type {{[name: string]: unknown}} */(allegedEntry);
-      const {entity: allegedEntity, inventory: allegedInventory} = entry;
+      const entry = /* @type {{[name: string]: unknown}} */ allegedEntry;
+      const { entity: allegedEntity, inventory: allegedInventory } = entry;
       if (typeof allegedEntity !== 'number') {
-        errors.push(`every entry in "inventories" must have an "entry" number, got ${JSON.stringify(allegedEntity)}`);
+        errors.push(
+          `every entry in "inventories" must have an "entry" number, got ${JSON.stringify(
+            allegedEntity,
+          )}`,
+        );
         continue;
       }
       if (!Array.isArray(allegedInventory)) {
-        errors.push(`every entry in "inventories" must have an "inventory" array, got ${JSON.stringify(allegedInventory)}`);
+        errors.push(
+          `every entry in "inventories" must have an "inventory" array, got ${JSON.stringify(
+            allegedInventory,
+          )}`,
+        );
         continue;
       }
       const reentity = renames.get(allegedEntity);
       if (reentity === undefined) {
-        errors.push(`an entry in "inventories" for the alleged entity ${allegedEntity} is missing from the map`);
+        errors.push(
+          `an entry in "inventories" for the alleged entity ${allegedEntity} is missing from the map`,
+        );
         continue;
       }
       /** @type {Array<number>} */
       const inventory = [];
       for (const item of allegedInventory) {
         if (typeof item !== 'number') {
-          errors.push(`all items in the "inventory" for entity ${allegedEntity} must be numbers, got ${JSON.stringify(item)}`);
+          errors.push(
+            `all items in the "inventory" for entity ${allegedEntity} must be numbers, got ${JSON.stringify(
+              item,
+            )}`,
+          );
           continue;
         }
         if (item < 1 || item > itemTypes.length) {
-          errors.push(`all items in the "inventory" for entity ${allegedEntity} must be valid item numbers, got ${JSON.stringify(item)}`);
+          errors.push(
+            `all items in the "inventory" for entity ${allegedEntity} must be valid item numbers, got ${JSON.stringify(
+              item,
+            )}`,
+          );
           continue;
         }
         inventory.push(item);
@@ -942,10 +1001,14 @@ export function makeModel({
     for (let location = 0; location < size; location += 1) {
       const type = allegedTerrain[location];
       if (typeof type !== 'number') {
-        errors.push(`every value in "terrain" must be a number, got ${JSON.stringify(type)} at location ${location}`);
+        errors.push(
+          `every value in "terrain" must be a number, got ${JSON.stringify(
+            type,
+          )} at location ${location}`,
+        );
       }
     }
-    const purportedTerrain = /* @type {Array<number>} */(allegedTerrain);
+    const purportedTerrain = /* @type {Array<number>} */ allegedTerrain;
 
     if (errors.length > 0) {
       return errors;

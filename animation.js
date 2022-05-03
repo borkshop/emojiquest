@@ -15,18 +15,19 @@ import { clamp } from './math.js';
  */
 export const nextFrame = () => {
   return new Promise(resolve => requestAnimationFrame(resolve));
-}
+};
 
 /**
  * @returns {AsyncGenerator<number>} - a stream of elapsed time deltas between
  * animation frames, starting with 0 on the first frame
  */
-export async function *frameDeltas() {
+export async function* frameDeltas() {
   for (
     let t1 = await nextFrame(), t2 = t1;
-    /* 🐙 🦑 👾 */;
-    t1 = t2, t2 = await nextFrame()
-  ) yield t2 - t1;
+    ;
+    /* 🐙 🦑 👾 */ t1 = t2, t2 = await nextFrame()
+  )
+    yield t2 - t1;
 }
 
 /**
@@ -52,7 +53,7 @@ export function makeProgress(elapsed, turns) {
   const linear = clamp(0, 1, turns);
   const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
   const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
-  const sinusoidalQuarterTurn = -Math.PI/2 * sinusoidal;
+  const sinusoidalQuarterTurn = (-Math.PI / 2) * sinusoidal;
   return {
     elapsed,
     linear,

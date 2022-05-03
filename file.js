@@ -5,8 +5,8 @@ const types = [
     description: 'Emoji Quest Game Save',
     accept: {
       'application/json': ['.json'],
-    }
-  }
+    },
+  },
 ];
 
 /**

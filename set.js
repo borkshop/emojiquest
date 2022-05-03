@@ -6,7 +6,7 @@
  * @param {Set<T>=} b
  * @returns {Iterable<T>}
  */
-export function *setIntersection(a, b) {
+export function* setIntersection(a, b) {
   if (!a) {
     return;
   }
@@ -26,7 +26,7 @@ export function *setIntersection(a, b) {
  * @param {Set<T>=} b
  * @returns {Iterable<T>}
  */
-export function *setDifference(a, b) {
+export function* setDifference(a, b) {
   if (!a) {
     return;
   }
@@ -40,4 +40,3 @@ export function *setDifference(a, b) {
     }
   }
 }
-

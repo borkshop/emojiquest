@@ -1,7 +1,7 @@
 // @ts-check
 
-import {assert, assumeDefined} from './assert.js';
-import {placeEntity} from './animation2d.js';
+import { assert, assumeDefined } from './assert.js';
+import { placeEntity } from './animation2d.js';
 
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 
@@ -10,10 +10,7 @@ import {placeEntity} from './animation2d.js';
  * @param {(entity: number, type: number) => Element} args.createElement
  * @param {(entity: number) => void} [args.collectElement]
  */
-export function makeElementTracker({
-  createElement,
-  collectElement,
-}) {
+export function makeElementTracker({ createElement, collectElement }) {
   /** @type {Map<number, Element>} */
   const elements = new Map();
 

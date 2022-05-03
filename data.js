@@ -115,7 +115,7 @@ export const tileTypes = [
   { name: 'hammerAndPick', text: '⚒ ' },
   { name: 'hammerAndWrench', text: '🛠' },
   { name: 'dagger', text: '🗡', turn: 2 },
-  { name: 'doubleDagger', text: '⚔️'  },
+  { name: 'doubleDagger', text: '⚔️' },
   { name: 'cart', text: '🛒    ' },
   { name: 'fishingRod', text: '🎣 ' },
   { name: 'mountain', text: '⛰' },
@@ -159,35 +159,45 @@ export const tileTypes = [
  */
 export const recipes = [
   // metallurgy 1
-  { "agent": "bolt", "reagent": "bolt", "product": "knife", price: 4 },
-  { "agent": "bolt", "reagent": "gear", "product": "spoon", price: 5 },
-  { "agent": "bolt", "reagent": "link", "product": "wrench", price: 3 },
-  { "agent": "gear", "reagent": "bolt", "product": "pick", price: 5 },
-  { "agent": "gear", "reagent": "gear", "product": "bicycle", price: 6 },
-  { "agent": "gear", "reagent": "link", "product": "hook", price: 4 },
-  { "agent": "link", "reagent": "gear", "product": "shield", price: 4 },
-  { "agent": "link", "reagent": "bolt", "product": "hammer", price: 3 },
-  { "agent": "link", "reagent": "link", "product": "chain", price: 2 },
+  { agent: 'bolt', reagent: 'bolt', product: 'knife', price: 4 },
+  { agent: 'bolt', reagent: 'gear', product: 'spoon', price: 5 },
+  { agent: 'bolt', reagent: 'link', product: 'wrench', price: 3 },
+  { agent: 'gear', reagent: 'bolt', product: 'pick', price: 5 },
+  { agent: 'gear', reagent: 'gear', product: 'bicycle', price: 6 },
+  { agent: 'gear', reagent: 'link', product: 'hook', price: 4 },
+  { agent: 'link', reagent: 'gear', product: 'shield', price: 4 },
+  { agent: 'link', reagent: 'bolt', product: 'hammer', price: 3 },
+  { agent: 'link', reagent: 'link', product: 'chain', price: 2 },
 
   // metallurgy 2
-  { "agent": "knife", "reagent": "knife", "product": "scissors", price: 8 },
-  { "agent": "bolt", "reagent": "knife", "product": "dagger", price: 6 },
-  { "agent": "hammer", "reagent": "knife", "product": "axe", price: 7 },
-  { "agent": "hammer", "reagent": "pick", "product": "hammerAndPick", price: 8 },
-  { "agent": "hammer", "reagent": "wrench", "product": "hammerAndWrench", price: 6 },
-  { "agent": "gear", "reagent": "chain", "product": "basket", price: 5 },
+  { agent: 'knife', reagent: 'knife', product: 'scissors', price: 8 },
+  { agent: 'bolt', reagent: 'knife', product: 'dagger', price: 6 },
+  { agent: 'hammer', reagent: 'knife', product: 'axe', price: 7 },
+  { agent: 'hammer', reagent: 'pick', product: 'hammerAndPick', price: 8 },
+  { agent: 'hammer', reagent: 'wrench', product: 'hammerAndWrench', price: 6 },
+  { agent: 'gear', reagent: 'chain', product: 'basket', price: 5 },
 
   // composite 2
-  { "agent": "spoon", "reagent": "softwood", "product": "canoe", "byproduct": "spoon" },
-  { "agent": "knife", "reagent": "softwood", "product": "knittingNeedles", "byproduct": "knife" },
-  { "agent": "hook", "reagent": "softwood", "product": "fishingRod" },
+  { agent: 'spoon', reagent: 'softwood', product: 'canoe', byproduct: 'spoon' },
+  {
+    agent: 'knife',
+    reagent: 'softwood',
+    product: 'knittingNeedles',
+    byproduct: 'knife',
+  },
+  { agent: 'hook', reagent: 'softwood', product: 'fishingRod' },
 
   // metallurgy 3
-  { "agent": "bicycle", "reagent": "basket", "product": "cart" },
-  { "agent": "dagger", "reagent": "dagger", "product": "doubleDagger" },
+  { agent: 'bicycle', reagent: 'basket', product: 'cart' },
+  { agent: 'dagger', reagent: 'dagger', product: 'doubleDagger' },
 
   // composite 3
-  { "agent": "knittingNeedles", "reagent": "yarn", "product": "coat", "byproduct": "knittingNeedles" }
+  {
+    agent: 'knittingNeedles',
+    reagent: 'yarn',
+    product: 'coat',
+    byproduct: 'knittingNeedles',
+  },
 ];
 
 /**
@@ -195,36 +205,93 @@ export const recipes = [
  */
 export const actions = [
   // raw material
-  { "patient": "axe", "verb": "take", "items": [ "axe" ] },
-  { "patient": "coat", "verb": "take", "items": [ "coat" ] },
-  { "patient": "pineTree", "left": "axe", "verb": "reap", "items": [ "softwood" ] },
-  { "patient": "appleTree", "left": "axe", "verb": "reap", "items": [ "hardwood" ] },
-  { "patient": "pick", "right": "any", "verb": "take", "items": [ "pick" ] },
-  { "patient": "mountain", "left": "pick", "verb": "cut", "items": [ "copper" ] },
-  { "patient": "ewe", "left": "scissors", "verb": "cut", "items": [ "yarn" ] },
-  { "patient": "ewe", "left": "knife", "verb": "reap", "items": [ "meat" ] },
-  { "patient": "ram", "left": "scissors", "verb": "cut", "items": [ "yarn" ] },
-  { "patient": "ram", "left": "knife", "verb": "reap", "items": [ "meat" ] },
-  { "patient": "appleTree", "right": "any", "verb": "pick", "items": [ "apple" ], "dialog": "🍎  Apple?" },
-  { "patient": "pineTree", "right": "any", "verb": "pick", "items": [ "pineApple" ] },
+  { patient: 'axe', verb: 'take', items: ['axe'] },
+  { patient: 'coat', verb: 'take', items: ['coat'] },
+  { patient: 'pineTree', left: 'axe', verb: 'reap', items: ['softwood'] },
+  { patient: 'appleTree', left: 'axe', verb: 'reap', items: ['hardwood'] },
+  { patient: 'pick', right: 'any', verb: 'take', items: ['pick'] },
+  { patient: 'mountain', left: 'pick', verb: 'cut', items: ['copper'] },
+  { patient: 'ewe', left: 'scissors', verb: 'cut', items: ['yarn'] },
+  { patient: 'ewe', left: 'knife', verb: 'reap', items: ['meat'] },
+  { patient: 'ram', left: 'scissors', verb: 'cut', items: ['yarn'] },
+  { patient: 'ram', left: 'knife', verb: 'reap', items: ['meat'] },
+  {
+    patient: 'appleTree',
+    right: 'any',
+    verb: 'pick',
+    items: ['apple'],
+    dialog: '🍎  Apple?',
+  },
+  { patient: 'pineTree', right: 'any', verb: 'pick', items: ['pineApple'] },
   // monetary exchange
-  { "patient": "bank", "left": "copper", "right": "copper", "verb": "merge", "items": [ "silver" ] },
-  { "patient": "bank", "left": "silver", "right": "copper", "verb": "merge", "items": [ "gold" ] },
-  { "patient": "bank", "left": "copper", "right": "silver", "verb": "merge", "items": [ "gold" ] },
-  { "patient": "bank", "left": "silver", "verb": "split", "items": [ "copper", "copper" ] },
-  { "patient": "bank", "right": "silver", "verb": "split", "items": [ "copper", "copper" ] },
-  { "patient": "bank", "left": "gold", "verb": "split", "items": [ "silver", "copper" ] },
-  { "patient": "bank", "right": "gold", "verb": "split", "items": [ "silver", "copper" ] },
+  {
+    patient: 'bank',
+    left: 'copper',
+    right: 'copper',
+    verb: 'merge',
+    items: ['silver'],
+  },
+  {
+    patient: 'bank',
+    left: 'silver',
+    right: 'copper',
+    verb: 'merge',
+    items: ['gold'],
+  },
+  {
+    patient: 'bank',
+    left: 'copper',
+    right: 'silver',
+    verb: 'merge',
+    items: ['gold'],
+  },
+  {
+    patient: 'bank',
+    left: 'silver',
+    verb: 'split',
+    items: ['copper', 'copper'],
+  },
+  {
+    patient: 'bank',
+    right: 'silver',
+    verb: 'split',
+    items: ['copper', 'copper'],
+  },
+  { patient: 'bank', left: 'gold', verb: 'split', items: ['silver', 'copper'] },
+  {
+    patient: 'bank',
+    right: 'gold',
+    verb: 'split',
+    items: ['silver', 'copper'],
+  },
   // forgery
-  { "patient": "forge", "left": "copper", "right": "any", "verb": "replace", "items": [ "link" ] },
-  { "patient": "forge", "left": "silver", "right": "any", "verb": "replace", "items": [ "bolt" ] },
-  { "patient": "forge", "left": "gold", "right": "any", "verb": "replace", "items": [ "gear" ] }
+  {
+    patient: 'forge',
+    left: 'copper',
+    right: 'any',
+    verb: 'replace',
+    items: ['link'],
+  },
+  {
+    patient: 'forge',
+    left: 'silver',
+    right: 'any',
+    verb: 'replace',
+    items: ['bolt'],
+  },
+  {
+    patient: 'forge',
+    left: 'gold',
+    right: 'any',
+    verb: 'replace',
+    items: ['gear'],
+  },
 ];
 
 /** @type {Array<import('./mechanics.js').EffectType>} */
 export const effectTypes = [
   { name: 'warm', tile: 'coat' }, // 1
-  { name: 'fire'  }, // 2
+  { name: 'fire' }, // 2
   { name: 'float', tile: 'canoe' }, // 3
   { name: 'power', tile: 'lightningBolt' }, // 4
   { name: 'mojick', tile: 'rainbow' }, // 5

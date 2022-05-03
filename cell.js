@@ -38,6 +38,5 @@ export const cell = value => ({
    */
   set(newValue) {
     value = newValue;
-  }
+  },
 });
-

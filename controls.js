@@ -13,16 +13,32 @@
 
 // @ts-check
 
-import {assert, assertDefined, assertNonZero, assumeDefined} from './assert.js';
-import {nn, ne, ee, se, ss, sw, ww, nw, halfOcturn, fullOcturn} from './geometry2d.js';
-import {makeTileView} from './tile-view.js';
-import {makeViewModel} from './view-model.js';
-import {makeMacroViewModel} from './macro-view-model.js';
-import {commandDirection} from './driver.js';
-import {tileMap, locate, makeNineKeyView} from './nine-key-view.js';
-import {makeElementTracker} from './element-tracker.js';
-import {makeBoxTileMap} from './tile-map-box.js';
-import {load, save} from './file.js';
+import {
+  assert,
+  assertDefined,
+  assertNonZero,
+  assumeDefined,
+} from './assert.js';
+import {
+  nn,
+  ne,
+  ee,
+  se,
+  ss,
+  sw,
+  ww,
+  nw,
+  halfOcturn,
+  fullOcturn,
+} from './geometry2d.js';
+import { makeTileView } from './tile-view.js';
+import { makeViewModel } from './view-model.js';
+import { makeMacroViewModel } from './macro-view-model.js';
+import { commandDirection } from './driver.js';
+import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
+import { makeElementTracker } from './element-tracker.js';
+import { makeBoxTileMap } from './tile-map-box.js';
+import { load, save } from './file.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -51,7 +67,7 @@ const noop = () => {};
  * @prop {PressFn} press
  */
 
-const svgNS = "http://www.w3.org/2000/svg";
+const svgNS = 'http://www.w3.org/2000/svg';
 
 const commandCount = 10;
 const leftHandInventoryIndex = 0;
@@ -59,28 +75,16 @@ const rightHandInventoryIndex = 1;
 const inventoryIndexForCommand = [-1, 2, 3, 4, 5, -1, 6, 7, 8, 9];
 const entityIndexForInventoryIndex = [-1, -1, 0, 1, 2, 3, 5, 6, 7, 8];
 
-const itemGridIndexes = [
-  0, 1, 2,
-  3,    5,
-  6, 7, 8,
-]
+const itemGridIndexes = [0, 1, 2, 3, 5, 6, 7, 8];
 
-const agentOffsets = [
-  -4, -1,  2,
-  -3,      3,
-  -2,  1,  4,
-];
+const agentOffsets = [-4, -1, 2, -3, 3, -2, 1, 4];
 
-const agentOffsetForGridIndex = [
-  -4, -1,  2,
-  -3,  0,  3,
-  -2,  1,  4,
-];
+const agentOffsetForGridIndex = [-4, -1, 2, -3, 0, 3, -2, 1, 4];
 
 // itemIndex to vector to or from that item index
 const directionToForPackIndex = [sw, ss, se, ww, ee, nw, nn, ne];
 const directionFromForPackIndex = directionToForPackIndex.map(
-  direction => (direction + halfOcturn) % fullOcturn
+  direction => (direction + halfOcturn) % fullOcturn,
 );
 
 /**
@@ -111,23 +115,26 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  */
-export const makeController = ($controls, $hamburger, {
-  agent,
-  cursor,
-  worldModel,
-  worldViewModel,
-  worldMacroViewModel,
-  cameraController,
-  toponym,
-  advance,
-  followCursor,
-  mechanics,
-  menuController,
-  dialogController,
-  healthController,
-  staminaController,
-}) => {
-
+export const makeController = (
+  $controls,
+  $hamburger,
+  {
+    agent,
+    cursor,
+    worldModel,
+    worldViewModel,
+    worldMacroViewModel,
+    cameraController,
+    toponym,
+    advance,
+    followCursor,
+    mechanics,
+    menuController,
+    dialogController,
+    healthController,
+    staminaController,
+  },
+) => {
   const {
     agentTypes,
     itemTypes,
@@ -147,8 +154,10 @@ export const makeController = ($controls, $hamburger, {
 
   // Common queries:
 
-  const leftHandItemType = () => worldModel.inventory(agent, leftHandInventoryIndex);
-  const rightHandItemType = () => worldModel.inventory(agent, rightHandInventoryIndex);
+  const leftHandItemType = () =>
+    worldModel.inventory(agent, leftHandInventoryIndex);
+  const rightHandItemType = () =>
+    worldModel.inventory(agent, rightHandInventoryIndex);
   const packNotFull = () => !worldModel.allPacked(agent, 2);
   const packNotEmpty = () => worldModel.anyPacked(agent, 2);
   const packEmpty = () => !worldModel.anyPacked(agent, 2);
@@ -203,10 +212,10 @@ export const makeController = ($controls, $hamburger, {
     }
   };
 
-  const {create, collect, place} = makeElementTracker({createElement});
+  const { create, collect, place } = makeElementTracker({ createElement });
 
   const tileView = makeTileView($controls, null, create, collect);
-  const {enter, exit} = tileView;
+  const { enter, exit } = tileView;
 
   const hamburgerView = makeTileView($hamburger, null, create, collect);
   const hamburgerViewModel = makeViewModel();
@@ -215,26 +224,32 @@ export const makeController = ($controls, $hamburger, {
     enter: hamburgerView.enter,
     exit: hamburgerView.exit,
     place,
-  })
-  const oneKeyView = makeMacroViewModel(hamburgerViewModel, {name: 'hamburger', start: -2, stride: -1});
+  });
+  const oneKeyView = makeMacroViewModel(hamburgerViewModel, {
+    name: 'hamburger',
+    start: -2,
+    stride: -1,
+  });
   oneKeyView.put(0, 0, tileTypesByName.hamburger);
 
   const controlsViewModel = makeViewModel();
-  const macroViewModel = makeMacroViewModel(controlsViewModel, {name: 'controls'});
+  const macroViewModel = makeMacroViewModel(controlsViewModel, {
+    name: 'controls',
+  });
 
-  controlsViewModel.watchEntities(tileMap, {enter, exit, place});
+  controlsViewModel.watchEntities(tileMap, { enter, exit, place });
 
   /** @type {import('./model.js').Follower} */
   const agentFollower = {
     motion(_entity, change, destination) {
-      cursor = {...change, position: destination};
+      cursor = { ...change, position: destination };
       cameraController.move(destination, change);
       followCursor(destination, change);
     },
     dialog(_entity, text) {
       dialogController.log(text);
     },
-  }
+  };
 
   worldModel.follow(agent, agentFollower);
 
@@ -276,23 +291,38 @@ export const makeController = ($controls, $hamburger, {
         worldModel.intend(agent, direction, repeat);
         tick();
         return playMode;
-      } else if (command === 5) { // stay
+      } else if (command === 5) {
+        // stay
         tick();
         return playMode;
-      } else if (command === 1 && isNotEmptyItem(leftHandItemType()) && !repeat) {
+      } else if (
+        command === 1 &&
+        isNotEmptyItem(leftHandItemType()) &&
+        !repeat
+      ) {
         return handleLeftItem();
-      } else if (command === 3 && isNotEmptyItem(rightHandItemType()) && !repeat) {
+      } else if (
+        command === 3 &&
+        isNotEmptyItem(rightHandItemType()) &&
+        !repeat
+      ) {
         return handleRightItem();
-      } else if (command === 7 && packNotEmpty() && !repeat) { // stash
+      } else if (command === 7 && packNotEmpty() && !repeat) {
+        // stash
         return openStash();
-      } else if (command === 9 && worldModel.entityEffects(agent) !== 0 && !repeat) { // effect chooser
+      } else if (
+        command === 9 &&
+        worldModel.entityEffects(agent) !== 0 &&
+        !repeat
+      ) {
+        // effect chooser
         return openEffects();
       } else if (command === 0 && !repeat) {
         return playToMenuMode();
       } else {
         return playMode;
       }
-    }
+    },
   };
 
   /**
@@ -306,15 +336,20 @@ export const makeController = ($controls, $hamburger, {
     const mode = {
       press(command, repeat) {
         if (repeat) return mode;
-        if (command === 9) { // trash / consume / convert to effect
+        if (command === 9) {
+          // trash / consume / convert to effect
           return useItem(leftOrRight, packWasVisible);
-        } else if (command === 2 && isNotEmptyItem(rightHandItemType())) { // craft
+        } else if (command === 2 && isNotEmptyItem(rightHandItemType())) {
+          // craft
           return craftItems(leftOrRight, packWasVisible);
-        } else if (command === 1) { // place in left hand
+        } else if (command === 1) {
+          // place in left hand
           return placeItemInLeftHand(packWasVisible);
-        } else if (command === 3) { // place in right hand
+        } else if (command === 3) {
+          // place in right hand
           return placeItemInRightHand(packWasVisible);
-        } else if (command === 7) { // stash
+        } else if (command === 7) {
+          // stash
           return stashItem(leftOrRight);
         }
         return mode;
@@ -331,16 +366,19 @@ export const makeController = ($controls, $hamburger, {
     const mode = {
       press(command, repeat) {
         if (repeat) return mode;
-        if (command === 5) { // keep
+        if (command === 5) {
+          // keep
           dismissPackItemsExcept(-1);
-
-        } else if (command >= 1 && command <= 9) { // put or swap
+        } else if (command >= 1 && command <= 9) {
+          // put or swap
           const inventoryIndex = inventoryIndexForCommand[command];
           assertDefined(inventoryIndex);
           assert(inventoryIndex !== -1);
-          const inventoryEntityIndex = entityIndexForInventoryIndex[inventoryIndex];
+          const inventoryEntityIndex =
+            entityIndexForInventoryIndex[inventoryIndex];
           const toItemDirection = directionToForPackIndex[inventoryIndex - 2];
-          const fromItemDirection = directionFromForPackIndex[inventoryIndex - 2];
+          const fromItemDirection =
+            directionFromForPackIndex[inventoryIndex - 2];
           const inventoryItemType = worldModel.inventory(agent, inventoryIndex);
 
           // From hand to inventory (which is immediately disappearing)
@@ -373,7 +411,8 @@ export const makeController = ($controls, $hamburger, {
             nineKeyView.spawnInward(otherItemTileType, ss);
           }
           return itemMode(leftOrRight);
-        } else { // back to play mode with an empty hand
+        } else {
+          // back to play mode with an empty hand
 
           if (leftOrRight < 0) {
             restoreLeftHand();
@@ -384,7 +423,11 @@ export const makeController = ($controls, $hamburger, {
               restoreRightItem();
             }
           } else if (leftOrRight > 0) {
-            worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
+            worldModel.swap(
+              agent,
+              leftHandInventoryIndex,
+              rightHandInventoryIndex,
+            );
             restoreRightHand();
 
             if (isEmptyItem(leftHandItemType())) {
@@ -404,7 +447,7 @@ export const makeController = ($controls, $hamburger, {
 
           return playMode;
         }
-      }
+      },
     };
 
     return mode;
@@ -423,7 +466,7 @@ export const makeController = ($controls, $hamburger, {
       } else {
         return effectMode;
       }
-    }
+    },
   };
 
   /** @type {Mode} */
@@ -445,21 +488,23 @@ export const makeController = ($controls, $hamburger, {
           // Perhaps this should be appealing to the driver instead.
           tock();
           load(worldModel.restore)
-          .then((/** @type {undefined | number | Array<string>} */result) => {
-            if (typeof result === 'undefined') {
-              // TODO user dismissed dialog or selected no file
-            } else if (typeof result === 'number') {
-              jump(result);
-            } else {
-              for (const error of result) {
-                console.error(error);
-              }
-              // TODO user visible error
-            }
-          })
-          .finally(() => {
-            mode = menuMode;
-          });
+            .then(
+              (/** @type {undefined | number | Array<string>} */ result) => {
+                if (typeof result === 'undefined') {
+                  // TODO user dismissed dialog or selected no file
+                } else if (typeof result === 'number') {
+                  jump(result);
+                } else {
+                  for (const error of result) {
+                    console.error(error);
+                  }
+                  // TODO user visible error
+                }
+              },
+            )
+            .finally(() => {
+              mode = menuMode;
+            });
           return pendingMode;
         } else if (state === 'save') {
           save(worldModel.capture, agent).finally(() => {
@@ -469,7 +514,7 @@ export const makeController = ($controls, $hamburger, {
         }
       }
       return menuMode;
-    }
+    },
   };
 
   /** @type {number} */
@@ -480,25 +525,28 @@ export const makeController = ($controls, $hamburger, {
     press(command, repeat) {
       const direction = commandDirection[command];
       if (direction !== undefined) {
-        const {position: origin} = cursor;
-        const nextCursor = advance({position: origin, direction});
-        const {position: destination, turn, transit} = nextCursor;
-        const change = {position: origin, direction, turn, transit, repeat};
+        const { position: origin } = cursor;
+        const nextCursor = advance({ position: origin, direction });
+        const { position: destination, turn, transit } = nextCursor;
+        const change = { position: origin, direction, turn, transit, repeat };
         cursor = nextCursor;
         cameraController.move(destination, change);
         followCursor(destination, change);
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
         dialogController.log(`${toponym(cursor.position)}`);
         return editMode;
-      } else if (command === 1) { // fill
+      } else if (command === 1) {
+        // fill
         if (editType !== 0) {
           worldModel.set(cursor.position, editType);
         }
         return editMode;
-      } else if (command === 3) { // dig
+      } else if (command === 3) {
+        // dig
         worldModel.remove(cursor.position);
         return editMode;
-      } else if (command === 9) { // cut
+      } else if (command === 9) {
+        // cut
         const type = worldModel.get(cursor.position);
         if (type !== undefined) {
           worldModel.remove(cursor.position);
@@ -506,7 +554,8 @@ export const makeController = ($controls, $hamburger, {
           nineKeyView.replace(4, defaultTileTypeForAgentType[editType]);
         }
         return editMode;
-      } else if (command === 7) { // copy
+      } else if (command === 7) {
+        // copy
         const type = worldModel.get(cursor.position);
         if (type !== undefined) {
           editType = type;
@@ -547,14 +596,14 @@ export const makeController = ($controls, $hamburger, {
         return closeAgentChooser();
       }
       return chooseAgentMode;
-    }
+    },
   };
 
   /** @type {Mode} */
   const pendingMode = {
     press() {
       return pendingMode;
-    }
+    },
   };
 
   // Mode transitions:
@@ -715,7 +764,6 @@ export const makeController = ($controls, $hamburger, {
       // place.
       nineKeyView.replace(4, productTileType);
       nineKeyView.bounce(4, nn);
-
     } else if (agentType === byproductType) {
       // The agent becomes the byproduct when the formula above gets
       // reversed.  In this case, the agent becomes the byproduct, or
@@ -723,7 +771,6 @@ export const makeController = ($controls, $hamburger, {
       nineKeyView.move(4, 1, ss, 0);
       nineKeyView.despawnOutward(nn);
       nineKeyView.spawn(4, productTileType);
-
     } else {
       nineKeyView.replace(4, productTileType);
       nineKeyView.take(1, nn);
@@ -817,7 +864,7 @@ export const makeController = ($controls, $hamburger, {
 
     dismissEffects();
     restoreLeft();
-    restoreRight()
+    restoreRight();
     restoreDpad();
     restoreWatch();
     restoreEffect();
@@ -925,7 +972,8 @@ export const makeController = ($controls, $hamburger, {
   const agentTypeForOffset = offset => {
     assertNonZero(editType);
     return (
-      (eligibleEntityCount + editType - firstEligibleEntityType + offset) % eligibleEntityCount +
+      ((eligibleEntityCount + editType - firstEligibleEntityType + offset) %
+        eligibleEntityCount) +
       firstEligibleEntityType
     );
   };
@@ -944,7 +992,7 @@ export const makeController = ($controls, $hamburger, {
     for (let index = 0; index < agentOffsets.length; index += 1) {
       const offset = agentOffsets[index];
       const gridIndex = itemGridIndexes[index];
-      const agentType = agentTypeForOffset(offset)
+      const agentType = agentTypeForOffset(offset);
       const tileType = defaultTileTypeForAgentType[agentType];
       nineKeyView.spawn(gridIndex, tileType);
     }
@@ -985,7 +1033,7 @@ export const makeController = ($controls, $hamburger, {
    * @param {number} handTileType
    */
   const updateHand = (gridIndex, inventoryIndex, handTileType) => {
-    const itemType = worldModel.inventory(agent, inventoryIndex)
+    const itemType = worldModel.inventory(agent, inventoryIndex);
     const priorItemType = priorHands[inventoryIndex];
     if (itemType !== priorItemType) {
       priorHands[inventoryIndex] = itemType;
@@ -1029,7 +1077,7 @@ export const makeController = ($controls, $hamburger, {
     }
   };
 
-  const restoreRight  = () => {
+  const restoreRight = () => {
     if (isEmptyItem(rightHandItemType())) {
       restoreRightHand();
     } else {
@@ -1057,7 +1105,7 @@ export const makeController = ($controls, $hamburger, {
    * @param {number} itemType
    */
   const recepticleTileType = itemType => {
-    const {comestible = false, effect = undefined} = itemTypes[itemType];
+    const { comestible = false, effect = undefined } = itemTypes[itemType];
     let recepticleTileType = tileTypesByName.trash;
     if (effect !== undefined) {
       recepticleTileType = tileTypesByName.arm;
@@ -1111,7 +1159,7 @@ export const makeController = ($controls, $hamburger, {
 
   const dismissRight = () => {
     nineKeyView.despawnOutward(se);
-  }
+  };
 
   const restorePackItems = () => {
     for (let i = 0; i < 8; i++) {
@@ -1119,14 +1167,18 @@ export const makeController = ($controls, $hamburger, {
       const itemType = worldModel.inventory(agent, inventoryIndex);
       const entityIndex = entityIndexForInventoryIndex[inventoryIndex];
       const itemGridIndex = itemGridIndexes[i];
-      const itemTileType = isNotEmptyItem(itemType) ? tileTypeForItemType[itemType] : gridTileTypes[itemGridIndex];
+      const itemTileType = isNotEmptyItem(itemType)
+        ? tileTypeForItemType[itemType]
+        : gridTileTypes[itemGridIndex];
       nineKeyView.spawn(entityIndex, itemTileType);
     }
   };
 
   const restoreEffects = () => {
     for (let i = 0; i < 9; i++) {
-      const effectTileType = worldModel.entityHasEffect(agent, i) ? tileTypeForEffectType[i] : gridTileTypes[i];
+      const effectTileType = worldModel.entityHasEffect(agent, i)
+        ? tileTypeForEffectType[i]
+        : gridTileTypes[i];
       nineKeyView.spawn(i, effectTileType);
     }
   };
@@ -1344,10 +1396,12 @@ export const makeController = ($controls, $hamburger, {
  * @param {Object} args
  * @param {number} args.tileSizePx
  */
-export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
-  tileSizePx,
-}) => {
-
+export const watchControllerCommands = (
+  $controls,
+  $hamburger,
+  dispatcher,
+  { tileSizePx },
+) => {
   let previousCommand = -1;
 
   /**
@@ -1355,9 +1409,12 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
    * @param {number} offset.offsetX
    * @param {number} offset.offsetY
    */
-  const controlEventToCommand = ({offsetX, offsetY}) => {
-    const coord = {x: Math.floor(offsetX / tileSizePx), y: Math.floor(offsetY / tileSizePx)};
-    const {x, y} = coord;
+  const controlEventToCommand = ({ offsetX, offsetY }) => {
+    const coord = {
+      x: Math.floor(offsetX / tileSizePx),
+      y: Math.floor(offsetY / tileSizePx),
+    };
+    const { x, y } = coord;
     if (x >= 3 || y >= 3 || x < 0 || y < 0) return -1;
     return x + (2 - y) * 3 + 1;
   };
@@ -1374,18 +1431,22 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
       return;
     }
     if (pressed) {
-      if (previousCommand === -1) { // unpressed to pressed
+      if (previousCommand === -1) {
+        // unpressed to pressed
         previousCommand = command;
         dispatcher.down('Mouse', previousCommand);
-      } else { // steadily down, maybe relocated
+      } else {
+        // steadily down, maybe relocated
         if (previousCommand !== command) {
           dispatcher.up('Mouse', previousCommand);
           previousCommand = command;
           dispatcher.down('Mouse', previousCommand);
         }
       }
-    } else { // to unpressed
-      if (previousCommand !== -1) { // pressed to unpressed
+    } else {
+      // to unpressed
+      if (previousCommand !== -1) {
+        // pressed to unpressed
         dispatcher.up('Mouse', previousCommand);
         previousCommand = -1;
       } /* else { // steadily unpressed
@@ -1397,7 +1458,7 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
    * @param {Event} event
    */
   const onControlsMouseChange = event => {
-    const mouseEvent = /** @type {MouseEvent} */(event);
+    const mouseEvent = /** @type {MouseEvent} */ (event);
     const command = controlEventToCommand(mouseEvent);
     onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
   };
@@ -1406,7 +1467,7 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
    * @param {Event} event
    */
   const onControlsMouseEnter = event => {
-    const mouseEvent = /** @type {MouseEvent} */(event);
+    const mouseEvent = /** @type {MouseEvent} */ (event);
     const command = controlEventToCommand(mouseEvent);
     onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
     $controls.addEventListener('mousemove', onControlsMouseChange);
@@ -1419,19 +1480,17 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
 
   const touchIdentifierToCommand = new Map();
   const commandToTouchIdentifiers = new Map(
-    new Array(commandCount)
-      .fill(0)
-      .map((_, n) => [n, new Set()])
+    new Array(commandCount).fill(0).map((_, n) => [n, new Set()]),
   );
 
   /**
    * @param {Event} touchEvent
    */
   const onControlsTouchStart = touchEvent => {
-    const event = /** @type {TouchEvent} */(touchEvent);
+    const event = /** @type {TouchEvent} */ (touchEvent);
     event.preventDefault();
     for (const touch of event.changedTouches) {
-      const {top, left} = $controls.getBoundingClientRect();
+      const { top, left } = $controls.getBoundingClientRect();
       const command = controlEventToCommand({
         offsetX: touch.pageX - left,
         offsetY: touch.pageY - top,
@@ -1449,7 +1508,7 @@ export const watchControllerCommands = ($controls, $hamburger, dispatcher, {
    * @param {Event} touchEvent
    */
   const onControlsTouchEnd = touchEvent => {
-    const event = /** @type {TouchEvent} */(touchEvent);
+    const event = /** @type {TouchEvent} */ (touchEvent);
     event.preventDefault();
     for (const touch of event.changedTouches) {
       const command = touchIdentifierToCommand.get(touch.identifier);

@@ -5,7 +5,7 @@
 
 // @ts-check
 
-const {min, max} = Math;
+const { min, max } = Math;
 
 /**
  * @param {number} lo

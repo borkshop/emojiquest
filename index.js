@@ -1,16 +1,23 @@
 // @ts-check
 
-import {north, fullQuarturn} from './geometry2d.js';
-import {makeDaia} from './daia.js';
-import {cell} from './cell.js';
-import {makeViewModel} from './view-model.js';
-import {makeMacroViewModel} from './macro-view-model.js';
-import {makeModel} from './model.js';
-import {makeController, watchControllerCommands} from './controls.js';
-import {makeDriver} from './driver.js';
-import {makeCommandDispatcher} from './commands.js';
-import {makeMechanics} from './mechanics.js';
-import {recipes, actions, tileTypes, validAgentTypes, validItemTypes, effectTypes} from './data.js';
+import { north, fullQuarturn } from './geometry2d.js';
+import { makeDaia } from './daia.js';
+import { cell } from './cell.js';
+import { makeViewModel } from './view-model.js';
+import { makeMacroViewModel } from './macro-view-model.js';
+import { makeModel } from './model.js';
+import { makeController, watchControllerCommands } from './controls.js';
+import { makeDriver } from './driver.js';
+import { makeCommandDispatcher } from './commands.js';
+import { makeMechanics } from './mechanics.js';
+import {
+  recipes,
+  actions,
+  tileTypes,
+  validAgentTypes,
+  validItemTypes,
+  effectTypes,
+} from './data.js';
 
 import { createDialogBox } from './dialog.js';
 import { createMenuBlade } from './menu.js';
@@ -18,7 +25,7 @@ import { makeMap } from './map.js';
 import { writeHealthBar } from './health.js';
 import { writeStaminaBar } from './stamina.js';
 
-const svgNS = "http://www.w3.org/2000/svg";
+const svgNS = 'http://www.w3.org/2000/svg';
 
 /** @typedef {import('./animation2d.js').Coord} Coord */
 
@@ -48,7 +55,7 @@ export const makeEntityCreator = mechanics => {
       $entity.appendChild($text);
       return $entity;
     }
-  }
+  };
   return createEntity;
 };
 
@@ -56,7 +63,7 @@ export const makeEntityCreator = mechanics => {
  * @param {Object} args
  * @param {number} args.tileSizePx
  */
-const createControls = ({tileSizePx}) => {
+const createControls = ({ tileSizePx }) => {
   const $controls = document.createElementNS(svgNS, 'svg');
   $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
   $controls.setAttributeNS(null, 'height', `${3 * tileSizePx}`);
@@ -69,7 +76,7 @@ const createControls = ({tileSizePx}) => {
  * @param {Object} args
  * @param {number} args.tileSizePx
  */
-const createHamburger = ({tileSizePx}) => {
+const createHamburger = ({ tileSizePx }) => {
   const $hamburger = document.createElementNS(svgNS, 'svg');
   $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
   $hamburger.setAttributeNS(null, 'height', `${1 * tileSizePx}`);
@@ -114,12 +121,14 @@ const main = async () => {
     effectTypes,
   });
 
-  const cursor = {position: initialPosition, direction: north};
+  const cursor = { position: initialPosition, direction: north };
 
   // View
 
   const worldViewModel = makeViewModel();
-  const worldMacroViewModel = makeMacroViewModel(worldViewModel, {name: 'world'});
+  const worldMacroViewModel = makeMacroViewModel(worldViewModel, {
+    name: 'world',
+  });
 
   const worldModel = makeModel({
     size: world.worldArea,
@@ -140,7 +149,7 @@ const main = async () => {
   documentElement.style.setProperty('--faceSize', `${faceSize}`);
   documentElement.style.setProperty('--facetSize', `${facetSize}`);
 
-  const {$map, cameraController} = makeMap({
+  const { $map, cameraController } = makeMap({
     faceSize,
     facetSize,
     facetsPerFaceSize,
@@ -173,34 +182,36 @@ const main = async () => {
 
   parentElement.insertBefore($map, nextSibling);
 
-  const {element: $dialogBox, controller: dialogController} = createDialogBox();
+  const { element: $dialogBox, controller: dialogController } =
+    createDialogBox();
   parentElement.insertBefore($dialogBox, nextSibling);
 
-  const {element: $staminaBar, controller: staminaController} = writeStaminaBar({
-    tileSizePx,
-    staminaTileType: mechanics.tileTypesByName.stamina,
-    createElement: createEntity,
-  });
+  const { element: $staminaBar, controller: staminaController } =
+    writeStaminaBar({
+      tileSizePx,
+      staminaTileType: mechanics.tileTypesByName.stamina,
+      createElement: createEntity,
+    });
   parentElement.insertBefore($staminaBar, nextSibling);
 
-  const {element: $healthBar, controller: healthController} = writeHealthBar({
+  const { element: $healthBar, controller: healthController } = writeHealthBar({
     tileSizePx,
     healthTileType: mechanics.tileTypesByName.health,
     createElement: createEntity,
   });
   parentElement.insertBefore($healthBar, nextSibling);
 
-  const {$menuBlade, menuController} = createMenuBlade({
+  const { $menuBlade, menuController } = createMenuBlade({
     tileSizePx,
     pointerTileType: mechanics.tileTypesByName.east,
     createElement: createEntity,
   });
   parentElement.appendChild($menuBlade);
 
-  const $controls = createControls({tileSizePx});
+  const $controls = createControls({ tileSizePx });
   parentElement.insertBefore($controls, nextSibling);
 
-  const $hamburger = createHamburger({tileSizePx});
+  const $hamburger = createHamburger({ tileSizePx });
   parentElement.insertBefore($hamburger, nextSibling);
 
   /**
@@ -254,7 +265,7 @@ const main = async () => {
 
   const dispatcher = makeCommandDispatcher(window, driver);
 
-  watchControllerCommands($controls, $hamburger, dispatcher, {tileSizePx});
+  watchControllerCommands($controls, $hamburger, dispatcher, { tileSizePx });
 
   // TODO properly integrate water and magma in an editor mode
   window.addEventListener('keypress', event => {
@@ -269,7 +280,6 @@ const main = async () => {
       worldModel.setTerrainFlags(location, 0b10);
     }
   });
-
 };
 
 main();

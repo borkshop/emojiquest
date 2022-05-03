@@ -1,14 +1,14 @@
 // @ts-check
 
-import {makeViewModel} from './view-model.js';
-import {makeMacroViewModel} from './macro-view-model.js';
-import {rotate, matrixStyle} from './matrix2d.js';
-import {makeTileView} from './tile-view.js';
-import {makeElementTracker} from './element-tracker.js';
-import {makeBoxTileMap} from './tile-map-box.js';
-import {ss, nn} from './geometry2d.js';
+import { makeViewModel } from './view-model.js';
+import { makeMacroViewModel } from './macro-view-model.js';
+import { rotate, matrixStyle } from './matrix2d.js';
+import { makeTileView } from './tile-view.js';
+import { makeElementTracker } from './element-tracker.js';
+import { makeBoxTileMap } from './tile-map-box.js';
+import { ss, nn } from './geometry2d.js';
 
-const svgNS = "http://www.w3.org/2000/svg";
+const svgNS = 'http://www.w3.org/2000/svg';
 
 /**
  * @param {Object} args
@@ -30,7 +30,7 @@ export function createMenuBlade({
 
   const $menuBlade = document.createElement('div');
   $menuBlade.setAttribute('class', 'blade menuBlade');
-  $menuBlade.style.transform = matrixStyle(rotate(-Math.PI/2));
+  $menuBlade.style.transform = matrixStyle(rotate(-Math.PI / 2));
 
   const $menu = document.createElement('div');
   $menu.setAttribute('class', 'menu panel');
@@ -58,13 +58,18 @@ export function createMenuBlade({
   appendLabel('🚚 Load');
   appendLabel('🚧 Edit');
 
-  const {create, collect, place} = makeElementTracker({ createElement, collectElement });
+  const { create, collect, place } = makeElementTracker({
+    createElement,
+    collectElement,
+  });
   const tileView = makeTileView($curb, null, create, collect);
-  const {enter, exit} = tileView;
+  const { enter, exit } = tileView;
   const viewModel = makeViewModel();
   const tileMap = makeBoxTileMap({ x: 1, y: 4 });
-  viewModel.watchEntities(tileMap, {enter, exit, place});
-  const macroViewModel = makeMacroViewModel(viewModel, {name: 'menu-pointer-curb'});
+  viewModel.watchEntities(tileMap, { enter, exit, place });
+  const macroViewModel = makeMacroViewModel(viewModel, {
+    name: 'menu-pointer-curb',
+  });
 
   macroViewModel.put(entity, state, pointerTileType);
 
@@ -74,16 +79,24 @@ export function createMenuBlade({
 
     // animate rotation of menu
     if (prev !== next) {
-      if (next) { // showing
-        $menuBlade.style.transform = matrixStyle(rotate(-Math.PI/2 * (1 - progress.sinusoidal)));
-      } else { // hiding
-        $menuBlade.style.transform = matrixStyle(rotate(-Math.PI/2 * progress.sinusoidal));
+      if (next) {
+        // showing
+        $menuBlade.style.transform = matrixStyle(
+          rotate((-Math.PI / 2) * (1 - progress.sinusoidal)),
+        );
+      } else {
+        // hiding
+        $menuBlade.style.transform = matrixStyle(
+          rotate((-Math.PI / 2) * progress.sinusoidal),
+        );
       }
     } else {
-      if (next) { // shown
+      if (next) {
+        // shown
         $menuBlade.style.transform = matrixStyle(rotate(0));
-      } else { // hidden
-        $menuBlade.style.transform = matrixStyle(rotate(-Math.PI/2));
+      } else {
+        // hidden
+        $menuBlade.style.transform = matrixStyle(rotate(-Math.PI / 2));
       }
     }
   }
@@ -138,10 +151,10 @@ export function createMenuBlade({
     goSouth,
     getState,
     animate,
-    tock
+    tock,
   };
 
-  return {$menuBlade, menuController};
+  return { $menuBlade, menuController };
 }
 
 /**

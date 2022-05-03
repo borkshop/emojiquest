@@ -19,11 +19,11 @@
  * @typedef {import('./cell.js').Cell<T>} Cell
  */
 
-import {frameDeltas} from './animation.js';
-import {assert} from './assert.js';
-import {makeProgress} from './animation.js';
-import {delay, defer} from './async.js';
-import {north, east, south, west, fullQuarturn} from './geometry2d.js';
+import { frameDeltas } from './animation.js';
+import { assert } from './assert.js';
+import { makeProgress } from './animation.js';
+import { delay, defer } from './async.js';
+import { north, east, south, west, fullQuarturn } from './geometry2d.js';
 
 /**
  * @template T
@@ -40,9 +40,10 @@ export const commandDirection = {
 
 /** @type {Record<number, number>} */
 export const directionCommand = Object.fromEntries(
-  Object.entries(commandDirection).map(
-    ([command, direction]) => [+direction, +command]
-  )
+  Object.entries(commandDirection).map(([command, direction]) => [
+    +direction,
+    +command,
+  ]),
 );
 
 /**
@@ -73,7 +74,7 @@ export const directionCommand = Object.fromEntries(
  * @param {Cell<number>} options.moment
  */
 export const makeDriver = (delegate, options) => {
-  const {animatedTransitionDuration, moment} = options;
+  const { animatedTransitionDuration, moment } = options;
 
   /** @type {Deferred<void>} */
   let sync = defer();
@@ -98,10 +99,7 @@ export const makeDriver = (delegate, options) => {
 
     delegate.command(command, repeat);
 
-    await Promise.race([
-      abort.promise,
-      delay(animatedTransitionDuration),
-    ]);
+    await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
 
     // Ensure that the animation gets all the way to 100%, regardless of
     // animation frame timing.
@@ -121,7 +119,8 @@ export const makeDriver = (delegate, options) => {
     if (direction === undefined) {
       await tickTock(command, repeat);
     } else {
-      const momentumAdjustedDirection = (direction + moment.get()) % fullQuarturn;
+      const momentumAdjustedDirection =
+        (direction + moment.get()) % fullQuarturn;
       await tickTock(directionCommand[momentumAdjustedDirection], repeat);
     }
   }
@@ -134,14 +133,14 @@ export const makeDriver = (delegate, options) => {
       // The user can plan some number of moves ahead by tapping the command
       // keys sequentially, as opposed to holding them down.
       let command;
-      while (command = queue.shift(), command !== undefined) {
+      while (((command = queue.shift()), command !== undefined)) {
         await issue(command, false);
       }
 
       // Repeat
       while (held.size) {
         const now = performance.now();
-        for (const [heldCommand, {start}] of held.entries()) {
+        for (const [heldCommand, { start }] of held.entries()) {
           const duration = now - start;
           if (duration > animatedTransitionDuration) {
             command = heldCommand;
@@ -157,7 +156,10 @@ export const makeDriver = (delegate, options) => {
   async function animate() {
     for await (const elapsed of frameDeltas()) {
       timeSinceTransitionStart += elapsed;
-      const progress = makeProgress(elapsed, timeSinceTransitionStart / animatedTransitionDuration);
+      const progress = makeProgress(
+        elapsed,
+        timeSinceTransitionStart / animatedTransitionDuration,
+      );
       delegate.animate(progress);
     }
   }
@@ -168,7 +170,7 @@ export const makeDriver = (delegate, options) => {
   function down(command) {
     assert(!held.has(command));
     const up = delegate.down(command);
-    held.set(command, {start: performance.now(), up});
+    held.set(command, { start: performance.now(), up });
 
     // If a command key goes down during an animated transition for a prior
     // command, we abort that animation so the next move advances immediately
@@ -205,5 +207,5 @@ export const makeDriver = (delegate, options) => {
   run();
   animate();
 
-  return {down, up};
+  return { down, up };
 };

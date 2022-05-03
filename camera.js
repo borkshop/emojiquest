@@ -5,11 +5,11 @@
 
 // @ts-check
 
-import {multiply, matrix3dStyle} from './matrix3d.js';
+import { multiply, matrix3dStyle } from './matrix3d.js';
 
 /** @typedef {import('./matrix3d.js').Matrix} Matrix */
 
-const {min, max} = Math;
+const { min, max } = Math;
 
 /**
  * @param {number} lo
@@ -28,7 +28,6 @@ function clamp(lo, hi, value) {
  *   matrix(progress: number): Matrix,
  * }} Transition
  */
-
 
 /**
  * @callback TransitionFn
@@ -61,7 +60,7 @@ export function makeCamera($context, transform) {
       start: now,
       end: now + duration,
       matrix,
-    })
+    });
   }
 
   /**
@@ -73,7 +72,7 @@ export function makeCamera($context, transform) {
     // Consolidate completed transitions
     let completed = 0;
     for (const transition of transitions) {
-      const {start, end, matrix} = transition;
+      const { start, end, matrix } = transition;
       const progress = clamp(0, 1, (now - start) / (end - start));
       if (progress < 1) {
         break;
@@ -90,7 +89,7 @@ export function makeCamera($context, transform) {
     // follow an incomplete transition.
     let current = transform;
     for (const transition of transitions) {
-      const {start, end, matrix} = transition;
+      const { start, end, matrix } = transition;
       const progress = clamp(0, 1, (now - start) / (end - start));
       current = multiply(matrix(progress), current);
     }
@@ -109,5 +108,5 @@ export function makeCamera($context, transform) {
 
   reset(transform);
 
-  return {animate, transition, reset};
+  return { animate, transition, reset };
 }

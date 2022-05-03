@@ -16,7 +16,7 @@
     "noEmit": true,
 
     "strict": true,
-    "forceConsistentCasingInFileNames": true ,
+    "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
 
     "noUnusedLocals": true,

@@ -12,8 +12,8 @@
 
 // @ts-check
 
-import {assertDefined} from './assert.js';
-import {setDifference} from './set.js';
+import { assertDefined } from './assert.js';
+import { setDifference } from './set.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -129,14 +129,14 @@ export function makeViewModel() {
     if (tile === undefined) {
       return false;
     }
-    const {location} = tile;
+    const { location } = tile;
     const tileWatchers = watchers.get(location);
     return tileWatchers !== undefined;
   }
 
   /** @type {PutFn} */
   function put(entity, location, type) {
-    tiles.set(entity, {location, type});
+    tiles.set(entity, { location, type });
     let entities = colocated.get(location);
     if (entities) {
       entities.set(entity, type);
@@ -161,7 +161,7 @@ export function makeViewModel() {
     animating.delete(entity);
     const tile = tiles.get(entity);
     assertDefined(tile, `Cannot remove entity with unknown location ${entity}`);
-    const {location} = tile;
+    const { location } = tile;
     entityExitsTile(entity, location);
     const tileWatchers = watchers.get(location);
     if (tileWatchers !== undefined) {
@@ -174,8 +174,11 @@ export function makeViewModel() {
   /** @type {MoveFn} */
   function move(entity, to) {
     const tile = tiles.get(entity);
-    assertDefined(tile, `Assertion failed: cannot move absent entity ${entity}`);
-    const {location: from, type} = tile;
+    assertDefined(
+      tile,
+      `Assertion failed: cannot move absent entity ${entity}`,
+    );
+    const { location: from, type } = tile;
 
     if (from === to) {
       return;
@@ -307,7 +310,7 @@ export function makeViewModel() {
 
   /** @type {AnimateFn} */
   function animate(progress) {
-    const {elapsed} = progress;
+    const { elapsed } = progress;
 
     // Animate button pressure simulation.
     const factor = 0.99 ** elapsed;
@@ -315,7 +318,7 @@ export function makeViewModel() {
       const [command] = entry;
       let [, pressure] = entry;
       if (pressed.has(command)) {
-        pressure = 1 - ((1 - pressure) * factor);
+        pressure = 1 - (1 - pressure) * factor;
       } else {
         pressure = pressure * factor;
       }
@@ -330,11 +333,17 @@ export function makeViewModel() {
     for (const [entity, transition] of animating.entries()) {
       const tile = tiles.get(entity);
       if (tile !== undefined) {
-        const {location} = tile;
+        const { location } = tile;
         const tileWatchers = watchers.get(location);
         if (tileWatchers !== undefined) {
           for (const [watcher, coord] of tileWatchers.entries()) {
-            watcher.place(entity, coord, pressure(entity), progress, transition);
+            watcher.place(
+              entity,
+              coord,
+              pressure(entity),
+              progress,
+              transition,
+            );
           }
         }
       }
@@ -345,7 +354,7 @@ export function makeViewModel() {
       if (!animating.has(entity)) {
         const tile = tiles.get(entity);
         if (tile !== undefined) {
-          const {location} = tile;
+          const { location } = tile;
           const tileWatchers = watchers.get(location);
           if (tileWatchers !== undefined) {
             for (const [watcher, coord] of tileWatchers.entries()) {

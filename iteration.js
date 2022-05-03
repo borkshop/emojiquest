@@ -12,8 +12,8 @@
  * @param {number} [stride]
  * @yields {number}
  */
-export function *count(end = Infinity, start = 0, stride = 1) {
+export function* count(end = Infinity, start = 0, stride = 1) {
   for (; start < end; start += stride) {
-   yield start;
+    yield start;
   }
 }

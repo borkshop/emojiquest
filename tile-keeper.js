@@ -7,8 +7,8 @@
 
 // @ts-check
 
-import {circle} from './circle.js';
-import {setDifference} from './set.js';
+import { circle } from './circle.js';
+import { setDifference } from './set.js';
 
 /** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
 
@@ -35,7 +35,7 @@ import {setDifference} from './set.js';
  * @param {AdvanceFn} args.advance
  * @returns {TileKeeper}
  */
-export function makeTileKeeper({enter, exit, advance}) {
+export function makeTileKeeper({ enter, exit, advance }) {
   let nextTiles = new Set();
   let prevTiles = new Set();
 
@@ -57,5 +57,5 @@ export function makeTileKeeper({enter, exit, advance}) {
     [nextTiles, prevTiles] = [prevTiles, nextTiles];
   }
 
-  return {keepTilesAround};
+  return { keepTilesAround };
 }

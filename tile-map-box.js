@@ -8,12 +8,12 @@
  * @param {number} start.x
  * @param {number} start.y
  */
-export function makeBoxTileMap(size = {x: 1, y: 1}, start = {x: 0, y: 0}) {
+export function makeBoxTileMap(size = { x: 1, y: 1 }, start = { x: 0, y: 0 }) {
   const map = new Map();
   let i = 0;
   for (let y = start.y; y < start.y + size.y; y += 1) {
     for (let x = start.x; x < start.x + size.x; x += 1) {
-      map.set(i, {x, y, a: 0});
+      map.set(i, { x, y, a: 0 });
       i += 1;
     }
   }

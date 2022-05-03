@@ -12,7 +12,7 @@
 
 // @ts-check
 
-import {assert, assumeDefined} from './assert.js';
+import { assert, assumeDefined } from './assert.js';
 
 /**
  * @typedef {import('./view-model.js').ViewModel} ViewModel
@@ -26,11 +26,14 @@ import {assert, assumeDefined} from './assert.js';
  * @param {number} [options.start]
  * @param {number} [options.stride]
  */
-export function makeMacroViewModel(viewModel, {
-  // name = '<unknown>',
-  start = 0,
-  stride = 1,
-} = {}) {
+export function makeMacroViewModel(
+  viewModel,
+  {
+    // name = '<unknown>',
+    start = 0,
+    stride = 1,
+  } = {},
+) {
   /** @type {Map<number, number>} external to internal */
   const entities = new Map();
   /** @type {Map<number, number>} internal to location */
@@ -53,14 +56,20 @@ export function makeMacroViewModel(viewModel, {
    * @param {number} external
    */
   function entity(external) {
-    return assumeDefined(entities.get(external), `Failed invariant of macro view model: no internal entity for external entity ${external}`);
+    return assumeDefined(
+      entities.get(external),
+      `Failed invariant of macro view model: no internal entity for external entity ${external}`,
+    );
   }
 
   /**
    * @param {number} external
    */
   function locate(external) {
-    return assumeDefined(locations.get(external), `Failed invariant of macro view model: no known location for external entity ${external}`);
+    return assumeDefined(
+      locations.get(external),
+      `Failed invariant of macro view model: no known location for external entity ${external}`,
+    );
   }
 
   /**
@@ -104,7 +113,7 @@ export function makeMacroViewModel(viewModel, {
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
         directionOcturns,
-        stage: 'enter'
+        stage: 'enter',
       });
     }
   }
@@ -118,7 +127,7 @@ export function makeMacroViewModel(viewModel, {
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
         directionOcturns,
-        stage: 'exit'
+        stage: 'exit',
       });
     }
     removes.set(external, internal);
@@ -280,6 +289,6 @@ export function makeMacroViewModel(viewModel, {
     fell,
     move,
     bounce,
-    replace
+    replace,
   };
 }

@@ -6,8 +6,8 @@
 
 // @ts-check
 
-import {octurnVectors} from './geometry2d.js';
-import {compose, translate, rotate, scale, matrixStyle} from './matrix2d.js';
+import { octurnVectors } from './geometry2d.js';
+import { compose, translate, rotate, scale, matrixStyle } from './matrix2d.js';
 
 /** @typedef {import('./animation.js').Progress} Progress */
 
@@ -34,7 +34,7 @@ const noTransition = {
   rotation: 0,
   bump: false,
   stage: 'stay',
-}
+};
 
 /** @type {Progress} */
 const noProgress = {
@@ -43,7 +43,7 @@ const noProgress = {
   sinusoidal: 0,
   sinusoidalQuarterTurn: 0,
   bounce: 0,
-}
+};
 
 /**
  * @param {Element} $entity
@@ -52,7 +52,13 @@ const noProgress = {
  * @param {Progress=} [progress]
  * @param {Transition=} [transition]
  */
-export function placeEntity($entity, coord, pressure = 0, progress = noProgress, transition = noTransition) {
+export function placeEntity(
+  $entity,
+  coord,
+  pressure = 0,
+  progress = noProgress,
+  transition = noTransition,
+) {
   const {
     directionOcturns = 0,
     rotation = 0,
@@ -60,16 +66,18 @@ export function placeEntity($entity, coord, pressure = 0, progress = noProgress,
     stage = 'stay',
   } = transition;
   const { sinusoidal, sinusoidalQuarterTurn, bounce } = progress;
-  const {x: dx, y: dy} = octurnVectors[(directionOcturns + 8 - coord.a * 2) % 8];
+  const { x: dx, y: dy } =
+    octurnVectors[(directionOcturns + 8 - coord.a * 2) % 8];
   const shiftProgress = bump ? bounce : sinusoidal;
-  const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? 1 - sinusoidal : sinusoidal;
+  const scaleProgress =
+    stage === 'stay' ? 1 : stage === 'exit' ? 1 - sinusoidal : sinusoidal;
   const transform = compose(
     scale(scaleProgress * (1 + pressure / 3)),
     rotate(sinusoidalQuarterTurn * rotation),
-    rotate(-Math.PI/2 * coord.a),
+    rotate((-Math.PI / 2) * coord.a),
     translate(coord),
-    translate({x: dx * shiftProgress, y: dy * shiftProgress}),
-    translate({x: 0.5, y: 0.5}),
+    translate({ x: dx * shiftProgress, y: dy * shiftProgress }),
+    translate({ x: 0.5, y: 0.5 }),
   );
   $entity.setAttributeNS(null, 'transform', matrixStyle(transform));
 }

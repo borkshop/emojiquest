@@ -1,8 +1,8 @@
 // @ts-check
 
-import {assert, assertNonZero} from './assert.js';
-import {halfOcturn, fullOcturn, octurnVectors} from './geometry2d.js';
-import {makeBoxTileMap} from './tile-map-box.js';
+import { assert, assertNonZero } from './assert.js';
+import { halfOcturn, fullOcturn, octurnVectors } from './geometry2d.js';
+import { makeBoxTileMap } from './tile-map-box.js';
 
 /**
  * @typedef {[number, number, number, number, number, number, number, number, number]} NineNumbers
@@ -16,31 +16,28 @@ export function locate(x, y) {
   return (y + 1) * 5 + x + 1;
 }
 
-export const tileMap = makeBoxTileMap({x: 5, y: 5}, {x: -1, y: -1});
+export const tileMap = makeBoxTileMap({ x: 5, y: 5 }, { x: -1, y: -1 });
 
 const gridCoordinates = [
-  {x: 0, y: 2},
-  {x: 1, y: 2},
-  {x: 2, y: 2},
-  {x: 0, y: 1},
-  {x: 1, y: 1},
-  {x: 2, y: 1},
-  {x: 0, y: 0},
-  {x: 1, y: 0},
-  {x: 2, y: 0},
+  { x: 0, y: 2 },
+  { x: 1, y: 2 },
+  { x: 2, y: 2 },
+  { x: 0, y: 1 },
+  { x: 1, y: 1 },
+  { x: 2, y: 1 },
+  { x: 0, y: 0 },
+  { x: 1, y: 0 },
+  { x: 2, y: 0 },
 ];
 
-const gridLocations = gridCoordinates.map(({x, y}) => locate(x, y));
+const gridLocations = gridCoordinates.map(({ x, y }) => locate(x, y));
 
-const octurnGridIndexes = [
-  7, 8, 5, 2, 1, 0, 3, 6,
-];
+const octurnGridIndexes = [7, 8, 5, 2, 1, 0, 3, 6];
 
 /**
  * @param {import('./macro-view-model.js').MacroViewModel} macroViewModel
  */
 export function makeNineKeyView(macroViewModel) {
-
   let next = 1; // 0 is a sentinel for absence.
 
   /** @type {NineNumbers} */
@@ -82,7 +79,10 @@ export function makeNineKeyView(macroViewModel) {
   function despawnOutward(directionOcturns) {
     const gridIndex = octurnGridIndexes[directionOcturns];
     const entity = entities[gridIndex];
-    assertNonZero(entity, `Expected an entity at gridIndex ${gridIndex} for direction ${directionOcturns}/8th turn clockwise from north`);
+    assertNonZero(
+      entity,
+      `Expected an entity at gridIndex ${gridIndex} for direction ${directionOcturns}/8th turn clockwise from north`,
+    );
     macroViewModel.take(entity, directionOcturns);
     entities[gridIndex] = 0;
   }
@@ -94,9 +94,14 @@ export function makeNineKeyView(macroViewModel) {
   function spawnInward(tileType, directionOcturns) {
     const gridIndex = octurnGridIndexes[directionOcturns];
     assert(entities[gridIndex] === 0);
-    const {x, y} = octurnVectors[directionOcturns];
+    const { x, y } = octurnVectors[directionOcturns];
     const entity = create(tileType, locate(1 + x * 2, 1 + y * 2));
-    macroViewModel.move(entity, locate(1 + x, 1 + y), (directionOcturns + halfOcturn) % fullOcturn, 0);
+    macroViewModel.move(
+      entity,
+      locate(1 + x, 1 + y),
+      (directionOcturns + halfOcturn) % fullOcturn,
+      0,
+    );
     entities[gridIndex] = entity;
   }
 
@@ -135,10 +140,16 @@ export function makeNineKeyView(macroViewModel) {
     const entity = next;
     next = next + 1;
     const toLocation = gridLocations[slot];
-    const {x, y} = gridCoordinates[slot];
-    const {x: dx, y: dy} = octurnVectors[directionOcturns];
+    const { x, y } = gridCoordinates[slot];
+    const { x: dx, y: dy } = octurnVectors[directionOcturns];
     const fromLocation = locate(x - dx, y - dy);
-    macroViewModel.give(entity, fromLocation, toLocation, type, directionOcturns);
+    macroViewModel.give(
+      entity,
+      fromLocation,
+      toLocation,
+      type,
+      directionOcturns,
+    );
     entities[slot] = entity;
   }
 

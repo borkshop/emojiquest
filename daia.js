@@ -141,12 +141,20 @@
  * @returns {string}
  */
 
-import {north, east, south, west, moddivpoint} from './geometry2d.js';
-import {compose, inverse, identity, translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
+import { north, east, south, west, moddivpoint } from './geometry2d.js';
+import {
+  compose,
+  inverse,
+  identity,
+  translate,
+  rotateX,
+  rotateY,
+  rotateZ,
+} from './matrix3d.js';
 
-const no =  0; // steady as she goes
-const cw =  1; // clockwise
-const af =  2; // about face
+const no = 0; // steady as she goes
+const cw = 1; // clockwise
+const af = 2; // about face
 const cc = -1; // counter clockwise
 
 // const faceNeighbors = [
@@ -162,7 +170,7 @@ const cc = -1; // counter clockwise
 // TODO invert all these figures so coordinates can be added without inverting
 // the turn angle.
 export const faceRotations = [
-// n,  e,  s,  w
+  // n,  e,  s,  w
   [cc, no, cc, no], // 0
   [af, no, no, no], // 1
   [no, cc, af, cw], // 2
@@ -173,30 +181,16 @@ export const faceRotations = [
 
 const faceTransforms = [
   [], // 0 front
-  [rotateY(Math.PI/2)], // 1 right
-  [rotateZ(-Math.PI/2), rotateX(-Math.PI/2)], // 2 bottom
-  [rotateZ(-Math.PI/2), rotateX(Math.PI/2)], // 3 top
-  [rotateY(-Math.PI/2)], // 4 left
+  [rotateY(Math.PI / 2)], // 1 right
+  [rotateZ(-Math.PI / 2), rotateX(-Math.PI / 2)], // 2 bottom
+  [rotateZ(-Math.PI / 2), rotateX(Math.PI / 2)], // 3 top
+  [rotateY(-Math.PI / 2)], // 4 left
   [rotateY(Math.PI)], // 5 back
 ].map(matrixes => compose(...matrixes));
 
-export const faceNames = [
-  'Dysia',
-  'Oria',
-  'Infra',
-  'Borea',
-  'Occia',
-  'Euia',
-];
+export const faceNames = ['Dysia', 'Oria', 'Infra', 'Borea', 'Occia', 'Euia'];
 
-export const faceSymbols = [
-  '⚀',
-  '⚁',
-  '⚂',
-  '⚃',
-  '⚄',
-  '⚅',
-];
+export const faceSymbols = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
 export const arrows = [
   ['↘', '↓', '↙'],
@@ -231,7 +225,7 @@ export const arrows = [
 export function makeDaia({
   faceSize = 1,
   tileSizePx = 100,
-  transform = identity
+  transform = identity,
 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
@@ -244,8 +238,8 @@ export function makeDaia({
   });
 
   const cornerAdjustment = translate({
-    x: - tileSizePx / 2,
-    y: - tileSizePx / 2,
+    x: -tileSizePx / 2,
+    y: -tileSizePx / 2,
     z: 0,
   });
 
@@ -255,24 +249,20 @@ export function makeDaia({
     z: -faceSizePx / 2 + tileSizePx / 2,
   });
 
-  const faceCorners = faceTransforms.map(matrix => compose(
-    cornerTransform,
-    matrix,
-    transform,
-    cornerAdjustment,
-  ));
+  const faceCorners = faceTransforms.map(matrix =>
+    compose(cornerTransform, matrix, transform, cornerAdjustment),
+  );
 
-  const faceOrigins = faceTransforms.map(matrix => compose(
-    inverse(matrix),
-    centerTransform,
-  ));
+  const faceOrigins = faceTransforms.map(matrix =>
+    compose(inverse(matrix), centerTransform),
+  );
 
   /**
    * @param {{x: number, y: number}} position
    * @param {number} direction
    * @returns {boolean}
    */
-  const transits = ({x, y}, direction) => {
+  const transits = ({ x, y }, direction) => {
     const end = faceSize - 1;
     return (
       (y === 0 && direction === north) ||
@@ -286,41 +276,51 @@ export function makeDaia({
    * @type {Array<Array<(coord: Point) => number>>}
    */
   const seams = [
-    [ // 0, front, dysia
-      (/** @type {Point} */{x}) => 4 * faceArea - 1 - x * faceSize, // K northward
-      (/** @type {Point} */{y}) => faceArea + y * faceSize, // A eastward
-      (/** @type {Point} */{x}) => 3 * faceArea - faceSize - faceSize * x, // G southward
-      (/** @type {Point} */{y}) => 4 * faceArea + faceSize - 1 + y * faceSize, // D westward
+    [
+      // 0, front, dysia
+      (/** @type {Point} */ { x }) => 4 * faceArea - 1 - x * faceSize, // K northward
+      (/** @type {Point} */ { y }) => faceArea + y * faceSize, // A eastward
+      (/** @type {Point} */ { x }) => 3 * faceArea - faceSize - faceSize * x, // G southward
+      (/** @type {Point} */ { y }) =>
+        4 * faceArea + faceSize - 1 + y * faceSize, // D westward
     ],
-    [ // 1, right, oria
-      (/** @type {Point} */{x}) => 3 * faceArea + faceSize - 1 - x, // L northward
-      (/** @type {Point} */{y}) => 5 * faceArea + faceSize * y, // B eastward
-      (/** @type {Point} */{x}) => 2 * faceArea + x, // H southward
-      (/** @type {Point} */{y}) => 1 * faceSize * y + faceSize - 1, // A westward
+    [
+      // 1, right, oria
+      (/** @type {Point} */ { x }) => 3 * faceArea + faceSize - 1 - x, // L northward
+      (/** @type {Point} */ { y }) => 5 * faceArea + faceSize * y, // B eastward
+      (/** @type {Point} */ { x }) => 2 * faceArea + x, // H southward
+      (/** @type {Point} */ { y }) => 1 * faceSize * y + faceSize - 1, // A westward
     ],
-    [ // 2, bottom, infra
-      (/** @type {Point} */{x}) => 2 * faceArea - faceSize + x, // H northward
-      (/** @type {Point} */{y}) => 6 * faceArea - faceSize + y, // E eastward
-      (/** @type {Point} */{x}) => 5 * faceArea - 1 - x, // F southward
-      (/** @type {Point} */{y}) => 1 * faceArea - 1 - y, // G westward
+    [
+      // 2, bottom, infra
+      (/** @type {Point} */ { x }) => 2 * faceArea - faceSize + x, // H northward
+      (/** @type {Point} */ { y }) => 6 * faceArea - faceSize + y, // E eastward
+      (/** @type {Point} */ { x }) => 5 * faceArea - 1 - x, // F southward
+      (/** @type {Point} */ { y }) => 1 * faceArea - 1 - y, // G westward
     ],
-    [ // 3, top, borea
-      (/** @type {Point} */{x}) => faceArea + faceSize - 1 - x, // L northward
-      (/** @type {Point} */{y}) => faceSize - y - 1, // K eastward
-      (/** @type {Point} */{x}) => 4 * faceArea + x, // J southward
-      (/** @type {Point} */{y}) => 5 * faceArea + y, // I westward
+    [
+      // 3, top, borea
+      (/** @type {Point} */ { x }) => faceArea + faceSize - 1 - x, // L northward
+      (/** @type {Point} */ { y }) => faceSize - y - 1, // K eastward
+      (/** @type {Point} */ { x }) => 4 * faceArea + x, // J southward
+      (/** @type {Point} */ { y }) => 5 * faceArea + y, // I westward
     ],
-    [ // 4, left, occia
-      (/** @type {Point} */{x}) => 4 * faceArea - faceSize + x, // J northward
-      (/** @type {Point} */{y}) => faceSize * y, // D eastward
-      (/** @type {Point} */{x}) => 3 * faceArea - 1 - x, // F southward
-      (/** @type {Point} */{y}) => 5 * faceArea + faceSize - 1 + faceSize * y, // C westward
+    [
+      // 4, left, occia
+      (/** @type {Point} */ { x }) => 4 * faceArea - faceSize + x, // J northward
+      (/** @type {Point} */ { y }) => faceSize * y, // D eastward
+      (/** @type {Point} */ { x }) => 3 * faceArea - 1 - x, // F southward
+      (/** @type {Point} */ { y }) =>
+        5 * faceArea + faceSize - 1 + faceSize * y, // C westward
     ],
-    [ // 5, back, euia
-      (/** @type {Point} */{x}) => 3 * faceArea + faceSize * x, // I northward
-      (/** @type {Point} */{y}) => 4 * faceArea + faceSize * y, // C eastward
-      (/** @type {Point} */{x}) => 2 * faceArea + faceSize - 1 + faceSize * x, // E southward
-      (/** @type {Point} */{y}) => 1 * faceArea + faceSize - 1 + faceSize * y, // B westward
+    [
+      // 5, back, euia
+      (/** @type {Point} */ { x }) => 3 * faceArea + faceSize * x, // I northward
+      (/** @type {Point} */ { y }) => 4 * faceArea + faceSize * y, // C eastward
+      (/** @type {Point} */ { x }) =>
+        2 * faceArea + faceSize - 1 + faceSize * x, // E southward
+      (/** @type {Point} */ { y }) =>
+        1 * faceArea + faceSize - 1 + faceSize * y, // B westward
     ],
   ];
 
@@ -337,7 +337,7 @@ export function makeDaia({
     const n = t % faceArea;
     const y = Math.floor(n / faceSize);
     const x = n % faceSize;
-    return {t, f, n, x, y};
+    return { t, f, n, x, y };
   }
 
   /** @type {TileCoordinateOnFaceFn} */
@@ -347,7 +347,7 @@ export function makeDaia({
     const y = Math.floor(n / faceSize);
     const x = n % faceSize;
     if (g === f) {
-      return {x, y, a: 0};
+      return { x, y, a: 0 };
     }
     return undefined;
     // const f2g = faceNeighbors[f].indexOf(g);
@@ -370,14 +370,14 @@ export function makeDaia({
   }
 
   /** @type {TileNumberFn} */
-  function tileNumber({x, y, f}) {
+  function tileNumber({ x, y, f }) {
     return f * faceArea + y * faceSize + x;
   }
 
   /** @type {NeighborFn} */
   function neighbor(t, direction) {
     const coord = tileCoordinate(t);
-    const {f} = coord;
+    const { f } = coord;
     if (transits(coord, direction)) {
       return knits[direction](t);
     } else {
@@ -386,9 +386,9 @@ export function makeDaia({
   }
 
   /** @type {AdvanceFn} */
-  function advance({position, direction}) {
+  function advance({ position, direction }) {
     const coord = tileCoordinate(position);
-    const {f} = coord;
+    const { f } = coord;
     if (transits(coord, direction)) {
       const turn = faceRotations[f][direction];
       return {
@@ -409,7 +409,7 @@ export function makeDaia({
 
   /** @type {TileTransformFn} */
   function tileTransform(t) {
-    const {f, y, x} = tileCoordinate(t);
+    const { f, y, x } = tileCoordinate(t);
     return compose(
       translate({
         x: tileSizePx * x,
@@ -422,7 +422,7 @@ export function makeDaia({
 
   /** @type {CameraTransformFn} */
   function cameraTransform(t) {
-    const {f, y, x} = tileCoordinate(t);
+    const { f, y, x } = tileCoordinate(t);
     return compose(
       faceOrigins[f],
       translate({
@@ -437,10 +437,19 @@ export function makeDaia({
    * @param {number} t
    */
   function toponym(t) {
-    const {f, x, y} = tileCoordinate(t);
-    const {q: {x: qx, y: qy}, r: {x: rx, y: ry}} = moddivpoint({x, y}, {x: faceSize / 3, y: faceSize / 3})
-    const {q: {x: sx, y: sy}, r: {x: tx, y: ty}} = moddivpoint({x: rx, y: ry}, {x: faceSize / 9, y: faceSize / 9})
-    const {q: {x: ux, y: uy}, r: {x: vx, y: vy}} = moddivpoint({x: tx, y: ty}, {x: faceSize / 27, y: faceSize / 27})
+    const { f, x, y } = tileCoordinate(t);
+    const {
+      q: { x: qx, y: qy },
+      r: { x: rx, y: ry },
+    } = moddivpoint({ x, y }, { x: faceSize / 3, y: faceSize / 3 });
+    const {
+      q: { x: sx, y: sy },
+      r: { x: tx, y: ty },
+    } = moddivpoint({ x: rx, y: ry }, { x: faceSize / 9, y: faceSize / 9 });
+    const {
+      q: { x: ux, y: uy },
+      r: { x: vx, y: vy },
+    } = moddivpoint({ x: tx, y: ty }, { x: faceSize / 27, y: faceSize / 27 });
     return `${faceSymbols[f]} ${arrows[qy][qx]} ${arrows[sy][sx]} ${arrows[uy][ux]} ${arrows[vy][vx]} @${t}`;
   }
 
@@ -458,5 +467,5 @@ export function makeDaia({
     tileTransform,
     cameraTransform,
     toponym,
-  }
+  };
 }

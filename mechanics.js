@@ -6,8 +6,8 @@
 
 // @ts-check
 
-import {assertDefined} from './assert.js';
-import {halfOcturn, fullOcturn, quarturnToOcturn} from './geometry2d.js';
+import { assertDefined } from './assert.js';
+import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
 
 /**
  * @typedef {{
@@ -86,19 +86,18 @@ export function makeMechanics({
   validItemTypes = [],
   effectTypes = [],
 } = {}) {
-
   const agentTypes = [
     { name: 'invalid' },
     { name: 'empty' },
     { name: 'any' },
-    ...validAgentTypes
+    ...validAgentTypes,
   ];
 
   const itemTypes = [
     { name: 'invalid' },
     { name: 'empty' },
     { name: 'any' },
-    ...validItemTypes
+    ...validItemTypes,
   ];
 
   /**
@@ -108,7 +107,13 @@ export function makeMechanics({
    * @param {string} [byproduct]
    * @param {string} [dialog]
    */
-  function registerRecipe(agent, reagent, product, byproduct = 'empty', dialog) {
+  function registerRecipe(
+    agent,
+    reagent,
+    product,
+    byproduct = 'empty',
+    dialog,
+  ) {
     const agentType = itemTypesByName[agent];
     const reagentType = itemTypesByName[reagent];
     const productType = itemTypesByName[product];
@@ -116,7 +121,10 @@ export function makeMechanics({
     assertDefined(agentType, `agent item type not defined ${agent}`);
     assertDefined(reagentType, `reeagent item type not defined ${reagent}`);
     assertDefined(productType, `product item type not defined ${product}`);
-    assertDefined(byproductType, `byproduct item type not defined ${byproduct}`);
+    assertDefined(
+      byproductType,
+      `byproduct item type not defined ${byproduct}`,
+    );
     craftingFormulae.set(agentType * itemTypes.length + reagentType, [
       productType,
       byproductType,
@@ -130,7 +138,9 @@ export function makeMechanics({
    * @returns {[number, number, string?]} productType and byproductType
    */
   function craft(agentType, reagentType) {
-    let formula = craftingFormulae.get(agentType * itemTypes.length + reagentType);
+    let formula = craftingFormulae.get(
+      agentType * itemTypes.length + reagentType,
+    );
     if (formula !== undefined) {
       return formula;
     }
@@ -138,7 +148,11 @@ export function makeMechanics({
     if (formula !== undefined) {
       return formula;
     }
-    return [itemTypesByName.poop, itemTypesByName.empty, '💩 These items do not combine.'];
+    return [
+      itemTypesByName.poop,
+      itemTypesByName.empty,
+      '💩 These items do not combine.',
+    ];
   }
 
   /**
@@ -173,12 +187,14 @@ export function makeMechanics({
   /** @type {Record<string, Verb>} */
   const verbs = {
     take([yieldType]) {
-
       /** @type {Handler} */
-      function takeHandler(kit, {agent, patient, direction, destination}) {
+      function takeHandler(kit, { agent, patient, direction, destination }) {
         const inventory = kit.entityInventory(agent);
         inventory[0] = yieldType;
-        kit.macroViewModel.take(patient, (direction * quarturnToOcturn + halfOcturn) % fullOcturn);
+        kit.macroViewModel.take(
+          patient,
+          (direction * quarturnToOcturn + halfOcturn) % fullOcturn,
+        );
         kit.destroyEntity(patient, destination);
       }
       return takeHandler;
@@ -198,7 +214,7 @@ export function makeMechanics({
 
     cut([yieldType]) {
       /** @type {Handler} */
-      function cutHandler(kit, {agent, direction}) {
+      function cutHandler(kit, { agent, direction }) {
         const inventory = kit.entityInventory(agent);
         inventory[1] = yieldType;
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
@@ -208,7 +224,7 @@ export function makeMechanics({
 
     pick([yieldType]) {
       /** @type {Handler} */
-      function cutHandler(kit, {agent, direction}) {
+      function cutHandler(kit, { agent, direction }) {
         const inventory = kit.entityInventory(agent);
         inventory[0] = yieldType;
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
@@ -218,7 +234,7 @@ export function makeMechanics({
 
     split([leftType, rightType]) {
       /** @type {Handler} */
-      function splitHandler(kit, {agent}) {
+      function splitHandler(kit, { agent }) {
         const inventory = kit.entityInventory(agent);
         assertDefined(rightType);
         inventory[0] = leftType;
@@ -229,7 +245,7 @@ export function makeMechanics({
 
     merge([changeType]) {
       /** @type {Handler} */
-      function mergeHandler(kit, {agent}) {
+      function mergeHandler(kit, { agent }) {
         const inventory = kit.entityInventory(agent);
         inventory[0] = changeType;
         inventory[1] = itemTypesByName.empty;
@@ -239,7 +255,7 @@ export function makeMechanics({
 
     replace([yieldType]) {
       /** @type {Handler} */
-      function replaceHandler(kit, {agent, direction}) {
+      function replaceHandler(kit, { agent, direction }) {
         const inventory = kit.entityInventory(agent);
         inventory[0] = yieldType;
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
@@ -251,7 +267,13 @@ export function makeMechanics({
   /**
    * @param {BumpKeyParameters} parameters
    */
-  function bumpKey({agentType, patientType, leftType, rightType, effectType}) {
+  function bumpKey({
+    agentType,
+    patientType,
+    leftType,
+    rightType,
+    effectType,
+  }) {
     let key = 0;
     let factor = 1;
 
@@ -286,7 +308,7 @@ export function makeMechanics({
         rightType: itemTypes[parameters.rightType].name,
         effectType: effectTypes[parameters.effectType].name,
       });
-      const {handler} = match;
+      const { handler } = match;
       handler(kit, parameters);
       return match;
     }
@@ -315,7 +337,14 @@ export function makeMechanics({
     for (const effectType of [agentEffectType, effectTypesByName.any]) {
       for (const rightType of [right, itemTypesByName.any]) {
         for (const leftType of [left, itemTypesByName.any]) {
-          const match = bumpCombination(kit, {...parameters, agentType, patientType, leftType, rightType, effectType})
+          const match = bumpCombination(kit, {
+            ...parameters,
+            agentType,
+            patientType,
+            leftType,
+            rightType,
+            effectType,
+          });
           if (match !== null) {
             return match;
           }
@@ -328,7 +357,8 @@ export function makeMechanics({
   /**
    * @param {Array<{name: string}>} array
    */
-  const indexByName = array => Object.fromEntries(array.map(({ name }, i) => [name, i]));
+  const indexByName = array =>
+    Object.fromEntries(array.map(({ name }, i) => [name, i]));
 
   const tileTypesByName = indexByName(tileTypes);
   const agentTypesByName = indexByName(agentTypes);
@@ -338,7 +368,8 @@ export function makeMechanics({
   /**
    * @param {Array<{name: string, tile?: string}>} array
    */
-  const indexTileType = array => array.map(({ name, tile }) => tileTypesByName[tile || name]);
+  const indexTileType = array =>
+    array.map(({ name, tile }) => tileTypesByName[tile || name]);
 
   const defaultTileTypeForAgentType = indexTileType(agentTypes);
   const tileTypeForItemType = indexTileType(itemTypes);
@@ -349,7 +380,7 @@ export function makeMechanics({
   const craftingFormulae = new Map();
   const bumpingFormulae = new Map();
 
-  for (const {agent, reagent, product, byproduct, dialog} of recipes) {
+  for (const { agent, reagent, product, byproduct, dialog } of recipes) {
     registerRecipe(agent, reagent, product, byproduct, dialog);
   }
 
@@ -391,7 +422,7 @@ export function makeMechanics({
       effectType,
     });
 
-    bumpingFormulae.set(key, {handler, dialog});
+    bumpingFormulae.set(key, { handler, dialog });
   }
 
   return {

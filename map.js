@@ -70,13 +70,20 @@
 //    |  |
 //    +--+
 
-import {assumeDefined} from './assert.js';
-import {quarturnVectors, north, east, south, west} from './geometry2d.js';
-import {identity, compose, translate, rotate, rotateQuarturn, matrixStyle} from './matrix2d.js';
-import {add as addVectors, scale as scaleVector} from './vector2d.js';
-import {placeEntity} from './animation2d.js';
-import {makeTileKeeper} from './tile-keeper.js';
-import {tileColor} from './brand.js';
+import { assumeDefined } from './assert.js';
+import { quarturnVectors, north, east, south, west } from './geometry2d.js';
+import {
+  identity,
+  compose,
+  translate,
+  rotate,
+  rotateQuarturn,
+  matrixStyle,
+} from './matrix2d.js';
+import { add as addVectors, scale as scaleVector } from './vector2d.js';
+import { placeEntity } from './animation2d.js';
+import { makeTileKeeper } from './tile-keeper.js';
+import { tileColor } from './brand.js';
 
 /** @typedef {import('./geometry2d.js').Point} Point */
 /** @typedef {import('./animation.js').Progress} Progress */
@@ -102,9 +109,9 @@ import {tileColor} from './brand.js';
  * @property {number} angle
  */
 
-const svgNS = "http://www.w3.org/2000/svg";
+const svgNS = 'http://www.w3.org/2000/svg';
 
-const centerVector = {x: 0.5, y: 0.5};
+const centerVector = { x: 0.5, y: 0.5 };
 
 const epsilon = 0.01;
 
@@ -116,8 +123,13 @@ const epsilon = 0.01;
  * @param {import('./daia.js').TileCoordinateFn} options.facetCoordinate
  * @param {import('./daia.js').AdvanceFn} options.advance
  */
-const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordinate, advance}) => {
-
+const makeFacetMapper = ({
+  facetsPerFaceSize,
+  facetSize,
+  tileNumber,
+  facetCoordinate,
+  advance,
+}) => {
   /**
    * @param {number} facet
    * @returns {Map<number, Coord>}
@@ -125,8 +137,11 @@ const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordin
   const tilesForFacet = facet => {
     const tileMap = new Map();
 
-    const {f: face, x: originX, y: originY} = facetCoordinate(facet);
-    const origin = {x: originX * facetsPerFaceSize, y: originY * facetsPerFaceSize};
+    const { f: face, x: originX, y: originY } = facetCoordinate(facet);
+    const origin = {
+      x: originX * facetsPerFaceSize,
+      y: originY * facetsPerFaceSize,
+    };
 
     // body
     for (let y = 0; y < facetSize; y++) {
@@ -136,7 +151,7 @@ const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordin
           x: origin.x + x,
           y: origin.y + y,
         });
-        tileMap.set(t, {x, y, a: 0});
+        tileMap.set(t, { x, y, a: 0 });
       }
     }
 
@@ -169,11 +184,11 @@ const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordin
         x: origin.x,
         y: origin.y + y,
       });
-      const flap = advance({position, direction: west});
+      const flap = advance({ position, direction: west });
       tileMap.set(flap.position, {
         x: -1,
         y,
-        a: flap.turn
+        a: flap.turn,
       });
     }
 
@@ -184,11 +199,11 @@ const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordin
         x: origin.x + facetSize - 1,
         y: origin.y + y,
       });
-      const flap = advance({position, direction: east});
+      const flap = advance({ position, direction: east });
       tileMap.set(flap.position, {
         x: facetSize,
         y,
-        a: flap.turn
+        a: flap.turn,
       });
     }
 
@@ -199,11 +214,11 @@ const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordin
         x: origin.x + x,
         y: origin.y,
       });
-      const flap = advance({position, direction: north});
+      const flap = advance({ position, direction: north });
       tileMap.set(flap.position, {
         x,
         y: -1,
-        a: flap.turn
+        a: flap.turn,
       });
     }
 
@@ -214,11 +229,11 @@ const makeFacetMapper = ({facetsPerFaceSize, facetSize, tileNumber, facetCoordin
         x: origin.x + x,
         y: origin.y + facetSize - 1,
       });
-      const flap = advance({position, direction: south});
+      const flap = advance({ position, direction: south });
       tileMap.set(flap.position, {
         x,
         y: facetSize,
-        a: flap.turn
+        a: flap.turn,
       });
     }
 
@@ -269,7 +284,7 @@ export function makeFacetCreator({
     const $back = document.createElementNS(svgNS, 'g');
     const $front = document.createElementNS(svgNS, 'g');
 
-    for (const [location, {x, y}] of tiles.entries()) {
+    for (const [location, { x, y }] of tiles.entries()) {
       const $backTile = document.createElementNS(svgNS, 'rect');
       const terrainFlags = getTerrainFlags(location);
       const color = tileColor(faceNumber, terrainFlags);
@@ -294,14 +309,20 @@ export function makeFacetCreator({
        * @param {number} tile - tile type
        */
       enter(entity, tile) {
-        const $entity = assumeDefined(createEntity(entity, tile), `Assertion failed, createEntity hook must return something`);
+        const $entity = assumeDefined(
+          createEntity(entity, tile),
+          `Assertion failed, createEntity hook must return something`,
+        );
         entityMap.set(entity, $entity);
         $front.appendChild($entity);
       },
 
       /** @type {PlaceFn} */
       place(entity, coord, pressure, progress, transition) {
-        const $entity = assumeDefined(entityMap.get(entity), `Assertion failed, entity map should have entry for entity ${entity}`);
+        const $entity = assumeDefined(
+          entityMap.get(entity),
+          `Assertion failed, entity map should have entry for entity ${entity}`,
+        );
         placeEntity($entity, coord, pressure, progress, transition);
       },
 
@@ -350,7 +371,7 @@ export function makeFacetCreator({
       unwatchEntities(tiles, watcher);
     };
 
-    return {$facet, dispose};
+    return { $facet, dispose };
   };
 
   /**
@@ -362,7 +383,7 @@ export function makeFacetCreator({
     }
   };
 
-  return {createFacet, animateFacets};
+  return { createFacet, animateFacets };
 }
 /**
  * @param {Object} args
@@ -387,7 +408,6 @@ const makeFace = ({
   facetSizePx,
   createFacet,
 }) => {
-
   const $face = document.createElement('div');
   $face.className = 'face';
   // Hack to hide group until first relocated:
@@ -406,9 +426,11 @@ const makeFace = ({
    * @param {Point} point
    */
   const facetEnters = (facet, tiles, point) => {
-    const {$facet, dispose} = createFacet(facet, face, tiles);
+    const { $facet, dispose } = createFacet(facet, face, tiles);
     // console.log({facet, point});
-    $facet.style.transform = matrixStyle(translate(scaleVector(point, facetSizePx)));
+    $facet.style.transform = matrixStyle(
+      translate(scaleVector(point, facetSizePx)),
+    );
     $face.appendChild($facet);
     facetDisposers.set(facet, dispose);
     facets.set(facet, $facet);
@@ -416,8 +438,14 @@ const makeFace = ({
 
   /** @param {number} facet */
   const facetExits = facet => {
-    const $facet = assumeDefined(facets.get(facet), `Assertion failed: cannot dispose of non-existent facet ${facet}`);
-    const dispose = assumeDefined(facetDisposers.get(facet), `Assertion failed: cannot dispose of non-existent facet ${facet}`);
+    const $facet = assumeDefined(
+      facets.get(facet),
+      `Assertion failed: cannot dispose of non-existent facet ${facet}`,
+    );
+    const dispose = assumeDefined(
+      facetDisposers.get(facet),
+      `Assertion failed: cannot dispose of non-existent facet ${facet}`,
+    );
     dispose();
     $facet.remove();
   };
@@ -425,12 +453,12 @@ const makeFace = ({
   /**
    * @param {import('./animation2d.js').Coord} destination
    */
-  const relocate = ({x, y, a}) => {
+  const relocate = ({ x, y, a }) => {
     const transform = compose(
-      translate(scaleVector({x: 1, y: 1}, -faceSizePx / 2 )),
+      translate(scaleVector({ x: 1, y: 1 }, -faceSizePx / 2)),
       rotateQuarturn(a),
-      translate(scaleVector({x: 1, y: 1}, faceSizePx / 2)),
-      translate(scaleVector({x, y}, faceSizePx)),
+      translate(scaleVector({ x: 1, y: 1 }, faceSizePx / 2)),
+      translate(scaleVector({ x, y }, faceSizePx)),
     );
     const transformStyle = matrixStyle(transform);
     $face.style.transform = transformStyle;
@@ -447,15 +475,15 @@ const makeFace = ({
   /** @param {Progress} progress */
   const animate = progress => {
     if (pivoting !== null) {
-      const {origin, about, angle} = pivoting;
+      const { origin, about, angle } = pivoting;
       const transform = compose(
         // Rotate about center.
         translate(scaleVector(centerVector, -faceSizePx)),
-        rotate(origin.a * Math.PI / 2),
+        rotate((origin.a * Math.PI) / 2),
         translate(scaleVector(centerVector, faceSizePx)),
         // Rotate about pivot corner.
         translate(scaleVector(about, -faceSizePx)),
-        rotate(angle * progress.sinusoidal * Math.PI / 2),
+        rotate((angle * progress.sinusoidal * Math.PI) / 2),
         translate(scaleVector(about, faceSizePx)),
         // Place globally.
         translate(scaleVector(origin, faceSizePx)),
@@ -465,14 +493,13 @@ const makeFace = ({
     }
   };
 
-  const tick = () => {
-  };
+  const tick = () => {};
 
   const tock = () => {
     pivoting = null;
   };
 
-  return {animate, tick, tock, pivot, relocate, facetEnters, facetExits};
+  return { animate, tick, tock, pivot, relocate, facetEnters, facetExits };
 };
 
 /**
@@ -522,7 +549,6 @@ export const makeMap = ({
   advance,
   faceAdvance,
 }) => {
-
   const tilesForFacet = makeFacetMapper({
     facetSize,
     facetsPerFaceSize,
@@ -543,10 +569,10 @@ export const makeMap = ({
   $origin.appendChild($viewport);
 
   let viewportTransform = identity;
-  let viewportChange = {x: 0, y: 0, a: 0};
-  let drift = {x: 0, y: 0, a: 0};
+  let viewportChange = { x: 0, y: 0, a: 0 };
+  let drift = { x: 0, y: 0, a: 0 };
 
-  const {createFacet, animateFacets} = makeFacetCreator({
+  const { createFacet, animateFacets } = makeFacetCreator({
     watchTerrain,
     unwatchTerrain,
     getTerrainFlags,
@@ -557,35 +583,37 @@ export const makeMap = ({
     unwatchEntities,
   });
 
-  const faceControllers = new Array(6).fill(null).map((_, face) => makeFace({
-    $viewport,
-    face,
-    faceSize,
+  const faceControllers = new Array(6).fill(null).map((_, face) =>
+    makeFace({
+      $viewport,
+      face,
+      faceSize,
 
-    tileSizePx,
-    faceSizePx,
-    facetSizePx,
+      tileSizePx,
+      faceSizePx,
+      facetSizePx,
 
-    watchTerrain,
-    unwatchTerrain,
-    getTerrainFlags,
-    watchEntities,
-    unwatchEntities,
-    tileCoordinateOnFace,
-    createFacet,
-  }));
+      watchTerrain,
+      unwatchTerrain,
+      getTerrainFlags,
+      watchEntities,
+      unwatchEntities,
+      tileCoordinateOnFace,
+      createFacet,
+    }),
+  );
 
   /** @param {number} facet */
   const facetEnters = facet => {
-    const {f: face, x, y} = facetCoordinate(facet);
+    const { f: face, x, y } = facetCoordinate(facet);
     // console.log(`facet ${facet} enters on face ${face} at ${x}, ${y}`);
     const tiles = tilesForFacet(facet);
-    faceControllers[face].facetEnters(facet, tiles, {x, y});
+    faceControllers[face].facetEnters(facet, tiles, { x, y });
   };
 
   /** @param {number} facet */
   const facetExits = facet => {
-    const {f: face} = facetCoordinate(facet);
+    const { f: face } = facetCoordinate(facet);
     // console.log(`facet ${facet} exits on face ${face}`);
     faceControllers[face].facetExits(facet);
   };
@@ -594,7 +622,7 @@ export const makeMap = ({
    * @param {number} tile
    */
   const translateTileToFacetNumber = tile => {
-    const {f, x, y} = tileCoordinate(tile);
+    const { f, x, y } = tileCoordinate(tile);
     return facetNumber({
       f,
       x: Math.floor(x / facetsPerFaceSize),
@@ -609,7 +637,7 @@ export const makeMap = ({
    */
   const facetTiles = new Map();
 
-  const {keepTilesAround} = makeTileKeeper({
+  const { keepTilesAround } = makeTileKeeper({
     /** @param {number} tile */
     enter(tile) {
       const facet = translateTileToFacetNumber(tile);
@@ -626,7 +654,9 @@ export const makeMap = ({
       const facet = translateTileToFacetNumber(tile);
       const tiles = facetTiles.get(facet);
       if (tiles == null) {
-        throw new Error(`Assertion failed: tile exits from absent facet, tile ${tile} facet ${facet}`);
+        throw new Error(
+          `Assertion failed: tile exits from absent facet, tile ${tile} facet ${facet}`,
+        );
       }
       tiles.delete(tile);
       if (tiles.size === 0) {
@@ -645,31 +675,40 @@ export const makeMap = ({
   /**
    * @param {number} destination
    */
-  const jump = (destination) => {
+  const jump = destination => {
     keepTilesAround(destination, frustumRadius);
 
-    drift = {x: 0, y: 0, a: 0};
+    drift = { x: 0, y: 0, a: 0 };
 
     const coordinate = tileCoordinate(destination);
-    const {f: face} = coordinate;
+    const { f: face } = coordinate;
 
-    faceControllers[face].relocate({x: 0, y: 0, a: 0});
+    faceControllers[face].relocate({ x: 0, y: 0, a: 0 });
 
     const [northerly] = [0, 1, 2, 3].map(direction => {
-      const {position, turn} = faceAdvance({ position: face, direction });
-      faceControllers[position].relocate({...quarturnVectors[direction], a: (4 - turn) % 4});
-      return {position, turn};
+      const { position, turn } = faceAdvance({ position: face, direction });
+      faceControllers[position].relocate({
+        ...quarturnVectors[direction],
+        a: (4 - turn) % 4,
+      });
+      return { position, turn };
     });
     // Position the opposite face north of north, accumulating rotations if needed.
-    const neighbor = faceAdvance({ position: northerly.position, direction: (4 - northerly.turn) % 4 });
-    const vector = {x: 0, y: -2}; // north, then north again
-    faceControllers[5 - face].relocate({...vector, a: (8 - northerly.turn - neighbor.turn) % 4});
+    const neighbor = faceAdvance({
+      position: northerly.position,
+      direction: (4 - northerly.turn) % 4,
+    });
+    const vector = { x: 0, y: -2 }; // north, then north again
+    faceControllers[5 - face].relocate({
+      ...vector,
+      a: (8 - northerly.turn - neighbor.turn) % 4,
+    });
 
     viewportTransform = compose(
       translate(scaleVector(coordinate, -tileSizePx)),
-      translate(scaleVector({x: 1, y: 1}, -tileSizePx/2))
+      translate(scaleVector({ x: 1, y: 1 }, -tileSizePx / 2)),
     );
-    viewportChange = {x: 0, y: 0, a: 0};
+    viewportChange = { x: 0, y: 0, a: 0 };
     positionCamera(matrixStyle(viewportTransform));
   };
 
@@ -680,7 +719,7 @@ export const makeMap = ({
   const move = (destination, change) => {
     keepTilesAround(destination, frustumRadius);
 
-    const {turn, transit, position: origin} = change;
+    const { turn, transit, position: origin } = change;
     const originalLocalDirection = change.direction;
     const localVector = quarturnVectors[originalLocalDirection];
 
@@ -699,8 +738,14 @@ export const makeMap = ({
       const originalGlobalLeftVector = addVectors(drift, globalLeftVector);
       const originalGlobalRightVector = addVectors(drift, globalRightVector);
 
-      const globalLeftPivotVector = addVectors(scaleVector(addVectors(globalVector, globalRightVector), 0.5), centerVector);
-      const globalRightPivotVector = addVectors(scaleVector(addVectors(globalVector, globalLeftVector), 0.5), centerVector);
+      const globalLeftPivotVector = addVectors(
+        scaleVector(addVectors(globalVector, globalRightVector), 0.5),
+        centerVector,
+      );
+      const globalRightPivotVector = addVectors(
+        scaleVector(addVectors(globalVector, globalLeftVector), 0.5),
+        centerVector,
+      );
 
       const originalGlobalAngle = drift.a;
 
@@ -724,40 +769,42 @@ export const makeMap = ({
       // prev: does not move since it becomes the floating tile
 
       const originCoordinate = tileCoordinate(origin);
-      const {f: originFace} = originCoordinate;
-      const {position: leftFace, turn: leftTurn} = faceAdvance({
+      const { f: originFace } = originCoordinate;
+      const { position: leftFace, turn: leftTurn } = faceAdvance({
         position: originFace,
         direction: originalLocalLeftDirection,
       });
-      const {position: rightFace, turn: rightTurn} = faceAdvance({
+      const { position: rightFace, turn: rightTurn } = faceAdvance({
         position: originFace,
         direction: originalLocalRightDirection,
       });
-      const {position: destinationFace, turn: destinationTurn} = faceAdvance({
+      const { position: destinationFace, turn: destinationTurn } = faceAdvance({
         position: originFace,
         direction: originalLocalDirection,
       });
       // console.log({destinationFace, originalLocalDirection, destinationTurn});
-      const {position: nextFace, turn: nextTurn} = faceAdvance({
+      const { position: nextFace, turn: nextTurn } = faceAdvance({
         position: destinationFace,
         direction: (originalLocalDirection + 4 + destinationTurn) % 4,
       });
 
       const originalLocalLeftAngle = 4 - leftTurn;
-      const originalGlobalLeftAngle = (originalGlobalAngle + originalLocalLeftAngle) % 4;
+      const originalGlobalLeftAngle =
+        (originalGlobalAngle + originalLocalLeftAngle) % 4;
       const originalLocalRightAngle = 4 - rightTurn;
-      const originalGlobalRightAngle = (originalGlobalAngle + originalLocalRightAngle) % 4;
+      const originalGlobalRightAngle =
+        (originalGlobalAngle + originalLocalRightAngle) % 4;
 
       const finalNextVector = addVectors(drift, globalVector);
 
       faceControllers[leftFace].pivot({
-        origin: {...originalGlobalLeftVector, a: originalGlobalLeftAngle},
+        origin: { ...originalGlobalLeftVector, a: originalGlobalLeftAngle },
         about: globalLeftPivotVector,
         angle: 1,
       });
 
       faceControllers[rightFace].pivot({
-        origin: {...originalGlobalRightVector, a: originalGlobalRightAngle},
+        origin: { ...originalGlobalRightVector, a: originalGlobalRightAngle },
         about: globalRightPivotVector,
         angle: -1,
       });
@@ -768,8 +815,8 @@ export const makeMap = ({
       });
     }
 
-    const {x, y} = localVector;
-    viewportChange = {x, y, a: turn};
+    const { x, y } = localVector;
+    viewportChange = { x, y, a: turn };
   };
 
   const tick = () => {
@@ -784,14 +831,14 @@ export const makeMap = ({
     }
 
     // Viewport reset.
-    const {x, y, a} = viewportChange;
+    const { x, y, a } = viewportChange;
     viewportTransform = compose(
       viewportTransform,
-      translate(scaleVector({x, y}, -tileSizePx)),
+      translate(scaleVector({ x, y }, -tileSizePx)),
       rotateQuarturn(4 + a),
     );
     positionCamera(matrixStyle(viewportTransform));
-    viewportChange = {x: 0, y: 0, a: 0};
+    viewportChange = { x: 0, y: 0, a: 0 };
   };
 
   /**
@@ -809,19 +856,19 @@ export const makeMap = ({
     }
 
     // Viewport transition.
-    const {x, y, a} = viewportChange;
+    const { x, y, a } = viewportChange;
     const partialTransform = compose(
       viewportTransform,
       translate({
         x: -x * tileSizePx * progress.sinusoidal,
-        y: -y * tileSizePx *  progress.sinusoidal,
+        y: -y * tileSizePx * progress.sinusoidal,
       }),
       rotate(a * -progress.sinusoidalQuarterTurn),
     );
     positionCamera(matrixStyle(partialTransform));
   };
 
-  const cameraController = {jump, move, animate, tick, tock};
+  const cameraController = { jump, move, animate, tick, tock };
 
-  return {$map, cameraController};
+  return { $map, cameraController };
 };

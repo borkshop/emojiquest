@@ -10,8 +10,8 @@
 
 // @ts-check
 
-import {translate, rotateX, rotateY, rotateZ} from './matrix3d.js';
-import {quarturnVectors} from './geometry2d.js';
+import { translate, rotateX, rotateY, rotateZ } from './matrix3d.js';
+import { quarturnVectors } from './geometry2d.js';
 
 /** @typedef {import('./matrix3d.js').Matrix} Matrix */
 /** @typedef {import('./camera.js').Camera} Camera */
@@ -29,7 +29,7 @@ import {quarturnVectors} from './geometry2d.js';
  */
 
 /** @type {EaseFn} */
-const linear = (/** @type {number} */p) => p;
+const linear = (/** @type {number} */ p) => p;
 
 /**
  * @typedef {(p: number) => Matrix} Roll
@@ -46,15 +46,23 @@ const linear = (/** @type {number} */p) => p;
  * @param {number} [options.fast]
  *
  */
-export function makeCameraController({camera, tileSizePx, advance, ease = linear, easeRoll = ease, fast = 500, slow = 1500}) {
+export function makeCameraController({
+  camera,
+  tileSizePx,
+  advance,
+  ease = linear,
+  easeRoll = ease,
+  fast = 500,
+  slow = 1500,
+}) {
   /**
    * @type {Array<Roll>}
    */
   const rolls = [
-    (/** @type {number} */ p) => rotateX(-Math.PI/2 * easeRoll(p)),
-    (/** @type {number} */ p) => rotateY(-Math.PI/2 * easeRoll(p)),
-    (/** @type {number} */ p) => rotateX(Math.PI/2 * easeRoll(p)),
-    (/** @type {number} */ p) => rotateY(Math.PI/2 * easeRoll(p)),
+    (/** @type {number} */ p) => rotateX((-Math.PI / 2) * easeRoll(p)),
+    (/** @type {number} */ p) => rotateY((-Math.PI / 2) * easeRoll(p)),
+    (/** @type {number} */ p) => rotateX((Math.PI / 2) * easeRoll(p)),
+    (/** @type {number} */ p) => rotateY((Math.PI / 2) * easeRoll(p)),
   ];
 
   /**
@@ -62,29 +70,29 @@ export function makeCameraController({camera, tileSizePx, advance, ease = linear
    * @returns {CursorChange}
    */
   function go(at) {
-    const {direction} = at;
+    const { direction } = at;
     const to = advance(at);
     if (to.transit) {
-
       // rotations
       camera.transition(slow, rolls[direction]);
       // translations
-      camera.transition(slow, (/** @type {number} */ p) => rotateZ(-Math.PI/2 * to.turn * ease(p)));
-
+      camera.transition(slow, (/** @type {number} */ p) =>
+        rotateZ((-Math.PI / 2) * to.turn * ease(p)),
+      );
     } else {
-      const {x: dx, y: dy} = quarturnVectors[direction];
+      const { x: dx, y: dy } = quarturnVectors[direction];
       camera.transition(fast, (/** @type {number} */ p) => {
         const e = ease(p);
         return translate({
           x: -dx * tileSizePx * e,
           y: -dy * tileSizePx * e,
           z: 0,
-        })
+        });
       });
     }
 
     return to;
   }
 
-  return {go};
+  return { go };
 }
