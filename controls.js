@@ -247,7 +247,7 @@ export const makeController = (
       followCursor(destination, change);
     },
     dialog(_entity, text) {
-      dialogController.log(text);
+      dialogController.logElement().innerHTML = text;
     },
   };
 

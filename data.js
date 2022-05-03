@@ -24,11 +24,11 @@ export const validAgentTypes = [
   { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.', '🐏 Ram.', '🐑 Ewe.'] },
   { name: 'coat' }, // temporary
   { name: 'castle', dialog: [
-    '👸 Behold, stranger. I am *Princess Die* of *Euia*.',
-    '👸 The power of *mojick*, the transmutation of *emoji*, has faded from the land…',
-    '👸 With it, all the *mojical creatures* have vanished…',
-    '👸 The 🦄*unicorn* has not been seen since *The Fall*…',
-    '👸 The 🐉*dragon* is but a myth. 🔚',
+    '👸 Behold, stranger. I am <b>Princess Die</b> of <b>Euia</b>.',
+    '👸 The power of <b>mojick</b>—the transmutation of <b>emoji</b>—has faded from the land…',
+    '👸 With it, all the <b>mojical creatures</b> have vanished…',
+    '👸 The 🦄<b>unicorn</b> has not been seen since <b>The Fall</b>…',
+    '👸 The 🐉<b>dragon</b> is but a myth. 🔚',
   ] },
 ];
 
