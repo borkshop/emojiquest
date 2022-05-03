@@ -23,6 +23,13 @@ export const validAgentTypes = [
   { name: 'ram', wanders: 'land' },
   { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.', '🐏 Ram.', '🐑 Ewe.'] },
   { name: 'coat' }, // temporary
+  { name: 'castle', dialog: [
+    '👸 Behold, stranger. I am *Princess Die* of *Euia*.',
+    '👸 The power of *mojick*, the transmutation of *emoji*, has faded from the land…',
+    '👸 With it, all the *mojical creatures* have vanished…',
+    '👸 The 🦄*unicorn* has not been seen since *The Fall*…',
+    '👸 The 🐉*dragon* is but a myth. 🔚',
+  ] },
 ];
 
 /**
@@ -152,6 +159,7 @@ export const tileTypes = [
   { name: 'shirt', text: '👕' },
   { name: 'hamburger', text: '🍔 ' },
   { name: 'thumbUp', text: '👍' },
+  { name: 'castle', text: '🏰 ' },
 ];
 
 /**

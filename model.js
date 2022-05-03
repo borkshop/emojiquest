@@ -202,6 +202,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   const removes = new Set();
   /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
   const bumps = [];
+  /** @type {Map<number, {type: number, next: number}>} */
+  const dialogs = new Map();
 
   /** @type {Set<number>} */
   const craftIntents = new Set();
@@ -531,11 +533,16 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
           const patientDesc = mechanics.agentTypes[patientType];
           const { dialog } = patientDesc;
           if (dialog !== undefined) {
-            // TODO rotate dialog:
             // The dialog might cycle on repeated bumps and reset when the
-            // agent fails to repeat a bump, or for depending on the patient
-            // type, might not reset.
-            onDialog(agent, dialog[0]);
+            // agent fails to repeat a bump.
+            const rotation = dialogs.get(agent);
+            let index = 0;
+            if (rotation !== undefined && rotation.type === patientType) {
+              index = rotation.next;
+            }
+            index = index % dialog.length;
+            onDialog(agent, dialog[index]);
+            dialogs.set(agent, {type: patientType, next: index + 1});
           }
         }
       }
