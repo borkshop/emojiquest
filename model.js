@@ -491,7 +491,9 @@ export function makeModel({
         }
         if (bumped !== null) {
           const {dialog} = bumped;
-          onDialog(agent, dialog);
+          if (dialog !== undefined) {
+            onDialog(agent, dialog);
+          }
         } else {
           const patientType = assumeDefined(entityTypes.get(patient));
           const patientDesc = mechanics.agentTypes[patientType];
