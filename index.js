@@ -271,13 +271,13 @@ const main = async () => {
   window.addEventListener('keypress', event => {
     if (event.key === 'w') {
       event.stopPropagation();
-      const location = worldModel.locate(controls.currentAgent());
-      worldModel.setTerrainFlags(location, 0b1);
+      const location = controls.at();
+      worldModel.toggleTerrainFlags(location, 0b1);
     }
     if (event.key === 'm') {
       event.stopPropagation();
-      const location = worldModel.locate(controls.currentAgent());
-      worldModel.setTerrainFlags(location, 0b10);
+      const location = controls.at();
+      worldModel.toggleTerrainFlags(location, 0b10);
     }
   });
 };

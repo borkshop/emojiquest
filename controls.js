@@ -1394,6 +1394,8 @@ export const makeController = (
 
   cameraController.jump(cursor.position);
 
+  const at = () => cursor.position;
+
   return {
     tock,
     animate,
@@ -1401,6 +1403,7 @@ export const makeController = (
     command,
     jump,
     currentAgent,
+    at,
   };
 };
 

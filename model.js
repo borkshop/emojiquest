@@ -164,6 +164,20 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     }
   };
 
+  /**
+   * @param {number} location
+   * @param {number} terrainFlags
+   */
+  const toggleTerrainFlags = (location, terrainFlags) => {
+    terrain[location] ^= terrainFlags;
+    const watchers = terrainWatchers.get(location);
+    if (watchers !== undefined) {
+      for (const watch of watchers) {
+        watch(location);
+      }
+    }
+  };
+
   // TODO consider assigning every position a priority, then shuffling
   // priorities locally each turn.
   // const priorities = new Array(size);
@@ -1072,6 +1086,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     unwatchTerrain,
     getTerrainFlags,
     setTerrainFlags,
+    toggleTerrainFlags,
     tick,
     tock,
     init,
