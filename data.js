@@ -158,42 +158,36 @@ export const tileTypes = [
  * @type {Array<import('./mechanics.js').Recipe>}
  */
 export const recipes = [
-
   // metallurgy 1
-  ['bolt', 'bolt', 'knife'], // price 4
-  ['bolt', 'gear', 'spoon'], // price 5
-  ['bolt', 'link', 'wrench'], // price 3
-  ['gear', 'bolt', 'pick'], // price 5
-  ['gear', 'gear', 'bicycle'], // price 6
-  ['gear', 'link', 'hook'], // price 4
-  ['link', 'gear', 'shield'], // price 4
-  ['link', 'bolt', 'hammer'], // price 3
-  ['link', 'link', 'chain'], // price 2
+  { "agent": "bolt", "reagent": "bolt", "product": "knife", price: 4 },
+  { "agent": "bolt", "reagent": "gear", "product": "spoon", price: 5 },
+  { "agent": "bolt", "reagent": "link", "product": "wrench", price: 3 },
+  { "agent": "gear", "reagent": "bolt", "product": "pick", price: 5 },
+  { "agent": "gear", "reagent": "gear", "product": "bicycle", price: 6 },
+  { "agent": "gear", "reagent": "link", "product": "hook", price: 4 },
+  { "agent": "link", "reagent": "gear", "product": "shield", price: 4 },
+  { "agent": "link", "reagent": "bolt", "product": "hammer", price: 3 },
+  { "agent": "link", "reagent": "link", "product": "chain", price: 2 },
 
   // metallurgy 2
-
-  ['knife', 'knife', 'scissors'], // price 8
-  ['bolt', 'knife', 'dagger'], // price 6
-  ['hammer', 'knife', 'axe'], // price 7
-  ['hammer', 'pick', 'hammerAndPick'], // price 8
-  ['hammer', 'wrench', 'hammerAndWrench'], // price 6
-  ['gear', 'chain', 'basket'], // price 5
+  { "agent": "knife", "reagent": "knife", "product": "scissors", price: 8 },
+  { "agent": "bolt", "reagent": "knife", "product": "dagger", price: 6 },
+  { "agent": "hammer", "reagent": "knife", "product": "axe", price: 7 },
+  { "agent": "hammer", "reagent": "pick", "product": "hammerAndPick", price: 8 },
+  { "agent": "hammer", "reagent": "wrench", "product": "hammerAndWrench", price: 6 },
+  { "agent": "gear", "reagent": "chain", "product": "basket", price: 5 },
 
   // composite 2
-
-  ['spoon', 'softwood', 'canoe', 'spoon'],
-  ['knife', 'softwood', 'knittingNeedles', 'knife'],
-  ['hook', 'softwood', 'fishingRod'],
+  { "agent": "spoon", "reagent": "softwood", "product": "canoe", "byproduct": "spoon" },
+  { "agent": "knife", "reagent": "softwood", "product": "knittingNeedles", "byproduct": "knife" },
+  { "agent": "hook", "reagent": "softwood", "product": "fishingRod" },
 
   // metallurgy 3
-
-  ['bicycle', 'basket', 'cart'], // price 11
-  ['dagger', 'dagger', 'doubleDagger'], // price 12
+  { "agent": "bicycle", "reagent": "basket", "product": "cart" },
+  { "agent": "dagger", "reagent": "dagger", "product": "doubleDagger" },
 
   // composite 3
-
-  ['knittingNeedles', 'yarn', 'coat', 'knittingNeedles'],
-
+  { "agent": "knittingNeedles", "reagent": "yarn", "product": "coat", "byproduct": "knittingNeedles" }
 ];
 
 /**

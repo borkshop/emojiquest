@@ -36,12 +36,13 @@ import {halfOcturn, fullOcturn, quarturnToOcturn} from './geometry2d.js';
  */
 
 /**
- * @typedef {[
+ * @typedef {{
  *   agent: string,
  *   reagent: string,
  *   product: string,
  *   byproduct?: string,
- * ]} Recipe
+ *   price?: number,
+ * }} Recipe
  */
 
 /**
@@ -342,7 +343,7 @@ export function makeMechanics({
   const craftingFormulae = new Map();
   const bumpingFormulae = new Map();
 
-  for (const [agent, reagent, product, byproduct] of recipes) {
+  for (const {agent, reagent, product, byproduct} of recipes) {
     registerRecipe(agent, reagent, product, byproduct);
   }
 
