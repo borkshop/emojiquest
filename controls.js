@@ -533,6 +533,7 @@ export const makeController = (
         cameraController.move(destination, change);
         followCursor(destination, change);
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
+        dialogController.close();
         dialogController.log(`${toponym(cursor.position)}`);
         return editMode;
       } else if (command === 1) {
