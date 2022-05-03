@@ -1,5 +1,6 @@
 html {
-  font-family: "Book Antiqua", Palatino, "Palatino Linotype", "Palatino LT STD", Georgia, serif;
+  font-family: 'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD',
+    Georgia, serif;
 
   user-select: none;
   touch-action: none;

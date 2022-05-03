@@ -542,7 +542,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
             }
             index = index % dialog.length;
             onDialog(agent, dialog[index]);
-            dialogs.set(agent, {type: patientType, next: index + 1});
+            dialogs.set(agent, { type: patientType, next: index + 1 });
           }
         }
       }

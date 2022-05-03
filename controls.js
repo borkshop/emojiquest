@@ -1023,9 +1023,9 @@ export const makeController = (
   };
 
   const logAgentChoice = () => {
-    const {name, tile} = agentTypes[editType];
+    const { name, tile } = agentTypes[editType];
     const tileType = tile ? tileTypesByName[tile] : tileTypesByName[name];
-    const {text} = tileTypes[tileType];
+    const { text } = tileTypes[tileType];
     dialogController.close();
     dialogController.log(`${text} ${name}`);
   };
