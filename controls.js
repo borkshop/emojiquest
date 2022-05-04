@@ -880,6 +880,19 @@ export const makeController = (
     return playMode;
   };
 
+  const enterMenuMode = () => {
+    oneKeyView.replace(0, tileTypesByName.thumbUp);
+    menuController.show();
+    dialogController.logElement().innerHTML = '🍔 <b>Hamburger Menu</b>';
+    return menuMode;
+  };
+
+  const exitMenuMode = () => {
+    oneKeyView.replace(0, tileTypesByName.hamburger);
+    dialogController.close();
+    menuController.hide();
+  };
+
   const playToMenuMode = () => {
     nineKeyView.despawnOutward(ee);
     nineKeyView.despawnOutward(ww);
@@ -892,15 +905,11 @@ export const makeController = (
     dismissWatch();
     oneKeyView.replace(0, tileTypesByName.thumbUp);
 
-    menuController.show();
-
-    return menuMode;
+    return enterMenuMode();
   };
 
   const menuToPlayMode = () => {
-    menuController.hide();
-
-    oneKeyView.replace(0, tileTypesByName.hamburger);
+    exitMenuMode();
 
     nineKeyView.spawnInward(tileTypesByName.east, ee);
     nineKeyView.spawnInward(tileTypesByName.west, ww);
@@ -916,9 +925,7 @@ export const makeController = (
   };
 
   const menuToEditMode = () => {
-    menuController.hide();
-
-    oneKeyView.replace(0, tileTypesByName.hamburger);
+    exitMenuMode();
 
     nineKeyView.spawnInward(tileTypesByName.west, ww);
     nineKeyView.spawnInward(tileTypesByName.east, ee);
@@ -958,11 +965,9 @@ export const makeController = (
     nineKeyView.despawnOutward(ee);
     nineKeyView.despawnOutward(ww);
 
-    oneKeyView.replace(0, tileTypesByName.thumbUp);
-
     dialogController.close();
 
-    return menuMode;
+    return enterMenuMode();
   };
 
   /** @type {number} */
