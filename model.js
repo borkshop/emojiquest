@@ -232,8 +232,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    */
   const followers = new Map();
 
-  // TODO other kinds of observers, beyond just following an entity's location.
-
   let nextEntity = 1; // 0 implies non-existant.
 
   /**
