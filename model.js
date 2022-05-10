@@ -74,6 +74,18 @@ import { quarturnToOcturn } from './geometry2d.js';
 /** @typedef {Model['restore']} RestoreFn */
 
 /**
+ * @template T
+ * @param {Array<T>} candidates
+ * @param {number} index
+ */
+const pluck = (candidates, index) => {
+  const winner = candidates[index];
+  candidates[index] = candidates[candidates.length - 1];
+  candidates.length--;
+  return winner;
+};
+
+/**
  * @param {Object} args
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
@@ -466,9 +478,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // Auction
     // Considering every tile that an entity wishes to move into or act upon
     for (const [destination, options] of targets.entries()) {
-      const candidates = [...options.keys()].sort(() => Math.random() - 0.5);
-      // TODO: pluck less lazy
-      const winner = assumeDefined(candidates.pop());
+      const losers = [...options.keys()];
+      const winner = pluck(losers, Math.floor(Math.random() * losers.length));
       const change = assumeDefined(options.get(winner));
       const { position: origin, direction, turn, repeat } = change;
       const patient = entities[destination];
@@ -501,7 +512,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       }
       // Bounce all of the candidates that did not get to proceed in the
       // direction they intended.
-      for (const loser of candidates) {
+      for (const loser of losers) {
         const change = assumeDefined(options.get(loser));
         const { direction } = change;
         macroViewModel.bounce(loser, direction * quarturnToOcturn);
