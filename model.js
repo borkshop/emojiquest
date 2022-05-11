@@ -37,7 +37,7 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
- * @callback MotionFn
+ * @callback MoveFn
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
  * @param {number} destination
@@ -57,7 +57,7 @@ import { quarturnToOcturn } from './geometry2d.js';
 
 /**
  * @typedef {Object} Follower
- * @property {MotionFn} motion
+ * @property {MoveFn} move
  * @property {DialogFn} dialog
  * @property {HealthFn} health
  * @property {StaminaFn} stamina
@@ -386,11 +386,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {CursorChange} change
    * @param {number} destination
    */
-  function onMotion(e, change, destination) {
+  function onMove(e, change, destination) {
     const entityFollowers = followers.get(e);
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
-        follower.motion(e, change, destination);
+        follower.move(e, change, destination);
       }
     }
   }
@@ -581,7 +581,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
           direction * quarturnToOcturn,
           turn,
         );
-        onMotion(winner, change, destination);
+        onMove(winner, change, destination);
         locations.set(winner, destination);
         moves.add(winner);
         entitiesWriteBuffer[destination] = winner;

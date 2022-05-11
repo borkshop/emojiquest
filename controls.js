@@ -241,7 +241,7 @@ export const makeController = (
 
   /** @type {import('./model.js').Follower} */
   const agentFollower = {
-    motion(_entity, change, destination) {
+    move(_entity, change, destination) {
       cursor = { ...change, position: destination };
       cameraController.move(destination, change);
       followCursor(destination, change);
