@@ -44,9 +44,23 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
+ * @callback HealthFn
+ * @param {number} entity - entity that changed health
+ * @param {number} health
+ */
+
+/**
+ * @callback StaminaFn
+ * @param {number} entity - entity that changed stamina
+ * @param {number} stamina
+ */
+
+/**
  * @typedef {Object} Follower
  * @property {MotionFn} motion
  * @property {DialogFn} dialog
+ * @property {HealthFn} health
+ * @property {StaminaFn} stamina
  */
 
 /**
@@ -390,6 +404,32 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
         follower.dialog(e, dialog);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
+   * @param {number} health
+   */
+  function onHealth(e, health) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.health(e, health);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
+   * @param {number} stamina
+   */
+  function onStamina(e, stamina) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.stamina(e, stamina);
       }
     }
   }
@@ -799,13 +839,28 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   function use(entity, inventoryIndex) {
     const inventory = entityInventory(entity);
     const itemType = inventory[inventoryIndex];
-    const effectName = itemTypes[itemType].effect;
+    const itemDescriptor = itemTypes[itemType];
     inventory[inventoryIndex] = emptyItem; // poof
+    const effectName = itemDescriptor.effect;
     if (effectName !== undefined) {
       const effectType = assumeDefined(effectTypesByName[effectName]) - 1;
       availEffect(entity, effectType);
       chooseEffect(entity, effectType);
       return 'effect';
+    }
+    const healthEffect = itemDescriptor.health;
+    if (healthEffect !== undefined) {
+      const oldHealth = healths.get(entity) || 0;
+      const newHealth = Math.min(5, oldHealth + 1);
+      healths.set(entity, newHealth);
+      onHealth(entity, newHealth);
+    }
+    const staminaEffect = itemDescriptor.stamina;
+    if (staminaEffect !== undefined) {
+      const oldStamina = staminas.get(entity) || 0;
+      const newStamina = Math.min(5, oldStamina + 1);
+      staminas.set(entity, newStamina);
+      onStamina(entity, newStamina);
     }
     // TODO eat for health, eat for stamina
     return 'discard';

@@ -23,6 +23,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   name: string,
  *   tile?: string,
  *   comestible?: boolean,
+ *   health?: number,
+ *   stamina?: number,
  *   effect?: string,
  * }} ItemType
  */

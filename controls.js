@@ -249,6 +249,12 @@ export const makeController = (
     dialog(_entity, text) {
       dialogController.logElement().innerHTML = text;
     },
+    health(_entity, health) {
+      healthController.set(health);
+    },
+    stamina(_entity, stamina) {
+      staminaController.set(stamina);
+    },
   };
 
   worldModel.follow(agent, agentFollower);

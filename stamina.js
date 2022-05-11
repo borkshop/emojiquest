@@ -1,5 +1,6 @@
 // @ts-check
 
+import { assumeDefined } from './assert.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeTileView } from './tile-view.js';
@@ -38,18 +39,32 @@ export function writeStaminaBar({
   viewModel.watchEntities(tileMap, { enter, exit, place });
   const macroViewModel = makeMacroViewModel(viewModel, { name: 'staminaBar' });
 
-  // @ts-ignore
   let stamina = 0;
+  let next = 0;
+  /** @type {Array<number>} */
+  const entities = [];
 
-  macroViewModel.put(0, 0, staminaTileType);
-  macroViewModel.put(1, 1, staminaTileType);
-  macroViewModel.put(2, 2, staminaTileType);
-  macroViewModel.put(3, 3, staminaTileType);
-  macroViewModel.put(4, 4, staminaTileType);
+  /** @param {number} newStamina */
+  const set = newStamina => {
+    while (stamina < newStamina) {
+      const entity = next;
+      entities.push(entity);
+      macroViewModel.put(entity, 4 - stamina, staminaTileType);
+      macroViewModel.enter(entity);
+      next += 1;
+      stamina += 1;
+    }
+    while (newStamina < stamina) {
+      const entity = assumeDefined(entities.pop());
+      macroViewModel.exit(entity);
+      stamina -= 1;
+    }
+  };
 
   const { animate, tock } = macroViewModel;
 
   const controller = {
+    set,
     animate,
     tock,
   };

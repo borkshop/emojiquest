@@ -1,5 +1,6 @@
 // @ts-check
 
+import { assumeDefined } from './assert.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeTileView } from './tile-view.js';
@@ -38,18 +39,32 @@ export function writeHealthBar({
   viewModel.watchEntities(tileMap, { enter, exit, place });
   const macroViewModel = makeMacroViewModel(viewModel, { name: 'healthBar' });
 
-  // @ts-ignore
   let health = 0;
+  let next = 0;
+  /** @type {Array<number>} */
+  const entities = [];
 
-  macroViewModel.put(0, 0, healthTileType);
-  macroViewModel.put(1, 1, healthTileType);
-  macroViewModel.put(2, 2, healthTileType);
-  macroViewModel.put(3, 3, healthTileType);
-  macroViewModel.put(4, 4, healthTileType);
+  /** @param {number} newHealth */
+  const set = newHealth => {
+    while (health < newHealth) {
+      const entity = next;
+      entities.push(entity);
+      macroViewModel.put(entity, health, healthTileType);
+      macroViewModel.enter(entity);
+      next += 1;
+      health += 1;
+    }
+    while (newHealth < health) {
+      const entity = assumeDefined(entities.pop());
+      macroViewModel.exit(entity);
+      health -= 1;
+    }
+  };
 
   const { animate, tock } = macroViewModel;
 
   const controller = {
+    set,
     animate,
     tock,
   };
