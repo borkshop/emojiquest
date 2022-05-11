@@ -178,6 +178,12 @@ text.moji {
   text-anchor: middle;
 }
 
+rect.backTile {
+  --light: calc(255 * 0.7);
+  stroke: rgba(var(--light), var(--light), var(--light), 1);
+  stroke-width: 0.0125px;
+}
+
 .panel {
   font-size: 20px;
   color: black;
