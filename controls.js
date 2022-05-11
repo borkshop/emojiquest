@@ -1403,6 +1403,19 @@ export const makeController = (
     worldModel.follow(agent, agentFollower);
   };
 
+  /** @param {number} newAgent */
+  const initialJumpHack = newAgent => {
+    assert(mode === playMode, `jump only programmed to account for play mode`);
+
+    jump(newAgent);
+
+    updateHands();
+    updateBack();
+
+    tick();
+    tock();
+  };
+
   cameraController.jump(cursor.position);
 
   const at = () => cursor.position;
@@ -1412,7 +1425,7 @@ export const makeController = (
     animate,
     down,
     command,
-    jump,
+    jump: initialJumpHack,
     currentAgent,
     at,
   };
