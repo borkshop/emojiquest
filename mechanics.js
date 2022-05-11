@@ -323,7 +323,7 @@ export function makeMechanics({
    * @property {(entity: number) => number} entityType
    * @property {(entity: number) => number} entityEffect
    * @property {(entity: number) => Array<number>} entityInventory
-   * @property {import('./macro-view-model.js').MacroViewModel} macroViewModel
+   * @property {import('./model.js').MacroViewModel} macroViewModel
    * @property {(entity: number, location: number) => void} destroyEntity
    */
 

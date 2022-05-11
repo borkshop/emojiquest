@@ -16,7 +16,72 @@
 
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
- * @typedef {import('./macro-view-model.js').MacroViewModel} MacroViewModel
+ */
+
+/**
+ * @callback PutFn
+ * @param {number} entity
+ * @param {number} location
+ * @param {number} tileType
+ */
+
+/**
+ * @callback MoveFn
+ * @param {number} entity
+ * @param {number} destination
+ * @param {number} directionQuarturns
+ * @param {number} turnQuarturns
+ */
+
+/**
+ * @callback BounceFn
+ * Instructs the viewer to animate the entity bumping in the direction but not
+ * moving.
+ * @param {number} entity
+ * @param {number} directionQuarturns
+ */
+
+/**
+ * @callback TakeFn
+ * Instructs the viewer to animate the entity being sent to the entity in the
+ * given direction, as if taken by that entity.
+ * @param {number} entity
+ * @param {number} direction
+ */
+
+/**
+ * @callback FellFn
+ * Instructs the viewer to animate the entity falling.
+ * @param {number} entity
+ */
+
+/**
+ * @callback EnterFn
+ * Instructs the viewer to animate the entity into view.
+ * @param {number} entity
+ */
+
+/**
+ * @callback ExitFn
+ * Instructs the viewer to animate the entity out of the view.
+ * @param {number} entity
+ */
+
+/**
+ * @callback TockFn
+ * Informs the view that the animation turn has ended.
+ */
+
+/**
+ * @typedef {Object} MacroViewModel
+ * @property {PutFn} put
+ * @property {MoveFn} move
+ * @property {BounceFn} bounce
+ * @property {TakeFn} take
+ * @property {FellFn} fell
+ * @property {EnterFn} enter
+ * @property {ExitFn} exit
+ * @property {TockFn} tock
  */
 
 import { assert, assertDefined, assumeDefined } from './assert.js';
@@ -31,36 +96,36 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
- * @callback DialogFn
+ * @callback OnDialogFn
  * @param {number} entity - entity that received dialog
  * @param {string} dialog
  */
 
 /**
- * @callback MoveFn
+ * @callback OnMoveFn
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
  * @param {number} destination
  */
 
 /**
- * @callback HealthFn
+ * @callback OnHealthFn
  * @param {number} entity - entity that changed health
  * @param {number} health
  */
 
 /**
- * @callback StaminaFn
+ * @callback OnStaminaFn
  * @param {number} entity - entity that changed stamina
  * @param {number} stamina
  */
 
 /**
  * @typedef {Object} Follower
- * @property {MoveFn} move
- * @property {DialogFn} dialog
- * @property {HealthFn} health
- * @property {StaminaFn} stamina
+ * @property {OnMoveFn} move
+ * @property {OnDialogFn} dialog
+ * @property {OnHealthFn} health
+ * @property {OnStaminaFn} stamina
  */
 
 /**
