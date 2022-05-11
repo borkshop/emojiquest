@@ -63,6 +63,12 @@ const paintFaceFlags = (f, terrainFlags) => {
   }
 };
 
+/**
+ * @param {number} f - face number
+ * @param {import('./geometry2d.js').Point} point1
+ * @param {import('./geometry2d.js').Point} point2
+ * @param {number} entityType
+ */
 const paint = (f, { x: x1, y: y1 }, { x: x2, y: y2 }, entityType) => {
   for (let x = x1; x < x2; x += 1) {
     for (let y = y1; y < y2; y += 1) {
@@ -72,29 +78,29 @@ const paint = (f, { x: x1, y: y1 }, { x: x2, y: y2 }, entityType) => {
   }
 };
 
-// paintFaceFlags(1, terrainHot);
-// paintFaceFlags(2, terrainCold | terrainWater);
-// paintFaceFlags(3, terrainCold);
-// paintFaceFlags(4, terrainWater);
+paintFaceFlags(1, terrainHot);
+paintFaceFlags(2, terrainCold | terrainWater);
+paintFaceFlags(3, terrainCold);
+paintFaceFlags(4, terrainWater);
 
-// paint(
-//   5,
-//   { x: 0, y: 0 },
-//   { x: faceSize, y: faceSize / 3 },
-//   mechanics.agentTypesByName.pineTree,
-// );
-// paint(
-//   5,
-//   { x: 0, y: 0 },
-//   { x: faceSize / 3, y: faceSize },
-//   mechanics.agentTypesByName.pineTree,
-// );
-// paint(
-//   5,
-//   { x: 0, y: (faceSize * 2) / 3 },
-//   { x: faceSize, y: faceSize },
-//   mechanics.agentTypesByName.pineTree,
-// );
+paint(
+  5,
+  { x: 0, y: 0 },
+  { x: faceSize, y: faceSize / 3 },
+  mechanics.agentTypesByName.pineTree,
+);
+paint(
+  5,
+  { x: 0, y: 0 },
+  { x: faceSize / 3, y: faceSize },
+  mechanics.agentTypesByName.pineTree,
+);
+paint(
+  5,
+  { x: 0, y: (faceSize * 2) / 3 },
+  { x: faceSize, y: faceSize },
+  mechanics.agentTypesByName.pineTree,
+);
 
 snapshot = model.capture(agent);
 snapshotText = JSON.stringify(snapshot);
