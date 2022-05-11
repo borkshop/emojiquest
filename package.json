@@ -40,7 +40,8 @@
       "tsconfig.json",
       "jsconfig.json",
       "package.json",
-      "snowpack.config.json"
+      "snowpack.config.json",
+      "draw-daia.js"
     ],
     "mount": {
       ".": "/"
