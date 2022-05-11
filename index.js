@@ -16,7 +16,7 @@ import {
   tileTypes,
   validAgentTypes,
   validItemTypes,
-  effectTypes,
+  validEffectTypes,
 } from './data.js';
 
 import { createDialogBox } from './dialog.js';
@@ -118,7 +118,7 @@ const main = async () => {
     tileTypes,
     validAgentTypes,
     validItemTypes,
-    effectTypes,
+    validEffectTypes,
   });
 
   const cursor = { position: initialPosition, direction: north };

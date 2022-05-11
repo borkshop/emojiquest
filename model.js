@@ -73,6 +73,25 @@ import { quarturnToOcturn } from './geometry2d.js';
 /** @typedef {Model['capture']} CaptureFn */
 /** @typedef {Model['restore']} RestoreFn */
 
+const makeFlags = function* () {
+  for (let i = 0; true; i += 1) {
+    yield 1 << i;
+  }
+};
+
+export const [terrainWater, terrainLava, terrainCold, terrainHot] = makeFlags();
+
+export const [
+  effectWarm,
+  effectFire,
+  effectFloat,
+  effectPower,
+  effectMojick,
+  effectWater,
+  effectFly,
+  effectWind,
+] = makeFlags();
+
 /**
  * @template T
  * @param {Array<T>} candidates
@@ -256,9 +275,16 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   const inventories = new Map();
 
-  /** @type {Map<number, number>} */
+  /** @type {Map<number, number>}
+   * Bit vectors for the effects that each entity may choose from.
+   * Absence is equivalent to 0.
+   */
   const effectsOwned = new Map();
-  /** @type {Map<number, number>} */
+  /** @type {Map<number, number>}
+   * The bit number for the entity's chosen effect, from the effectsOwned bit
+   * vector.  The number 0 indicates effect 1.  Absence indicates no effect
+   * chosen.  The number -1 is equivalent to absence.
+   */
   const effectsChosen = new Map();
   /** @type {Map<number, number>} */
   const healths = new Map();
@@ -403,10 +429,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       emptyItem, // command === 8
       emptyItem, // command === 9
     ]);
-    healths.set(agent, 0);
-    staminas.set(agent, 0);
-    effectsOwned.set(agent, 1 << effectTypesByName.none);
-    effectsChosen.set(agent, effectTypesByName.none);
 
     return agent;
   }
@@ -667,6 +689,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} entity
+   * @returns {number} effects - bit vector, but with only one bit selected, if any.
    */
   function entityEffect(entity) {
     const effect = effectsChosen.get(entity);
@@ -680,7 +703,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} entity
-   * @param {number} effect
+   * @param {number} effect - a bit index, 0 means 1 << 0.
    */
   function entityHasEffect(entity, effect) {
     assert(effect >= 0);
@@ -690,6 +713,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} entity
+   * @returns {number} effects - bit vector, 0 means no effects, 1 means effect
+   * 0.
    */
   function entityEffects(entity) {
     const mask = effectsOwned.get(entity);
@@ -701,14 +726,20 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} entity
+   * @returns {number} effect - a bit index, -1 means no choice,
+   * 0 means 1 << 0.
    */
   function entityEffectChoice(entity) {
-    return assumeDefined(effectsChosen.get(entity));
+    const effect = effectsChosen.get(entity);
+    if (effect === undefined) {
+      return -1;
+    }
+    return effect;
   }
 
   /**
    * @param {number} entity
-   * @param {number} effect
+   * @param {number} effect - a bit index, 0 means 1 << 0.
    */
   function chooseEffect(entity, effect) {
     const entityEffects = assumeDefined(effectsOwned.get(entity));
@@ -741,7 +772,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     const effectName = itemTypes[itemType].effect;
     inventory[inventoryIndex] = emptyItem; // poof
     if (effectName !== undefined) {
-      const effectType = assumeDefined(effectTypesByName[effectName]);
+      const effectType = assumeDefined(effectTypesByName[effectName]) - 1;
       availEffect(entity, effectType);
       chooseEffect(entity, effectType);
       return 'effect';

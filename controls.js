@@ -256,7 +256,7 @@ export const makeController = (
   const priorHands = [emptyItem, emptyItem];
 
   // index of enabled effect, or 0 for no effect
-  const effectType = worldModel.entityEffect(agent);
+  const effectType = worldModel.entityEffectChoice(agent) + 1;
 
   const nineKeyView = makeNineKeyView(macroViewModel);
 
@@ -458,9 +458,9 @@ export const makeController = (
     press(command, repeat) {
       if (repeat) return mode;
       if (command >= 1 && command <= 9) {
-        const chosenType = command - 1;
-        if (worldModel.entityHasEffect(agent, chosenType)) {
-          return chooseEffect(chosenType);
+        const chosenType = command;
+        if (worldModel.entityHasEffect(agent, chosenType - 1)) {
+          return chooseEffect(chosenType - 1);
         }
         return effectMode;
       } else {
@@ -1067,6 +1067,12 @@ export const makeController = (
     }
   };
 
+  const updateBack = () => {
+    // Restore effect
+    const effectType = worldModel.entityEffectChoice(agent) + 1;
+    nineKeyView.replace(8, tileTypeForEffectType[effectType]);
+  };
+
   const dismissControllerReticle = () => {
     assertNonZero(reticleEntity);
     macroViewModel.exit(reticleEntity);
@@ -1143,7 +1149,7 @@ export const makeController = (
   };
 
   const restoreEffect = () => {
-    const effectType = worldModel.entityEffect(agent);
+    const effectType = worldModel.entityEffectChoice(agent) + 1;
     const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
     nineKeyView.spawnInward(effectTileType, ne);
   };
@@ -1197,7 +1203,7 @@ export const makeController = (
   const restoreEffects = () => {
     for (let i = 0; i < 9; i++) {
       const effectTileType = worldModel.entityHasEffect(agent, i)
-        ? tileTypeForEffectType[i]
+        ? tileTypeForEffectType[i + 1]
         : gridTileTypes[i];
       nineKeyView.spawn(i, effectTileType);
     }

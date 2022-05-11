@@ -66,6 +66,9 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  * }} EffectType
  */
 
+const specialNames = ['invalid', 'empty', 'any'];
+const specialDescriptions = specialNames.map(name => ({ name }));
+
 /**
  * @typedef {ReturnType<makeMechanics>} Mechanics
  */
@@ -76,7 +79,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  * @param {Array<TileType>} [args.tileTypes]
  * @param {Array<AgentType>} [args.validAgentTypes]
  * @param {Array<ItemType>} [args.validItemTypes]
- * @param {Array<EffectType>} [args.effectTypes]
+ * @param {Array<EffectType>} [args.validEffectTypes]
  */
 export function makeMechanics({
   recipes = [],
@@ -84,20 +87,18 @@ export function makeMechanics({
   tileTypes = [],
   validAgentTypes = [],
   validItemTypes = [],
-  effectTypes = [],
+  validEffectTypes: effectTypes = [],
 } = {}) {
+  /** @type {Array<AgentType>} */
   const agentTypes = [
-    { name: 'invalid' },
-    { name: 'empty' },
-    { name: 'any' },
-    ...validAgentTypes,
+    ...specialDescriptions,
+    ...validAgentTypes.filter(desc => !specialNames.includes(desc.name)),
   ];
 
+  /** @type {Array<ItemType>} */
   const itemTypes = [
-    { name: 'invalid' },
-    { name: 'empty' },
-    { name: 'any' },
-    ...validItemTypes,
+    ...specialDescriptions,
+    ...validItemTypes.filter(desc => !specialNames.includes(desc.name)),
   ];
 
   /**
@@ -412,7 +413,7 @@ export function makeMechanics({
     const rightType = itemTypesByName[right];
     assertDefined(rightType, right);
     const effectType = effectTypesByName[effect];
-    assertDefined(effectType, effect);
+    assertDefined(effectType, `Effect does not exist for name: ${effect}`);
 
     const key = bumpKey({
       agentType,
