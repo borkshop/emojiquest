@@ -440,12 +440,41 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * patient before them.
    */
   function intend(entity, direction, repeat = false) {
+    if (intents.has(entity) || craftIntents.has(entity)) {
+      return;
+    }
+    intents.set(entity, direction);
+
     const source = locate(entity);
     const {
       position: target,
       turn,
       transit,
     } = advance({ position: source, direction });
+
+    const effects = entityEffect(entity);
+    // TODO merge entity effects from held or stowed inventory items.
+    const terrainFlags = terrain[target];
+
+    if (terrainFlags & terrainLava) {
+      if (!(effects & effectFly)) {
+        macroViewModel.bounce(entity, direction * quarturnToOcturn);
+        onDialog(entity, `🌋 The lava is hot!`);
+        return;
+      }
+    }
+
+    if (terrainFlags & terrainWater) {
+      if (!(effects & (effectFloat | effectFly))) {
+        macroViewModel.bounce(entity, direction * quarturnToOcturn);
+        onDialog(
+          entity,
+          `🌊 The water runs swiftly. You may need a 🛶<b>canoe</b>.`,
+        );
+        return;
+      }
+    }
+
     bids(target).set(entity, {
       position: source,
       direction,
@@ -453,16 +482,17 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       transit,
       repeat,
     });
-    intents.set(entity, direction);
-    craftIntents.delete(entity);
   }
 
   /**
    * @param {number} entity
    */
   function intendToCraft(entity) {
+    if (intents.has(entity) || craftIntents.has(entity)) {
+      return;
+    }
+
     craftIntents.add(entity);
-    intents.delete(entity);
   }
 
   const bumpKit = {
@@ -1105,6 +1135,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     for (let location = 0; location < size; location += 1) {
       setTerrainFlags(location, purportedTerrain[location]);
     }
+
+    effectsChosen.clear();
+    effectsOwned.clear();
+    healths.clear();
+    staminas.clear();
+    // TODO load effectsChosen, effectsOwned, healths, staminas
 
     return agent;
   }
