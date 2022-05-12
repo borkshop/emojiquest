@@ -64,8 +64,13 @@ const noop = () => {};
  */
 
 /**
+ * @callback TickFn
+ */
+
+/**
  * @typedef {Object} Mode
  * @prop {PressFn} press
+ * @prop {TickFn} [tick]
  */
 
 const svgNS = 'http://www.w3.org/2000/svg';
@@ -263,7 +268,7 @@ export const makeController = (
   const priorHands = [emptyItem, emptyItem];
 
   // index of enabled effect, or 0 for no effect
-  const effectType = worldModel.entityEffectChoice(agent) + 1;
+  let effectType = worldModel.entityEffectChoice(agent) + 1;
 
   const nineKeyView = makeNineKeyView(macroViewModel);
 
@@ -329,6 +334,12 @@ export const makeController = (
       } else {
         return playMode;
       }
+    },
+    tick() {
+      // Effect changes that may have occurred in game state through the
+      // simulation.
+      updateHands();
+      updateBack();
     },
   };
 
@@ -620,16 +631,20 @@ export const makeController = (
   // Mode transitions:
 
   const handleLeftItem = () => {
+    assert(isNotEmptyItem(leftHandItemType()));
+
     // Transition from play mode to item handling mode.
     dismissDpad();
     dismissWatch();
     dismissEffect();
 
+    // Move item in left hand to the center-middle.
     nineKeyView.move(0, 4, ne, 0);
 
     if (isNotEmptyItem(rightHandItemType())) {
+      // Move item in right hand to bottom-middle.
       nineKeyView.move(2, 1, ww, 0);
-      restoreRightHand();
+      openRightHand();
     }
 
     if (packEmpty()) {
@@ -643,16 +658,20 @@ export const makeController = (
   };
 
   const handleRightItem = () => {
+    assert(isNotEmptyItem(rightHandItemType()));
+
     // Transition from play mode to item handling mode.
     dismissDpad();
     dismissWatch();
     dismissEffect();
 
+    // Move item in right hand to middle-center.
     nineKeyView.move(2, 4, nw, 0);
 
     if (isNotEmptyItem(leftHandItemType())) {
+      // Move item in left hand to bottom-center.
       nineKeyView.move(0, 1, ee, 0);
-      restoreLeftHand();
+      openLeftHand();
     }
 
     if (packEmpty()) {
@@ -712,7 +731,7 @@ export const makeController = (
    * @param {boolean} packWasVisible
    */
   const useItem = (leftOrRight, packWasVisible) => {
-    nineKeyView.despawn(8); // trash / mouth / or effect
+    dismissTrash(); // mouth or effect
 
     const use = worldModel.use(agent, leftHandInventoryIndex);
 
@@ -806,12 +825,12 @@ export const makeController = (
    */
   const placeItemInLeftHand = packWasVisible => {
     dismissControllerReticle();
-    nineKeyView.despawn(8); // trash
+    dismissTrash();
     if (packWasVisible && packEmpty()) {
       dismissPack();
     }
 
-    nineKeyView.despawn(0);
+    closeLeftHand();
     nineKeyView.move(4, 0, sw, 0);
 
     if (isNotEmptyItem(rightHandItemType())) {
@@ -832,12 +851,12 @@ export const makeController = (
     worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
 
     dismissControllerReticle();
-    nineKeyView.despawn(8); // trash
+    dismissTrash();
     if (packWasVisible && packEmpty()) {
       dismissPack();
     }
 
-    nineKeyView.despawn(2);
+    closeRightHand();
     nineKeyView.move(4, 2, se, 0);
 
     if (isNotEmptyItem(leftHandItemType())) {
@@ -856,7 +875,7 @@ export const makeController = (
   const stashItem = leftOrRight => {
     dismissControllerReticle();
     dismissPack();
-    nineKeyView.despawn(8); // trash
+    dismissTrash();
     dismissLeft();
     dismissRight();
     if (isNotEmptyItem(rightHandItemType())) {
@@ -1075,8 +1094,11 @@ export const makeController = (
 
   const updateBack = () => {
     // Restore effect
-    const effectType = worldModel.entityEffectChoice(agent) + 1;
-    nineKeyView.replace(8, tileTypeForEffectType[effectType]);
+    const newEffectType = worldModel.entityEffectChoice(agent) + 1;
+    if (effectType !== newEffectType) {
+      effectType = newEffectType;
+      nineKeyView.replace(8, tileTypeForEffectType[effectType]);
+    }
   };
 
   const dismissControllerReticle = () => {
@@ -1099,6 +1121,22 @@ export const makeController = (
 
   const restoreWatch = () => {
     nineKeyView.spawn(4, tileTypesByName.watch);
+  };
+
+  const openLeftHand = () => {
+    nineKeyView.spawn(0, tileTypesByName.left);
+  };
+
+  const openRightHand = () => {
+    nineKeyView.spawn(2, tileTypesByName.right);
+  };
+
+  const closeLeftHand = () => {
+    nineKeyView.despawn(0);
+  };
+
+  const closeRightHand = () => {
+    nineKeyView.despawn(2);
   };
 
   const restoreLeft = () => {
@@ -1181,8 +1219,12 @@ export const makeController = (
     nineKeyView.despawnOutward(nw);
   };
 
+  const dismissTrash = () => {
+    nineKeyView.despawnOutward(ne);
+  };
+
   const dismissEffect = () => {
-    nineKeyView.despawn(8); // effect
+    nineKeyView.despawnOutward(ne);
   };
 
   const dismissLeft = () => {
@@ -1267,12 +1309,12 @@ export const makeController = (
   };
 
   const shiftBottomItemToLeftHand = () => {
-    nineKeyView.despawnOutward(sw);
+    closeLeftHand();
     nineKeyView.move(1, 0, ww, 0);
   };
 
   const shiftBottomItemToRightHand = () => {
-    nineKeyView.despawnOutward(se);
+    closeRightHand();
     nineKeyView.move(1, 2, ee, 0);
   };
 
@@ -1392,12 +1434,12 @@ export const makeController = (
   // The controller receives a command at the beginning of any driver-induced
   // tick.  We arrive here only for ticks that take a game turn.
   const tick = () => {
-    priorHands[0] = leftHandItemType();
-    priorHands[1] = rightHandItemType();
     worldModel.tick();
     cameraController.tick();
     dialogController.close();
-    updateHands();
+    if (mode.tick !== undefined) {
+      mode.tick();
+    }
   };
 
   const tock = () => {
@@ -1426,21 +1468,12 @@ export const makeController = (
   /** @param {number} newAgent */
   const jump = newAgent => {
     tock();
+
     worldModel.unfollow(agent, agentFollower);
     agent = newAgent;
     const location = worldModel.locate(agent);
     cameraController.jump(location);
     worldModel.follow(agent, agentFollower);
-  };
-
-  /** @param {number} newAgent */
-  const initialJumpHack = newAgent => {
-    assert(mode === playMode, `jump only programmed to account for play mode`);
-
-    jump(newAgent);
-
-    updateHands();
-    updateBack();
 
     tick();
     tock();
@@ -1455,7 +1488,7 @@ export const makeController = (
     animate,
     down,
     command,
-    jump: initialJumpHack,
+    jump,
     currentAgent,
     at,
   };
