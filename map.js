@@ -305,11 +305,11 @@ export function makeFacetCreator({
     const watcher = {
       /**
        * @param {number} entity - entity number
-       * @param {number} tile - tile type
+       * @param {number} tileType
        */
-      enter(entity, tile) {
+      enter(entity, tileType) {
         const $entity = assumeDefined(
-          createEntity(entity, tile),
+          createEntity(entity, tileType),
           `Assertion failed, createEntity hook must return something`,
         );
         entityMap.set(entity, $entity);
@@ -329,8 +329,10 @@ export function makeFacetCreator({
        * @param {number} entity - entity number
        */
       exit(entity) {
-        const $entity = entityMap.get(entity);
-        if (!$entity) throw new Error(`Assertion failed`);
+        const $entity = assumeDefined(
+          entityMap.get(entity),
+          `Assertion failed, entity map should an entry for entity ${entity}`,
+        );
         entityMap.delete(entity);
         $front.removeChild($entity);
       },
