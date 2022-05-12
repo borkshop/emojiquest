@@ -13,13 +13,62 @@
  */
 export const validAgentTypes = [
   { name: 'player', tile: 'happy' },
-  { name: 'pineTree', dialog: ['🌲 Knock knock?'] },
+  {
+    name: 'pineTree',
+    dialog: [
+      '🌲 Knock knock.',
+      '🙂 Who’s there?',
+      '🦉 Hoo.',
+      '🤔 Hoo who?',
+      '🦉 Hoo hoo hoo!',
+      '😩 Hoo hoo hoo who?',
+      '🦉 Hoo let the <b>🐕dogs🐩</b> out! 🔚',
+    ],
+  },
   { name: 'appleTree', dialog: ['🌳 Knock knock?'] },
   { name: 'axe' }, // temporary
   { name: 'mountain' },
   { name: 'pick' }, // temporary
-  { name: 'bank' },
-  { name: 'forge' },
+  {
+    name: 'bank',
+    dialog: [
+      '👨‍💼 Welcome to the <nobr>🏦<b>River Bank</b></nobr>…',
+      '👨‍💼 While you’re here, we can exchange <nobr><b>🥉🥈🥇precious</b></nobr> <b> medals</b>…',
+      '🥉🥉🔜🥈',
+      '🥈🥉🔜🥇',
+      '🥇🔜🥈🥉',
+      '🥇🔜🥈🥉',
+      '👨‍💼 Visit the main branch of <nobr>🏦<b>Bank of Dysia</b></nobr> on the far side of the <nobr>🎲<b>world</b></nobr>. 🔚',
+    ],
+  },
+  {
+    name: 'forge',
+    dialog: [
+      '👩‍🏭	Hello, I’m <nobr><b>Mrs. Smith</b>…</nobr>',
+      '👨‍🏭	And I’m <nobr><b>Mr. Smith</b>…</nobr>',
+      '👩‍🏭	This is a <b>forge</b> where we do honest <b>forgery</b>…',
+      '👨‍🏭	Here you can smelt <nobr>🥇🥈🥉<b>precious</b></nobr> <b>medals</b>…',
+      '👩‍🏭	Place a medal in the forge to craft a useful component…',
+      '🥉 🔜  🔗  ',
+      '🥈 🔜  🔩  ',
+      '🥇 🔜  ⚙️   ',
+      '👨‍🏭	Components can be combined to make other components…',
+      '🔗 / 🔗 🔜 ⛓ ',
+      '🔗 / 🔩 🔜 🔨 ',
+      '🔗 / ⚙️  🔜 🛡 ',
+      '🔩 / 🔗 🔜 🔧 ',
+      '🔩 / 🔩 🔜 🔪 ',
+      '🔩 / ⚙️  🔜 🥄 ',
+      '⚙️  / 🔗 🔜 ⚓️ ',
+      '⚙️  / 🔩 🔜 ⛏ ',
+      '⚙️  / ⚙️  🔜 🚲 ',
+      '🔪 / 🔪 🔜 ✂️  ',
+      '🔩 / 🔪 🔜 🗡 ',
+      '🔨 / 🔪 🔜 🪓 ',
+      '🔨 / 🔧 🔜 🛠 ',
+      '⚙️  / ⛓ 🔜 🗑 ',
+    ],
+  },
   { name: 'ram', wanders: 'land' },
   { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.', '🐏 Ram.', '🐑 Ewe.'] },
   { name: 'coat' }, // temporary
@@ -31,6 +80,32 @@ export const validAgentTypes = [
       '👸 With it, all the <b>mojical creatures</b> have vanished…',
       '👸 The 🦄<b>unicorn</b> has not been seen since <b>The Fall</b>…',
       '👸 The 🐉<b>dragon</b> is but a myth. 🔚',
+    ],
+  },
+  {
+    name: 'pearTree',
+    tile: 'appleTree',
+    dialog: [
+      '🌳 I am the <b>Tree of Knotty and Nice</b>…',
+      '🌳 Just as <b>knotty</b> opposes <b>nice</b>…',
+      '🌳 My fruit comes in 🍐*pears*. 🔚 ',
+    ],
+  },
+  {
+    name: 'captain',
+    dialog: [
+      '💂‍♂️ Hark! I’m the <b>Captain of the Guard</b>…',
+      '💂‍♂️ In the forest to the <nobr>👈<b>west</b>,</nobr> there is a <nobr>🌳<b>tree</b></nobr> that is quite unlike the others…',
+      '💂‍♂️ Soldiers use its 🍐<b>fruit</b> to improve their 💛<b>stamina</b> when they travel in the ⛰<b>Eural Mountains</b>. 🔚',
+    ],
+  },
+  {
+    name: 'major',
+    dialog: [
+      '💂‍♀️ Hark! I’m <b>A ♯sharp Major</b> in service to her Majesty <nobr>👸<b>Princess Die</b>…</nobr>',
+      '💂‍♀️ A <nobr><b>friend of mine⛏</b></nobr> has gone missing in the <nobr>⛰<b>Eural Mountains</b></nobr>, to the <nobr>👇<b>south</b>…</nobr>',
+      '💂‍♀️ They went searching for <nobr>🥉<b>precious medals</b></nobr>…',
+      '💂‍♀️ Please help them if you can! 🔚',
     ],
   },
 ];
@@ -61,7 +136,7 @@ export const validItemTypes = [
   { name: 'silver' },
   { name: 'gold' },
   { name: 'apple', comestible: true, health: 1 },
-  { name: 'pineApple', comestible: true, stamina: 1 },
+  { name: 'pineApple', comestible: true, health: 2 },
   { name: 'canoe' },
   { name: 'dagger' },
   { name: 'doubleDagger' },
@@ -73,6 +148,7 @@ export const validItemTypes = [
   { name: 'hammerAndPick' },
   { name: 'hammerAndWrench' },
   { name: 'coat', effect: 'warm' },
+  { name: 'pear', comestible: true, stamina: 1 },
 ];
 
 /**
@@ -163,6 +239,8 @@ export const tileTypes = [
   { name: 'hamburger', text: '🍔 ' },
   { name: 'thumbUp', text: '👍' },
   { name: 'castle', text: '🏰 ' },
+  { name: 'captain', text: '💂‍♂️  ' },
+  { name: 'major', text: '💂‍♀️' },
 ];
 
 /**
