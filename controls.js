@@ -32,6 +32,7 @@ import {
   fullOcturn,
 } from './geometry2d.js';
 import { makeTileView } from './tile-view.js';
+import { terrainWater, terrainLava, terrainCold, terrainHot } from './model.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { commandDirection } from './driver.js';
@@ -539,8 +540,7 @@ export const makeController = (
         cameraController.move(destination, change);
         followCursor(destination, change);
         worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
-        dialogController.close();
-        dialogController.log(`${toponym(cursor.position)}`);
+        updateEditorDialog();
         return editMode;
       } else if (command === 1) {
         // fill
@@ -948,7 +948,7 @@ export const makeController = (
 
     oneKeyView.replace(0, tileTypesByName.hamburger);
 
-    dialogController.log(`${toponym(cursor.position)}`);
+    updateEditorDialog();
 
     return editMode;
   };
@@ -1336,6 +1336,30 @@ export const makeController = (
     for (let start = 0; start < 3; start += 1) {
       enterAgent(start + 6, sw);
     }
+  };
+
+  const updateEditorDialog = () => {
+    const dialogTerms = [toponym(cursor.position)];
+    const agentType = worldModel.get(cursor.position);
+    if (agentType > 0) {
+      const agentName = agentTypes[agentType].name;
+      dialogTerms.push(agentName);
+    }
+    const terrainFlags = worldModel.getTerrainFlags(cursor.position);
+    if ((terrainFlags & terrainLava) !== 0) {
+      dialogTerms.push('🌋   ');
+    }
+    if ((terrainFlags & terrainWater) !== 0) {
+      dialogTerms.push('🌊   ');
+    }
+    if ((terrainFlags & terrainHot) !== 0) {
+      dialogTerms.push('🥵   ');
+    }
+    if ((terrainFlags & terrainCold) !== 0) {
+      dialogTerms.push('🥶   ');
+    }
+    dialogController.close();
+    dialogController.log(dialogTerms.join(' '));
   };
 
   /**
