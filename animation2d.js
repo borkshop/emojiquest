@@ -48,9 +48,10 @@ const noProgress = {
 /**
  * @param {Element} $entity
  * @param {Coord} coord
- * @param {number=} [pressure] how firmly the entity is pressed, 0 (up, no pressure) 1 (down, full pressure)
- * @param {Progress=} [progress]
- * @param {Transition=} [transition]
+ * @param {number} [pressure] how firmly the entity is pressed, 0 (up, no pressure) 1 (down, full pressure)
+ * @param {Progress} [progress]
+ * @param {Transition} [transition]
+ * @param {number} [adjustOrientationOcturns]
  */
 export function placeEntity(
   $entity,
@@ -58,6 +59,7 @@ export function placeEntity(
   pressure = 0,
   progress = noProgress,
   transition = noTransition,
+  adjustOrientationOcturns = 0,
 ) {
   const {
     directionOcturns = 0,
@@ -74,7 +76,7 @@ export function placeEntity(
   const transform = compose(
     scale(scaleProgress * (1 + pressure / 3)),
     rotate(sinusoidalQuarterTurn * rotation),
-    rotate((-Math.PI / 2) * coord.a),
+    rotate((-Math.PI / 4) * (coord.a * 2 + adjustOrientationOcturns)),
     translate(coord),
     translate({ x: dx * shiftProgress, y: dy * shiftProgress }),
     translate({ x: 0.5, y: 0.5 }),
