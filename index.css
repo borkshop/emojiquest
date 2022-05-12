@@ -187,8 +187,8 @@ rect.backTile {
 .panel {
   font-size: 20px;
   color: black;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 10px;
   margin: 10px;
   border: solid 4px rgba(0, 0, 0, 25%);
