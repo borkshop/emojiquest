@@ -293,7 +293,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   // const priorities = new Array(size);
 
   /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
-  const intents = new Map();
+  const moveIntents = new Map();
 
   /** @type {Map<number, number>} entity number -> location number */
   const locations = new Map();
@@ -544,11 +544,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {boolean} repeat - whether the agent intends to act upon the
    * patient before them.
    */
-  function intend(entity, direction, repeat = false) {
-    if (intents.has(entity) || craftIntents.has(entity)) {
+  function intendToMove(entity, direction, repeat = false) {
+    if (moveIntents.has(entity) || craftIntents.has(entity)) {
       return;
     }
-    intents.set(entity, direction);
+    moveIntents.set(entity, direction);
 
     const source = locate(entity);
     const {
@@ -593,7 +593,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} entity
    */
   function intendToCraft(entity) {
-    if (intents.has(entity) || craftIntents.has(entity)) {
+    if (moveIntents.has(entity) || craftIntents.has(entity)) {
       return;
     }
 
@@ -624,7 +624,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // Think
     for (const entity of mobiles) {
       // TODO select from eligible directions.
-      intend(entity, Math.floor(Math.random() * 4));
+      intendToMove(entity, Math.floor(Math.random() * 4));
     }
 
     // Prepare the next generation
@@ -742,7 +742,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     removes.clear();
     bumps.length = 0;
     targets.clear();
-    intents.clear();
+    moveIntents.clear();
     craftIntents.clear();
   }
 
@@ -1269,7 +1269,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     get,
     set,
     remove,
-    intend,
+    intendToMove,
     intendToCraft,
     inventory,
     anyPacked,

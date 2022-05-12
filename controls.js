@@ -300,7 +300,7 @@ export const makeController = (
     press(command, repeat) {
       const direction = commandDirection[command];
       if (direction !== undefined) {
-        worldModel.intend(agent, direction, repeat);
+        worldModel.intendToMove(agent, direction, repeat);
         tick();
         return playMode;
       } else if (command === 5) {
