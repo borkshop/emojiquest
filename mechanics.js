@@ -192,8 +192,7 @@ export function makeMechanics({
     take([yieldType]) {
       /** @type {Handler} */
       function takeHandler(kit, { agent, patient, direction, destination }) {
-        const inventory = kit.entityInventory(agent);
-        inventory[0] = yieldType;
+        kit.entityInventorySet(agent, 0, yieldType);
         kit.macroViewModel.take(
           patient,
           (direction * quarturnToOcturn + halfOcturn) % fullOcturn,
@@ -206,8 +205,7 @@ export function makeMechanics({
     reap([yieldType]) {
       /** @type {Handler} */
       function reapHandler(kit, { agent, patient, direction, destination }) {
-        const inventory = kit.entityInventory(agent);
-        inventory[1] = yieldType;
+        kit.entityInventorySet(agent, 1, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
         kit.macroViewModel.fell(patient);
         kit.destroyEntity(patient, destination);
@@ -218,8 +216,7 @@ export function makeMechanics({
     cut([yieldType]) {
       /** @type {Handler} */
       function cutHandler(kit, { agent, direction }) {
-        const inventory = kit.entityInventory(agent);
-        inventory[1] = yieldType;
+        kit.entityInventorySet(agent, 1, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return cutHandler;
@@ -228,8 +225,7 @@ export function makeMechanics({
     pick([yieldType]) {
       /** @type {Handler} */
       function cutHandler(kit, { agent, direction }) {
-        const inventory = kit.entityInventory(agent);
-        inventory[0] = yieldType;
+        kit.entityInventorySet(agent, 0, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return cutHandler;
@@ -238,10 +234,9 @@ export function makeMechanics({
     split([leftType, rightType]) {
       /** @type {Handler} */
       function splitHandler(kit, { agent }) {
-        const inventory = kit.entityInventory(agent);
         assertDefined(rightType);
-        inventory[0] = leftType;
-        inventory[1] = rightType;
+        kit.entityInventorySet(agent, 0, leftType);
+        kit.entityInventorySet(agent, 1, rightType);
       }
       return splitHandler;
     },
@@ -249,9 +244,8 @@ export function makeMechanics({
     merge([changeType]) {
       /** @type {Handler} */
       function mergeHandler(kit, { agent }) {
-        const inventory = kit.entityInventory(agent);
-        inventory[0] = changeType;
-        inventory[1] = itemTypesByName.empty;
+        kit.entityInventorySet(agent, 0, changeType);
+        kit.entityInventorySet(agent, 1, itemTypesByName.empty);
       }
       return mergeHandler;
     },
@@ -259,8 +253,7 @@ export function makeMechanics({
     replace([yieldType]) {
       /** @type {Handler} */
       function replaceHandler(kit, { agent, direction }) {
-        const inventory = kit.entityInventory(agent);
-        inventory[0] = yieldType;
+        kit.entityInventorySet(agent, 0, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return replaceHandler;
@@ -323,6 +316,7 @@ export function makeMechanics({
    * @property {(entity: number) => number} entityType
    * @property {(entity: number) => number} entityEffect
    * @property {(entity: number) => Array<number>} entityInventory
+   * @property {(entity: number, slot: number, itemType: number) => void} entityInventorySet
    * @property {import('./model.js').MacroViewModel} macroViewModel
    * @property {(entity: number, location: number) => void} destroyEntity
    */

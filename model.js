@@ -109,6 +109,27 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
+ * @typedef {Object} Recipe
+ * @property {number} agent
+ * @property {number} reagent
+ * @property {number} product
+ * @property {number} byproduct
+ */
+
+/**
+ * @callback OnCraftFn
+ * @param {number} entity - entity that crafted
+ * @param {Recipe} recipe
+ */
+
+/**
+ * @callback OnInventoryFn
+ * @param {number} entity - entity that crafted
+ * @param {number} slot - index in the inventory array
+ * @param {number} itemType - type of the item (possibly empty)
+ */
+
+/**
  * @callback OnHealthFn
  * @param {number} entity - entity that changed health
  * @param {number} health
@@ -123,6 +144,8 @@ import { quarturnToOcturn } from './geometry2d.js';
 /**
  * @typedef {Object} Follower
  * @property {OnMoveFn} move
+ * @property {OnCraftFn} craft
+ * @property {OnInventoryFn} inventory
  * @property {OnDialogFn} dialog
  * @property {OnHealthFn} health
  * @property {OnStaminaFn} stamina
@@ -433,6 +456,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     }
     assert(!entityFollowers.has(follower));
     entityFollowers.add(follower);
+
+    const inventory = entityInventory(e);
+    for (let slot = 0; slot < inventory.length; slot++) {
+      onInventory(e, slot, inventory[slot]);
+    }
   }
 
   /**
@@ -462,6 +490,20 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} e
+   * @param {number} slot
+   * @param {number} itemType
+   */
+  function onInventory(e, slot, itemType) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.inventory(e, slot, itemType);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
    * @param {string} dialog
    */
   function onDialog(e, dialog) {
@@ -469,6 +511,19 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
         follower.dialog(e, dialog);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
+   * @param {Recipe} recipe
+   */
+  function onCraft(e, recipe) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.craft(e, recipe);
       }
     }
   }
@@ -574,7 +629,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         macroViewModel.bounce(entity, direction * quarturnToOcturn);
         onDialog(
           entity,
-          `🌊 The water runs swiftly. You may need a 🛶<b>canoe</b>.`,
+          `🌊 The water runs swiftly. You may need a <nobr>🛶<b>canoe</b></nobr>.`,
         );
         return;
       }
@@ -604,6 +659,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     entityType,
     entityEffect,
     entityInventory,
+    entityInventorySet,
     destroyEntity,
     macroViewModel,
   };
@@ -718,11 +774,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     for (const entity of craftIntents) {
       const inventory = inventories.get(entity);
       if (inventory !== undefined && inventory.length >= 2) {
-        let dialog;
-        [inventory[0], inventory[1], dialog] = craft(
-          inventory[0],
-          inventory[1],
-        );
+        const agent = inventory[0];
+        const reagent = inventory[1];
+        const [product, byproduct, dialog] = craft(agent, reagent);
+        inventory[0] = product;
+        inventory[1] = byproduct;
+        onCraft(entity, { agent, reagent, product, byproduct });
         if (dialog !== undefined) {
           onDialog(entity, dialog);
         }
@@ -802,6 +859,17 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    */
   function entityInventory(entity) {
     return assumeDefined(inventories.get(entity));
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} slot
+   * @param {number} itemType
+   */
+  function entityInventorySet(entity, slot, itemType) {
+    const inventory = assumeDefined(inventories.get(entity));
+    inventory[slot] = itemType;
+    onInventory(entity, slot, itemType);
   }
 
   /**
@@ -1250,6 +1318,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     inventories.clear();
     for (const [entity, inventory] of purportedInventories.entries()) {
       inventories.set(entity, inventory);
+      for (let slot = 0; slot < inventory.length; slot++) {
+        onInventory(entity, slot, inventory[slot]);
+      }
     }
 
     for (let location = 0; location < size; location += 1) {

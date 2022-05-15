@@ -20,6 +20,7 @@ import {
   assumeDefined,
 } from './assert.js';
 import {
+  north,
   nn,
   ne,
   ee,
@@ -64,13 +65,22 @@ const noop = () => {};
  */
 
 /**
- * @callback TickFn
+ * @callback InventoryFn
+ * @param {number} slot
+ * @param {number} itemType
+ */
+
+/**
+ * @callback CraftFn
+ * @param {import('./model.js').Recipe} recipe
  */
 
 /**
  * @typedef {Object} Mode
+ * @prop {string} name
  * @prop {PressFn} press
- * @prop {TickFn} [tick]
+ * @prop {InventoryFn} [inventory]
+ * @prop {CraftFn} [craft]
  */
 
 const svgNS = 'http://www.w3.org/2000/svg';
@@ -252,6 +262,17 @@ export const makeController = (
       cameraController.move(destination, change);
       followCursor(destination, change);
     },
+    craft(_entity, recipe) {
+      assert(mode.name === 'itemMode');
+      if (mode.craft !== undefined) {
+        mode.craft(recipe);
+      }
+    },
+    inventory(_entity, slot, item) {
+      if (mode.inventory !== undefined) {
+        mode.inventory(slot, item);
+      }
+    },
     dialog(_entity, text) {
       dialogController.logElement().innerHTML = text;
     },
@@ -263,12 +284,11 @@ export const makeController = (
     },
   };
 
-  worldModel.follow(agent, agentFollower);
-
-  const priorHands = [emptyItem, emptyItem];
+  // Pack visibility state in play mode.
+  let packVisible = false;
 
   // index of enabled effect, or 0 for no effect
-  let effectType = worldModel.entityEffectChoice(agent) + 1;
+  const effectType = worldModel.entityEffectChoice(agent) + 1;
 
   const nineKeyView = makeNineKeyView(macroViewModel);
 
@@ -297,6 +317,7 @@ export const makeController = (
 
   /** @type {Mode} */
   const playMode = {
+    name: 'play',
     press(command, repeat) {
       const direction = commandDirection[command];
       if (direction !== undefined) {
@@ -335,12 +356,40 @@ export const makeController = (
         return playMode;
       }
     },
-    tick() {
-      // Effect changes that may have occurred in game state through the
-      // simulation.
-      updateHands();
-      updateBack();
+    inventory(slot, itemType) {
+      if (slot === 0) {
+        const gridIndex = 0;
+        const handTileType = tileTypesByName.left;
+        if (isEmptyItem(itemType)) {
+          nineKeyView.replace(gridIndex, handTileType);
+        } else {
+          const tileType = tileTypeForItemType[itemType];
+          nineKeyView.replace(gridIndex, tileType);
+        }
+      }
+      if (slot === 1) {
+        const gridIndex = 2;
+        const handTileType = tileTypesByName.right;
+        if (isEmptyItem(itemType)) {
+          nineKeyView.replace(gridIndex, handTileType);
+        } else {
+          const tileType = tileTypeForItemType[itemType];
+          nineKeyView.replace(gridIndex, tileType);
+        }
+      }
+
+      updatePack();
     },
+  };
+
+  const updatePack = () => {
+    const packShouldBeVisible = packNotEmpty();
+    if (packVisible && !packShouldBeVisible) {
+      dismissPack();
+    }
+    if (!packVisible && packShouldBeVisible) {
+      restorePack();
+    }
   };
 
   /**
@@ -348,10 +397,14 @@ export const makeController = (
    * @param {boolean} packWasVisible
    */
   const itemMode = (leftOrRight, packWasVisible = packNotFull()) => {
-    // Invariant: the pack should be visible iff there are any empty slots.
+    assert(
+      packWasVisible === packNotFull(),
+      `Invariant: the pack should be visible iff there are any empty slots.`,
+    );
 
     /** @type {Mode} */
     const mode = {
+      name: 'itemMode',
       press(command, repeat) {
         if (repeat) return mode;
         if (command === 9) {
@@ -359,7 +412,9 @@ export const makeController = (
           return useItem(leftOrRight, packWasVisible);
         } else if (command === 2 && isNotEmptyItem(rightHandItemType())) {
           // craft
-          return craftItems(leftOrRight, packWasVisible);
+          worldModel.intendToCraft(agent);
+          tick();
+          return itemMode(leftOrRight, packWasVisible);
         } else if (command === 1) {
           // place in left hand
           return placeItemInLeftHand(packWasVisible);
@@ -372,6 +427,54 @@ export const makeController = (
         }
         return mode;
       },
+      craft(recipe) {
+        const {
+          agent: agentType,
+          reagent: reagentType,
+          product: productType,
+          byproduct: byproductType,
+        } = recipe;
+
+        console.table({
+          agent: itemTypes[agentType].name,
+          reagent: itemTypes[reagentType].name,
+          product: itemTypes[productType].name,
+          byproduct: itemTypes[byproductType].name,
+        });
+
+        assert(reagentType !== productType);
+        assert(isNotEmptyItem(productType));
+        const productTileType = tileTypeForItemType[productType];
+
+        if (reagentType === byproductType && isNotEmptyItem(byproductType)) {
+          // The agent is replaced with the product.  The reagent is also the
+          // byproduct, in other words, it is a catalyst and just bounces in
+          // place.
+          nineKeyView.replace(4, productTileType);
+          nineKeyView.bounce(4, nn);
+        } else if (agentType === byproductType) {
+          // The agent becomes the byproduct when the formula above gets
+          // reversed.  In this case, the agent becomes the byproduct, or
+          // rather, it just moves from the top to the bottom slot.
+          nineKeyView.move(4, 1, ss, 0);
+          nineKeyView.despawnOutward(nn);
+          nineKeyView.spawn(4, productTileType);
+        } else {
+          nineKeyView.replace(4, productTileType);
+          nineKeyView.take(1, nn);
+
+          if (isNotEmptyItem(byproductType)) {
+            const byproductTileType = tileTypeForItemType[byproductType];
+            nineKeyView.spawn(1, byproductTileType);
+          }
+        }
+
+        // Correct recepticle tile type, if necessary.
+        const newRecepticleTileType = recepticleTileType(productType);
+        if (recepticleTileType(agentType) !== newRecepticleTileType) {
+          nineKeyView.replace(8, newRecepticleTileType);
+        }
+      },
     };
     return mode;
   };
@@ -382,6 +485,7 @@ export const makeController = (
   const packMode = leftOrRight => {
     /** @type {Mode} */
     const mode = {
+      name: 'packMode',
       press(command, repeat) {
         if (repeat) return mode;
         if (command === 5) {
@@ -473,6 +577,7 @@ export const makeController = (
 
   /** @type {Mode} */
   const effectMode = {
+    name: 'effectMode',
     press(command, repeat) {
       if (repeat) return mode;
       if (command >= 1 && command <= 9) {
@@ -489,6 +594,7 @@ export const makeController = (
 
   /** @type {Mode} */
   const menuMode = {
+    name: 'menuMode',
     press(command, repeat) {
       if (repeat) return mode;
       if (command === 8) {
@@ -535,11 +641,25 @@ export const makeController = (
     },
   };
 
+  const enterMenuMode = () => {
+    oneKeyView.replace(0, tileTypesByName.thumbUp);
+    menuController.show();
+    dialogController.logElement().innerHTML = '🍔 <b>Hamburger Menu</b>';
+    return menuMode;
+  };
+
+  const exitMenuMode = () => {
+    oneKeyView.replace(0, tileTypesByName.hamburger);
+    dialogController.close();
+    menuController.hide();
+  };
+
   /** @type {number} */
   let editType = 0;
 
   /** @type {Mode} */
   const editMode = {
+    name: 'editMode',
     press(command, repeat) {
       const direction = commandDirection[command];
       if (direction !== undefined) {
@@ -592,6 +712,7 @@ export const makeController = (
 
   /** @type {Mode} */
   const chooseAgentMode = {
+    name: 'chooseAgentMode',
     press(command, repeat) {
       if (repeat) return mode;
       if (command === 8) {
@@ -623,6 +744,7 @@ export const makeController = (
 
   /** @type {Mode} */
   const pendingMode = {
+    name: 'pendingMode',
     press() {
       return pendingMode;
     },
@@ -764,63 +886,6 @@ export const makeController = (
   };
 
   /**
-   * @param {number} leftOrRight
-   * @param {boolean} packWasVisible
-   */
-  const craftItems = (leftOrRight, packWasVisible) => {
-    const agentType = leftHandItemType();
-    const reagentType = rightHandItemType();
-
-    worldModel.intendToCraft(agent);
-    tick();
-
-    const productType = leftHandItemType();
-    const byproductType = rightHandItemType();
-
-    console.table({
-      agent: itemTypes[agentType].name,
-      reagent: itemTypes[reagentType].name,
-      product: itemTypes[productType].name,
-      byproduct: itemTypes[byproductType].name,
-    });
-
-    assert(reagentType !== productType);
-    assert(isNotEmptyItem(productType));
-    const productTileType = tileTypeForItemType[productType];
-
-    if (reagentType === byproductType && isNotEmptyItem(byproductType)) {
-      // The agent is replaced with the product.  The reagent is also the
-      // byproduct, in other words, it is a catalyst and just bounces in
-      // place.
-      nineKeyView.replace(4, productTileType);
-      nineKeyView.bounce(4, nn);
-    } else if (agentType === byproductType) {
-      // The agent becomes the byproduct when the formula above gets
-      // reversed.  In this case, the agent becomes the byproduct, or
-      // rather, it just moves from the top to the bottom slot.
-      nineKeyView.move(4, 1, ss, 0);
-      nineKeyView.despawnOutward(nn);
-      nineKeyView.spawn(4, productTileType);
-    } else {
-      nineKeyView.replace(4, productTileType);
-      nineKeyView.take(1, nn);
-
-      if (isNotEmptyItem(byproductType)) {
-        const byproductTileType = tileTypeForItemType[byproductType];
-        nineKeyView.spawn(1, byproductTileType);
-      }
-    }
-
-    // Correct recepticle tile type, if necessary.
-    const newRecepticleTileType = recepticleTileType(productType);
-    if (recepticleTileType(agentType) !== newRecepticleTileType) {
-      nineKeyView.replace(8, newRecepticleTileType);
-    }
-
-    return itemMode(leftOrRight, packWasVisible);
-  };
-
-  /**
    * @param {boolean} packWasVisible
    */
   const placeItemInLeftHand = packWasVisible => {
@@ -903,19 +968,6 @@ export const makeController = (
     }
 
     return playMode;
-  };
-
-  const enterMenuMode = () => {
-    oneKeyView.replace(0, tileTypesByName.thumbUp);
-    menuController.show();
-    dialogController.logElement().innerHTML = '🍔 <b>Hamburger Menu</b>';
-    return menuMode;
-  };
-
-  const exitMenuMode = () => {
-    oneKeyView.replace(0, tileTypesByName.hamburger);
-    dialogController.close();
-    menuController.hide();
   };
 
   const playToMenuMode = () => {
@@ -1062,45 +1114,6 @@ export const makeController = (
 
   // Entity management:
 
-  const updateHands = () => {
-    const packWasVisible = packNotEmpty();
-
-    updateHand(0, 0, tileTypesByName.left);
-    updateHand(2, 1, tileTypesByName.right);
-
-    const packIsVisible = packNotEmpty();
-    updatePack(packWasVisible, packIsVisible);
-  };
-
-  /**
-   * @param {number} gridIndex
-   * @param {number} inventoryIndex
-   * @param {number} handTileType
-   */
-  const updateHand = (gridIndex, inventoryIndex, handTileType) => {
-    const itemType = worldModel.inventory(agent, inventoryIndex);
-    const priorItemType = priorHands[inventoryIndex];
-    if (itemType !== priorItemType) {
-      priorHands[inventoryIndex] = itemType;
-
-      if (isEmptyItem(itemType)) {
-        nineKeyView.replace(gridIndex, handTileType);
-      } else {
-        const tileType = tileTypeForItemType[itemType];
-        nineKeyView.replace(gridIndex, tileType);
-      }
-    }
-  };
-
-  const updateBack = () => {
-    // Restore effect
-    const newEffectType = worldModel.entityEffectChoice(agent) + 1;
-    if (effectType !== newEffectType) {
-      effectType = newEffectType;
-      nineKeyView.replace(8, tileTypeForEffectType[effectType]);
-    }
-  };
-
   const dismissControllerReticle = () => {
     assertNonZero(reticleEntity);
     macroViewModel.exit(reticleEntity);
@@ -1198,25 +1211,14 @@ export const makeController = (
     nineKeyView.spawnInward(effectTileType, ne);
   };
 
-  /**
-   * @param {boolean} packWasVisible
-   * @param {boolean} packIsVisible
-   */
-  const updatePack = (packWasVisible, packIsVisible) => {
-    if (packWasVisible && !packIsVisible) {
-      dismissPack();
-    }
-    if (!packWasVisible && packIsVisible) {
-      restorePack();
-    }
-  };
-
   const restorePack = () => {
     nineKeyView.spawnInward(packTileType, nw);
+    packVisible = true;
   };
 
   const dismissPack = () => {
     nineKeyView.despawnOutward(nw);
+    packVisible = false;
   };
 
   const dismissTrash = () => {
@@ -1437,9 +1439,6 @@ export const makeController = (
     worldModel.tick();
     cameraController.tick();
     dialogController.close();
-    if (mode.tick !== undefined) {
-      mode.tick();
-    }
   };
 
   const tock = () => {
@@ -1471,8 +1470,9 @@ export const makeController = (
 
     worldModel.unfollow(agent, agentFollower);
     agent = newAgent;
-    const location = worldModel.locate(agent);
-    cameraController.jump(location);
+    const position = worldModel.locate(agent);
+    cameraController.jump(position);
+    cursor = { position, direction: north };
     worldModel.follow(agent, agentFollower);
 
     tick();
@@ -1480,6 +1480,7 @@ export const makeController = (
   };
 
   cameraController.jump(cursor.position);
+  worldModel.follow(agent, agentFollower);
 
   const at = () => cursor.position;
 
