@@ -14,6 +14,9 @@
 
 // @ts-check
 
+import { assert, assertDefined, assumeDefined } from './assert.js';
+import { quarturnToOcturn } from './geometry2d.js';
+
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
  */
@@ -84,9 +87,6 @@
  * @property {TockFn} tock
  */
 
-import { assert, assertDefined, assumeDefined } from './assert.js';
-import { quarturnToOcturn } from './geometry2d.js';
-
 /**
  * @typedef {import('./camera-controller.js').CursorChange} CursorChange
  */
@@ -106,6 +106,13 @@ import { quarturnToOcturn } from './geometry2d.js';
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
  * @param {number} destination
+ */
+
+/**
+ * @callback OnJumpFn
+ * @param {number} e - entity that moved
+ * @param {number} destination
+ * @param {number} origin
  */
 
 /**
@@ -144,6 +151,7 @@ import { quarturnToOcturn } from './geometry2d.js';
 /**
  * @typedef {Object} Follower
  * @property {OnMoveFn} move
+ * @property {OnJumpFn} jump
  * @property {OnCraftFn} craft
  * @property {OnInventoryFn} inventory
  * @property {OnDialogFn} dialog
@@ -232,6 +240,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   } = mechanics;
 
   const emptyItem = itemTypesByName.empty;
+
+  /** entity number of the player, -1 if no player */
+  let player = -1;
 
   let entities = new Uint16Array(size);
   let entitiesWriteBuffer = new Uint16Array(size);
@@ -484,6 +495,20 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
         follower.move(e, change, destination);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
+   * @param {number} destination
+   * @param {number} origin
+   */
+  function onJump(e, destination, origin) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.jump(e, destination, origin);
       }
     }
   }
@@ -825,13 +850,19 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    */
   function set(location, entityType) {
     remove(location);
-    if (entityType !== agentTypesByName.player) {
-      const entity = createEntity(entityType);
-      entities[location] = entity;
-      const tileType = defaultTileTypeForAgentType[entityType];
-      macroViewModel.put(entity, location, tileType);
-      macroViewModel.enter(entity);
+    const entity = createEntity(entityType);
+    if (entityType === agentTypesByName.player) {
+      const playerLocation = locate(player);
+      player = -1;
+      remove(playerLocation);
+      player = entity;
+      onJump(entity, location, playerLocation);
     }
+    entities[location] = entity;
+    const tileType = defaultTileTypeForAgentType[entityType];
+    macroViewModel.put(entity, location, tileType);
+    macroViewModel.enter(entity);
+    return entity;
   }
 
   /**
@@ -841,7 +872,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     const entity = entities[location];
     if (entity !== 0) {
       const entityType = assumeDefined(entityTypes.get(entity));
-      if (entityType === agentTypesByName.player) {
+      if (entityType === agentTypesByName.player && player !== -1) {
         // There is not yet special logic in the controller to ensure that the
         // player agent still exists when exiting editor mode.
         return;
@@ -858,7 +889,10 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} entity
    */
   function entityInventory(entity) {
-    return assumeDefined(inventories.get(entity));
+    return assumeDefined(
+      inventories.get(entity),
+      `Expected an inventory object for entity ${entity}`,
+    );
   }
 
   /**
@@ -995,7 +1029,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       staminas.set(entity, newStamina);
       onStamina(entity, newStamina);
     }
-    // TODO eat for health, eat for stamina
     return 'discard';
   }
 

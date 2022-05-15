@@ -6,7 +6,11 @@ import { cell } from './cell.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
-import { makeController, watchControllerCommands } from './controls.js';
+import {
+  makeController,
+  makeControllerViews,
+  watchControllerCommands,
+} from './controls.js';
 import { makeDriver } from './driver.js';
 import { makeCommandDispatcher } from './commands.js';
 import { makeMechanics } from './mechanics.js';
@@ -222,10 +226,18 @@ const main = async () => {
     moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
   };
 
-  const controls = makeController($controls, $hamburger, {
+  const { viewText } = mechanics;
+
+  const { nineKeyTileView, oneKeyTileView, placeOneKey, placeNineKey } =
+    makeControllerViews($controls, $hamburger, { viewText });
+
+  const controls = makeController({
+    nineKeyTileView,
+    oneKeyTileView,
+    placeOneKey,
+    placeNineKey,
     agent,
     worldModel,
-    worldViewModel,
     worldMacroViewModel,
     cursor,
     toponym: world.toponym,

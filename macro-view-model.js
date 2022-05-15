@@ -21,7 +21,7 @@ import { assert, assumeDefined } from './assert.js';
 
 /**
  * @param {ViewModel} viewModel
- * @param {Object} options
+ * @param {Object} [options]
  * @param {string} [options.name]
  * @param {number} [options.start]
  * @param {number} [options.stride]

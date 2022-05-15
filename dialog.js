@@ -36,6 +36,13 @@ export const createDialogBox = () => {
     return dialogElement;
   };
 
+  /**
+   * @param {string} html
+   */
+  const logHTML = html => {
+    logElement().innerHTML = html;
+  };
+
   /** @param {string} message */
   const log = message => {
     const dialogElement = logElement();
@@ -89,7 +96,7 @@ export const createDialogBox = () => {
     }
   };
 
-  const controller = { logElement, log, animate, close, tock };
+  const controller = { logHTML, log, animate, close, tock };
 
   return { element, controller };
 };

@@ -113,15 +113,74 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  */
 
 /**
+ * @typedef {Object} TileView
+ * @prop {(tileNumber: number, tileType: number) => void} enter
+ * @prop {(tileNumber: number) => void} exit
+ */
+
+/**
  * @param {SVGElement} $controls
  * @param {SVGElement} $hamburger
  * @param {Object} args
+ * @param {Array<string>} args.viewText
+ */
+export const makeControllerViews = ($controls, $hamburger, { viewText }) => {
+  /**
+   * @param {number} _entity
+   * @param {number} type
+   */
+  const createElement = (_entity, type) => {
+    if (type === -1) {
+      const element = document.createElementNS(svgNS, 'circle');
+      element.setAttributeNS(null, 'class', 'reticle');
+      element.setAttributeNS(null, 'r', '0.75');
+      return element;
+    } else {
+      const text = viewText[type];
+      const $element = document.createElementNS(svgNS, 'g');
+      const $text = document.createElementNS(svgNS, 'text');
+      $text.setAttributeNS(null, 'class', 'moji');
+      $text.appendChild(document.createTextNode(text));
+      $element.appendChild($text);
+      return $element;
+    }
+  };
+
+  const nineKeyElementTracker = makeElementTracker({ createElement });
+  const oneKeyElementTracker = makeElementTracker({ createElement });
+
+  const nineKeyTileView = makeTileView(
+    $controls,
+    null,
+    nineKeyElementTracker.create,
+    nineKeyElementTracker.collect,
+  );
+  const oneKeyTileView = makeTileView(
+    $hamburger,
+    null,
+    oneKeyElementTracker.create,
+    oneKeyElementTracker.collect,
+  );
+
+  return {
+    nineKeyTileView,
+    oneKeyTileView,
+    placeNineKey: nineKeyElementTracker.place,
+    placeOneKey: oneKeyElementTracker.place,
+  };
+};
+
+/**
+ * @param {Object} args
  * @param {number} args.agent
+ * @param {TileView} args.nineKeyTileView
+ * @param {TileView} args.oneKeyTileView
+ * @param {PlaceFn} args.placeNineKey
+ * @param {PlaceFn} args.placeOneKey
  * @param {import('./daia.js').AdvanceFn} args.advance,
  * @param {import('./daia.js').Cursor} args.cursor
  * @param {import('./daia.js').ToponymFn} args.toponym
  * @param {import('./model.js').Model} args.worldModel
- * @param {import('./view-model.js').ViewModel} args.worldViewModel
  * @param {import('./macro-view-model.js').MacroViewModel} args.worldMacroViewModel
  * @param {FollowCursorFn} args.followCursor
  * @param {import('./mechanics.js').Mechanics} args.mechanics
@@ -131,26 +190,25 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  */
-export const makeController = (
-  $controls,
-  $hamburger,
-  {
-    agent,
-    cursor,
-    worldModel,
-    worldViewModel,
-    worldMacroViewModel,
-    cameraController,
-    toponym,
-    advance,
-    followCursor,
-    mechanics,
-    menuController,
-    dialogController,
-    healthController,
-    staminaController,
-  },
-) => {
+export const makeController = ({
+  nineKeyTileView,
+  oneKeyTileView,
+  placeNineKey,
+  placeOneKey,
+  agent,
+  cursor,
+  worldModel,
+  worldMacroViewModel,
+  cameraController,
+  toponym,
+  advance,
+  followCursor,
+  mechanics,
+  menuController,
+  dialogController,
+  healthController,
+  staminaController,
+}) => {
   const {
     agentTypes,
     itemTypes,
@@ -165,7 +223,6 @@ export const makeController = (
     tileTypeForEffectType,
     // craft,
     // bump,
-    viewText,
   } = mechanics;
 
   // Common queries:
@@ -207,53 +264,29 @@ export const makeController = (
 
   let lastAgentCursor = cursor;
 
-  /**
-   * @param {number} _entity
-   * @param {number} type
-   */
-  const createElement = (_entity, type) => {
-    if (type === -1) {
-      const element = document.createElementNS(svgNS, 'circle');
-      element.setAttributeNS(null, 'class', 'reticle');
-      element.setAttributeNS(null, 'r', '0.75');
-      return element;
-    } else {
-      const text = viewText[type];
-      const $element = document.createElementNS(svgNS, 'g');
-      const $text = document.createElementNS(svgNS, 'text');
-      $text.setAttributeNS(null, 'class', 'moji');
-      $text.appendChild(document.createTextNode(text));
-      $element.appendChild($text);
-      return $element;
-    }
-  };
-
-  const { create, collect, place } = makeElementTracker({ createElement });
-
-  const tileView = makeTileView($controls, null, create, collect);
-  const { enter, exit } = tileView;
-
-  const hamburgerView = makeTileView($hamburger, null, create, collect);
-  const hamburgerViewModel = makeViewModel();
+  const oneKeyViewModel = makeViewModel();
   const oneTileMap = makeBoxTileMap();
-  hamburgerViewModel.watchEntities(oneTileMap, {
-    enter: hamburgerView.enter,
-    exit: hamburgerView.exit,
-    place,
+  oneKeyViewModel.watchEntities(oneTileMap, {
+    enter: oneKeyTileView.enter,
+    exit: oneKeyTileView.exit,
+    place: placeOneKey,
   });
-  const oneKeyView = makeMacroViewModel(hamburgerViewModel, {
+  const oneKeyView = makeMacroViewModel(oneKeyViewModel, {
     name: 'hamburger',
-    start: -2,
-    stride: -1,
   });
   oneKeyView.put(0, 0, tileTypesByName.hamburger);
 
-  const controlsViewModel = makeViewModel();
-  const macroViewModel = makeMacroViewModel(controlsViewModel, {
+  const nineKeyViewModel = makeViewModel();
+  const nineKeyMacroViewModel = makeMacroViewModel(nineKeyViewModel, {
     name: 'controls',
   });
+  const nineKeyView = makeNineKeyView(nineKeyMacroViewModel);
 
-  controlsViewModel.watchEntities(tileMap, { enter, exit, place });
+  nineKeyViewModel.watchEntities(tileMap, {
+    enter: nineKeyTileView.enter,
+    exit: nineKeyTileView.exit,
+    place: placeNineKey,
+  });
 
   /** @type {import('./model.js').Follower} */
   const agentFollower = {
@@ -261,6 +294,9 @@ export const makeController = (
       cursor = { ...change, position: destination };
       cameraController.move(destination, change);
       followCursor(destination, change);
+    },
+    jump(_entity, destination, _origin) {
+      cameraController.jump(destination);
     },
     craft(_entity, recipe) {
       assert(mode.name === 'itemMode');
@@ -274,7 +310,7 @@ export const makeController = (
       }
     },
     dialog(_entity, text) {
-      dialogController.logElement().innerHTML = text;
+      dialogController.logHTML(text);
     },
     health(_entity, health) {
       healthController.set(health);
@@ -289,8 +325,6 @@ export const makeController = (
 
   // index of enabled effect, or 0 for no effect
   const effectType = worldModel.entityEffectChoice(agent) + 1;
-
-  const nineKeyView = makeNineKeyView(macroViewModel);
 
   const initialTileTypes = [
     tileTypesByName.left,
@@ -644,7 +678,7 @@ export const makeController = (
   const enterMenuMode = () => {
     oneKeyView.replace(0, tileTypesByName.thumbUp);
     menuController.show();
-    dialogController.logElement().innerHTML = '🍔 <b>Hamburger Menu</b>';
+    dialogController.logHTML('🍔  <b>Hamburger Menu</b>');
     return menuMode;
   };
 
@@ -1116,13 +1150,13 @@ export const makeController = (
 
   const dismissControllerReticle = () => {
     assertNonZero(reticleEntity);
-    macroViewModel.exit(reticleEntity);
+    nineKeyMacroViewModel.exit(reticleEntity);
     reticleEntity = 0;
   };
 
   const restoreControllerReticle = () => {
     reticleEntity = nineKeyView.create(-1, locate(1, 1)); // reticle
-    macroViewModel.enter(reticleEntity);
+    nineKeyMacroViewModel.enter(reticleEntity);
   };
 
   const restoreDpad = () => {
@@ -1424,9 +1458,9 @@ export const makeController = (
    */
   const animate = progress => {
     cameraController.animate(progress);
-    worldViewModel.animate(progress);
-    macroViewModel.animate(progress);
-    hamburgerViewModel.animate(progress);
+    worldMacroViewModel.animate(progress);
+    nineKeyMacroViewModel.animate(progress);
+    oneKeyViewModel.animate(progress);
     menuController.animate(progress);
     dialogController.animate(progress);
     healthController.animate(progress);
@@ -1443,8 +1477,8 @@ export const makeController = (
 
   const tock = () => {
     worldModel.tock();
-    worldViewModel.tock();
-    macroViewModel.tock();
+    worldMacroViewModel.tock();
+    nineKeyMacroViewModel.tock();
     oneKeyView.tock();
     menuController.tock();
     dialogController.tock();
