@@ -1,189 +1,167 @@
 import test from 'ava';
-import { makeDaia } from '../daia.js';
-import { makeModel } from '../model.js';
-import { makeMechanics } from '../mechanics.js';
-import { makeController } from '../controls.js';
-import { makeViewModel } from '../view-model.js';
-import { makeMacroViewModel } from '../macro-view-model.js';
-import {
-  recipes,
-  actions,
-  tileTypes,
-  validAgentTypes,
-  validItemTypes,
-  validEffectTypes,
-} from '../data.js';
+import { makeScaffold } from './scaffold.js';
 
-/**
- * @param {string} name
- * @param {any[]} lines
- */
-const scenario = (name, lines) => {
-  test(name, (/** @type {import('ava').ExecutionContext} t */ t) => {
-    const world = makeDaia({
-      faceSize: 3,
-      tileSizePx: NaN,
-    });
+test('limbo', t => {
+  const s = makeScaffold(t);
+  s.expectControls(`
+    . . .
+    . . .
+    . . .
+  `);
+});
 
-    /** @type {import('../tile-view.js').TileView} */
-    const nineKeyTileView = {
-      enter(entity) {
-        t.log('9x9 enter', entity);
-      },
-      exit(entity) {
-        t.log('9x9 exit', entity);
-      },
-    };
+test('play', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.play();
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+});
 
-    /** @type {import('../tile-view.js').TileView} */
-    const oneKeyTileView = {
-      enter(entity) {
-        t.log('1x1 enter', entity);
-      },
-      exit(entity) {
-        t.log('1x1 exit', entity);
-      },
-    };
+test('rest', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.play();
+  s.command(5); // rest
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+});
 
-    /** @type {import('../view-model.js').PlaceFn} */
-    const placeOneKey = (entity, coord, _pressure, _progress, _transition) => {
-      t.log('1x1 place', entity, coord);
-    };
-    /** @type {import('../view-model.js').PlaceFn} */
-    const placeNineKey = (entity, coord, _pressure, _progress, _transition) => {
-      t.log('9x9 place', entity, coord);
-    };
+test('the apple tree', t => {
+  const s = makeScaffold(t);
+  s.scene('@ A');
+  s.play();
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+  s.command(6); // bump tree to the east
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v ]
+  `);
+  s.command(1); // select apple from left hand
+  s.expectControls(`
+    b . m  <- backpack and mouth show
+    .(a).  <- reticle around apple
+    [ . ]  <- empty hands, no D-pad
+  `);
+  t.is(s.health, 0);
+  s.command(9); // eat the apple (move to mouth)
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+  t.is(s.health, 1);
+});
 
-    const worldViewModel = makeViewModel();
-    const worldMacroViewModel = makeMacroViewModel(worldViewModel);
+test('fill inventory', t => {
+  const s = makeScaffold(t);
+  s.scene('@ A');
+  s.play();
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+  s.command(6); // bump tree to the east
+  s.expectControls(`
+    . ^ s <- nothing in the pack
+    < z >
+    a v ] <- got an apple
+  `);
+  s.command(1); // select apple
+  s.expectControls(`
+    b . m  <- backpack and mouth show
+    .(a).  <- reticle around apple
+    [ . ]  <- empty hands, no D-pad
+  `);
+  s.command(7); // select pack
+  s.expectControls(`
+    7 8 9
+    4 a 6 <- empty inventory
+    1 2 3
+  `);
+  s.command(1); // move apple to pack
+  for (const slot of [2, 3, 4, /* 5 is center */ 6, 7, 8, 9]) {
+    s.expectControls(`
+      b ^ s <- backpack no longer empty
+      < z >
+      [ v ]
+    `);
+    s.command(6); // bump tree to the east
+    s.expectControls(`
+      b ^ s <- pack is not empty
+      < z >
+      a v ] <- got an apple
+    `);
+    s.command(1); // select apple
+    s.expectControls(`
+      b . m  <- backpack and mouth show
+      .(a).  <- reticle around apple
+      [ . ]  <- empty hands, no D-pad
+    `);
+    s.command(7); // select pack
+    // pack is not empty
+    s.command(slot); // move apple to pack
+  }
 
-    const mechanics = makeMechanics({
-      recipes,
-      actions,
-      tileTypes,
-      validAgentTypes,
-      validItemTypes,
-      validEffectTypes,
-    });
+  s.command(7); // open pack
+  s.expectControls(`
+    a a a
+    a . a <- lots of apples
+    a a a
+  `);
+  s.command(5); // go back
 
-    const worldModel = makeModel({
-      size: world.worldArea,
-      advance: world.advance,
-      macroViewModel: worldMacroViewModel,
-      mechanics,
-    });
+  s.command(6); // get an apple
+  s.expectControls(`
+    b ^ s <- full pack
+    < z >
+    a v ] <- got an apple
+  `);
 
-    const cursor = { position: 0, direction: 0 };
+  s.command(1); // select apple
+  s.expectControls(`
+    b . m
+    .(a).
+    [ . ]
+  `);
 
-    const agent = worldModel.init(cursor.position);
+  s.command(7); // open pack
+  s.expectControls(`
+    a a a
+    a a a <- more apples
+    a a a
+  `);
 
-    const cameraController = {
-      move() {},
-      jump() {},
-      animate() {},
-      tick() {},
-      tock() {},
-    };
+  s.command(5); // go back
+  s.expectControls(`
+    b . m  <- backpack and mouth show
+    .(a).  <- reticle around apple
+    [ . ]  <- empty hands, no D-pad
+  `);
 
-    const { toponym, advance } = world;
+  s.command(3); // put apple in right hand
+  s.expectControls(`
+    b ^ s <- full pack
+    < z >
+    [ v a <- apple in right hand
+  `);
 
-    /**
-     * @param {number} _destination
-     * @param {import('../daia.js').CursorChange} _change
-     */
-    const followCursor = (_destination, _change) => {};
-
-    const menuController = {
-      goNorth() {},
-      goSouth() {},
-      getState() {
-        return 'play';
-      },
-      show() {},
-      hide() {},
-      animate() {},
-      tock() {},
-    };
-
-    const dialogController = {
-      log() {},
-      /** @param {string} message */
-      logHTML(message) {
-        t.log('logHTML', message);
-      },
-      close() {},
-      animate() {},
-      tock() {},
-    };
-
-    const healthController = {
-      set() {},
-      animate() {},
-      tock() {},
-    };
-
-    const staminaController = {
-      set() {},
-      animate() {},
-      tock() {},
-    };
-
-    const controller = makeController({
-      nineKeyTileView,
-      oneKeyTileView,
-      placeOneKey,
-      placeNineKey,
-      agent,
-      cursor,
-      worldModel,
-      worldMacroViewModel,
-      cameraController,
-      toponym,
-      advance,
-      followCursor,
-      mechanics,
-      menuController,
-      dialogController,
-      healthController,
-      staminaController,
-    });
-
-    for (const line of lines) {
-      t.log('line', line);
-      const { command } = line;
-      if (command !== undefined) {
-        const { repeat } = line;
-        controller.command(command, repeat);
-      }
-    }
-
-    t.pass();
-  });
-};
-
-scenario('rest', [{ command: 5 }]);
-
-// TODO goal:
-//
-// const legend = {
-//   '@': 'player',
-//   T: 'appleTree',
-// };
-//
-// scenario(
-//   'bump apple tree with empty hand',
-//   [
-//     {
-//       scene: `
-//         ...
-//         .@.
-//         .T.
-//       `,
-//       face: 0,
-//     },
-//     { left: 'empty' },
-//     { command: 2 },
-//     { left: 'apple' },
-//   ],
-//   legend,
-// );
+  s.command(6); // one last apple
+  s.expectControls(`
+    b ^ s <- full pack of apples
+    < z >
+    a v a <- lots of apples
+  `);
+});

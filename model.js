@@ -109,13 +109,6 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
- * @callback OnJumpFn
- * @param {number} e - entity that moved
- * @param {number} destination
- * @param {number} origin
- */
-
-/**
  * @typedef {Object} Recipe
  * @property {number} agent
  * @property {number} reagent
@@ -151,7 +144,6 @@ import { quarturnToOcturn } from './geometry2d.js';
 /**
  * @typedef {Object} Follower
  * @property {OnMoveFn} move
- * @property {OnJumpFn} jump
  * @property {OnCraftFn} craft
  * @property {OnInventoryFn} inventory
  * @property {OnDialogFn} dialog
@@ -224,11 +216,11 @@ const pluck = (candidates, index) => {
 export function makeModel({ size, advance, macroViewModel, mechanics }) {
   const {
     itemTypes,
-    // agentTypes,
+    agentTypes,
     // tileTypes,
     // effectTypes,
-    tileTypesByName,
-    agentTypesByName,
+    // tileTypesByName,
+    // agentTypesByName,
     itemTypesByName,
     effectTypesByName,
     defaultTileTypeForAgentType,
@@ -240,9 +232,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   } = mechanics;
 
   const emptyItem = itemTypesByName.empty;
-
-  /** entity number of the player, -1 if no player */
-  let player = -1;
 
   let entities = new Uint16Array(size);
   let entitiesWriteBuffer = new Uint16Array(size);
@@ -468,9 +457,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     assert(!entityFollowers.has(follower));
     entityFollowers.add(follower);
 
-    const inventory = entityInventory(e);
-    for (let slot = 0; slot < inventory.length; slot++) {
-      onInventory(e, slot, inventory[slot]);
+    const inventory = inventories.get(e);
+    if (inventory !== undefined) {
+      for (let slot = 0; slot < inventory.length; slot++) {
+        onInventory(e, slot, inventory[slot]);
+      }
     }
   }
 
@@ -495,20 +486,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
         follower.move(e, change, destination);
-      }
-    }
-  }
-
-  /**
-   * @param {number} e
-   * @param {number} destination
-   * @param {number} origin
-   */
-  function onJump(e, destination, origin) {
-    const entityFollowers = followers.get(e);
-    if (entityFollowers !== undefined) {
-      for (const follower of entityFollowers) {
-        follower.jump(e, destination, origin);
       }
     }
   }
@@ -594,31 +571,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   }
 
   /**
-   * @param {number} spawn - tile to spawn the agent at
-   */
-  function init(spawn) {
-    const agent = createEntity(agentTypesByName.player);
-    entities[spawn] = agent;
-    locations.set(agent, spawn);
-    macroViewModel.put(agent, spawn, tileTypesByName.happy);
-
-    inventories.set(agent, [
-      emptyItem, // held in left hand
-      emptyItem, // held in right hand
-      emptyItem, // command === 1
-      emptyItem, // command === 2
-      emptyItem, // command === 3
-      emptyItem, // command === 4 (5 skipped)
-      emptyItem, // command === 6
-      emptyItem, // command === 7
-      emptyItem, // command === 8
-      emptyItem, // command === 9
-    ]);
-
-    return agent;
-  }
-
-  /**
    * @param {number} entity
    * @param {number} direction - in quarters clockwise from north
    * @param {boolean} repeat - whether the agent intends to act upon the
@@ -683,8 +635,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   const bumpKit = {
     entityType,
     entityEffect,
-    entityInventory,
-    entityInventorySet,
+    inventory,
+    put,
     destroyEntity,
     macroViewModel,
   };
@@ -760,16 +712,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // be destroyed by another bump and therein may lay race conditions.
     for (const { agent, patient, destination, direction } of bumps) {
       if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
-        const inventory = inventories.get(agent);
-        let bumped = null;
-        if (inventory !== undefined && inventory.length >= 2) {
-          bumped = bump(bumpKit, {
-            agent,
-            patient,
-            destination,
-            direction,
-          });
-        }
+        const bumped = bump(bumpKit, {
+          agent,
+          patient,
+          destination,
+          direction,
+        });
         if (bumped !== null) {
           const { dialog } = bumped;
           if (dialog !== undefined) {
@@ -777,7 +725,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
           }
         } else {
           const patientType = assumeDefined(entityTypes.get(patient));
-          const patientDesc = mechanics.agentTypes[patientType];
+          const patientDesc = agentTypes[patientType];
           const { dialog } = patientDesc;
           if (dialog !== undefined) {
             // The dialog might cycle on repeated bumps and reset when the
@@ -832,7 +780,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} location
    * @returns {number} entityType or (zero for no-type)
    */
-  function get(location) {
+  function entityTypeAt(location) {
     const entity = assumeDefined(entities[location]);
     if (entity === 0) {
       return 0;
@@ -846,22 +794,33 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} location
+   */
+  function entityAt(location) {
+    return assumeDefined(entities[location]);
+  }
+
+  /**
+   * @param {number} location
    * @param {number} entityType
    */
   function set(location, entityType) {
-    remove(location);
+    assert(
+      entityType !== undefined,
+      `model.set must be called with an entity type`,
+    );
+
+    assert(
+      entities[location] === 0,
+      `Cannot create entity with type ${entityType} ${agentTypes[entityType].name} at location ${location} occupied by ${entities[location]}`,
+    );
+
     const entity = createEntity(entityType);
-    if (entityType === agentTypesByName.player) {
-      const playerLocation = locate(player);
-      player = -1;
-      remove(playerLocation);
-      player = entity;
-      onJump(entity, location, playerLocation);
-    }
     entities[location] = entity;
+    locations.set(entity, location);
     const tileType = defaultTileTypeForAgentType[entityType];
     macroViewModel.put(entity, location, tileType);
     macroViewModel.enter(entity);
+
     return entity;
   }
 
@@ -871,28 +830,30 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   function remove(location) {
     const entity = entities[location];
     if (entity !== 0) {
-      const entityType = assumeDefined(entityTypes.get(entity));
-      if (entityType === agentTypesByName.player && player !== -1) {
-        // There is not yet special logic in the controller to ensure that the
-        // player agent still exists when exiting editor mode.
-        return;
-      }
       macroViewModel.exit(entity);
       locations.delete(entity);
+      inventories.delete(entity);
       entityTypes.delete(entity);
       mobiles.delete(entity);
       entities[location] = 0;
     }
+    return entity;
   }
 
   /**
    * @param {number} entity
+   * @param {number} length
    */
-  function entityInventory(entity) {
-    return assumeDefined(
-      inventories.get(entity),
-      `Expected an inventory object for entity ${entity}`,
-    );
+  function provideInventory(entity, length) {
+    let inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      inventory = [];
+      inventories.set(entity, inventory);
+    }
+    for (let index = inventory.length; index < length; index += 1) {
+      inventory[index] = itemTypesByName.empty;
+    }
+    return inventory;
   }
 
   /**
@@ -900,21 +861,35 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} slot
    * @param {number} itemType
    */
-  function entityInventorySet(entity, slot, itemType) {
-    const inventory = assumeDefined(inventories.get(entity));
+  function put(entity, slot, itemType) {
+    assert(
+      itemType !== itemTypesByName.invalid,
+      `Cannot place invalid item type in entity ${entity} inventory at slot ${slot}`,
+    );
+    assert(
+      itemType !== itemTypesByName.any,
+      `Cannot place wildcard item type in entity ${entity} inventory at slot ${slot}`,
+    );
+    const inventory = provideInventory(entity, slot + 1);
     inventory[slot] = itemType;
     onInventory(entity, slot, itemType);
   }
 
   /**
    * @param {number} entity
-   * @param {number} inventoryIndex
+   * @param {number} slot
    */
-  function inventory(entity, inventoryIndex) {
-    const inventory = entityInventory(entity);
-    assert(inventoryIndex < inventory.length);
-    return inventory[inventoryIndex];
+  function inventory(entity, slot) {
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return itemTypesByName.empty;
+    }
+    if (inventory.length <= slot) {
+      return itemTypesByName.empty;
+    }
+    return inventory[slot];
   }
+
   /**
    * @param {number} entity
    * @param {number} effect
@@ -1004,7 +979,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @returns {'effect' | 'discard'}
    */
   function use(entity, inventoryIndex) {
-    const inventory = entityInventory(entity);
+    const inventory = provideInventory(entity, 2);
     const itemType = inventory[inventoryIndex];
     const itemDescriptor = itemTypes[itemType];
     inventory[inventoryIndex] = emptyItem; // poof
@@ -1038,7 +1013,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} j
    */
   function swap(entity, i, j) {
-    const inventory = entityInventory(entity);
+    const inventory = provideInventory(entity, Math.max(i, j) + 1);
     assert(i >= 0);
     assert(j >= 0);
     assert(i < inventory.length);
@@ -1051,7 +1026,10 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} start
    */
   function anyPacked(entity, start = 0) {
-    const inventory = entityInventory(entity);
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return false;
+    }
     for (let i = start; i < inventory.length; i += 1) {
       if (inventory[i] !== emptyItem) {
         return true;
@@ -1065,7 +1043,10 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} start
    */
   function allPacked(entity, start = 0) {
-    const inventory = entityInventory(entity);
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return true;
+    }
     for (let i = start; i < inventory.length; i += 1) {
       if (inventory[i] === emptyItem) {
         return false;
@@ -1074,8 +1055,10 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     return true;
   }
 
+  // TODO rename agent to player in model file
+  // TODO allow for absence of player in model file
   /**
-   * @param {number} agent
+   * @param {number | undefined} agent
    */
   function capture(agent) {
     const renames = new Map();
@@ -1110,7 +1093,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       });
     }
 
-    const reagent = assumeDefined(renames.get(agent));
+    /** @type {number | undefined} reagent */
+    let reagent;
+    if (agent !== undefined) {
+      reagent = assumeDefined(renames.get(agent));
+    }
 
     // TODO capture agent entity id
     return {
@@ -1144,6 +1131,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     } = snapshot;
 
     if (allegedAgent === undefined) {
+      // TODO allow for missing agent, go to limbo after restore.
       return ['missing "agent"'];
     } else if (typeof allegedAgent !== 'number') {
       return ['"agent" must be a number'];
@@ -1370,7 +1358,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   }
 
   return {
-    get,
     set,
     remove,
     intendToMove,
@@ -1382,6 +1369,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     use,
     craft,
     locate,
+    entityAt,
+    entityTypeAt,
     entityStamina,
     entityHealth,
     entityEffect,
@@ -1396,7 +1385,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     toggleTerrainFlags,
     tick,
     tock,
-    init,
     follow,
     unfollow,
     capture,

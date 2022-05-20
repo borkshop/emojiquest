@@ -526,7 +526,6 @@ const makeFace = ({
  * @param {import('./daia.js').AdvanceFn} args.advance
  * @param {import('./daia.js').TileCoordinateFn} args.faceTileCoordinate
  * @param {import('./daia.js').AdvanceFn} args.faceAdvance
- * @param {import('./daia.js').Cursor} args.cursor
  */
 export const makeMap = ({
   faceSize,

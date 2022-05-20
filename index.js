@@ -1,6 +1,6 @@
 // @ts-check
 
-import { north, fullQuarturn } from './geometry2d.js';
+import { fullQuarturn } from './geometry2d.js';
 import { makeDaia } from './daia.js';
 import { cell } from './cell.js';
 import { makeViewModel } from './view-model.js';
@@ -95,7 +95,6 @@ const main = async () => {
   const facetsPerFaceSize = 9; // the height and width of a face in units of facets
   const faceSize = facetsPerFaceSize * facetSize; // the height and width of a face in tiles
   const facetSizePx = facetSize * tileSizePx;
-  const initialPosition = (faceSize ** 2 * 5.5) | 0;
   const frustumRadius = 10;
   const animatedTransitionDuration = 300;
 
@@ -125,8 +124,6 @@ const main = async () => {
     validEffectTypes,
   });
 
-  const cursor = { position: initialPosition, direction: north };
-
   // View
 
   const worldViewModel = makeViewModel();
@@ -140,8 +137,6 @@ const main = async () => {
     macroViewModel: worldMacroViewModel,
     mechanics,
   });
-
-  const agent = worldModel.init(cursor.position);
 
   const createEntity = makeEntityCreator(mechanics);
 
@@ -180,8 +175,6 @@ const main = async () => {
 
     watchEntities: worldViewModel.watchEntities,
     unwatchEntities: worldViewModel.unwatchEntities,
-
-    cursor,
   });
 
   parentElement.insertBefore($map, nextSibling);
@@ -236,10 +229,8 @@ const main = async () => {
     oneKeyTileView,
     placeOneKey,
     placeNineKey,
-    agent,
     worldModel,
     worldMacroViewModel,
-    cursor,
     toponym: world.toponym,
     advance: world.advance,
     followCursor,
@@ -265,9 +256,10 @@ const main = async () => {
 
   const response = await fetch(new URL('daia.json', import.meta.url).href);
   const worldData = await response.json();
-  const newAgent = worldModel.restore(worldData);
-  if (typeof newAgent === 'number') {
-    controls.jump(newAgent);
+  const player = worldModel.restore(worldData);
+  if (typeof player === 'number' || player === undefined) {
+    controls.play(player);
+    controls.tock();
   }
 
   const driver = makeDriver(controls, {
@@ -281,15 +273,8 @@ const main = async () => {
 
   // TODO properly integrate water and magma in an editor mode
   window.addEventListener('keypress', event => {
-    if (event.key === 'w') {
+    if (controls.etcCommand(event.key)) {
       event.stopPropagation();
-      const location = controls.at();
-      worldModel.toggleTerrainFlags(location, 0b1);
-    }
-    if (event.key === 'm') {
-      event.stopPropagation();
-      const location = controls.at();
-      worldModel.toggleTerrainFlags(location, 0b10);
     }
   });
 };

@@ -192,7 +192,7 @@ export function makeMechanics({
     take([yieldType]) {
       /** @type {Handler} */
       function takeHandler(kit, { agent, patient, direction, destination }) {
-        kit.entityInventorySet(agent, 0, yieldType);
+        kit.put(agent, 0, yieldType);
         kit.macroViewModel.take(
           patient,
           (direction * quarturnToOcturn + halfOcturn) % fullOcturn,
@@ -205,7 +205,7 @@ export function makeMechanics({
     reap([yieldType]) {
       /** @type {Handler} */
       function reapHandler(kit, { agent, patient, direction, destination }) {
-        kit.entityInventorySet(agent, 1, yieldType);
+        kit.put(agent, 1, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
         kit.macroViewModel.fell(patient);
         kit.destroyEntity(patient, destination);
@@ -216,7 +216,7 @@ export function makeMechanics({
     cut([yieldType]) {
       /** @type {Handler} */
       function cutHandler(kit, { agent, direction }) {
-        kit.entityInventorySet(agent, 1, yieldType);
+        kit.put(agent, 1, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return cutHandler;
@@ -225,7 +225,7 @@ export function makeMechanics({
     pick([yieldType]) {
       /** @type {Handler} */
       function cutHandler(kit, { agent, direction }) {
-        kit.entityInventorySet(agent, 0, yieldType);
+        kit.put(agent, 0, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return cutHandler;
@@ -235,8 +235,8 @@ export function makeMechanics({
       /** @type {Handler} */
       function splitHandler(kit, { agent }) {
         assertDefined(rightType);
-        kit.entityInventorySet(agent, 0, leftType);
-        kit.entityInventorySet(agent, 1, rightType);
+        kit.put(agent, 0, leftType);
+        kit.put(agent, 1, rightType);
       }
       return splitHandler;
     },
@@ -244,8 +244,8 @@ export function makeMechanics({
     merge([changeType]) {
       /** @type {Handler} */
       function mergeHandler(kit, { agent }) {
-        kit.entityInventorySet(agent, 0, changeType);
-        kit.entityInventorySet(agent, 1, itemTypesByName.empty);
+        kit.put(agent, 0, changeType);
+        kit.put(agent, 1, itemTypesByName.empty);
       }
       return mergeHandler;
     },
@@ -253,7 +253,7 @@ export function makeMechanics({
     replace([yieldType]) {
       /** @type {Handler} */
       function replaceHandler(kit, { agent, direction }) {
-        kit.entityInventorySet(agent, 0, yieldType);
+        kit.put(agent, 0, yieldType);
         kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return replaceHandler;
@@ -297,13 +297,6 @@ export function makeMechanics({
     const key = bumpKey(parameters);
     const match = bumpingFormulae.get(key);
     if (match !== undefined) {
-      console.table({
-        agentType: agentTypes[parameters.agentType].name,
-        patientType: agentTypes[parameters.patientType].name,
-        leftType: itemTypes[parameters.leftType].name,
-        rightType: itemTypes[parameters.rightType].name,
-        effectType: effectTypes[parameters.effectType].name,
-      });
       const { handler } = match;
       handler(kit, parameters);
       return match;
@@ -315,8 +308,8 @@ export function makeMechanics({
    * @typedef {Object} Kit
    * @property {(entity: number) => number} entityType
    * @property {(entity: number) => number} entityEffect
-   * @property {(entity: number) => Array<number>} entityInventory
-   * @property {(entity: number, slot: number, itemType: number) => void} entityInventorySet
+   * @property {(entity: number, slot: number) => number} inventory
+   * @property {(entity: number, slot: number, itemType: number) => void} put
    * @property {import('./model.js').MacroViewModel} macroViewModel
    * @property {(entity: number, location: number) => void} destroyEntity
    */
@@ -329,8 +322,8 @@ export function makeMechanics({
     const agentType = kit.entityType(parameters.agent);
     const patientType = kit.entityType(parameters.patient);
     const agentEffectType = kit.entityEffect(parameters.agent);
-    const inventory = kit.entityInventory(parameters.agent);
-    const [left, right] = inventory;
+    const left = kit.inventory(parameters.agent, 0);
+    const right = kit.inventory(parameters.agent, 1);
     for (const effectType of [agentEffectType, effectTypesByName.any]) {
       for (const rightType of [right, itemTypesByName.any]) {
         for (const leftType of [left, itemTypesByName.any]) {

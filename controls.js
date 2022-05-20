@@ -3,7 +3,7 @@
  * commands, manages the commands that pertain to inventory management, and
  * forwards other commands that pertain to player motion in the world.
  * The control pad consists of a state machine that responds to the commands
- * in the Emoji Quest command vocabulary, normalized to the digits 1-9 and
+ * in the Emoji Quest command vocabulary, normalized to the its 1-9 and
  * arranged similarly on a 3x3 grid like a calculator.
  * The controller is responsible for orchestrating the animated transitions of
  * all the buttons on the control pad as the user flows between input modes and
@@ -65,6 +65,14 @@ const noop = () => {};
  */
 
 /**
+ * @callback EtcPressFn - a hopefully temporary hack that allows me to feed
+ * arbitrary keypresses to some modes in order to defer the problem of creating
+ * a coherent user interface for these experimental bindings.
+ * @param {string} key
+ * @returns {boolean}
+ */
+
+/**
  * @callback InventoryFn
  * @param {number} slot
  * @param {number} itemType
@@ -76,11 +84,26 @@ const noop = () => {};
  */
 
 /**
+ * @callback PlayFn
+ * @param {number | undefined} player
+ * @returns {Mode}
+ */
+
+/**
+ * @callback MoveFn
+ * @param {import('./daia.js').CursorChange} change
+ * @param {number} destination
+ */
+
+/**
  * @typedef {Object} Mode
  * @prop {string} name
  * @prop {PressFn} press
- * @prop {InventoryFn} [inventory]
+ * @prop {EtcPressFn} [etcPress]
+ * @prop {MoveFn} [move]
  * @prop {CraftFn} [craft]
+ * @prop {InventoryFn} [inventory]
+ * @prop {PlayFn} [play]
  */
 
 const svgNS = 'http://www.w3.org/2000/svg';
@@ -172,13 +195,11 @@ export const makeControllerViews = ($controls, $hamburger, { viewText }) => {
 
 /**
  * @param {Object} args
- * @param {number} args.agent
  * @param {TileView} args.nineKeyTileView
  * @param {TileView} args.oneKeyTileView
  * @param {PlaceFn} args.placeNineKey
  * @param {PlaceFn} args.placeOneKey
  * @param {import('./daia.js').AdvanceFn} args.advance,
- * @param {import('./daia.js').Cursor} args.cursor
  * @param {import('./daia.js').ToponymFn} args.toponym
  * @param {import('./model.js').Model} args.worldModel
  * @param {import('./macro-view-model.js').MacroViewModel} args.worldMacroViewModel
@@ -195,8 +216,6 @@ export const makeController = ({
   oneKeyTileView,
   placeNineKey,
   placeOneKey,
-  agent,
-  cursor,
   worldModel,
   worldMacroViewModel,
   cameraController,
@@ -215,7 +234,7 @@ export const makeController = ({
     tileTypes,
     // effectTypes,
     tileTypesByName,
-    // agentTypesByName,
+    agentTypesByName,
     itemTypesByName,
     // effectTypesByName,
     defaultTileTypeForAgentType,
@@ -225,29 +244,27 @@ export const makeController = ({
     // bump,
   } = mechanics;
 
-  // Common queries:
-
-  const leftHandItemType = () =>
-    worldModel.inventory(agent, leftHandInventoryIndex);
-  const rightHandItemType = () =>
-    worldModel.inventory(agent, rightHandInventoryIndex);
-  const packNotFull = () => !worldModel.allPacked(agent, 2);
-  const packNotEmpty = () => worldModel.anyPacked(agent, 2);
-  const packEmpty = () => !worldModel.anyPacked(agent, 2);
-
   // const emptyTile = tileTypesByName.empty;
   const emptyItem = itemTypesByName.empty;
 
   /**
    * @param {number} itemType
    */
-  const isEmptyItem = itemType => itemType === emptyItem;
+  const isEmptyItem = itemType => {
+    assert(itemType !== 0, `Invalid item type ${itemType}`);
+    return itemType === emptyItem;
+  };
 
   /**
    * @param {number} itemType
    */
-  const isNotEmptyItem = itemType => itemType !== emptyItem;
+  const isNotEmptyItem = itemType => {
+    assert(itemType !== 0, `Invalid item type ${itemType}`);
+    return itemType !== emptyItem;
+  };
 
+  // TODO reserve these tile type names when we move tile types
+  // into the world save.
   const gridTileTypes = [
     tileTypesByName.one,
     tileTypesByName.two,
@@ -261,8 +278,6 @@ export const makeController = ({
   ];
 
   // State:
-
-  let lastAgentCursor = cursor;
 
   const oneKeyViewModel = makeViewModel();
   const oneTileMap = makeBoxTileMap();
@@ -289,17 +304,14 @@ export const makeController = ({
   });
 
   /** @type {import('./model.js').Follower} */
-  const agentFollower = {
+  const playerFollower = {
     move(_entity, change, destination) {
-      cursor = { ...change, position: destination };
-      cameraController.move(destination, change);
-      followCursor(destination, change);
-    },
-    jump(_entity, destination, _origin) {
-      cameraController.jump(destination);
+      if (mode.move !== undefined) {
+        mode.move(change, destination);
+      }
     },
     craft(_entity, recipe) {
-      assert(mode.name === 'itemMode');
+      assert(mode.name === 'item');
       if (mode.craft !== undefined) {
         mode.craft(recipe);
       }
@@ -323,366 +335,868 @@ export const makeController = ({
   // Pack visibility state in play mode.
   let packVisible = false;
 
-  // index of enabled effect, or 0 for no effect
-  const effectType = worldModel.entityEffectChoice(agent) + 1;
-
-  const initialTileTypes = [
-    tileTypesByName.left,
-    tileTypesByName.south,
-    tileTypesByName.right,
-    tileTypesByName.west,
-    tileTypesByName.watch,
-    tileTypesByName.east,
-    packNotEmpty() ? tileTypesByName.backpack : 0,
-    tileTypesByName.north,
-    tileTypeForEffectType[effectType],
-  ];
-
-  for (let i = 0; i < 9; i += 1) {
-    if (initialTileTypes[i] !== 0) {
-      nineKeyView.spawn(i, initialTileTypes[i]);
-    }
-  }
-
   /** @type {number} */
   let packTileType = tileTypesByName.backpack;
 
   // Modes:
 
+  // We start in limbo mode and transiton either to edit or play mode
+  // depending on the driver, whether they load a world save,
+  // and whether the world save designates a player with a starting position.
+
   /** @type {Mode} */
-  const playMode = {
-    name: 'play',
-    press(command, repeat) {
-      const direction = commandDirection[command];
-      if (direction !== undefined) {
-        worldModel.intendToMove(agent, direction, repeat);
-        tick();
-        return playMode;
-      } else if (command === 5) {
-        // stay
-        tick();
-        return playMode;
-      } else if (
-        command === 1 &&
-        isNotEmptyItem(leftHandItemType()) &&
-        !repeat
-      ) {
-        return handleLeftItem();
-      } else if (
-        command === 3 &&
-        isNotEmptyItem(rightHandItemType()) &&
-        !repeat
-      ) {
-        return handleRightItem();
-      } else if (command === 7 && packNotEmpty() && !repeat) {
-        // stash
-        return openStash();
-      } else if (
-        command === 9 &&
-        worldModel.entityEffects(agent) !== 0 &&
-        !repeat
-      ) {
-        // effect chooser
-        return openEffects();
-      } else if (command === 0 && !repeat) {
-        return playToMenuMode();
+  const limboMode = {
+    name: 'limbo',
+    press(_command, _repeat) {
+      return limboMode;
+    },
+    play(player) {
+      if (player !== undefined) {
+        return limboToPlayMode(player);
       } else {
-        return playMode;
+        return limboToEditMode(0);
       }
     },
-    inventory(slot, itemType) {
-      if (slot === 0) {
-        const gridIndex = 0;
-        const handTileType = tileTypesByName.left;
-        if (isEmptyItem(itemType)) {
-          nineKeyView.replace(gridIndex, handTileType);
-        } else {
-          const tileType = tileTypeForItemType[itemType];
-          nineKeyView.replace(gridIndex, tileType);
-        }
-      }
-      if (slot === 1) {
-        const gridIndex = 2;
-        const handTileType = tileTypesByName.right;
-        if (isEmptyItem(itemType)) {
-          nineKeyView.replace(gridIndex, handTileType);
-        } else {
-          const tileType = tileTypeForItemType[itemType];
-          nineKeyView.replace(gridIndex, tileType);
-        }
-      }
-
-      updatePack();
-    },
-  };
-
-  const updatePack = () => {
-    const packShouldBeVisible = packNotEmpty();
-    if (packVisible && !packShouldBeVisible) {
-      dismissPack();
-    }
-    if (!packVisible && packShouldBeVisible) {
-      restorePack();
-    }
   };
 
   /**
-   * @param {number} leftOrRight
-   * @param {boolean} packWasVisible
+   * @param {number} player
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   * @param {boolean} [handoff.east]
+   * @param {boolean} [handoff.west]
    */
-  const itemMode = (leftOrRight, packWasVisible = packNotFull()) => {
-    assert(
-      packWasVisible === packNotFull(),
-      `Invariant: the pack should be visible iff there are any empty slots.`,
-    );
+  const enterPlayMode = (player, handoff) => {
+    const position = worldModel.locate(player);
+    let cursor = { position, direction: north };
 
-    /** @type {Mode} */
-    const mode = {
-      name: 'itemMode',
-      press(command, repeat) {
-        if (repeat) return mode;
-        if (command === 9) {
-          // trash / consume / convert to effect
-          return useItem(leftOrRight, packWasVisible);
-        } else if (command === 2 && isNotEmptyItem(rightHandItemType())) {
-          // craft
-          worldModel.intendToCraft(agent);
-          tick();
-          return itemMode(leftOrRight, packWasVisible);
-        } else if (command === 1) {
-          // place in left hand
-          return placeItemInLeftHand(packWasVisible);
-        } else if (command === 3) {
-          // place in right hand
-          return placeItemInRightHand(packWasVisible);
-        } else if (command === 7) {
-          // stash
-          return stashItem(leftOrRight);
-        }
-        return mode;
-      },
-      craft(recipe) {
-        const {
-          agent: agentType,
-          reagent: reagentType,
-          product: productType,
-          byproduct: byproductType,
-        } = recipe;
+    // Common queries:
+    const leftHandItemType = () =>
+      worldModel.inventory(player, leftHandInventoryIndex);
+    const rightHandItemType = () =>
+      worldModel.inventory(player, rightHandInventoryIndex);
+    const packNotFull = () => !worldModel.allPacked(player, 2);
+    const packNotEmpty = () => worldModel.anyPacked(player, 2);
+    const packEmpty = () => !worldModel.anyPacked(player, 2);
 
-        console.table({
-          agent: itemTypes[agentType].name,
-          reagent: itemTypes[reagentType].name,
-          product: itemTypes[productType].name,
-          byproduct: itemTypes[byproductType].name,
-        });
-
-        assert(reagentType !== productType);
-        assert(isNotEmptyItem(productType));
-        const productTileType = tileTypeForItemType[productType];
-
-        if (reagentType === byproductType && isNotEmptyItem(byproductType)) {
-          // The agent is replaced with the product.  The reagent is also the
-          // byproduct, in other words, it is a catalyst and just bounces in
-          // place.
-          nineKeyView.replace(4, productTileType);
-          nineKeyView.bounce(4, nn);
-        } else if (agentType === byproductType) {
-          // The agent becomes the byproduct when the formula above gets
-          // reversed.  In this case, the agent becomes the byproduct, or
-          // rather, it just moves from the top to the bottom slot.
-          nineKeyView.move(4, 1, ss, 0);
-          nineKeyView.despawnOutward(nn);
-          nineKeyView.spawn(4, productTileType);
-        } else {
-          nineKeyView.replace(4, productTileType);
-          nineKeyView.take(1, nn);
-
-          if (isNotEmptyItem(byproductType)) {
-            const byproductTileType = tileTypeForItemType[byproductType];
-            nineKeyView.spawn(1, byproductTileType);
-          }
-        }
-
-        // Correct recepticle tile type, if necessary.
-        const newRecepticleTileType = recepticleTileType(productType);
-        if (recepticleTileType(agentType) !== newRecepticleTileType) {
-          nineKeyView.replace(8, newRecepticleTileType);
-        }
-      },
+    const restoreEffect = () => {
+      const effectType = worldModel.entityEffectChoice(player) + 1;
+      const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
+      nineKeyView.spawnInward(effectTileType, ne);
     };
-    return mode;
-  };
 
-  /**
-   * @param {number} leftOrRight
-   */
-  const packMode = leftOrRight => {
-    /** @type {Mode} */
-    const mode = {
-      name: 'packMode',
-      press(command, repeat) {
-        if (repeat) return mode;
-        if (command === 5) {
-          // keep
-          dismissPackItemsExcept(-1);
-        } else if (command >= 1 && command <= 9) {
-          // put or swap
-          const inventoryIndex = inventoryIndexForCommand[command];
-          assertDefined(inventoryIndex);
-          assert(inventoryIndex !== -1);
-          const inventoryEntityIndex =
-            entityIndexForInventoryIndex[inventoryIndex];
-          const toItemDirection = directionToForPackIndex[inventoryIndex - 2];
-          const fromItemDirection =
-            directionFromForPackIndex[inventoryIndex - 2];
-          const inventoryItemType = worldModel.inventory(agent, inventoryIndex);
+    // Entity management:
 
-          // From hand to inventory (which is immediately disappearing)
-          if (isNotEmptyItem(leftHandItemType())) {
-            nineKeyView.take(4, toItemDirection);
-          }
+    const restoreWatch = () => {
+      nineKeyView.spawn(4, tileTypesByName.watch);
+    };
 
-          // From inventory to hand (everything else disappearing)
-          if (isNotEmptyItem(inventoryItemType)) {
-            nineKeyView.move(inventoryEntityIndex, 4, fromItemDirection, 0);
-          } else {
-            nineKeyView.despawn(command - 1);
-          }
+    const openLeftHand = () => {
+      nineKeyView.spawn(0, tileTypesByName.left);
+    };
 
-          dismissPackItemsExcept(inventoryIndex);
+    const openRightHand = () => {
+      nineKeyView.spawn(2, tileTypesByName.right);
+    };
 
-          worldModel.swap(agent, leftHandInventoryIndex, inventoryIndex);
-        } else {
-          return mode;
+    const closeLeftHand = () => {
+      nineKeyView.despawn(0);
+    };
+
+    const closeRightHand = () => {
+      nineKeyView.despawn(2);
+    };
+
+    const restoreLeft = () => {
+      if (isEmptyItem(leftHandItemType())) {
+        restoreLeftHand();
+      } else {
+        restoreLeftItem();
+      }
+    };
+
+    const restoreRight = () => {
+      if (isEmptyItem(rightHandItemType())) {
+        restoreRightHand();
+      } else {
+        restoreRightItem();
+      }
+    };
+
+    const restoreLeftHand = () => {
+      nineKeyView.spawnInward(tileTypesByName.left, sw);
+    };
+
+    const restoreRightHand = () => {
+      nineKeyView.spawnInward(tileTypesByName.right, se);
+    };
+
+    const restoreLeftItem = () => {
+      nineKeyView.spawnInward(tileTypeForItemType[leftHandItemType()], sw);
+    };
+
+    const restoreRightItem = () => {
+      nineKeyView.spawnInward(tileTypeForItemType[rightHandItemType()], se);
+    };
+
+    /**
+     * @param {number} itemType
+     */
+    const recepticleTileType = itemType => {
+      const { comestible = false, effect = undefined } = itemTypes[itemType];
+      let recepticleTileType = tileTypesByName.trash;
+      if (effect !== undefined) {
+        recepticleTileType = tileTypesByName.arm;
+      } else if (comestible) {
+        recepticleTileType = tileTypesByName.mouth;
+      }
+      return recepticleTileType;
+    };
+
+    /**
+     * @param {number} itemType
+     */
+    const restoreRecepticle = itemType => {
+      nineKeyView.spawnInward(recepticleTileType(itemType), ne);
+    };
+
+    const restorePack = () => {
+      nineKeyView.spawnInward(packTileType, nw);
+      packVisible = true;
+    };
+
+    const dismissPack = () => {
+      nineKeyView.despawnOutward(nw);
+      packVisible = false;
+    };
+
+    const dismissTrash = () => {
+      nineKeyView.despawnOutward(ne);
+    };
+
+    const dismissEffect = () => {
+      nineKeyView.despawnOutward(ne);
+    };
+
+    const dismissLeft = () => {
+      nineKeyView.despawnOutward(sw);
+    };
+
+    const dismissRight = () => {
+      nineKeyView.despawnOutward(se);
+    };
+
+    const restorePackItems = () => {
+      for (let i = 0; i < 8; i++) {
+        const inventoryIndex = i + 2;
+        const itemType = worldModel.inventory(player, inventoryIndex);
+        const entityIndex = entityIndexForInventoryIndex[inventoryIndex];
+        const itemGridIndex = itemGridIndexes[i];
+        const itemTileType = isNotEmptyItem(itemType)
+          ? tileTypeForItemType[itemType]
+          : gridTileTypes[itemGridIndex];
+        nineKeyView.spawn(entityIndex, itemTileType);
+      }
+    };
+
+    const restoreEffects = () => {
+      for (let i = 0; i < 9; i++) {
+        const effectTileType = worldModel.entityHasEffect(player, i)
+          ? tileTypeForEffectType[i + 1]
+          : gridTileTypes[i];
+        nineKeyView.spawn(i, effectTileType);
+      }
+    };
+
+    const dismissEffects = () => {
+      for (let i = 0; i < 9; i++) {
+        nineKeyView.despawn(i);
+      }
+    };
+
+    /**
+     * @param {number} exceptItem
+     */
+    const dismissPackItemsExcept = exceptItem => {
+      for (let i = 2; i < 10; i++) {
+        if (i !== exceptItem) {
+          const inventoryEntityIndex = entityIndexForInventoryIndex[i];
+          nineKeyView.despawn(inventoryEntityIndex);
         }
+      }
+    };
 
-        if (isNotEmptyItem(leftHandItemType())) {
-          restoreControllerReticle();
-          restoreLeftHand();
-          restoreRightHand();
-          restoreRecepticle(leftHandItemType());
-          restorePack();
-          if (isNotEmptyItem(rightHandItemType())) {
-            const otherItemTileType = tileTypeForItemType[rightHandItemType()];
-            nineKeyView.spawnInward(otherItemTileType, ss);
-          }
-          return itemMode(leftOrRight);
+    const dismissWatch = () => {
+      nineKeyView.despawn(4);
+    };
+
+    const shiftBottomItemToLeftHand = () => {
+      closeLeftHand();
+      nineKeyView.move(1, 0, ww, 0);
+    };
+
+    const shiftBottomItemToRightHand = () => {
+      closeRightHand();
+      nineKeyView.move(1, 2, ee, 0);
+    };
+
+    /** @type {Mode} */
+    const playMode = {
+      name: 'play',
+      press(command, repeat) {
+        const direction = commandDirection[command];
+        if (direction !== undefined) {
+          worldModel.intendToMove(player, direction, repeat);
+          tick();
+          return playMode;
+        } else if (command === 5) {
+          // stay
+          tick();
+          return playMode;
+        } else if (
+          command === 1 &&
+          isNotEmptyItem(leftHandItemType()) &&
+          !repeat
+        ) {
+          return handleLeftItem();
+        } else if (
+          command === 3 &&
+          isNotEmptyItem(rightHandItemType()) &&
+          !repeat
+        ) {
+          return handleRightItem();
+        } else if (command === 7 && packNotEmpty() && !repeat) {
+          // stash
+          return openStash();
+        } else if (
+          command === 9 &&
+          worldModel.entityEffects(player) !== 0 &&
+          !repeat
+        ) {
+          // effect chooser
+          return openEffects();
+        } else if (command === 0 && !repeat) {
+          return playToMenuMode(cursor.position, player);
         } else {
-          // back to play mode with an empty hand
-
-          if (leftOrRight < 0) {
-            restoreLeftHand();
-
-            if (isEmptyItem(rightHandItemType())) {
-              restoreRightHand();
-            } else {
-              restoreRightItem();
-            }
-          } else if (leftOrRight > 0) {
-            worldModel.swap(
-              agent,
-              leftHandInventoryIndex,
-              rightHandInventoryIndex,
-            );
-            restoreRightHand();
-
-            if (isEmptyItem(leftHandItemType())) {
-              restoreLeftHand();
-            } else {
-              restoreLeftItem();
-            }
-          }
-
-          restoreDpad();
-          restoreWatch();
-          restoreEffect();
-
-          if (packNotEmpty()) {
-            restorePack();
-          }
-
           return playMode;
         }
       },
+      move(change, destination) {
+        cursor = { ...change, position: destination };
+        cameraController.move(destination, change);
+        followCursor(destination, change);
+      },
+      inventory(slot, itemType) {
+        if (slot === 0) {
+          const gridIndex = 0;
+          const handTileType = tileTypesByName.left;
+          if (isEmptyItem(itemType)) {
+            nineKeyView.replace(gridIndex, handTileType);
+          } else {
+            const tileType = tileTypeForItemType[itemType];
+            nineKeyView.replace(gridIndex, tileType);
+          }
+        }
+        if (slot === 1) {
+          const gridIndex = 2;
+          const handTileType = tileTypesByName.right;
+          if (isEmptyItem(itemType)) {
+            nineKeyView.replace(gridIndex, handTileType);
+          } else {
+            const tileType = tileTypeForItemType[itemType];
+            nineKeyView.replace(gridIndex, tileType);
+          }
+        }
+
+        const packShouldBeVisible = packNotEmpty();
+        if (packVisible && !packShouldBeVisible) {
+          dismissPack();
+        }
+        if (!packVisible && packShouldBeVisible) {
+          restorePack();
+        }
+      },
     };
 
-    return mode;
-  };
+    /**
+     * @param {number} leftOrRight
+     */
+    const enterItemMode = leftOrRight => {
+      /** @type {Mode} */
+      const itemMode = {
+        name: 'item',
+        press(command, repeat) {
+          if (repeat) return itemMode;
+          if (command === 9) {
+            // trash / consume / convert to effect
+            return useItem(leftOrRight);
+          } else if (command === 2 && isNotEmptyItem(rightHandItemType())) {
+            // craft
+            worldModel.intendToCraft(player);
+            tick();
+            return enterItemMode(leftOrRight);
+          } else if (command === 1) {
+            // place in left hand
+            return placeItemInLeftHand();
+          } else if (command === 3) {
+            // place in right hand
+            return placeItemInRightHand();
+          } else if (command === 7) {
+            // stash
+            return stashItem(leftOrRight);
+          }
+          return itemMode;
+        },
+        craft(recipe) {
+          const {
+            agent: agentType,
+            reagent: reagentType,
+            product: productType,
+            byproduct: byproductType,
+          } = recipe;
 
-  /** @type {Mode} */
-  const effectMode = {
-    name: 'effectMode',
-    press(command, repeat) {
-      if (repeat) return mode;
-      if (command >= 1 && command <= 9) {
-        const chosenType = command;
-        if (worldModel.entityHasEffect(agent, chosenType - 1)) {
-          return chooseEffect(chosenType - 1);
-        }
-        return effectMode;
-      } else {
-        return effectMode;
+          // TODO hook
+          // console.table({
+          //   agent: itemTypes[agentType].name,
+          //   reagent: itemTypes[reagentType].name,
+          //   product: itemTypes[productType].name,
+          //   byproduct: itemTypes[byproductType].name,
+          // });
+
+          assert(reagentType !== productType);
+          assert(isNotEmptyItem(productType));
+          const productTileType = tileTypeForItemType[productType];
+
+          if (reagentType === byproductType && isNotEmptyItem(byproductType)) {
+            // The agent is replaced with the product.  The reagent is also the
+            // byproduct, in other words, it is a catalyst and just bounces in
+            // place.
+            nineKeyView.replace(4, productTileType);
+            nineKeyView.bounce(4, nn);
+          } else if (agentType === byproductType) {
+            // The agent becomes the byproduct when the formula above gets
+            // reversed.  In this case, the agent becomes the byproduct, or
+            // rather, it just moves from the top to the bottom slot.
+            nineKeyView.move(4, 1, ss, 0);
+            nineKeyView.despawnOutward(nn);
+            nineKeyView.spawn(4, productTileType);
+          } else {
+            nineKeyView.replace(4, productTileType);
+            nineKeyView.take(1, nn);
+
+            if (isNotEmptyItem(byproductType)) {
+              const byproductTileType = tileTypeForItemType[byproductType];
+              nineKeyView.spawn(1, byproductTileType);
+            }
+          }
+
+          // Correct recepticle tile type, if necessary.
+          const newRecepticleTileType = recepticleTileType(productType);
+          if (recepticleTileType(agentType) !== newRecepticleTileType) {
+            nineKeyView.replace(8, newRecepticleTileType);
+          }
+        },
+      };
+
+      if (!packVisible && packNotFull()) {
+        restorePack();
       }
-    },
+
+      return itemMode;
+    };
+
+    /**
+     * @param {number} leftOrRight
+     */
+    const enterPackMode = leftOrRight => {
+      /** @type {Mode} */
+      const packModee = {
+        name: 'pack',
+        press(command, repeat) {
+          if (repeat) return packModee;
+          if (command === 5) {
+            // keep
+            dismissPackItemsExcept(-1);
+          } else if (command >= 1 && command <= 9) {
+            // put or swap
+            const inventoryIndex = inventoryIndexForCommand[command];
+            assertDefined(inventoryIndex);
+            assert(inventoryIndex !== -1);
+            const inventoryEntityIndex =
+              entityIndexForInventoryIndex[inventoryIndex];
+            const toItemDirection = directionToForPackIndex[inventoryIndex - 2];
+            const fromItemDirection =
+              directionFromForPackIndex[inventoryIndex - 2];
+            const inventoryItemType = worldModel.inventory(
+              player,
+              inventoryIndex,
+            );
+
+            // From hand to inventory (which is immediately disappearing)
+            if (isNotEmptyItem(leftHandItemType())) {
+              nineKeyView.take(4, toItemDirection);
+            }
+
+            // From inventory to hand (everything else disappearing)
+            if (isNotEmptyItem(inventoryItemType)) {
+              nineKeyView.move(inventoryEntityIndex, 4, fromItemDirection, 0);
+            } else {
+              nineKeyView.despawn(command - 1);
+            }
+
+            dismissPackItemsExcept(inventoryIndex);
+
+            worldModel.swap(player, leftHandInventoryIndex, inventoryIndex);
+          } else {
+            return packModee;
+          }
+
+          if (isNotEmptyItem(leftHandItemType())) {
+            restoreControllerReticle();
+            restoreLeftHand();
+            restoreRightHand();
+            restoreRecepticle(leftHandItemType());
+            restorePack();
+            if (isNotEmptyItem(rightHandItemType())) {
+              const otherItemTileType =
+                tileTypeForItemType[rightHandItemType()];
+              nineKeyView.spawnInward(otherItemTileType, ss);
+            }
+            return enterItemMode(leftOrRight);
+          } else {
+            // back to play mode with an empty hand
+
+            if (leftOrRight < 0) {
+              restoreLeftHand();
+
+              if (isEmptyItem(rightHandItemType())) {
+                restoreRightHand();
+              } else {
+                restoreRightItem();
+              }
+            } else if (leftOrRight > 0) {
+              worldModel.swap(
+                player,
+                leftHandInventoryIndex,
+                rightHandInventoryIndex,
+              );
+              restoreRightHand();
+
+              if (isEmptyItem(leftHandItemType())) {
+                restoreLeftHand();
+              } else {
+                restoreLeftItem();
+              }
+            }
+
+            restoreDpad({});
+            restoreWatch();
+            restoreEffect();
+
+            if (packNotEmpty()) {
+              restorePack();
+            }
+
+            return playMode;
+          }
+        },
+      };
+
+      return packModee;
+    };
+
+    /** @type {Mode} */
+    const effectMode = {
+      name: 'effect',
+      press(command, repeat) {
+        if (repeat) return mode;
+        if (command >= 1 && command <= 9) {
+          const chosenType = command;
+          if (worldModel.entityHasEffect(player, chosenType - 1)) {
+            return chooseEffect(chosenType - 1);
+          }
+          return effectMode;
+        } else {
+          return effectMode;
+        }
+      },
+    };
+
+    // Utilities
+    const handleLeftItem = () => {
+      assert(isNotEmptyItem(leftHandItemType()));
+
+      // Transition from play mode to item handling mode.
+      dismissDpad({});
+      dismissWatch();
+      dismissEffect();
+
+      // Move item in left hand to the center-middle.
+      nineKeyView.move(0, 4, ne, 0);
+
+      if (isNotEmptyItem(rightHandItemType())) {
+        // Move item in right hand to bottom-middle.
+        nineKeyView.move(2, 1, ww, 0);
+        openRightHand();
+      }
+
+      if (packEmpty()) {
+        restorePack();
+      }
+      restoreRecepticle(leftHandItemType());
+      restoreLeftHand();
+      restoreControllerReticle();
+
+      return enterItemMode(-1);
+    };
+
+    const handleRightItem = () => {
+      assert(isNotEmptyItem(rightHandItemType()));
+
+      // Transition from play mode to item handling mode.
+      dismissDpad({});
+      dismissWatch();
+      dismissEffect();
+
+      // Move item in right hand to middle-center.
+      nineKeyView.move(2, 4, nw, 0);
+
+      if (isNotEmptyItem(leftHandItemType())) {
+        // Move item in left hand to bottom-center.
+        nineKeyView.move(0, 1, ee, 0);
+        openLeftHand();
+      }
+
+      if (packEmpty()) {
+        restorePack();
+      }
+      restoreRecepticle(rightHandItemType());
+      restoreRightHand();
+      restoreControllerReticle();
+
+      worldModel.swap(player, leftHandInventoryIndex, rightHandInventoryIndex);
+      return enterItemMode(1);
+    };
+
+    const openStash = () => {
+      dismissPack();
+      dismissEffect();
+      dismissDpad({});
+      dismissWatch();
+
+      if (isEmptyItem(leftHandItemType())) {
+        dismissLeft();
+        dismissRight();
+        restorePackItems();
+        return enterPackMode(-1);
+      } else if (isEmptyItem(rightHandItemType())) {
+        worldModel.swap(
+          player,
+          leftHandInventoryIndex,
+          rightHandInventoryIndex,
+        );
+        dismissLeft();
+        dismissRight();
+        restorePackItems();
+        return enterPackMode(1);
+      } else {
+        nineKeyView.move(0, 4, ne, 0);
+        dismissRight();
+        restorePackItems();
+        return enterPackMode(-1);
+      }
+    };
+
+    const openEffects = () => {
+      // Transition from play mode to effect mode.
+      if (packNotEmpty()) {
+        dismissPack();
+      }
+      dismissEffect();
+      dismissDpad({});
+      dismissWatch();
+      dismissLeft();
+      dismissRight();
+
+      restoreEffects();
+
+      return effectMode;
+    };
+
+    /**
+     * @param {number} leftOrRight
+     */
+    const useItem = leftOrRight => {
+      dismissTrash(); // mouth or effect
+
+      const use = worldModel.use(player, leftHandInventoryIndex);
+
+      if (use === 'effect') {
+        nineKeyView.move(4, 8, ne, 0);
+      } else {
+        nineKeyView.take(4, ne);
+        restoreEffect();
+      }
+
+      if (packVisible && packEmpty()) {
+        dismissPack();
+      }
+
+      if (isEmptyItem(rightHandItemType())) {
+      } else if (leftOrRight < 0) {
+        worldModel.swap(
+          player,
+          leftHandInventoryIndex,
+          rightHandInventoryIndex,
+        );
+        shiftBottomItemToRightHand();
+      } else if (leftOrRight > 0) {
+        shiftBottomItemToLeftHand();
+      }
+
+      restoreDpad(handoff);
+      restoreWatch();
+      dismissControllerReticle();
+
+      tick();
+
+      return playMode;
+    };
+
+    const placeItemInLeftHand = () => {
+      dismissControllerReticle();
+      dismissTrash();
+      if (packVisible && packEmpty()) {
+        dismissPack();
+      }
+
+      closeLeftHand();
+      nineKeyView.move(4, 0, sw, 0);
+
+      if (isNotEmptyItem(rightHandItemType())) {
+        shiftBottomItemToRightHand();
+      }
+
+      restoreDpad({});
+      restoreWatch();
+      restoreEffect();
+
+      return playMode;
+    };
+
+    const placeItemInRightHand = () => {
+      worldModel.swap(player, leftHandInventoryIndex, rightHandInventoryIndex);
+
+      dismissControllerReticle();
+      dismissTrash();
+      if (packVisible && packEmpty()) {
+        dismissPack();
+      }
+
+      closeRightHand();
+      nineKeyView.move(4, 2, se, 0);
+
+      if (isNotEmptyItem(leftHandItemType())) {
+        shiftBottomItemToLeftHand();
+      }
+      restoreDpad({});
+      restoreWatch();
+      restoreEffect();
+
+      return playMode;
+    };
+
+    /**
+     * @param {number} leftOrRight
+     */
+    const stashItem = leftOrRight => {
+      dismissControllerReticle();
+      dismissPack();
+      dismissTrash();
+      dismissLeft();
+      dismissRight();
+      if (isNotEmptyItem(rightHandItemType())) {
+        nineKeyView.despawnOutward(ss);
+      }
+      restorePackItems();
+
+      return enterPackMode(leftOrRight);
+    };
+
+    /**
+     * @param {number} chosenType
+     */
+    const chooseEffect = chosenType => {
+      worldModel.chooseEffect(player, chosenType);
+
+      dismissEffects();
+      restoreLeft();
+      restoreRight();
+      restoreDpad({});
+      restoreWatch();
+      restoreEffect();
+      if (packNotEmpty()) {
+        restorePack();
+      }
+
+      return playMode;
+    };
+
+    /**
+     * @param {number} player
+     * @param {Object} handoff
+     * @param {boolean} [handoff.north]
+     * @param {boolean} [handoff.east]
+     * @param {boolean} [handoff.south]
+     * @param {boolean} [handoff.west]
+     */
+    const exitPlayMode = (player, handoff) => {
+      dismissDpad(handoff);
+      dismissLeft();
+      dismissRight();
+      dismissEffect();
+      if (packNotEmpty()) {
+        dismissPack();
+      }
+      dismissWatch();
+      oneKeyView.replace(0, tileTypesByName.thumbUp);
+
+      worldModel.unfollow(player, playerFollower);
+    };
+
+    /**
+     * @param {number} position
+     * @param {number} player
+     */
+    const playToMenuMode = (position, player) => {
+      const handoff = {
+        north: true,
+        south: true,
+      };
+      exitPlayMode(player, handoff);
+      return enterMenuMode(position, player, handoff);
+    };
+
+    restoreDpad(handoff);
+    restoreLeft();
+    restoreRight();
+    restoreEffect();
+    if (packNotEmpty()) {
+      restorePack();
+    }
+    restoreWatch();
+
+    worldModel.follow(player, playerFollower);
+    cameraController.jump(position);
+
+    return playMode;
   };
 
-  /** @type {Mode} */
-  const menuMode = {
-    name: 'menuMode',
-    press(command, repeat) {
-      if (repeat) return mode;
-      if (command === 8) {
-        menuController.goNorth();
-      } else if (command === 2) {
-        menuController.goSouth();
-      } else if (command === 0) {
-        const state = menuController.getState();
-        if (state === 'play') {
-          return menuToPlayMode();
-        } else if (state === 'edit') {
-          return menuToEditMode();
-        } else if (state === 'load') {
-          // TODO this call to tock() bypasses the driver.
-          // Perhaps this should be appealing to the driver instead.
-          tock();
-          load(worldModel.restore)
-            .then(
-              (/** @type {undefined | number | Array<string>} */ result) => {
-                if (typeof result === 'undefined') {
-                  // TODO user dismissed dialog or selected no file
-                } else if (typeof result === 'number') {
-                  jump(result);
-                } else {
-                  for (const error of result) {
-                    console.error(error);
+  /**
+   * @param {number} position - position of edit or play mode before menu, to
+   * which we may return.
+   * @param {number | undefined} player - entity of the player from play mode, to which
+   * we may return if we do nothing in the menu or edit modes before returning.
+   * Without a defined player, we cannot go to play mode.
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   */
+  const enterMenuMode = (position, player, handoff) => {
+    /** @type {Mode} */
+    const menuMode = {
+      name: 'menu',
+      press(command, repeat) {
+        if (repeat) return mode;
+        if (command === 8) {
+          menuController.goNorth();
+        } else if (command === 2) {
+          menuController.goSouth();
+        } else if (command === 0) {
+          const state = menuController.getState();
+          if (state === 'play') {
+            if (player !== undefined) {
+              return menuToPlayMode(player);
+            } else {
+              // TODO nineKeyView.shake(5);
+              dialogController.logHTML(
+                'Add a <b>😊player</b> to the world with the editor.',
+              );
+              return menuMode;
+            }
+          } else if (state === 'edit') {
+            return menuToEditMode(position, player);
+          } else if (state === 'load') {
+            // TODO this call to tock() bypasses the driver.
+            // Perhaps this should be appealing to the driver instead.
+            tock();
+            load(worldModel.restore)
+              .then(
+                (/** @type {undefined | number | Array<string>} */ result) => {
+                  // TODO switch on whether the restored world has
+                  // or does not have a player associated and go either
+                  // to limbo mode or directly to edit mode.
+                  if (
+                    typeof result === 'undefined' ||
+                    typeof result === 'number'
+                  ) {
+                    play(result);
+                    // TODO handle cases where user dismissed dialog or
+                    // selected no file.
+                  } else {
+                    let message = '';
+                    for (const error of result) {
+                      message += `${error}<br>`;
+                      console.error(error);
+                    }
+                    dialogController.logHTML(message);
+                    mode = menuMode;
                   }
-                  // TODO user visible error
-                }
-              },
-            )
-            .finally(() => {
+                },
+              )
+              .finally(() => {
+                mode = menuMode;
+              });
+            exitMenuMode({});
+            return limboMode;
+          } else if (state === 'save') {
+            save(worldModel.capture, player).finally(() => {
               mode = menuMode;
             });
-          return pendingMode;
-        } else if (state === 'save') {
-          save(worldModel.capture, agent).finally(() => {
-            mode = menuMode;
-          });
-          return pendingMode;
+            return limboMode;
+          }
         }
-      }
-      return menuMode;
-    },
-  };
+        return menuMode;
+      },
+    };
 
-  const enterMenuMode = () => {
+    restoreDpad({
+      ...handoff,
+      east: true,
+      west: true,
+    });
+
     oneKeyView.replace(0, tileTypesByName.thumbUp);
     menuController.show();
     dialogController.logHTML('🍔  <b>Hamburger Menu</b>');
+
     return menuMode;
   };
 
-  const exitMenuMode = () => {
+  /**
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   */
+  const exitMenuMode = handoff => {
+    if (!handoff.north) {
+      nineKeyView.despawnOutward(nn);
+    }
+    if (!handoff.south) {
+      nineKeyView.despawnOutward(ss);
+    }
+
     oneKeyView.replace(0, tileTypesByName.hamburger);
     dialogController.close();
     menuController.hide();
@@ -691,355 +1205,287 @@ export const makeController = ({
   /** @type {number} */
   let editType = 0;
 
-  /** @type {Mode} */
-  const editMode = {
-    name: 'editMode',
-    press(command, repeat) {
-      const direction = commandDirection[command];
-      if (direction !== undefined) {
-        const { position: origin } = cursor;
-        const nextCursor = advance({ position: origin, direction });
-        const { position: destination, turn, transit } = nextCursor;
-        const change = { position: origin, direction, turn, transit, repeat };
-        cursor = nextCursor;
-        cameraController.move(destination, change);
-        followCursor(destination, change);
-        worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
-        updateEditorDialog();
-        return editMode;
-      } else if (command === 1) {
-        // fill
-        if (editType !== 0) {
-          worldModel.set(cursor.position, editType);
-        }
-        return editMode;
-      } else if (command === 3) {
-        // dig
-        worldModel.remove(cursor.position);
-        return editMode;
-      } else if (command === 9) {
-        // cut
-        const type = worldModel.get(cursor.position);
-        if (type !== undefined) {
-          worldModel.remove(cursor.position);
-          editType = type;
-          nineKeyView.replace(4, defaultTileTypeForAgentType[editType]);
-        }
-        return editMode;
-      } else if (command === 7) {
-        // copy
-        const type = worldModel.get(cursor.position);
-        if (type !== undefined) {
-          editType = type;
-          nineKeyView.replace(4, defaultTileTypeForAgentType[editType]);
-        }
-        return editMode;
-      } else if (command === 5) {
-        return openAgentChooser();
-      } else if (command === 0 && !repeat) {
-        return editToMenuMode();
-      } else {
-        return editMode;
-      }
-    },
-  };
+  /**
+   * @param {number} position
+   * @param {number | undefined} player - entity of the player from play mode, to which
+   * we may return if we do nothing in the menu or edit modes before returning.
+   * Without a defined player, we cannot go to play mode.
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   * @param {boolean} [handoff.east]
+   * @param {boolean} [handoff.west]
+   */
+  const enterEditMode = (position, player, handoff) => {
+    let cursor = { position, direction: north };
 
-  /** @type {Mode} */
-  const chooseAgentMode = {
-    name: 'chooseAgentMode',
-    press(command, repeat) {
-      if (repeat) return mode;
-      if (command === 8) {
-        assertNonZero(editType);
-        editType = agentTypeForOffset(1);
-        logAgentChoice();
-        shiftAgentsSouth();
-      } else if (command === 2) {
-        assertNonZero(editType);
-        editType = agentTypeForOffset(-1);
-        logAgentChoice();
-        shiftAgentsNorth();
-      } else if (command === 6) {
-        assertNonZero(editType);
-        editType = agentTypeForOffset(3);
-        logAgentChoice();
-        shiftAgentsWest();
-      } else if (command === 4) {
-        assertNonZero(editType);
-        editType = agentTypeForOffset(-3);
-        logAgentChoice();
-        shiftAgentsEast();
-      } else if (command === 5) {
-        return closeAgentChooser();
+    const updateEditorDialog = () => {
+      const dialogTerms = [toponym(cursor.position)];
+      const agentType = worldModel.entityTypeAt(cursor.position);
+      if (agentType > 0) {
+        const agentName = agentTypes[agentType].name;
+        dialogTerms.push(agentName);
       }
+      const terrainFlags = worldModel.getTerrainFlags(cursor.position);
+      if ((terrainFlags & terrainLava) !== 0) {
+        dialogTerms.push('🌋   ');
+      }
+      if ((terrainFlags & terrainWater) !== 0) {
+        dialogTerms.push('🌊   ');
+      }
+      if ((terrainFlags & terrainHot) !== 0) {
+        dialogTerms.push('🥵   ');
+      }
+      if ((terrainFlags & terrainCold) !== 0) {
+        dialogTerms.push('🥶   ');
+      }
+      dialogController.close();
+      dialogController.log(dialogTerms.join(' '));
+    };
+
+    const erase = () => {
+      if (editType !== undefined) {
+        const entity = worldModel.remove(cursor.position);
+        if (entity === player) {
+          player = undefined;
+        }
+      }
+    };
+
+    const copy = () => {
+      const entityType = worldModel.entityTypeAt(cursor.position);
+      if (entityType !== editType) {
+        nineKeyView.replace(4, defaultTileTypeForAgentType[editType]);
+        editType = entityType;
+      }
+    };
+
+    const add = () => {
+      if (editType !== undefined) {
+        const entity = worldModel.set(cursor.position, editType);
+        if (editType === agentTypesByName.player) {
+          dialogController.logHTML('😊 <b>player</b> updated');
+          player = entity;
+        }
+      }
+    };
+
+    /** @type {Mode} */
+    const editMode = {
+      name: 'edit',
+      press(command, repeat) {
+        const direction = commandDirection[command];
+        if (direction !== undefined) {
+          const { position: origin } = cursor;
+          const nextCursor = advance({ position: origin, direction });
+          const { position: destination, turn, transit } = nextCursor;
+          const change = { position: origin, direction, turn, transit, repeat };
+          cursor = nextCursor;
+          cameraController.move(destination, change);
+          followCursor(destination, change);
+          worldMacroViewModel.move(-1, cursor.position, direction * 2, 0);
+          updateEditorDialog();
+          return editMode;
+        } else if (command === 1) {
+          // fill
+          erase();
+          add();
+          return editMode;
+        } else if (command === 3) {
+          erase();
+          return editMode;
+        } else if (command === 9) {
+          // cut
+          copy();
+          erase();
+          return editMode;
+        } else if (command === 7) {
+          copy();
+          return editMode;
+        } else if (command === 5) {
+          return enterChooseAgentMode(position);
+        } else if (command === 0 && !repeat) {
+          return editToMenuMode(position, player);
+        } else {
+          return editMode;
+        }
+      },
+      etcPress(key) {
+        if (key === 'w') {
+          worldModel.toggleTerrainFlags(position, 0b1);
+          return true;
+        }
+        if (key === 'm') {
+          worldModel.toggleTerrainFlags(position, 0b10);
+          return true;
+        }
+        return false;
+      },
+    };
+
+    const firstEligibleEntityType = 3;
+    const eligibleEntityCount = agentTypes.length - firstEligibleEntityType;
+
+    /**
+     * @param {number} offset
+     */
+    const agentTypeForOffset = offset => {
+      assertNonZero(editType);
+      return (
+        ((eligibleEntityCount + editType - firstEligibleEntityType + offset) %
+          eligibleEntityCount) +
+        firstEligibleEntityType
+      );
+    };
+
+    /**
+     * @param {number} position
+     */
+    const enterChooseAgentMode = position => {
+      /** @type {Mode} */
+      const chooseAgentMode = {
+        name: 'chooseAgent',
+        press(command, repeat) {
+          if (repeat) return mode;
+          if (command === 8) {
+            assertNonZero(editType);
+            editType = agentTypeForOffset(1);
+            logAgentChoice();
+            shiftAgentsSouth();
+          } else if (command === 2) {
+            assertNonZero(editType);
+            editType = agentTypeForOffset(-1);
+            logAgentChoice();
+            shiftAgentsNorth();
+          } else if (command === 6) {
+            assertNonZero(editType);
+            editType = agentTypeForOffset(3);
+            logAgentChoice();
+            shiftAgentsWest();
+          } else if (command === 4) {
+            assertNonZero(editType);
+            editType = agentTypeForOffset(-3);
+            logAgentChoice();
+            shiftAgentsEast();
+          } else if (command === 5) {
+            return exitChooseAgentMode(position);
+          }
+          return chooseAgentMode;
+        },
+      };
+
+      dismissEditorReticle();
+      dismissEditorBezel();
+      dismissDpad({});
+
+      if (editType === 0) {
+        editType = 4;
+        nineKeyView.spawn(4, defaultTileTypeForAgentType[editType]);
+      }
+
+      // Initialize board with agent type neighborhood around current edit type.
+      for (let index = 0; index < agentOffsets.length; index += 1) {
+        const offset = agentOffsets[index];
+        const gridIndex = itemGridIndexes[index];
+        const agentType = agentTypeForOffset(offset);
+        const tileType = defaultTileTypeForAgentType[agentType];
+        nineKeyView.spawn(gridIndex, tileType);
+      }
+
+      logAgentChoice();
+
+      restoreControllerReticle();
       return chooseAgentMode;
-    },
-  };
+    };
 
-  /** @type {Mode} */
-  const pendingMode = {
-    name: 'pendingMode',
-    press() {
-      return pendingMode;
-    },
-  };
+    /**
+     * @param {number} position
+     */
+    const exitChooseAgentMode = position => {
+      dismissControllerReticle();
 
-  // Mode transitions:
+      for (let direction = 0; direction < fullOcturn; direction += 1) {
+        nineKeyView.despawnOutward(direction);
+      }
 
-  const handleLeftItem = () => {
-    assert(isNotEmptyItem(leftHandItemType()));
+      restoreEditorReticle(position);
+      restoreEditorBezel();
+      restoreDpad({});
 
-    // Transition from play mode to item handling mode.
-    dismissDpad();
-    dismissWatch();
-    dismissEffect();
+      return editMode;
+    };
 
-    // Move item in left hand to the center-middle.
-    nineKeyView.move(0, 4, ne, 0);
+    const logAgentChoice = () => {
+      const { name, tile } = agentTypes[editType];
+      const tileType = tile ? tileTypesByName[tile] : tileTypesByName[name];
+      const { text } = tileTypes[tileType];
+      dialogController.close();
+      dialogController.log(`${text} ${name}`);
+    };
 
-    if (isNotEmptyItem(rightHandItemType())) {
-      // Move item in right hand to bottom-middle.
-      nineKeyView.move(2, 1, ww, 0);
-      openRightHand();
-    }
+    /**
+     * @param {number} gridIndex
+     * @param {number} directionOcturns
+     */
+    const enterAgent = (gridIndex, directionOcturns) => {
+      const agentOffset = agentOffsetForGridIndex[gridIndex];
+      const agentType = agentTypeForOffset(agentOffset);
+      const tileType = defaultTileTypeForAgentType[agentType];
+      nineKeyView.give(gridIndex, tileType, directionOcturns);
+    };
 
-    if (packEmpty()) {
-      restorePack();
-    }
-    restoreRecepticle(leftHandItemType());
-    restoreLeftHand();
-    restoreControllerReticle();
+    const shiftAgentsWest = () => {
+      for (let start = 0; start < 3; start += 1) {
+        nineKeyView.take(start * 3, ww);
+      }
+      for (let index = 0; index < 9; index += 3) {
+        nineKeyView.move(1 + index, 0 + index, ww, 0);
+        nineKeyView.move(2 + index, 1 + index, ww, 0);
+      }
+      for (let index = 0; index < 9; index += 3) {
+        enterAgent(2 + index, ww);
+      }
+    };
 
-    return itemMode(-1);
-  };
+    const shiftAgentsEast = () => {
+      for (let index = 2; index < 9; index += 3) {
+        nineKeyView.take(index, ee);
+      }
+      for (let index = 0; index < 9; index += 3) {
+        nineKeyView.move(1 + index, 2 + index, ee, 0);
+        nineKeyView.move(0 + index, 1 + index, ee, 0);
+      }
+      for (let index = 0; index < 9; index += 3) {
+        enterAgent(index, ee);
+      }
+    };
 
-  const handleRightItem = () => {
-    assert(isNotEmptyItem(rightHandItemType()));
+    const shiftAgentsNorth = () => {
+      for (let start = 0; start < 3; start += 1) {
+        nineKeyView.take(start + 6, ne);
+      }
+      for (let start = 0; start < 3; start += 1) {
+        nineKeyView.move(start + 3, start + 6, nn, 0);
+        nineKeyView.move(start + 0, start + 3, nn, 0);
+      }
+      for (let start = 0; start < 3; start += 1) {
+        enterAgent(start, ne);
+      }
+    };
 
-    // Transition from play mode to item handling mode.
-    dismissDpad();
-    dismissWatch();
-    dismissEffect();
+    const shiftAgentsSouth = () => {
+      for (let start = 0; start < 3; start += 1) {
+        nineKeyView.take(start, sw);
+      }
+      for (let start = 0; start < 6; start += 1) {
+        nineKeyView.move(start + 3, start, ss, 0);
+      }
+      for (let start = 0; start < 3; start += 1) {
+        enterAgent(start + 6, sw);
+      }
+    };
 
-    // Move item in right hand to middle-center.
-    nineKeyView.move(2, 4, nw, 0);
-
-    if (isNotEmptyItem(leftHandItemType())) {
-      // Move item in left hand to bottom-center.
-      nineKeyView.move(0, 1, ee, 0);
-      openLeftHand();
-    }
-
-    if (packEmpty()) {
-      restorePack();
-    }
-    restoreRecepticle(rightHandItemType());
-    restoreRightHand();
-    restoreControllerReticle();
-
-    worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
-    return itemMode(1);
-  };
-
-  const openStash = () => {
-    dismissPack();
-    dismissEffect();
-    dismissDpad();
-    dismissWatch();
-
-    if (isEmptyItem(leftHandItemType())) {
-      dismissLeft();
-      dismissRight();
-      restorePackItems();
-      return packMode(-1);
-    } else if (isEmptyItem(rightHandItemType())) {
-      worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
-      dismissLeft();
-      dismissRight();
-      restorePackItems();
-      return packMode(1);
-    } else {
-      nineKeyView.move(0, 4, ne, 0);
-      dismissRight();
-      restorePackItems();
-      return packMode(-1);
-    }
-  };
-
-  const openEffects = () => {
-    // Transition from play mode to effect mode.
-    if (packNotEmpty()) {
-      dismissPack();
-    }
-    dismissEffect();
-    dismissDpad();
-    dismissWatch();
-    dismissLeft();
-    dismissRight();
-
-    restoreEffects();
-
-    return effectMode;
-  };
-
-  /**
-   * @param {number} leftOrRight
-   * @param {boolean} packWasVisible
-   */
-  const useItem = (leftOrRight, packWasVisible) => {
-    dismissTrash(); // mouth or effect
-
-    const use = worldModel.use(agent, leftHandInventoryIndex);
-
-    if (use === 'effect') {
-      nineKeyView.move(4, 8, ne, 0);
-    } else {
-      nineKeyView.take(4, ne);
-      restoreEffect();
-    }
-
-    if (packWasVisible && packEmpty()) {
-      dismissPack();
-    }
-
-    if (isEmptyItem(rightHandItemType())) {
-    } else if (leftOrRight < 0) {
-      worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
-      shiftBottomItemToRightHand();
-    } else if (leftOrRight > 0) {
-      shiftBottomItemToLeftHand();
-    }
-
-    restoreDpad();
-    restoreWatch();
-    dismissControllerReticle();
-
-    tick();
-
-    return playMode;
-  };
-
-  /**
-   * @param {boolean} packWasVisible
-   */
-  const placeItemInLeftHand = packWasVisible => {
-    dismissControllerReticle();
-    dismissTrash();
-    if (packWasVisible && packEmpty()) {
-      dismissPack();
-    }
-
-    closeLeftHand();
-    nineKeyView.move(4, 0, sw, 0);
-
-    if (isNotEmptyItem(rightHandItemType())) {
-      shiftBottomItemToRightHand();
-    }
-
-    restoreDpad();
-    restoreWatch();
-    restoreEffect();
-
-    return playMode;
-  };
-
-  /**
-   * @param {boolean} packWasVisible
-   */
-  const placeItemInRightHand = packWasVisible => {
-    worldModel.swap(agent, leftHandInventoryIndex, rightHandInventoryIndex);
-
-    dismissControllerReticle();
-    dismissTrash();
-    if (packWasVisible && packEmpty()) {
-      dismissPack();
-    }
-
-    closeRightHand();
-    nineKeyView.move(4, 2, se, 0);
-
-    if (isNotEmptyItem(leftHandItemType())) {
-      shiftBottomItemToLeftHand();
-    }
-    restoreDpad();
-    restoreWatch();
-    restoreEffect();
-
-    return playMode;
-  };
-
-  /**
-   * @param {number} leftOrRight
-   */
-  const stashItem = leftOrRight => {
-    dismissControllerReticle();
-    dismissPack();
-    dismissTrash();
-    dismissLeft();
-    dismissRight();
-    if (isNotEmptyItem(rightHandItemType())) {
-      nineKeyView.despawnOutward(ss);
-    }
-    restorePackItems();
-
-    return packMode(leftOrRight);
-  };
-
-  /**
-   * @param {number} chosenType
-   */
-  const chooseEffect = chosenType => {
-    worldModel.chooseEffect(agent, chosenType);
-
-    dismissEffects();
-    restoreLeft();
-    restoreRight();
-    restoreDpad();
-    restoreWatch();
-    restoreEffect();
-    if (packNotEmpty()) {
-      restorePack();
-    }
-
-    return playMode;
-  };
-
-  const playToMenuMode = () => {
-    nineKeyView.despawnOutward(ee);
-    nineKeyView.despawnOutward(ww);
-    dismissLeft();
-    dismissRight();
-    dismissEffect();
-    if (packNotEmpty()) {
-      dismissPack();
-    }
-    dismissWatch();
-    oneKeyView.replace(0, tileTypesByName.thumbUp);
-
-    return enterMenuMode();
-  };
-
-  const menuToPlayMode = () => {
-    exitMenuMode();
-
-    nineKeyView.spawnInward(tileTypesByName.east, ee);
-    nineKeyView.spawnInward(tileTypesByName.west, ww);
-    restoreLeft();
-    restoreRight();
-    restoreEffect();
-    if (packNotEmpty()) {
-      restorePack();
-    }
-    restoreWatch();
-
-    return playMode;
-  };
-
-  const menuToEditMode = () => {
-    exitMenuMode();
-
-    nineKeyView.spawnInward(tileTypesByName.west, ww);
-    nineKeyView.spawnInward(tileTypesByName.east, ee);
+    restoreDpad(handoff);
 
     restoreEditorBezel();
 
@@ -1047,279 +1493,135 @@ export const makeController = ({
       nineKeyView.spawn(4, defaultTileTypeForAgentType[editType]);
     }
 
-    lastAgentCursor = cursor;
-    worldModel.unfollow(agent, agentFollower);
-    restoreEditorReticle();
-
     oneKeyView.replace(0, tileTypesByName.hamburger);
 
     updateEditorDialog();
 
+    restoreEditorReticle(position);
+
     return editMode;
   };
 
-  const editToMenuMode = () => {
+  /**
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   * @param {boolean} [handoff.east]
+   * @param {boolean} [handoff.west]
+   */
+  const exitEditMode = handoff => {
+    dismissDpad(handoff);
+
     dismissEditorBezel();
     if (editType !== 0) {
       nineKeyView.despawn(4);
     }
 
-    cursor = lastAgentCursor;
-    cameraController.jump(cursor.position);
-    worldModel.follow(agent, agentFollower);
     dismissEditorReticle();
 
     oneKeyView.replace(0, tileTypesByName.back);
 
     menuController.show();
 
-    nineKeyView.despawnOutward(ee);
-    nineKeyView.despawnOutward(ww);
-
     dialogController.close();
+  };
 
-    return enterMenuMode();
+  /** @param {number} position */
+  const limboToEditMode = position => {
+    return enterEditMode(position, undefined, {});
+  };
+
+  /**
+   * @param {number} position
+   * @param {number | undefined} player
+   */
+  const menuToEditMode = (position, player) => {
+    const handoff = {
+      north: true,
+      south: true,
+    };
+    exitMenuMode(handoff);
+    return enterEditMode(position, player, handoff);
+  };
+
+  /**
+   * @param {number} player
+   */
+  const menuToPlayMode = player => {
+    const handoff = {
+      north: true,
+      south: true,
+    };
+    exitMenuMode(handoff);
+    return enterPlayMode(player, handoff);
+  };
+
+  /**
+   * @param {number} player
+   */
+  const limboToPlayMode = player => {
+    const handoff = {};
+    return enterPlayMode(player, handoff);
+  };
+
+  /**
+   * @param {number} position
+   * @param {number | undefined} player
+   */
+  const editToMenuMode = (position, player) => {
+    const handoff = {
+      north: true,
+      south: true,
+    };
+    exitEditMode(handoff);
+    return enterMenuMode(position, player, handoff);
   };
 
   /** @type {number} */
   let reticleEntity = 0;
 
-  const firstEligibleEntityType = 4;
-  const eligibleEntityCount = agentTypes.length - firstEligibleEntityType;
-
   /**
-   * @param {number} offset
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   * @param {boolean} [handoff.east]
+   * @param {boolean} [handoff.west]
    */
-  const agentTypeForOffset = offset => {
-    assertNonZero(editType);
-    return (
-      ((eligibleEntityCount + editType - firstEligibleEntityType + offset) %
-        eligibleEntityCount) +
-      firstEligibleEntityType
-    );
-  };
-
-  const openAgentChooser = () => {
-    dismissEditorReticle();
-    dismissEditorBezel();
-    dismissDpad();
-
-    if (editType === 0) {
-      editType = 4;
-      nineKeyView.spawn(4, defaultTileTypeForAgentType[editType]);
+  const restoreDpad = handoff => {
+    if (!handoff.north) {
+      nineKeyView.spawnInward(tileTypesByName.north, nn);
     }
-
-    // Initialize board with agent type neighborhood around current edit type.
-    for (let index = 0; index < agentOffsets.length; index += 1) {
-      const offset = agentOffsets[index];
-      const gridIndex = itemGridIndexes[index];
-      const agentType = agentTypeForOffset(offset);
-      const tileType = defaultTileTypeForAgentType[agentType];
-      nineKeyView.spawn(gridIndex, tileType);
+    if (!handoff.east) {
+      nineKeyView.spawnInward(tileTypesByName.east, ee);
     }
-
-    logAgentChoice();
-
-    restoreControllerReticle();
-    return chooseAgentMode;
-  };
-
-  const closeAgentChooser = () => {
-    dismissControllerReticle();
-
-    for (let direction = 0; direction < fullOcturn; direction += 1) {
-      nineKeyView.despawnOutward(direction);
+    if (!handoff.south) {
+      nineKeyView.spawnInward(tileTypesByName.south, ss);
     }
-
-    restoreEditorReticle();
-    restoreEditorBezel();
-    restoreDpad();
-
-    return editMode;
-  };
-
-  const logAgentChoice = () => {
-    const { name, tile } = agentTypes[editType];
-    const tileType = tile ? tileTypesByName[tile] : tileTypesByName[name];
-    const { text } = tileTypes[tileType];
-    dialogController.close();
-    dialogController.log(`${text} ${name}`);
-  };
-
-  // Entity management:
-
-  const dismissControllerReticle = () => {
-    assertNonZero(reticleEntity);
-    nineKeyMacroViewModel.exit(reticleEntity);
-    reticleEntity = 0;
-  };
-
-  const restoreControllerReticle = () => {
-    reticleEntity = nineKeyView.create(-1, locate(1, 1)); // reticle
-    nineKeyMacroViewModel.enter(reticleEntity);
-  };
-
-  const restoreDpad = () => {
-    nineKeyView.spawnInward(tileTypesByName.north, nn);
-    nineKeyView.spawnInward(tileTypesByName.east, ee);
-    nineKeyView.spawnInward(tileTypesByName.south, ss);
-    nineKeyView.spawnInward(tileTypesByName.west, ww);
-  };
-
-  const restoreWatch = () => {
-    nineKeyView.spawn(4, tileTypesByName.watch);
-  };
-
-  const openLeftHand = () => {
-    nineKeyView.spawn(0, tileTypesByName.left);
-  };
-
-  const openRightHand = () => {
-    nineKeyView.spawn(2, tileTypesByName.right);
-  };
-
-  const closeLeftHand = () => {
-    nineKeyView.despawn(0);
-  };
-
-  const closeRightHand = () => {
-    nineKeyView.despawn(2);
-  };
-
-  const restoreLeft = () => {
-    if (isEmptyItem(leftHandItemType())) {
-      restoreLeftHand();
-    } else {
-      restoreLeftItem();
-    }
-  };
-
-  const restoreRight = () => {
-    if (isEmptyItem(rightHandItemType())) {
-      restoreRightHand();
-    } else {
-      restoreRightItem();
-    }
-  };
-
-  const restoreLeftHand = () => {
-    nineKeyView.spawnInward(tileTypesByName.left, sw);
-  };
-
-  const restoreRightHand = () => {
-    nineKeyView.spawnInward(tileTypesByName.right, se);
-  };
-
-  const restoreLeftItem = () => {
-    nineKeyView.spawnInward(tileTypeForItemType[leftHandItemType()], sw);
-  };
-
-  const restoreRightItem = () => {
-    nineKeyView.spawnInward(tileTypeForItemType[rightHandItemType()], se);
-  };
-
-  /**
-   * @param {number} itemType
-   */
-  const recepticleTileType = itemType => {
-    const { comestible = false, effect = undefined } = itemTypes[itemType];
-    let recepticleTileType = tileTypesByName.trash;
-    if (effect !== undefined) {
-      recepticleTileType = tileTypesByName.arm;
-    } else if (comestible) {
-      recepticleTileType = tileTypesByName.mouth;
-    }
-    return recepticleTileType;
-  };
-
-  /**
-   * @param {number} itemType
-   */
-  const restoreRecepticle = itemType => {
-    nineKeyView.spawnInward(recepticleTileType(itemType), ne);
-  };
-
-  const restoreEffect = () => {
-    const effectType = worldModel.entityEffectChoice(agent) + 1;
-    const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
-    nineKeyView.spawnInward(effectTileType, ne);
-  };
-
-  const restorePack = () => {
-    nineKeyView.spawnInward(packTileType, nw);
-    packVisible = true;
-  };
-
-  const dismissPack = () => {
-    nineKeyView.despawnOutward(nw);
-    packVisible = false;
-  };
-
-  const dismissTrash = () => {
-    nineKeyView.despawnOutward(ne);
-  };
-
-  const dismissEffect = () => {
-    nineKeyView.despawnOutward(ne);
-  };
-
-  const dismissLeft = () => {
-    nineKeyView.despawnOutward(sw);
-  };
-
-  const dismissRight = () => {
-    nineKeyView.despawnOutward(se);
-  };
-
-  const restorePackItems = () => {
-    for (let i = 0; i < 8; i++) {
-      const inventoryIndex = i + 2;
-      const itemType = worldModel.inventory(agent, inventoryIndex);
-      const entityIndex = entityIndexForInventoryIndex[inventoryIndex];
-      const itemGridIndex = itemGridIndexes[i];
-      const itemTileType = isNotEmptyItem(itemType)
-        ? tileTypeForItemType[itemType]
-        : gridTileTypes[itemGridIndex];
-      nineKeyView.spawn(entityIndex, itemTileType);
-    }
-  };
-
-  const restoreEffects = () => {
-    for (let i = 0; i < 9; i++) {
-      const effectTileType = worldModel.entityHasEffect(agent, i)
-        ? tileTypeForEffectType[i + 1]
-        : gridTileTypes[i];
-      nineKeyView.spawn(i, effectTileType);
-    }
-  };
-
-  const dismissEffects = () => {
-    for (let i = 0; i < 9; i++) {
-      nineKeyView.despawn(i);
+    if (!handoff.west) {
+      nineKeyView.spawnInward(tileTypesByName.west, ww);
     }
   };
 
   /**
-   * @param {number} exceptItem
+   * @param {Object} handoff
+   * @param {boolean} [handoff.north]
+   * @param {boolean} [handoff.south]
+   * @param {boolean} [handoff.east]
+   * @param {boolean} [handoff.west]
    */
-  const dismissPackItemsExcept = exceptItem => {
-    for (let i = 2; i < 10; i++) {
-      if (i !== exceptItem) {
-        const inventoryEntityIndex = entityIndexForInventoryIndex[i];
-        nineKeyView.despawn(inventoryEntityIndex);
-      }
+  const dismissDpad = handoff => {
+    if (!handoff.north) {
+      nineKeyView.despawnOutward(nn);
     }
-  };
-
-  const dismissDpad = () => {
-    nineKeyView.despawnOutward(nn);
-    nineKeyView.despawnOutward(ee);
-    nineKeyView.despawnOutward(ss);
-    nineKeyView.despawnOutward(ww);
-  };
-
-  const dismissWatch = () => {
-    nineKeyView.despawn(4);
+    if (!handoff.east) {
+      nineKeyView.despawnOutward(ee);
+    }
+    if (!handoff.south) {
+      nineKeyView.despawnOutward(ss);
+    }
+    if (!handoff.west) {
+      nineKeyView.despawnOutward(ww);
+    }
   };
 
   const restoreEditorBezel = () => {
@@ -1336,108 +1638,26 @@ export const makeController = ({
     nineKeyView.despawnOutward(se);
   };
 
-  const restoreEditorReticle = () => {
-    worldMacroViewModel.put(-1, cursor.position, -1);
+  /**
+   * @param {number} position
+   */
+  const restoreEditorReticle = position => {
+    worldMacroViewModel.put(-1, position, -1);
   };
 
   const dismissEditorReticle = () => {
     worldMacroViewModel.remove(-1);
   };
 
-  const shiftBottomItemToLeftHand = () => {
-    closeLeftHand();
-    nineKeyView.move(1, 0, ww, 0);
+  const dismissControllerReticle = () => {
+    assertNonZero(reticleEntity);
+    nineKeyMacroViewModel.exit(reticleEntity);
+    reticleEntity = 0;
   };
 
-  const shiftBottomItemToRightHand = () => {
-    closeRightHand();
-    nineKeyView.move(1, 2, ee, 0);
-  };
-
-  /**
-   * @param {number} gridIndex
-   * @param {number} directionOcturns
-   */
-  const enterAgent = (gridIndex, directionOcturns) => {
-    const agentOffset = agentOffsetForGridIndex[gridIndex];
-    const agentType = agentTypeForOffset(agentOffset);
-    const tileType = defaultTileTypeForAgentType[agentType];
-    nineKeyView.give(gridIndex, tileType, directionOcturns);
-  };
-
-  const shiftAgentsWest = () => {
-    for (let start = 0; start < 3; start += 1) {
-      nineKeyView.take(start * 3, ww);
-    }
-    for (let index = 0; index < 9; index += 3) {
-      nineKeyView.move(1 + index, 0 + index, ww, 0);
-      nineKeyView.move(2 + index, 1 + index, ww, 0);
-    }
-    for (let index = 0; index < 9; index += 3) {
-      enterAgent(2 + index, ww);
-    }
-  };
-
-  const shiftAgentsEast = () => {
-    for (let index = 2; index < 9; index += 3) {
-      nineKeyView.take(index, ee);
-    }
-    for (let index = 0; index < 9; index += 3) {
-      nineKeyView.move(1 + index, 2 + index, ee, 0);
-      nineKeyView.move(0 + index, 1 + index, ee, 0);
-    }
-    for (let index = 0; index < 9; index += 3) {
-      enterAgent(index, ee);
-    }
-  };
-
-  const shiftAgentsNorth = () => {
-    for (let start = 0; start < 3; start += 1) {
-      nineKeyView.take(start + 6, ne);
-    }
-    for (let start = 0; start < 3; start += 1) {
-      nineKeyView.move(start + 3, start + 6, nn, 0);
-      nineKeyView.move(start + 0, start + 3, nn, 0);
-    }
-    for (let start = 0; start < 3; start += 1) {
-      enterAgent(start, ne);
-    }
-  };
-
-  const shiftAgentsSouth = () => {
-    for (let start = 0; start < 3; start += 1) {
-      nineKeyView.take(start, sw);
-    }
-    for (let start = 0; start < 6; start += 1) {
-      nineKeyView.move(start + 3, start, ss, 0);
-    }
-    for (let start = 0; start < 3; start += 1) {
-      enterAgent(start + 6, sw);
-    }
-  };
-
-  const updateEditorDialog = () => {
-    const dialogTerms = [toponym(cursor.position)];
-    const agentType = worldModel.get(cursor.position);
-    if (agentType > 0) {
-      const agentName = agentTypes[agentType].name;
-      dialogTerms.push(agentName);
-    }
-    const terrainFlags = worldModel.getTerrainFlags(cursor.position);
-    if ((terrainFlags & terrainLava) !== 0) {
-      dialogTerms.push('🌋   ');
-    }
-    if ((terrainFlags & terrainWater) !== 0) {
-      dialogTerms.push('🌊   ');
-    }
-    if ((terrainFlags & terrainHot) !== 0) {
-      dialogTerms.push('🥵   ');
-    }
-    if ((terrainFlags & terrainCold) !== 0) {
-      dialogTerms.push('🥶   ');
-    }
-    dialogController.close();
-    dialogController.log(dialogTerms.join(' '));
+  const restoreControllerReticle = () => {
+    reticleEntity = nineKeyView.create(-1, locate(1, 1)); // reticle
+    nineKeyMacroViewModel.enter(reticleEntity);
   };
 
   /**
@@ -1489,43 +1709,40 @@ export const makeController = ({
 
   tock();
 
-  let mode = playMode;
+  let mode = limboMode;
 
   /** @type {PressFn} */
   const command = (command, repeat) => {
     mode = mode.press(command, repeat);
   };
 
-  const currentAgent = () => agent;
-
-  /** @param {number} newAgent */
-  const jump = newAgent => {
-    tock();
-
-    worldModel.unfollow(agent, agentFollower);
-    agent = newAgent;
-    const position = worldModel.locate(agent);
-    cameraController.jump(position);
-    cursor = { position, direction: north };
-    worldModel.follow(agent, agentFollower);
-
-    tick();
-    tock();
+  /** @param {string} key */
+  const etcCommand = key => {
+    if (mode.etcPress) {
+      return mode.etcPress(key);
+    }
+    return false;
   };
 
-  cameraController.jump(cursor.position);
-  worldModel.follow(agent, agentFollower);
+  /** @param {number | undefined} player */
+  const play = player => {
+    if (mode.play) {
+      mode = mode.play(player);
+    }
+  };
 
-  const at = () => cursor.position;
+  const modeName = () => {
+    return mode.name;
+  };
 
   return {
     tock,
     animate,
     down,
     command,
-    jump,
-    currentAgent,
-    at,
+    play,
+    modeName,
+    etcCommand,
   };
 };
 

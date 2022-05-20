@@ -29,7 +29,7 @@ export const load = async restore => {
 
 /**
  * @param {import('./model.js').CaptureFn} capture
- * @param {number} agent
+ * @param {number} [agent]
  */
 export const save = async (capture, agent) => {
   const handle = await window.showSaveFilePicker({ types });

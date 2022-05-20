@@ -93,7 +93,10 @@ export function makeNineKeyView(macroViewModel) {
    */
   function spawnInward(tileType, directionOcturns) {
     const gridIndex = octurnGridIndexes[directionOcturns];
-    assert(entities[gridIndex] === 0);
+    assert(
+      entities[gridIndex] === 0,
+      `Cannot spawnInward on ${gridIndex} because that space is occupied by ${entities[gridIndex]}`,
+    );
     const { x, y } = octurnVectors[directionOcturns];
     const entity = create(tileType, locate(1 + x * 2, 1 + y * 2));
     macroViewModel.move(
@@ -113,7 +116,10 @@ export function makeNineKeyView(macroViewModel) {
    */
   function move(fromSlot, toSlot, directionOcturns, spinOcturns) {
     const entity = entities[fromSlot];
-    assertNonZero(entity);
+    assertNonZero(
+      entity,
+      `Cannot move entity in nine-key-view from ${fromSlot} to ${toSlot} because the slot is empty`,
+    );
     const destination = gridLocations[toSlot];
     macroViewModel.move(entity, destination, directionOcturns, spinOcturns);
     entities[toSlot] = entity;
