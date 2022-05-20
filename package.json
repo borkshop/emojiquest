@@ -14,7 +14,7 @@
   "private": true,
   "scripts": {
     "lint": "tsc",
-    "test": "ava 'test/test-*.js'",
+    "test": "ava",
     "ci": "npm run lint",
     "start": "snowpack dev",
     "build": "snowpack build --clean"
@@ -37,8 +37,8 @@
     "exclude": [
       "**/build/**/*",
       "**/node_modules/**/*",
-      "**/__tests__/*",
-      "**/*.@(spec|test).@(js|mjs)",
+      "**/test-*.js",
+      "**/*.test.js",
       "tsconfig.json",
       "jsconfig.json",
       "package.json",
@@ -51,7 +51,7 @@
   },
   "ava": {
     "files": [
-      "test/**/test-*.js"
+      "*.test.js"
     ],
     "timeout": "2m"
   },

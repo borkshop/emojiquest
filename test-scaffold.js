@@ -1,9 +1,9 @@
-import { makeDaia } from '../daia.js';
-import { makeModel } from '../model.js';
-import { makeMechanics } from '../mechanics.js';
-import { makeController } from '../controls.js';
-import { makeViewModel } from '../view-model.js';
-import { makeMacroViewModel } from '../macro-view-model.js';
+import { makeDaia } from './daia.js';
+import { makeModel } from './model.js';
+import { makeMechanics } from './mechanics.js';
+import { makeController } from './controls.js';
+import { makeViewModel } from './view-model.js';
+import { makeMacroViewModel } from './macro-view-model.js';
 import {
   recipes,
   actions,
@@ -11,7 +11,7 @@ import {
   validAgentTypes,
   validItemTypes,
   validEffectTypes,
-} from '../data.js';
+} from './data.js';
 
 /**
  * @param {import('ava').ExecutionContext} t
@@ -60,7 +60,7 @@ export const makeScaffold = t => {
     tileSizePx: NaN,
   });
 
-  /** @type {import('../tile-view.js').TileView} */
+  /** @type {import('./tile-view.js').TileView} */
   const nineKeyTileView = {
     enter(entity, type) {
       // t.log('9x9 enter', { entity, type });
@@ -79,18 +79,18 @@ export const makeScaffold = t => {
     },
   };
 
-  /** @type {import('../tile-view.js').TileView} */
+  /** @type {import('./tile-view.js').TileView} */
   const oneKeyTileView = {
     enter(_entity) {},
     exit(_entity) {},
   };
 
-  /** @type {import('../view-model.js').PlaceFn} */
+  /** @type {import('./view-model.js').PlaceFn} */
   const placeOneKey = (_entity, coord, _pressure, _progress, _transition) => {
     t.deepEqual(coord, { x: 0, y: 0, a: 0 });
   };
 
-  /** @type {import('../view-model.js').PlaceFn} */
+  /** @type {import('./view-model.js').PlaceFn} */
   const placeNineKey = (
     entity,
     location,
@@ -140,7 +140,7 @@ export const makeScaffold = t => {
 
   /**
    * @param {number} _destination
-   * @param {import('../daia.js').CursorChange} _change
+   * @param {import('./daia.js').CursorChange} _change
    */
   const followCursor = (_destination, _change) => {};
 

@@ -1,5 +1,5 @@
 import test from 'ava';
-import { makeScaffold } from './scaffold.js';
+import { makeScaffold } from './test-scaffold.js';
 
 test('limbo', t => {
   const s = makeScaffold(t);
