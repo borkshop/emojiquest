@@ -1,4 +1,6 @@
 import test from 'ava';
+import url from 'url';
+import fs from 'fs/promises';
 import { makeScaffold } from './test-scaffold.js';
 
 test('limbo', t => {
@@ -164,4 +166,167 @@ test('fill inventory', t => {
     < z >
     a v a <- lots of apples
   `);
+});
+
+test('juggling', t => {
+  const s = makeScaffold(t);
+  s.scene('@ A');
+  s.play();
+
+  s.command(6); // bump the tree to get apple
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v ]  <- apple in left hand
+  `);
+
+  s.command(1); // select apple from left hand
+  s.expectControls(`
+    b . m
+    .(a).
+    [ . ]
+  `);
+
+  s.command(3); // move apple to right hand
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v a  <- apple in right hand
+  `);
+
+  s.command(6); // bump tree to get apple
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v a  <-  apples in both hands
+  `);
+
+  s.command(1); // select apple in left hand
+  s.expectControls(`
+    b . m
+    .(a).
+    [ a ]
+  `);
+
+  s.command(9); // eat the apple, returns other applee to right hand
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v a <- apple in right hand
+  `);
+});
+
+test('to and from pack with apple in left hand', t => {
+  const s = makeScaffold(t);
+  s.scene('@ A');
+  s.play();
+
+  s.command(6); // get apple
+  s.expectMode('play');
+  s.expectControls(`
+    . ^ s  <- pack is empty
+    < z >
+    a v ]  <- apple in left hand
+  `);
+
+  s.command(1); // select apple
+  s.expectMode('item');
+  s.command(7); // move to pack
+  s.expectMode('pack');
+  s.command(1); // put in slot 1
+  s.expectControls(`
+    b ^ s  <- apple is in backpack
+    < z >
+    [ v ]
+  `);
+
+  s.command(6); // get another apple
+  s.expectControls(`
+    b ^ s  <- other apple in pack
+    < z >
+    a v ]  <- apple in left hand
+  `);
+
+  s.command(7); // open pack
+  s.expectMode('pack');
+  s.command(1); // choose apple
+  s.expectMode('item');
+  s.command(9); // eat apple
+  s.expectMode('play');
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v ]  <- apple should return to left hand
+  `);
+  s.expectInventory(0, 'apple');
+  s.expectInventory(1, 'empty');
+});
+
+test('to and from pack with apple in right hand', t => {
+  const s = makeScaffold(t);
+  s.scene('@ A');
+  s.play();
+
+  s.command(6); // get apple
+  s.expectMode('play');
+  s.expectControls(`
+    . ^ s  <- pack is empty
+    < z >
+    a v ]  <- apple in left hand
+  `);
+
+  s.command(1); // select apple
+  s.expectMode('item');
+  s.command(7); // move to pack
+  s.expectMode('pack');
+  s.command(1); // put in slot 1
+  s.expectControls(`
+    b ^ s  <- apple is in backpack
+    < z >
+    [ v ]
+  `);
+
+  s.command(6); // get another apple
+  s.expectControls(`
+    b ^ s  <- other apple in pack
+    < z >
+    a v ]  <- apple in left hand
+  `);
+
+  s.command(1); // get apple
+  s.expectMode('item');
+  s.command(3); // place aple in right hand
+  s.expectControls(`
+    b ^ s  <- other apple in pack
+    < z >
+    [ v a  <- apple in right hand
+  `);
+
+  s.command(7); // open pack
+  s.expectMode('pack');
+  s.command(1); // choose apple
+  s.expectMode('item');
+  s.command(9); // eat apple
+  s.expectMode('play');
+  s.expectControls(`
+    . ^ s  <- pack should be empty
+    < z >
+    [ v a  <- apple should return to right hand
+  `);
+  s.expectInventory(0, 'empty');
+  s.expectInventory(1, 'apple');
+});
+
+// This of course covers restoration, but is also a useful utility for ad-hoc
+// test failure isolation and reproduction.
+test('restore', async t => {
+  const path = url.fileURLToPath(new URL('daia.json', import.meta.url));
+  const text = await fs.readFile(path, 'utf8');
+  const json = JSON.parse(text);
+
+  const s = makeScaffold(t, {size: 81});
+  s.restore(json);
+  s.play();
+
+  s.expectMode('play');
 });

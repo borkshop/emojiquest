@@ -945,13 +945,13 @@ export const makeController = ({
 
       if (isEmptyItem(rightHandItemType())) {
       } else if (leftOrRight < 0) {
+        shiftBottomItemToRightHand();
+      } else if (leftOrRight > 0) {
         worldModel.swap(
           player,
           leftHandInventoryIndex,
           rightHandInventoryIndex,
         );
-        shiftBottomItemToRightHand();
-      } else if (leftOrRight > 0) {
         shiftBottomItemToLeftHand();
       }
 

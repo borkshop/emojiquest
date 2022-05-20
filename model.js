@@ -1118,6 +1118,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @returns {number | Array<string>} agent number if ok or corruption reasons
    */
   function restore(allegedSnapshot) {
+    // TODO validate that the snapshot world is generated from a world of the
+    // same size.
     if (typeof allegedSnapshot !== 'object') {
       return ['expected to begin with an object'];
     }
@@ -1263,6 +1265,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         );
         continue;
       }
+      // TODO compact or truncate inventories with empty tails.
       /** @type {Array<number>} */
       const inventory = [];
       for (const item of allegedInventory) {

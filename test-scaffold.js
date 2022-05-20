@@ -16,7 +16,9 @@ import {
 /**
  * @param {import('ava').ExecutionContext} t
  */
-export const makeScaffold = t => {
+export const makeScaffold = (t, {
+  size = 3,
+} = {}) => {
   let player = -1;
 
   /** @type {Record<string, string>} */
@@ -56,7 +58,7 @@ export const makeScaffold = t => {
   ];
 
   const world = makeDaia({
-    faceSize: 3,
+    faceSize: size,
     tileSizePx: NaN,
   });
 
@@ -289,6 +291,18 @@ export const makeScaffold = t => {
   };
 
   /**
+   * @param {unknown} data
+   */
+  const restore = data => {
+    const result = worldModel.restore(data);
+    if (typeof result === 'number') {
+      player = result;
+    } else {
+      t.fail(result.join(', '));
+    }
+  };
+
+  /**
    * @param {number} digit
    * @param {boolean} [repeat]
    */
@@ -304,9 +318,20 @@ export const makeScaffold = t => {
     t.is(controller.modeName(), modeName);
   };
 
+  /**
+   * @param {number} slot
+   * @param {string} expectedItemName
+   */
+  const expectInventory = (slot, expectedItemName) => {
+    const itemType = worldModel.inventory(player, slot);
+    const actualItemName = mechanics.itemTypes[itemType].name;
+    t.is(actualItemName, expectedItemName);
+  };
+
   return {
     scene,
     play,
+    restore,
     command,
     controller,
     worldModel,
@@ -315,6 +340,7 @@ export const makeScaffold = t => {
     expectControls,
     world,
     mechanics,
+    expectInventory,
     get health() {
       return health;
     },
