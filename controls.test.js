@@ -409,6 +409,52 @@ test('menu', t => {
   `);
 });
 
+test('start in edit mode', t => {
+  const s = makeScaffold(t);
+  s.play();
+
+  s.expectMode('edit');
+  s.expectScene(`
+   (.). .
+    . . .
+    . . .
+  `);
+  s.command(6); // go east
+  s.expectScene(`
+    .(.).
+    . . .
+    . . .
+  `);
+  s.command(2); // go south
+  s.expectScene(`
+    . . .
+    .(.).
+    . . .
+  `);
+  s.command(5); // enter agent chooser
+  s.expectMode('chooseAgent');
+  s.command(2); // next entity
+  s.command(5); // choose player
+  s.expectMode('edit');
+  s.command(1); // draw player
+  // TODO fix
+  // t.log(s.drawScene());
+  // s.expectScene(`
+  //   . . .
+  //   .(@).
+  //   . . .
+  // `);
+  s.command(0); // menu
+  s.command(2); // down (loop up to play)
+  s.command(0); // select play
+  s.expectMode('play');
+  s.expectScene(`
+    . . .
+    . @ .
+    . . .
+  `);
+});
+
 // This of course covers restoration, but is also a useful utility for ad-hoc
 // test failure isolation and reproduction.
 test('restore', async t => {

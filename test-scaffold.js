@@ -28,7 +28,7 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
   const table = new Map();
 
   /** @param {{x: number, y: number}} coord */
-  const provideCell = ({x, y}) => {
+  const provideCell = ({ x, y }) => {
     let column = table.get(y);
     if (column === undefined) {
       /** @type {Map<number, Set<number>>} */
@@ -65,7 +65,6 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
       if (priorLocation !== undefined) {
         provideCell(priorLocation).delete(entity);
       }
-
       locations.set(entity, location);
       provideCell(location).add(entity);
     },
@@ -75,7 +74,7 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
     let drawing = '';
     for (let y = 0; y < size.y; y += 1) {
       for (let x = 0; x < size.x; x += 1) {
-        const entities = provideCell({x, y});
+        const entities = provideCell({ x, y });
         let glyph = '.';
         let open = '';
         let close = '';
@@ -142,7 +141,8 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     happy: '@',
   };
 
-  let player = -1;
+  /** @type {number | undefined} */
+  let player;
 
   /** @type {Record<string, string>} */
   const agentTypesByGlyph = {
@@ -164,8 +164,12 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     tileSizePx: NaN,
   });
 
-  const {watcher: worldWatcher, expect: expectScene} = makeTestWatcher(t, {
-    size: {x: size, y: size},
+  const {
+    watcher: worldWatcher,
+    expect: expectScene,
+    draw: drawScene,
+  } = makeTestWatcher(t, {
+    size: { x: size, y: size },
     tileTypes: mechanics.tileTypes,
     glyphsByTileName,
   });
@@ -173,19 +177,25 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
   const worldViewModel = makeViewModel();
   const worldMacroViewModel = makeMacroViewModel(worldViewModel);
 
-  worldViewModel.watchEntities(makeBoxTileMap({
-    x: size,
-    y: size,
-  }), worldWatcher);
+  worldViewModel.watchEntities(
+    makeBoxTileMap({
+      x: size,
+      y: size,
+    }),
+    worldWatcher,
+  );
 
-  const { watcher: nineKeyWatcher, expect: expectControls } = makeTestWatcher(t, {
-    size: {x: 3, y: 3},
-    tileTypes: mechanics.tileTypes,
-    glyphsByTileName,
-  });
+  const { watcher: nineKeyWatcher, expect: expectControls } = makeTestWatcher(
+    t,
+    {
+      size: { x: 3, y: 3 },
+      tileTypes: mechanics.tileTypes,
+      glyphsByTileName,
+    },
+  );
 
   const { watcher: oneKeyWatcher, expect: expectButton } = makeTestWatcher(t, {
-    size: {x: 1, y: 1},
+    size: { x: 1, y: 1 },
     tileTypes: mechanics.tileTypes,
     glyphsByTileName,
   });
@@ -343,6 +353,10 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
    * @param {string} expectedItemName
    */
   const expectInventory = (slot, expectedItemName) => {
+    if (typeof player !== 'number') {
+      t.fail('no player, no inventory');
+      return;
+    }
     const itemType = worldModel.inventory(player, slot);
     const actualItemName = mechanics.itemTypes[itemType].name;
     t.is(actualItemName, expectedItemName);
@@ -358,6 +372,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     expectMode,
     expectControls,
     expectScene,
+    drawScene,
     expectButton,
     world,
     mechanics,
