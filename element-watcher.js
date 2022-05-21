@@ -7,6 +7,7 @@
 // @ts-check
 
 import { assumeDefined } from './assert.js';
+import { placeEntity } from './animation2d.js';
 
 /**
  * @callback EnterFn
@@ -19,10 +20,13 @@ import { assumeDefined } from './assert.js';
  * @param {number} tile
  */
 
+/** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
+
 /**
- * @typedef {Object} TileView
+ * @typedef {Object} ElementWatcher
  * @prop {EnterFn} enter
  * @prop {ExitFn} exit
+ * @prop {PlaceFn} place
  */
 
 const noop = () => {};
@@ -53,37 +57,43 @@ const noop = () => {};
  * @param {ChildElement?} $nextSibling
  * @param {(tile: number, type: number) => ChildElement} createElement
  * @param {(tile: number) => void} [collectElement]
- * @return {TileView}
+ * @return {ElementWatcher}
  */
-export function makeTileView(
+export function makeElementWatcher(
   $parent,
   $nextSibling,
   createElement,
   collectElement = noop,
 ) {
-  const $tiles = new Map();
+  const $elements = new Map();
 
   /**
-   * @param {number} t
+   * @param {number} entity
    * @param {number} type
    */
-  function enter(t, type) {
-    const $tile = createElement(t, type);
-    $parent.insertBefore($tile, $nextSibling);
-    $tiles.set(t, $tile);
+  function enter(entity, type) {
+    const $element = createElement(entity, type);
+    $parent.insertBefore($element, $nextSibling);
+    $elements.set(entity, $element);
   }
 
   /**
-   * @param {number} t
+   * @param {number} entity
    */
-  function exit(t) {
-    const $tile = assumeDefined(
-      $tiles.get(t),
-      `Assertion failed: cannot remove absent tile ${t}`,
+  function exit(entity) {
+    const $element = assumeDefined(
+      $elements.get(entity),
+      `Assertion failed: cannot remove absent element ${entity}`,
     );
-    $parent.removeChild($tile);
-    collectElement(t);
+    $parent.removeChild($element);
+    collectElement(entity);
   }
 
-  return { enter, exit };
+  /** @type {PlaceFn} */
+  function place(entity, coord, pressure, progress, transition) {
+    const element = assumeDefined($elements.get(entity));
+    placeEntity(element, coord, pressure, progress, transition);
+  }
+
+  return { enter, exit, place };
 }

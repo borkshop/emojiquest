@@ -3,8 +3,7 @@
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { rotate, matrixStyle } from './matrix2d.js';
-import { makeTileView } from './tile-view.js';
-import { makeElementTracker } from './element-tracker.js';
+import { makeElementWatcher } from './element-watcher.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 import { ss, nn } from './geometry2d.js';
 
@@ -58,15 +57,15 @@ export function createMenuBlade({
   appendLabel('🚚 Load');
   appendLabel('🚧 Edit');
 
-  const { create, collect, place } = makeElementTracker({
+  const watcher = makeElementWatcher(
+    $curb,
+    null,
     createElement,
     collectElement,
-  });
-  const tileView = makeTileView($curb, null, create, collect);
-  const { enter, exit } = tileView;
+  );
   const viewModel = makeViewModel();
   const tileMap = makeBoxTileMap({ x: 1, y: 4 });
-  viewModel.watchEntities(tileMap, { enter, exit, place });
+  viewModel.watchEntities(tileMap, watcher);
   const macroViewModel = makeMacroViewModel(viewModel, {
     name: 'menu-pointer-curb',
   });

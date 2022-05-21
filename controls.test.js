@@ -324,7 +324,7 @@ test('restore', async t => {
   const text = await fs.readFile(path, 'utf8');
   const json = JSON.parse(text);
 
-  const s = makeScaffold(t, {size: 81});
+  const s = makeScaffold(t, { size: 81 });
   s.restore(json);
   s.play();
 

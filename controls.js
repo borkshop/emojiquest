@@ -32,13 +32,12 @@ import {
   halfOcturn,
   fullOcturn,
 } from './geometry2d.js';
-import { makeTileView } from './tile-view.js';
+import { makeElementWatcher } from './element-watcher.js';
 import { terrainWater, terrainLava, terrainCold, terrainHot } from './model.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { commandDirection } from './driver.js';
 import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
-import { makeElementTracker } from './element-tracker.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 import { load, save } from './file.js';
 
@@ -147,7 +146,11 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {Object} args
  * @param {Array<string>} args.viewText
  */
-export const makeControllerViews = ($controls, $hamburger, { viewText }) => {
+export const makeControllerElementWatchers = (
+  $controls,
+  $hamburger,
+  { viewText },
+) => {
   /**
    * @param {number} _entity
    * @param {number} type
@@ -169,36 +172,19 @@ export const makeControllerViews = ($controls, $hamburger, { viewText }) => {
     }
   };
 
-  const nineKeyElementTracker = makeElementTracker({ createElement });
-  const oneKeyElementTracker = makeElementTracker({ createElement });
-
-  const nineKeyTileView = makeTileView(
-    $controls,
-    null,
-    nineKeyElementTracker.create,
-    nineKeyElementTracker.collect,
-  );
-  const oneKeyTileView = makeTileView(
-    $hamburger,
-    null,
-    oneKeyElementTracker.create,
-    oneKeyElementTracker.collect,
-  );
+  const nineKeyWatcher = makeElementWatcher($controls, null, createElement);
+  const oneKeyWatcher = makeElementWatcher($hamburger, null, createElement);
 
   return {
-    nineKeyTileView,
-    oneKeyTileView,
-    placeNineKey: nineKeyElementTracker.place,
-    placeOneKey: oneKeyElementTracker.place,
+    nineKeyWatcher,
+    oneKeyWatcher,
   };
 };
 
 /**
  * @param {Object} args
- * @param {TileView} args.nineKeyTileView
- * @param {TileView} args.oneKeyTileView
- * @param {PlaceFn} args.placeNineKey
- * @param {PlaceFn} args.placeOneKey
+ * @param {import('./view-model.js').Watcher} args.nineKeyWatcher
+ * @param {import('./view-model.js').Watcher} args.oneKeyWatcher
  * @param {import('./daia.js').AdvanceFn} args.advance,
  * @param {import('./daia.js').ToponymFn} args.toponym
  * @param {import('./model.js').Model} args.worldModel
@@ -212,10 +198,8 @@ export const makeControllerViews = ($controls, $hamburger, { viewText }) => {
  * @param {import('./stamina.js').StaminaController} args.staminaController
  */
 export const makeController = ({
-  nineKeyTileView,
-  oneKeyTileView,
-  placeNineKey,
-  placeOneKey,
+  nineKeyWatcher,
+  oneKeyWatcher,
   worldModel,
   worldMacroViewModel,
   cameraController,
@@ -281,11 +265,7 @@ export const makeController = ({
 
   const oneKeyViewModel = makeViewModel();
   const oneTileMap = makeBoxTileMap();
-  oneKeyViewModel.watchEntities(oneTileMap, {
-    enter: oneKeyTileView.enter,
-    exit: oneKeyTileView.exit,
-    place: placeOneKey,
-  });
+  oneKeyViewModel.watchEntities(oneTileMap, oneKeyWatcher);
   const oneKeyView = makeMacroViewModel(oneKeyViewModel, {
     name: 'hamburger',
   });
@@ -297,11 +277,7 @@ export const makeController = ({
   });
   const nineKeyView = makeNineKeyView(nineKeyMacroViewModel);
 
-  nineKeyViewModel.watchEntities(tileMap, {
-    enter: nineKeyTileView.enter,
-    exit: nineKeyTileView.exit,
-    place: placeNineKey,
-  });
+  nineKeyViewModel.watchEntities(tileMap, nineKeyWatcher);
 
   /** @type {import('./model.js').Follower} */
   const playerFollower = {

@@ -16,9 +16,7 @@ import {
 /**
  * @param {import('ava').ExecutionContext} t
  */
-export const makeScaffold = (t, {
-  size = 3,
-} = {}) => {
+export const makeScaffold = (t, { size = 3 } = {}) => {
   let player = -1;
 
   /** @type {Record<string, string>} */
@@ -62,8 +60,8 @@ export const makeScaffold = (t, {
     tileSizePx: NaN,
   });
 
-  /** @type {import('./tile-view.js').TileView} */
-  const nineKeyTileView = {
+  /** @type {import('./view-model.js').Watcher} */
+  const nineKeyWatcher = {
     enter(entity, type) {
       // t.log('9x9 enter', { entity, type });
       nineKeyTypes.set(entity, type);
@@ -79,36 +77,26 @@ export const makeScaffold = (t, {
       nineKeyLocations.delete(entity);
       nineKeyTypes.delete(entity);
     },
+    place(entity, location, _pressure, _progress, _transition) {
+      const priorLocation = nineKeyLocations.get(entity);
+      if (priorLocation !== undefined) {
+        const { x, y } = priorLocation;
+        nineKeys[y + 1][x + 1].delete(entity);
+      }
+
+      nineKeyLocations.set(entity, location);
+      const { x, y } = location;
+      nineKeys[y + 1][x + 1].add(entity);
+    },
   };
 
-  /** @type {import('./tile-view.js').TileView} */
-  const oneKeyTileView = {
+  /** @type {import('./view-model.js').Watcher} */
+  const oneKeyWatcher = {
     enter(_entity) {},
     exit(_entity) {},
-  };
-
-  /** @type {import('./view-model.js').PlaceFn} */
-  const placeOneKey = (_entity, coord, _pressure, _progress, _transition) => {
-    t.deepEqual(coord, { x: 0, y: 0, a: 0 });
-  };
-
-  /** @type {import('./view-model.js').PlaceFn} */
-  const placeNineKey = (
-    entity,
-    location,
-    _pressure,
-    _progress,
-    _transition,
-  ) => {
-    const priorLocation = nineKeyLocations.get(entity);
-    if (priorLocation !== undefined) {
-      const { x, y } = priorLocation;
-      nineKeys[y + 1][x + 1].delete(entity);
-    }
-
-    nineKeyLocations.set(entity, location);
-    const { x, y } = location;
-    nineKeys[y + 1][x + 1].add(entity);
+    place(_entity, coord, _pressure, _progress, _transition) {
+      t.deepEqual(coord, { x: 0, y: 0, a: 0 });
+    },
   };
 
   const worldViewModel = makeViewModel();
@@ -234,10 +222,8 @@ export const makeScaffold = (t, {
   };
 
   const controller = makeController({
-    nineKeyTileView,
-    oneKeyTileView,
-    placeOneKey,
-    placeNineKey,
+    nineKeyWatcher,
+    oneKeyWatcher,
     worldModel,
     worldMacroViewModel,
     cameraController,

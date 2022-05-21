@@ -8,7 +8,7 @@ import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
 import {
   makeController,
-  makeControllerViews,
+  makeControllerElementWatchers,
   watchControllerCommands,
 } from './controls.js';
 import { makeDriver } from './driver.js';
@@ -221,14 +221,15 @@ const main = async () => {
 
   const { viewText } = mechanics;
 
-  const { nineKeyTileView, oneKeyTileView, placeOneKey, placeNineKey } =
-    makeControllerViews($controls, $hamburger, { viewText });
+  const { nineKeyWatcher, oneKeyWatcher } = makeControllerElementWatchers(
+    $controls,
+    $hamburger,
+    { viewText },
+  );
 
   const controls = makeController({
-    nineKeyTileView,
-    oneKeyTileView,
-    placeOneKey,
-    placeNineKey,
+    nineKeyWatcher,
+    oneKeyWatcher,
     worldModel,
     worldMacroViewModel,
     toponym: world.toponym,
