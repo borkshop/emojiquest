@@ -10,6 +10,11 @@ test('limbo', t => {
     . . .
     . . .
   `);
+  s.expectScene(`
+    . . .
+    . . .
+    . . .
+  `);
 });
 
 test('play', t => {
@@ -21,17 +26,75 @@ test('play', t => {
     < z >
     [ v ]
   `);
+  s.expectScene(`
+    @ . .
+    . . .
+    . . .
+  `);
 });
 
 test('rest', t => {
   const s = makeScaffold(t);
-  s.scene('@');
+  s.scene(`
+    . . .
+    . @ .
+    . . .
+  `);
   s.play();
   s.command(5); // rest
   s.expectControls(`
     . ^ s
     < z >
     [ v ]
+  `);
+  s.expectScene(`
+    . . .
+    . @ .
+    . . .
+  `);
+});
+
+test('move', t => {
+  const s = makeScaffold(t);
+  s.scene(`
+    @ . .
+    . . .
+    . . .
+  `);
+  s.play();
+
+  s.expectScene(`
+    @ . .
+    . . .
+    . . .
+  `);
+
+  s.command(6); // east
+  s.expectScene(`
+    . @ .
+    . . .
+    . . .
+  `);
+
+  s.command(2); // south
+  s.expectScene(`
+    . . .
+    . @ .
+    . . .
+  `);
+
+  s.command(4); // west
+  s.expectScene(`
+    . . .
+    @ . .
+    . . .
+  `);
+
+  s.command(8); // north
+  s.expectScene(`
+    @ . .
+    . . .
+    . . .
   `);
 });
 
@@ -315,6 +378,35 @@ test('to and from pack with apple in right hand', t => {
   `);
   s.expectInventory(0, 'empty');
   s.expectInventory(1, 'apple');
+});
+
+test('menu', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.play();
+
+  s.expectButton('h'); // hamburger
+
+  s.command(0); // menu
+  s.expectButton('t'); // thumb's up
+  s.expectControls(`
+    . ^ .
+    . . .
+    . v .
+  `);
+
+  s.command(0); // return to play
+  s.expectButton('h'); // thumb's up
+  s.expectScene(`
+    @ . .
+    . . .
+    . . .
+  `);
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
 });
 
 // This of course covers restoration, but is also a useful utility for ad-hoc

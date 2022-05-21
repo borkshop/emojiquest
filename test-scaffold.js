@@ -4,6 +4,7 @@ import { makeMechanics } from './mechanics.js';
 import { makeController } from './controls.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
+import { makeBoxTileMap } from './tile-map-box.js';
 import {
   recipes,
   actions,
@@ -15,10 +16,111 @@ import {
 
 /**
  * @param {import('ava').ExecutionContext} t
+ * @param {Object} args
+ * @param {import('./geometry2d.js').Point} args.size
+ * @param {Array<import('./mechanics.js').TileType>} args.tileTypes
+ * @param {Record<string, string>} args.glyphsByTileName
+ */
+const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
+  const locations = new Map();
+  const types = new Map();
+  /** @type {Map<number, Map<number, Set<number>>>} */
+  const table = new Map();
+
+  /** @param {{x: number, y: number}} coord */
+  const provideCell = ({x, y}) => {
+    let column = table.get(y);
+    if (column === undefined) {
+      /** @type {Map<number, Set<number>>} */
+      column = new Map();
+      table.set(y, column);
+    }
+    let cell = column.get(x);
+    if (cell === undefined) {
+      /** @type {Set<number>} */
+      cell = new Set();
+      column.set(x, cell);
+    }
+    return cell;
+  };
+
+  /** @type {import('./view-model.js').Watcher} */
+  const watcher = {
+    enter(entity, type) {
+      // t.log('9x9 enter', { entity, type });
+      types.set(entity, type);
+    },
+    exit(entity) {
+      const location = locations.get(entity);
+      const type = types.get(entity);
+      // t.log('9x9 exit', { entity, location });
+      t.assert(location !== undefined);
+      t.assert(type !== undefined);
+      provideCell(location).delete(entity);
+      locations.delete(entity);
+      types.delete(entity);
+    },
+    place(entity, location, _pressure, _progress, _transition) {
+      const priorLocation = locations.get(entity);
+      if (priorLocation !== undefined) {
+        provideCell(priorLocation).delete(entity);
+      }
+
+      locations.set(entity, location);
+      provideCell(location).add(entity);
+    },
+  };
+
+  const draw = () => {
+    let drawing = '';
+    for (let y = 0; y < size.y; y += 1) {
+      for (let x = 0; x < size.x; x += 1) {
+        const entities = provideCell({x, y});
+        let glyph = '.';
+        let open = '';
+        let close = '';
+        for (const entity of entities) {
+          const type = types.get(entity);
+          t.assert(
+            type !== undefined,
+            `no type for entity ${entity} at (${x}, ${y})`,
+          );
+          if (type === -1) {
+            open = '(';
+            close = ')';
+          } else {
+            const tile = tileTypes[type];
+            t.assert(tile !== undefined);
+            const name = tile.name;
+            glyph = glyphsByTileName[name] || name.slice(0, 1);
+          }
+        }
+        drawing += open + glyph + close;
+      }
+      drawing += '\n';
+    }
+    return drawing;
+  };
+
+  /**
+   * @param {string} looselyExpected
+   */
+  const expect = looselyExpected => {
+    const expected = looselyExpected
+      .replace(/ /g, '')
+      .replace(/<-[^\n]*/g, '') // comments
+      .trim();
+    const actual = draw().trim();
+    t.is(actual, expected);
+  };
+
+  return { watcher, draw, expect };
+};
+
+/**
+ * @param {import('ava').ExecutionContext} t
  */
 export const makeScaffold = (t, { size = 3 } = {}) => {
-  let player = -1;
-
   /** @type {Record<string, string>} */
   const glyphsByTileName = {
     north: '^',
@@ -37,70 +139,16 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     seven: '7',
     eight: '8',
     nine: '9',
+    happy: '@',
   };
+
+  let player = -1;
 
   /** @type {Record<string, string>} */
   const agentTypesByGlyph = {
     '@': 'player',
     A: 'appleTree',
   };
-
-  const nineKeyLocations = new Map();
-  const nineKeyTypes = new Map();
-  const nineKeys = [
-    [new Set(), new Set(), new Set(), new Set(), new Set()],
-    [new Set(), new Set(), new Set(), new Set(), new Set()],
-    [new Set(), new Set(), new Set(), new Set(), new Set()],
-    [new Set(), new Set(), new Set(), new Set(), new Set()],
-    [new Set(), new Set(), new Set(), new Set(), new Set()],
-  ];
-
-  const world = makeDaia({
-    faceSize: size,
-    tileSizePx: NaN,
-  });
-
-  /** @type {import('./view-model.js').Watcher} */
-  const nineKeyWatcher = {
-    enter(entity, type) {
-      // t.log('9x9 enter', { entity, type });
-      nineKeyTypes.set(entity, type);
-    },
-    exit(entity) {
-      const location = nineKeyLocations.get(entity);
-      const type = nineKeyTypes.get(entity);
-      // t.log('9x9 exit', { entity, location });
-      t.assert(location !== undefined);
-      t.assert(type !== undefined);
-      const { x, y } = location;
-      nineKeys[y + 1][x + 1].delete(entity);
-      nineKeyLocations.delete(entity);
-      nineKeyTypes.delete(entity);
-    },
-    place(entity, location, _pressure, _progress, _transition) {
-      const priorLocation = nineKeyLocations.get(entity);
-      if (priorLocation !== undefined) {
-        const { x, y } = priorLocation;
-        nineKeys[y + 1][x + 1].delete(entity);
-      }
-
-      nineKeyLocations.set(entity, location);
-      const { x, y } = location;
-      nineKeys[y + 1][x + 1].add(entity);
-    },
-  };
-
-  /** @type {import('./view-model.js').Watcher} */
-  const oneKeyWatcher = {
-    enter(_entity) {},
-    exit(_entity) {},
-    place(_entity, coord, _pressure, _progress, _transition) {
-      t.deepEqual(coord, { x: 0, y: 0, a: 0 });
-    },
-  };
-
-  const worldViewModel = makeViewModel();
-  const worldMacroViewModel = makeMacroViewModel(worldViewModel);
 
   const mechanics = makeMechanics({
     recipes,
@@ -109,6 +157,37 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     validAgentTypes,
     validItemTypes,
     validEffectTypes,
+  });
+
+  const world = makeDaia({
+    faceSize: size,
+    tileSizePx: NaN,
+  });
+
+  const {watcher: worldWatcher, expect: expectScene} = makeTestWatcher(t, {
+    size: {x: size, y: size},
+    tileTypes: mechanics.tileTypes,
+    glyphsByTileName,
+  });
+
+  const worldViewModel = makeViewModel();
+  const worldMacroViewModel = makeMacroViewModel(worldViewModel);
+
+  worldViewModel.watchEntities(makeBoxTileMap({
+    x: size,
+    y: size,
+  }), worldWatcher);
+
+  const { watcher: nineKeyWatcher, expect: expectControls } = makeTestWatcher(t, {
+    size: {x: 3, y: 3},
+    tileTypes: mechanics.tileTypes,
+    glyphsByTileName,
+  });
+
+  const { watcher: oneKeyWatcher, expect: expectButton } = makeTestWatcher(t, {
+    size: {x: 1, y: 1},
+    tileTypes: mechanics.tileTypes,
+    glyphsByTileName,
   });
 
   const worldModel = makeModel({
@@ -174,51 +253,6 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     set() {},
     animate() {},
     tock() {},
-  };
-
-  const drawScene = (f = 0) => {};
-
-  const drawNineKey = () => {
-    let drawing = '';
-    for (let y = 0; y < 3; y += 1) {
-      for (let x = 0; x < 3; x += 1) {
-        const entities = nineKeys[y + 1][x + 1];
-        let glyph = '.';
-        let open = '';
-        let close = '';
-        for (const entity of entities) {
-          const type = nineKeyTypes.get(entity);
-          t.assert(
-            type !== undefined,
-            `no type for entity ${entity} at (${x}, ${y})`,
-          );
-          if (type === -1) {
-            open = '(';
-            close = ')';
-          } else {
-            const tile = mechanics.tileTypes[type];
-            t.assert(tile !== undefined);
-            const name = tile.name;
-            glyph = glyphsByTileName[name] || name.slice(0, 1);
-          }
-        }
-        drawing += open + glyph + close;
-      }
-      drawing += '\n';
-    }
-    return drawing;
-  };
-
-  /**
-   * @param {string} looselyExpected
-   */
-  const expectControls = looselyExpected => {
-    const expected = looselyExpected
-      .replace(/ /g, '')
-      .replace(/<-[^\n]*/g, '') // comments
-      .trim();
-    const actual = drawNineKey().trim();
-    t.is(actual, expected);
   };
 
   const controller = makeController({
@@ -321,9 +355,10 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     command,
     controller,
     worldModel,
-    drawNineKey,
     expectMode,
     expectControls,
+    expectScene,
+    expectButton,
     world,
     mechanics,
     expectInventory,
