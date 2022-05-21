@@ -274,6 +274,12 @@ export const recipes = [
     product: 'knittingNeedles',
     byproduct: 'knife',
   },
+  {
+    agent: 'axe',
+    reagent: 'softwood',
+    product: 'knittingNeedles',
+    byproduct: 'axe',
+  },
   { agent: 'hook', reagent: 'softwood', product: 'fishingRod' },
 
   // metallurgy 3
