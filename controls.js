@@ -610,7 +610,6 @@ export const makeController = ({
             // reversed.  In this case, the agent becomes the byproduct, or
             // rather, it just moves from the top to the bottom slot.
             nineKeyView.move(4, 1, ss, 0);
-            nineKeyView.despawnOutward(nn);
             nineKeyView.spawn(4, productTileType);
           } else {
             nineKeyView.replace(4, productTileType);
@@ -642,10 +641,10 @@ export const makeController = ({
      */
     const enterPackMode = leftOrRight => {
       /** @type {Mode} */
-      const packModee = {
+      const packMode = {
         name: 'pack',
         press(command, repeat) {
-          if (repeat) return packModee;
+          if (repeat) return packMode;
           if (command === 5) {
             // keep
             dismissPackItemsExcept(-1);
@@ -664,6 +663,10 @@ export const makeController = ({
               inventoryIndex,
             );
 
+            if (isEmptyItem(leftHandItemType()) && isEmptyItem(inventoryItemType)) {
+              return packMode;
+            }
+
             // From hand to inventory (which is immediately disappearing)
             if (isNotEmptyItem(leftHandItemType())) {
               nineKeyView.take(4, toItemDirection);
@@ -680,7 +683,7 @@ export const makeController = ({
 
             worldModel.swap(player, leftHandInventoryIndex, inventoryIndex);
           } else {
-            return packModee;
+            return packMode;
           }
 
           if (isNotEmptyItem(leftHandItemType())) {
@@ -734,7 +737,7 @@ export const makeController = ({
         },
       };
 
-      return packModee;
+      return packMode;
     };
 
     /** @type {Mode} */
@@ -886,7 +889,7 @@ export const makeController = ({
         shiftBottomItemToLeftHand();
       }
 
-      restoreDpad(handoff);
+      restoreDpad({});
       restoreWatch();
       dismissControllerReticle();
 
