@@ -129,6 +129,161 @@ test('the apple tree', t => {
   t.is(s.health, 1);
 });
 
+test('the pear tree', t => {
+  const s = makeScaffold(t);
+  s.scene(`
+    . . .
+    . @ P
+    . . .
+  `);
+  s.play();
+
+  s.expectScene(`
+    . . .
+    . @ A  <- pear tree appears as apple tree tile
+    . . .
+  `);
+
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+  s.command(6); // bump tree to the east
+  s.expectControls(`
+    . ^ s
+    < z >
+    p v ]
+  `);
+  s.command(1); // select pear from left hand
+  s.expectControls(`
+    b . m  <- backpack and mouth show
+    .(p).  <- reticle around pear
+    [ . ]  <- empty hands, no D-pad
+  `);
+  t.is(s.stamina, 0);
+  s.command(9); // eat the pear (move to mouth)
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+  t.is(s.stamina, 1);
+});
+
+test('trash inventory', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'silver');
+  s.play();
+  s.expectControls(`
+    . ^ s <- nothing in the pack
+    < z >
+    s v ] <- have silver medal
+  `);
+
+  s.command(1); // select medal
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(s).  <- reticle around apple
+    [ . ]  <- empty hands, no D-pad
+  `);
+
+  s.command(9); // throw medal away
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+});
+
+test('craft softwood over axe', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'axe');
+  s.inventory(1, 'softwood');
+  s.play();
+  s.expectControls(`
+    . ^ s <- nothing in the pack
+    < z >
+    a v p <- axe and softwood (as pinetree tile)
+  `);
+
+  s.command(3); // select softwood
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(p).  <- pine tree (agent) over
+    [ a ]  <- axe (reagent)
+  `);
+
+  s.command(2); // craft
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(n).  <- knitting needles (product) over
+    [ a ]  <- axe (byproduct preserved reagent)
+  `);
+  s.expectInventory(0, 'knittingNeedles');
+  s.expectInventory(1, 'axe');
+});
+
+test('craft axe from knife and hammer', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'knife');
+  s.inventory(1, 'hammer');
+  s.play();
+  s.expectControls(`
+    . ^ s
+    < z >
+    k v h
+  `);
+
+  s.command(1); // select knife
+  s.expectControls(`
+    b . t
+    .(k).  <- knife (agent) over
+    [ h ]  <- hammer (reagent)
+  `);
+
+  s.command(2); // craft
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(a).  <- axe
+    [ . ]
+  `);
+  s.expectInventory(0, 'axe');
+  s.expectInventory(1, 'empty');
+});
+
+test('craft axe over softwood', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'axe');
+  s.inventory(1, 'softwood');
+  s.play();
+  s.expectControls(`
+    . ^ s <- nothing in the pack
+    < z >
+    a v p <- axe and softwood (as pinetree tile)
+  `);
+
+  s.command(1); // select axe
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(a).  <- axe (agent) over
+    [ p ]  <- pine tree (reagent)
+  `);
+
+  s.command(2); // craft
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(n).  <- knitting needles (product) over
+    [ a ]  <- axe (byproduct preserved agent)
+  `);
+  s.expectInventory(0, 'knittingNeedles');
+  s.expectInventory(1, 'axe');
+});
+
 test('fill inventory', t => {
   const s = makeScaffold(t);
   s.scene('@ A');
@@ -231,7 +386,7 @@ test('fill inventory', t => {
   `);
 });
 
-test('juggling', t => {
+test('juggling clockwise', t => {
   const s = makeScaffold(t);
   s.scene('@ A');
   s.play();
@@ -276,6 +431,69 @@ test('juggling', t => {
     . ^ s
     < z >
     [ v a <- apple in right hand
+  `);
+});
+
+test('hot hands', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(1, 'apple');
+  s.play();
+
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v a  <- apple in right hand
+  `);
+
+  s.command(3); // select apple from right hand
+  s.expectControls(`
+    b . m
+    .(a).
+    [ . ]
+  `);
+
+  s.command(1); // move apple to left hand
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v ]  <- apple in left hand
+  `);
+
+  // an pineapple mysteriously appears in other hand
+  s.inventory(1, 'pineApple');
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v p  <-
+  `);
+
+  s.command(1); // select apple from left hand
+  s.expectControls(`
+    b . m
+    .(a).
+    [ p ]
+  `);
+
+  s.command(1); // put apple back in the left
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v p  <-
+  `);
+
+  s.command(1); // select apple from left hand, again
+  s.expectControls(`
+    b . m
+    .(a).
+    [ p ]
+  `);
+
+  s.command(3); // switch apple to right hand, pineapple to left
+  s.expectControls(`
+    . ^ s
+    < z >
+    p v a  <-
   `);
 });
 
@@ -380,6 +598,257 @@ test('to and from pack with apple in right hand', t => {
   s.expectInventory(1, 'apple');
 });
 
+test('from pack with empty hands', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(2, 'apple');
+  s.play();
+
+  s.expectControls(`
+    b ^ s
+    < z >
+    [ v ]
+  `);
+
+  s.command(7); // open pack
+  s.expectControls(`
+    7 8 9
+    4 . 6
+    a 2 3
+  `);
+
+  s.command(1); // choose apple
+  s.expectControls(`
+    b . m  <- mouth, backpack is empty, but a valid stash target
+    .(a).
+    [ . ]
+  `);
+
+  s.command(9); // eat the apple
+  s.expectControls(`
+    . ^ s  <- pack is empty again
+    < z >
+    [ v ]  <- nothing in hand
+  `);
+});
+
+test('from pack with empty hands, selecting empty pack position is no-op', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(2, 'apple');
+  s.play();
+
+  s.expectControls(`
+    b ^ s
+    < z >
+    [ v ]
+  `);
+
+  s.command(7); // open pack
+  s.expectControls(`
+    7 8 9
+    4 . 6
+    a 2 3
+  `);
+
+  s.expectMode('pack');
+  s.command(2); // no-op for empty slot if no item in hand
+  s.expectControls(`
+    7 8 9
+    4 . 6
+    a 2 3
+  `);
+});
+
+test('to pack mode with an empty right hand', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'apple');
+  s.inventory(2, 'bolt');
+  s.play();
+
+  s.expectControls(`
+    b ^ s
+    < z >
+    a v ]
+  `);
+
+  s.command(7); // open the backpack
+  // with both hands full, the controls arbitrarily
+  // select to promote the left hand to the center
+  s.expectControls(`
+    7 8 9
+    4 . 6  <- empty
+    b 2 3  <- bolt
+  `);
+
+  s.command(1); // select bolt
+  s.expectControls(`
+    b . t  <- pack and trash are valid targets
+    .(b).  <- bolt held
+    [ a ]  <- apple still here
+  `);
+});
+
+test('to pack mode with full hands', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'apple');
+  s.inventory(1, 'pineApple');
+  s.inventory(2, 'bolt');
+  s.play();
+
+  s.expectControls(`
+    b ^ s
+    < z >
+    a v p
+  `);
+
+  s.command(7); // open the backpack
+  // with both hands full, the controls arbitrarily
+  // select to promote the left hand to the center
+  s.expectControls(`
+    7 8 9
+    4 a 6  <- apple
+    b 2 3  <- bolt
+  `);
+});
+
+test('to and from pack with full hands, left bias', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.play();
+
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+
+  // manus et malum
+  s.inventory(0, 'apple');
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v ]
+  `);
+
+  // immaculate reception
+  s.inventory(1, 'pineApple');
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v p
+  `);
+
+  s.command(1); // take apple from left hand
+  s.expectControls(`
+    b . m  <- backpack shows
+    .(a).  <- reticle around apple
+    [ p ]  <- empty hands, pineapple in limbo
+  `);
+
+  s.command(7); // open pack
+  s.expectControls(`
+    7 8 9
+    4 a 6
+    1 2 3
+  `);
+
+  s.command(5); // close pack
+  s.expectControls(`
+    b . m
+    .(a).
+    [ p ]  <- pineapple in limbo, but originally from right
+  `);
+
+  s.command(7); // reopen pack
+  s.expectControls(`
+    7 8 9
+    4 a 6
+    1 2 3
+  `);
+
+  s.command(7); // stow in slot 7
+  s.expectControls(`
+    b ^ s
+    < z >
+    [ v p  <- pineapple returns to right hand
+  `);
+});
+
+test('fail to open empty pack', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.play();
+
+  s.command(7);
+  s.expectMode('play');
+});
+
+test('to and from pack with full hands, right bias', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.play();
+
+  s.expectControls(`
+    . ^ s
+    < z >
+    [ v ]
+  `);
+
+  // manus et malum
+  s.inventory(0, 'apple');
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v ]
+  `);
+
+  // immaculate reception
+  s.inventory(1, 'pineApple');
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v p
+  `);
+
+  s.command(3); // take pineapple from right hand
+  s.expectControls(`
+    b . m  <- backpack shows
+    .(p).  <- reticle around pineapple
+    [ a ]  <- empty hands, apple in limbo
+  `);
+
+  s.command(7); // open pack
+  s.expectControls(`
+    7 8 9
+    4 p 6
+    1 2 3
+  `);
+
+  s.command(5); // close pack
+  s.expectControls(`
+    b . m  <- backpack shows
+    .(p).  <- reticle around pineapple
+    [ a ]  <- empty hands, apple in limbo
+  `);
+
+  s.command(7); // reopen pack
+  s.expectControls(`
+    7 8 9
+    4 p 6
+    1 2 3
+  `);
+
+  s.command(9); // stow in slot 9
+  s.expectControls(`
+    b ^ s
+    < z >
+    a v ]  <- apple returns to left hand
+  `);
+});
+
 test('menu', t => {
   const s = makeScaffold(t);
   s.scene('@');
@@ -452,6 +921,213 @@ test('start in edit mode', t => {
     . . .
     . @ .
     . . .
+  `);
+});
+
+test('medal shop', t => {
+  const s = makeScaffold(t);
+  s.scene(`
+    . . .
+    B @ F
+    . M .
+  `);
+  s.inventory(0, 'pick');
+  s.play();
+
+  // mine copper until pack is full
+  for (const slot of [1, 2, 3, 4, 6, 7, 8, 9]) {
+    s.expectMode('play');
+
+    s.command(2); // get copper
+    s.expectMode('play');
+    s.expectInventory(1, 'copper');
+
+    s.command(3); // select copper
+    s.expectMode('item');
+    s.command(7);
+    s.expectMode('pack');
+    s.command(slot); // store
+  }
+
+  s.expectMode('play');
+  s.command(7); // open pack
+  s.expectMode('pack');
+  s.expectControls(`
+    c c c
+    c . c
+    c c c
+  `);
+
+  s.command(5); // dismiss pack
+  s.command(1); // hold pick from left hand
+  s.command(9); // discard
+
+  s.command(7); // open pack
+  s.command(1); // take copper 1
+  s.command(1); // into left hand
+  s.command(7); // open pack
+  s.command(2); // take copper 2
+  s.command(3); // into right hand
+  s.command(4); // bump bank
+  s.expectInventory(0, 'silver');
+  s.expectInventory(1, 'empty');
+
+  s.command(6); // bump factory with silver medal
+  s.expectInventory(0, 'bolt');
+  s.expectInventory(1, 'empty');
+
+  s.command(1); // hold bolt
+  s.command(7); // in pack
+  s.command(1); // stash bolt in slot 1
+  s.expectInventory(0, 'empty');
+  s.expectInventory(1, 'empty');
+  s.expectInventory(2, 'bolt');
+
+  s.command(7); // open stash
+  s.command(3); // get copper from slot 3
+  s.command(1); // in left hand.
+  s.command(7); // open stash
+  s.command(4); // get copper from slot 4
+  s.command(3); // in right hand.
+  s.command(4); // bump bank to get silver.
+  s.expectInventory(0, 'silver');
+  s.expectInventory(1, 'empty');
+  s.expectInventory(2, 'bolt');
+
+  s.command(7); // open stash
+  s.command(6); // get copper from slot 6
+  s.command(3); // in right hand
+  s.expectInventory(0, 'silver');
+  s.expectInventory(1, 'copper');
+  s.expectInventory(2, 'bolt');
+
+  s.command(4); // bump bank to exchange silver and copper for gold
+  s.expectInventory(0, 'gold');
+  s.expectInventory(1, 'empty');
+  s.expectInventory(2, 'bolt');
+
+  s.command(6); // bump factory to change gold to gear
+  s.expectInventory(0, 'gear');
+  s.expectInventory(1, 'empty');
+  s.expectInventory(2, 'bolt');
+
+  s.command(7); // open pack
+  s.command(1); // get bolt
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(b).  <- bolt (agent) over
+    [ g ]  <- gear (reagent)
+  `);
+
+  s.command(2); // construct shovel from bolt over gear
+  s.expectControls(`
+    b . t  <- backpack and trash show (not mouth, not comestible)
+    .(s).  <- shovel
+    [ . ]
+  `);
+});
+
+test('choice of effect', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'coat');
+  s.play();
+
+  s.expectControls(`
+    . ^ s
+    < z >
+    c v ]
+  `);
+
+  s.command(1); // get coat
+  s.expectControls(`
+    b . a  <- backpack appears, since it can be stowed,
+    .(c).  <- arm appears since it can be equipped
+    [ . ]
+  `);
+
+  s.command(9); // don coat
+  s.expectControls(`
+    . ^ c
+    < z >
+    [ v ]
+  `);
+
+  s.command(9); // open effect chooser
+  s.expectControls(`
+    7 8 9
+    4 5 6
+    c 2 3
+  `);
+
+  s.command(1); // choose coat
+  s.expectControls(`
+    . ^ c
+    < z >
+    [ v ]
+  `);
+});
+
+test('choice of effect with non-empty pack', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'coat');
+  s.inventory(2, 'pick');
+  s.play();
+
+  s.expectControls(`
+    b ^ s
+    < z >
+    c v ]
+  `);
+
+  s.command(1); // get coat
+  s.expectControls(`
+    b . a  <- backpack appears, since it can be stowed,
+    .(c).  <- arm appears since it can be equipped
+    [ . ]
+  `);
+
+  s.command(9); // don coat
+  s.expectControls(`
+    b ^ c
+    < z >
+    [ v ]
+  `);
+
+  s.command(9); // open effect chooser
+  s.expectControls(`
+    7 8 9
+    4 5 6
+    c 2 3
+  `);
+
+  s.command(1); // choose coat
+  s.expectControls(`
+    b ^ c
+    < z >
+    [ v ]
+  `);
+});
+
+test('exit play mode with a non-empty pack', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(2, 'apple');
+  s.play();
+
+  s.expectControls(`
+    b ^ s
+    < z >
+    [ v ]
+  `);
+
+  s.command(0); // open menu
+  s.expectMode('menu');
+  s.expectControls(`
+    . ^ .
+    . . .
+    . v .
   `);
 });
 

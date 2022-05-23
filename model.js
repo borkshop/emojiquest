@@ -1360,6 +1360,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     return agent;
   }
 
+  // TODO: decompose into facets: watcher, controller, test
   return {
     set,
     remove,
@@ -1369,6 +1370,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     anyPacked,
     allPacked,
     swap,
+    put, // for tests only
     use,
     craft,
     locate,

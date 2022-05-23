@@ -76,8 +76,8 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
       for (let x = 0; x < size.x; x += 1) {
         const entities = provideCell({ x, y });
         let glyph = '.';
-        let open = '';
-        let close = '';
+        let open = ' ';
+        let close = ' ';
         for (const entity of entities) {
           const type = types.get(entity);
           t.assert(
@@ -109,7 +109,9 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
       .replace(/ /g, '')
       .replace(/<-[^\n]*/g, '') // comments
       .trim();
-    const actual = draw().trim();
+    const actual = draw()
+      .replace(/ /g, '')
+      .trim();
     t.is(actual, expected);
   };
 
@@ -139,6 +141,8 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     eight: '8',
     nine: '9',
     happy: '@',
+    appleTree: 'A',
+    knittingNeedles: 'n',
   };
 
   /** @type {number | undefined} */
@@ -148,6 +152,10 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
   const agentTypesByGlyph = {
     '@': 'player',
     A: 'appleTree',
+    P: 'pearTree',
+    M: 'mountain',
+    B: 'bank',
+    F: 'forge',
   };
 
   const mechanics = makeMechanics({
@@ -185,7 +193,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     worldWatcher,
   );
 
-  const { watcher: nineKeyWatcher, expect: expectControls } = makeTestWatcher(
+  const { watcher: nineKeyWatcher, expect: expectControls, draw: drawControls } = makeTestWatcher(
     t,
     {
       size: { x: 3, y: 3 },
@@ -259,8 +267,12 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     tock() {},
   };
 
+  let stamina = 0;
   const staminaController = {
-    set() {},
+    /** @param {number} newStamina */
+    set(newStamina) {
+      stamina = newStamina;
+    },
     animate() {},
     tock() {},
   };
@@ -350,6 +362,20 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
 
   /**
    * @param {number} slot
+   * @param {string} itemName
+   */
+  const inventory = (slot, itemName) => {
+    if (typeof player !== 'number') {
+      t.fail('no player, no inventory');
+      return;
+    }
+    const itemType = mechanics.itemTypesByName[itemName];
+    t.assert(itemType !== undefined, `No such item type for name ${itemName}`);
+    worldModel.put(player, slot, itemType);
+  };
+
+  /**
+   * @param {number} slot
    * @param {string} expectedItemName
    */
   const expectInventory = (slot, expectedItemName) => {
@@ -371,14 +397,19 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     worldModel,
     expectMode,
     expectControls,
+    drawControls,
     expectScene,
     drawScene,
     expectButton,
     world,
     mechanics,
+    inventory,
     expectInventory,
     get health() {
       return health;
+    },
+    get stamina() {
+      return stamina;
     },
   };
 };

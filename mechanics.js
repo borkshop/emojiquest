@@ -151,9 +151,15 @@ export function makeMechanics({
     if (formula !== undefined) {
       return formula;
     }
+    // TODO Unfriendly mode:
+    // return [
+    //   itemTypesByName.poop,
+    //   itemTypesByName.empty,
+    //   '💩 These items do not combine.',
+    // ];
     return [
-      itemTypesByName.poop,
-      itemTypesByName.empty,
+      agentType,
+      reagentType,
       '💩 These items do not combine.',
     ];
   }

@@ -241,6 +241,7 @@ export const tileTypes = [
   { name: 'castle', text: '🏰 ' },
   { name: 'captain', text: '💂‍♂️  ' },
   { name: 'major', text: '💂‍♀️' },
+  { name: 'pear', text: '🍐 ' },
 ];
 
 /**
@@ -293,6 +294,14 @@ export const recipes = [
     product: 'coat',
     byproduct: 'knittingNeedles',
   },
+
+  // A joke that breaks the game a little.
+  {
+    agent: 'apple',
+    reagent: 'apple',
+    product: 'pear',
+    dialog: 'Now you have a <nobr>🍐<b>pear</b></nobr> of <nobr>🍎<b>apples</b></nobr>!',
+  },
 ];
 
 /**
@@ -316,6 +325,13 @@ export const actions = [
     verb: 'pick',
     items: ['apple'],
     dialog: '🍎  Apple?',
+  },
+  {
+    patient: 'pearTree',
+    right: 'any',
+    verb: 'pick',
+    items: ['pear'],
+    dialog: '🍐 The fruit of the <nobr>🌳<b>world tree</b></nobr> comes in pears',
   },
   { patient: 'pineTree', right: 'any', verb: 'pick', items: ['pineApple'] },
   // monetary exchange

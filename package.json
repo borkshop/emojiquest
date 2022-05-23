@@ -15,7 +15,7 @@
   "scripts": {
     "lint": "tsc",
     "test": "ava",
-    "cover": "c8 ava",
+    "cover": "c8 -r html ava",
     "ci": "npm run lint",
     "start": "snowpack dev",
     "build": "snowpack build --clean"
