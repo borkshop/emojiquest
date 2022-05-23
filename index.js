@@ -6,11 +6,11 @@ import { cell } from './cell.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
+import { makeController } from './controls.js';
 import {
-  makeController,
   makeControllerElementWatchers,
   watchControllerCommands,
-} from './controls.js';
+} from './control-elements.js';
 import { makeDriver } from './driver.js';
 import { makeCommandDispatcher } from './commands.js';
 import { makeMechanics } from './mechanics.js';
