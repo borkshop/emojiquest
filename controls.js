@@ -552,8 +552,10 @@ export const makeController = ({
 
     /**
      * @param {number} leftOrRight
+     * @param {Object} opts
+     * @param {boolean} opts.announce
      */
-    const enterItemMode = leftOrRight => {
+    const enterItemMode = (leftOrRight, { announce = false }) => {
       /** @type {Mode} */
       const itemMode = {
         name: 'item',
@@ -566,20 +568,25 @@ export const makeController = ({
             // craft
             worldModel.intendToCraft(player);
             tick();
-            return enterItemMode(leftOrRight);
+            return enterItemMode(leftOrRight, { announce: false });
           } else if (command === 1) {
+            dialogController.close();
             // place in left hand
             return placeItemInLeftHand();
           } else if (command === 3) {
+            dialogController.close();
             // place in right hand
             return placeItemInRightHand();
           } else if (command === 7) {
+            dialogController.close();
             // stash
             return stashItem(leftOrRight);
           }
           return itemMode;
         },
         craft(recipe) {
+          dialogController.close();
+
           const {
             agent: agentType,
             reagent: reagentType,
@@ -631,6 +638,14 @@ export const makeController = ({
 
       if (!packVisible && packNotFull()) {
         restorePack();
+      }
+
+      if (announce) {
+        const itemType = leftHandItemType();
+        const itemDesc = itemTypes[itemType];
+        if (itemDesc.tip !== undefined) {
+          dialogController.logHTML(itemDesc.tip);
+        }
       }
 
       return itemMode;
@@ -697,7 +712,7 @@ export const makeController = ({
                 tileTypeForItemType[rightHandItemType()];
               nineKeyView.spawnInward(otherItemTileType, ss);
             }
-            return enterItemMode(leftOrRight);
+            return enterItemMode(leftOrRight, { announce: true });
           } else {
             // back to play mode with an empty hand
 
@@ -782,7 +797,7 @@ export const makeController = ({
       restoreLeftHand();
       restoreControllerReticle();
 
-      return enterItemMode(-1);
+      return enterItemMode(-1, { announce: true });
     };
 
     const handleRightItem = () => {
@@ -810,7 +825,8 @@ export const makeController = ({
       restoreControllerReticle();
 
       worldModel.swap(player, leftHandInventoryIndex, rightHandInventoryIndex);
-      return enterItemMode(1);
+
+      return enterItemMode(1, { announce: true });
     };
 
     const openStash = () => {

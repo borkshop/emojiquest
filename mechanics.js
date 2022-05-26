@@ -6,7 +6,7 @@
 
 // @ts-check
 
-import { assertDefined } from './assert.js';
+import { assertDefined, assumeDefined } from './assert.js';
 import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
 
 /**
@@ -26,6 +26,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   health?: number,
  *   stamina?: number,
  *   effect?: string,
+ *   tip?: string,
  * }} ItemType
  */
 
@@ -128,10 +129,13 @@ export function makeMechanics({
       byproductType,
       `byproduct item type not defined ${byproduct}`,
     );
+    // Ideally, every bump has a dialog, but if it doesn't, lets display the
+    // tip for the product.
+    const productDescription = assumeDefined(itemTypes[productType]);
     craftingFormulae.set(agentType * itemTypes.length + reagentType, [
       productType,
       byproductType,
-      dialog,
+      dialog || productDescription.tip,
     ]);
   }
 
