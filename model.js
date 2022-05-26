@@ -581,6 +581,33 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   }
 
   /**
+   * @param {number} agent
+   * @param {number} patient
+   */
+  function talk(agent, patient) {
+    const patientType = entityTypes.get(patient);
+    if (patientType === undefined) {
+      return false;
+    }
+    const patientDesc = agentTypes[patientType];
+    const { dialog } = patientDesc;
+    if (dialog !== undefined) {
+      // The dialog might cycle on repeated bumps and reset when the
+      // agent fails to repeat a bump.
+      const rotation = dialogs.get(agent);
+      let index = 0;
+      if (rotation !== undefined && rotation.type === patientType) {
+        index = rotation.next;
+      }
+      index = index % dialog.length;
+      onDialog(agent, dialog[index]);
+      dialogs.set(agent, { type: patientType, next: index + 1 });
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * @param {number} entity
    * @param {number} direction - in quarters clockwise from north
    * @param {boolean} repeat - whether the agent intends to act upon the
@@ -606,7 +633,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (terrainFlags & terrainLava) {
       if (!(effects & effectFly)) {
         macroViewModel.bounce(entity, direction * quarturnToOcturn);
-        onDialog(entity, `🌋 The lava is hot!`);
+        if (!talk(entity, entities[target])) {
+          onDialog(entity, `🌋 The lava is hot!`);
+        }
         return;
       }
     }
@@ -614,10 +643,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (terrainFlags & terrainWater) {
       if (!(effects & (effectFloat | effectFly))) {
         macroViewModel.bounce(entity, direction * quarturnToOcturn);
-        onDialog(
-          entity,
-          `🌊 The water runs swiftly. You may need a <nobr>🛶<b>canoe</b></nobr>.`,
-        );
+        if (!talk(entity, entities[target])) {
+          onDialog(
+            entity,
+            `🌊 The water runs swiftly. You may need a <nobr>🛶<b>canoe</b></nobr>.`,
+          );
+        }
         return;
       }
     }
@@ -734,21 +765,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
             onDialog(agent, dialog);
           }
         } else {
-          const patientType = assumeDefined(entityTypes.get(patient));
-          const patientDesc = agentTypes[patientType];
-          const { dialog } = patientDesc;
-          if (dialog !== undefined) {
-            // The dialog might cycle on repeated bumps and reset when the
-            // agent fails to repeat a bump.
-            const rotation = dialogs.get(agent);
-            let index = 0;
-            if (rotation !== undefined && rotation.type === patientType) {
-              index = rotation.next;
-            }
-            index = index % dialog.length;
-            onDialog(agent, dialog[index]);
-            dialogs.set(agent, { type: patientType, next: index + 1 });
-          }
+          talk(agent, patient);
         }
       }
     }
