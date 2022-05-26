@@ -284,6 +284,24 @@ test('craft axe over softwood', t => {
   s.expectInventory(1, 'axe');
 });
 
+test('craft canoe', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'spoon');
+  s.inventory(1, 'softwood');
+  s.play();
+
+  s.command(1); // select spoon
+  s.command(2); // apply to softwood
+  s.expectInventory(0, 'canoe');
+  s.expectInventory(1, 'spoon');
+  s.expectControls(`
+    b . a  <- backpack and effect chooser (arm)
+    .(c).  <- canoe
+    [ s ]  <- spoon
+  `);
+});
+
 test('fill inventory', t => {
   const s = makeScaffold(t);
   s.scene('@ A');
