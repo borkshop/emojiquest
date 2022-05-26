@@ -260,3 +260,7 @@ rect.backTile {
   stroke-width: 0.05;
   z-index: 1;
 }
+
+b {
+  white-space: nowrap;
+}
