@@ -22,7 +22,7 @@ export const validAgentTypes = [
       '🤔 Hoo who?',
       '🦉 Hoo hoo hoo!',
       '😩 Hoo hoo hoo who?',
-      '🦉 Hoo let the <b>🐕dogs🐩</b> out! 🔚',
+      '🦉 Hoo let the <b>🐕 dogs 🐩</b> out! 🔚',
     ],
   },
   { name: 'appleTree', dialog: ['🌳 Knock knock?'] },
@@ -32,22 +32,22 @@ export const validAgentTypes = [
   {
     name: 'bank',
     dialog: [
-      '👨‍💼 Welcome to the <nobr>🏦<b>River Bank</b></nobr>…',
-      '👨‍💼 While you’re here, we can exchange <nobr><b>🥉🥈🥇precious</b></nobr> <b> medals</b>…',
+      '👨‍💼 Welcome to the <b>🏦 River Bank</b>…',
+      '👨‍💼 While you’re here, we can exchange <b>🥉🥈🥇precious</b> <b>medals</b>…',
       '🥉🥉🔜🥈',
       '🥈🥉🔜🥇',
       '🥇🔜🥈🥉',
       '🥇🔜🥈🥉',
-      '👨‍💼 Visit the main branch of <nobr>🏦<b>Bank of Dysia</b></nobr> on the far side of the <nobr>🎲<b>world</b></nobr>. 🔚',
+      '👨‍💼 Visit the main branch of <b>🏦 Bank of Dysia</b> on the far side of the <b>🎲 world</b>. 🔚',
     ],
   },
   {
     name: 'forge',
     dialog: [
-      '👩‍🏭	Hello, I’m <nobr><b>Mrs. Smith</b>…</nobr>',
-      '👨‍🏭	And I’m <nobr><b>Mr. Smith</b>…</nobr>',
+      '👩‍🏭	Hello, I’m <b>Mrs. Smith</b>…',
+      '👨‍🏭	And I’m <b>Mr. Smith</b>…',
       '👩‍🏭	This is a <b>forge</b> where we do honest <b>forgery</b>…',
-      '👨‍🏭	Here you can smelt <nobr>🥇🥈🥉<b>precious</b></nobr> <b>medals</b>…',
+      '👨‍🏭	Here you can smelt <b>🥇🥈🥉precious</b> <b>medals</b>…',
       '👩‍🏭	Place a medal in the forge to craft a useful component…',
       '🥉 🔜  🔗  ',
       '🥈 🔜  🔩  ',
@@ -69,8 +69,16 @@ export const validAgentTypes = [
       '⚙️  / ⛓ 🔜 🗑 ',
     ],
   },
-  { name: 'ram', wanders: 'land' },
-  { name: 'ewe', wanders: 'land', dialog: ['🐑 Bah.', '🐏 Ram.', '🐑 Ewe.'] },
+  {
+    name: 'ram',
+    wanders: 'land',
+    dialog: ['🐏   Ram.', '🐑   Ewe.', '🐏    Bah.'],
+  },
+  {
+    name: 'ewe',
+    wanders: 'land',
+    dialog: ['🐑   Bah.', '🐏   Ram.', '🐑    Ewe.'],
+  },
   { name: 'coat' }, // temporary
   {
     name: 'castle',
@@ -78,8 +86,8 @@ export const validAgentTypes = [
       '👸 Behold, stranger. I am <b>Princess Die</b> of <b>Euia</b>.',
       '👸 The power of <b>mojick</b>—the transmutation of <b>emoji</b>—has faded from the land…',
       '👸 With it, all the <b>mojical creatures</b> have vanished…',
-      '👸 The 🦄<b>unicorn</b> has not been seen since <b>The Fall</b>…',
-      '👸 The 🐉<b>dragon</b> is but a myth. 🔚',
+      '👸 The <b>🦄 unicorn</b> has not been seen since <b>The Fall</b>…',
+      '👸 The <b>🐉 dragon</b> is but a myth. 🔚',
     ],
   },
   {
@@ -95,18 +103,90 @@ export const validAgentTypes = [
     name: 'captain',
     dialog: [
       '💂‍♂️ Hark! I’m the <b>Captain of the Guard</b>…',
-      '💂‍♂️ In the forest to the <nobr>👈<b>west</b>,</nobr> there is a <nobr>🌳<b>tree</b></nobr> that is quite unlike the others…',
-      '💂‍♂️ Soldiers use its 🍐<b>fruit</b> to improve their 💛<b>stamina</b> when they travel in the ⛰<b>Eural Mountains</b>. 🔚',
+      '💂‍♂️ In the forest to the <b>👈 west</b>, there is a <b>🌳 tree</b> that is quite unlike the others…',
+      '💂‍♂️ Soldiers use its 🍐<b>fruit</b> to improve their <b>💛 stamina</b> when they travel in the <b>⛰ Eural</b> <b>Mountains</b>. 🔚',
     ],
   },
   {
     name: 'major',
     dialog: [
-      '💂‍♀️ Hark! I’m <b>A ♯sharp Major</b> in service to her Majesty <nobr>👸<b>Princess Die</b>…</nobr>',
-      '💂‍♀️ A <nobr><b>friend of mine⛏</b></nobr> has gone missing in the <nobr>⛰<b>Eural Mountains</b></nobr>, to the <nobr>👇<b>south</b>…</nobr>',
-      '💂‍♀️ They went searching for <nobr>🥉<b>precious medals</b></nobr>…',
+      '💂‍♀️ Hark! I’m <b>A♯ sharp Major</b> in service to her Majesty <b>👸 Princess Die</b>…',
+      '💂‍♀️ A <b>friend of mine⛏</b> has gone missing in the <b>⛰ Eural</b> <b>Mountains</b>, to the <b>👇 south</b>…',
+      '💂‍♀️ They went searching for <b>🥉 precious</b> <b>medals</b>…',
       '💂‍♀️ Please help them if you can! 🔚',
     ],
+  },
+  {
+    name: 'harriet',
+    dialog: [
+      '💇‍♀️ Did you know that you can shear <b>🐑 sheep</b> with <b>✂️  scissors</b>?',
+      '💇‍♀️ That’s why scissors are an improvement over just <b>🔪 two knives</b>. 🔚 ',
+    ],
+  },
+  {
+    name: 'miner',
+    dialog: [
+      '👨‍🔧 Oy! I’m <b>A♭ flat miner</b>…',
+      '👨‍🔧 I came here with my sturdy <b>⛏ pick axe</b> but I was trapped by this <b>🪨 boulder</b>…',
+      '👨‍🔧 Theres’s ore in <b>👇 these</b> <b>⛰ mountains</b>…',
+      '👨‍🔧 One can make a <b>🥉 fortune!</b> 🔚',
+    ],
+  },
+  {
+    name: 'boulder',
+    dialog: [
+      '🪨 Hi, you can call me <b>Rocky</b>…',
+      '🪨 My mother was <b>Moraine</b>…',
+      '🪨 I have many mortal enemies…',
+      '🪨 I crush <b>✂️  scissors</b>…',
+      '🪨 But, for reasons that escape me…',
+      '🪨 I am helpless against <b>📄 paper</b>. 🔚',
+    ],
+  },
+  {
+    name: 'jack',
+    dialog: [
+      '🧓    Hello, I’m <b>Jack</b>…',
+      '🧓    It’s hard to stay warm in the <b>❄️  frigid north</b>…',
+      '🧓    That’s why I knit myself a <b>🧥 jacket</b>…',
+      '🧓    To knit, you’ll need <b>🧶 yarn</b> and <b>🥢 needles</b>…',
+      '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>.',
+    ],
+  },
+  {
+    name: 'glub',
+    tile: 'fish',
+    dialog: [
+      '🐟    You are not a fish…',
+      '🐟    Fish do not need <b>🛶 canoes</b>…',
+      '🐟    Fish can swim over the <b>edge of the world</b>…',
+      '🐟    Canoes are made from <b>🌲🪵 soft wood</b>…',
+      '🐟    I have seen <b>you people</b> make them with <b>🥄 shovels</b>. 🔚',
+    ],
+  },
+  {
+    name: 'owl',
+    dialog: [
+      '🦉  If the world were candy 🍭…',
+      '🦉  Hoo many licks would it take to get to the center?…',
+      '🦉  I hear there’s a <b>snak</b>.',
+    ],
+  },
+  {
+    name: 'northPole',
+    dialog: [
+      '🎅	Ho, ho, ho. I’m <b>Magus</b>…',
+      '🤶	Hee, hee. I’m <b>Maggie</b>…',
+      '🎅	We were once the powerful <b>Moji</b> of the north…',
+      '🤶	We watched over everything, <b>Knotty</b> <i>and</i> <b>Nice</b>…',
+      '🎅	We were the stewards of the <b>💨 Essence</b> <b>of Wind</b>…',
+      '🤶	We seek a student to pass on our knowledge…',
+      '🎅	They must construct for us an <b>🌂 umbrella</b>…',
+      '🤶	We swear it’s relevant. 🔚',
+    ],
+  },
+  {
+    name: 'clover',
   },
 ];
 
@@ -114,41 +194,92 @@ export const validAgentTypes = [
  * @type {Array<import('./mechanics.js').ItemType>}
  */
 export const validItemTypes = [
-  { name: 'axe' },
-  { name: 'softwood', tile: 'pineTree' },
-  { name: 'hardwood', tile: 'appleTree' },
-  { name: 'poop' },
-  { name: 'shield' },
-  { name: 'bolt' },
-  { name: 'knife' },
-  { name: 'gear' },
-  { name: 'spoon' },
-  { name: 'link' },
-  { name: 'pick' },
-  { name: 'bicycle' },
-  { name: 'hook' },
-  { name: 'hammer' },
-  { name: 'chain' },
-  { name: 'scissors' },
-  { name: 'cart' },
-  { name: 'fishingRod' },
-  { name: 'copper' },
-  { name: 'silver' },
-  { name: 'gold' },
-  { name: 'apple', comestible: true, health: 1 },
-  { name: 'pineApple', comestible: true, health: 2 },
-  { name: 'canoe' },
-  { name: 'dagger' },
-  { name: 'doubleDagger' },
-  { name: 'wrench' },
-  { name: 'knittingNeedles' },
-  { name: 'basket', tile: 'trash' },
-  { name: 'meat' },
-  { name: 'yarn' },
-  { name: 'hammerAndPick' },
-  { name: 'hammerAndWrench' },
-  { name: 'coat', effect: 'warm' },
-  { name: 'pear', comestible: true, stamina: 1 },
+  {
+    name: 'axe',
+    tip: '🪓 Did you know that <b>axe</b>, <b>acid</b>, and <b>oxygen</b> are all related words?',
+  },
+  { name: 'softwood', tile: 'log', tip: '🌲🪵 The lumber of a softwood.' },
+  { name: 'hardwood', tile: 'log', tip: '🌳🪵 The lumber of a hardwood.' },
+  { name: 'poop', tip: '💩 Everyone poops!' },
+  {
+    name: 'shield',
+    tip: '🛡 A sheet of metal <b>can</b> serve many functions.',
+  },
+  {
+    name: 'bolt',
+    tip: '🔩 Bolts pair well with <b>⚙️  gears</b> <b>🔗 links</b>.',
+  },
+  { name: 'knife', tip: '🔪 It slices. It dices.' },
+  {
+    name: 'gear',
+    tip: '⚙️  Gears pair well with  <b>🔗 links</b> and <b>🔩 bolts</b>.',
+  },
+  {
+    name: 'spoon',
+    tip: '🥄 A spoon will have to suffice if you can’t find a shovel emoji.',
+  },
+  {
+    name: 'link',
+    tip: '🔗 Links pair well with <b>🔩 bolts</b> and <b>⚙️  gears</b>.',
+  },
+  { name: 'pick', tip: '⛏ Pick your battles wisely.' },
+  { name: 'bicycle', tip: '🚲 The word you’re looking for is <b>cyclist</b>.' },
+  { name: 'hook', tip: '🪝 Was going to be ⚓️ before hook emoji appeared.' },
+  { name: 'hammer', tip: '🔨 It’s time.' },
+  { name: 'chain', tip: '⛓ Follows the links.' },
+  { name: 'scissors', tip: '✂️ Cut it out.' },
+  { name: 'cart', tip: '🛒 Everything <b>and</b> the kitchen sink™.' },
+  { name: 'fishingRod', tip: '🎣   Not just a dull side quest™.' },
+  { name: 'copper', tip: '🥉 Copper is the least precious medal.' },
+  { name: 'silver', tip: '🥈 Silver is a more precious medal.' },
+  { name: 'gold', tip: '🥇 Gold is the most precious medal.' },
+  {
+    name: 'apple',
+    comestible: true,
+    health: 1,
+    tip: '🍎 A delicious red apple.',
+  },
+  {
+    name: 'pineApple',
+    comestible: true,
+    health: 2,
+    tip: '🍍 A delicious <b>🌲 pine</b> <b>🍎 apple</b>.',
+  },
+  { name: 'canoe', effect: 'float', tip: '🛶 Row, row, row your boat.' },
+  { name: 'dagger', tip: '🗡 It’s called dagger emoji.' },
+  { name: 'doubleDagger', tip: '⚔️  Dual wield or duel wield?' },
+  { name: 'wrench', tip: '🔧 To turn, to twist, to spindle.' },
+  {
+    name: 'knittingNeedles',
+    tip: '🥢 There is no emoji for knitting needles.',
+  },
+  {
+    name: 'basket',
+    tile: 'trash',
+    tip: '🗑 Sometimes called the <b>round file</b>.',
+  },
+  { name: 'meat', tip: '🍖 We meat again.' },
+  { name: 'yarn', tip: '🧶 Tell a yarn. Spin a tale.' },
+  {
+    name: 'hammerAndPick',
+    tip: '⚒️  Why <b>⛏pick</b> when you can also <b>🔨 hammer</b>.',
+  },
+  { name: 'hammerAndWrench', tip: '🛠 Smash <b>and</b> grab.' },
+  {
+    name: 'coat',
+    effect: 'warm',
+    tip: '🧥 It’s a coat! It’s a jacket! No, it’s <b>super warm</b>!',
+  },
+  {
+    name: 'pear',
+    comestible: true,
+    stamina: 1,
+    tip: '🍐 Apples sometimes come in pears.',
+  },
+  {
+    name: 'clover',
+    tip: '☘️  One leaf shy of lucky.',
+  },
 ];
 
 /**
@@ -186,11 +317,11 @@ export const tileTypes = [
   { name: 'bolt', text: '🔩 ' },
   { name: 'knife', text: '🔪 ' },
   { name: 'spoon', text: '🥄 ' },
-  { name: 'link', text: '🔗 ' },
-  { name: 'gear', text: '⚙️ ' },
+  { name: 'link', text: '🔗   ' },
+  { name: 'gear', text: '⚙️   ' },
   { name: 'pick', text: '⛏ ' },
   { name: 'bicycle', text: '🚲 ' },
-  { name: 'hook', text: '⚓️' },
+  { name: 'hook', text: '🪝' },
   { name: 'hammer', text: '🔨' },
   { name: 'wrench', text: '🔧' },
   { name: 'chain', text: '⛓' },
@@ -202,7 +333,7 @@ export const tileTypes = [
   { name: 'hammerAndWrench', text: '🛠' },
   { name: 'dagger', text: '🗡', turn: 3 },
   { name: 'doubleDagger', text: '⚔️' },
-  { name: 'cart', text: '🛒    ' },
+  { name: 'cart', text: '🛒      ' },
   { name: 'fishingRod', text: '🎣 ' },
   { name: 'mountain', text: '⛰' },
   { name: 'copper', text: '🥉' },
@@ -242,6 +373,17 @@ export const tileTypes = [
   { name: 'captain', text: '💂‍♂️  ' },
   { name: 'major', text: '💂‍♀️' },
   { name: 'pear', text: '🍐 ' },
+  { name: 'miner', text: '👨‍🔧   ' },
+  { name: 'harriet', text: '🏠   ' },
+  { name: 'boulder', text: '🪨     ' },
+  { name: 'jack', text: '🏡    ' },
+  { name: 'fish', text: '🐟    ' },
+  { name: 'owl', text: '🦉   ' },
+  { name: 'log', text: '🪵 ' },
+  { name: 'northPole', text: '💈    ' },
+  { name: 'clover', text: '☘️    ' },
+  { name: 'fleurDeLis', text: '⚜️   ' },
+  { name: 'trident', text: '🔱     ' },
 ];
 
 /**
@@ -300,7 +442,7 @@ export const recipes = [
     agent: 'apple',
     reagent: 'apple',
     product: 'pear',
-    dialog: 'Now you have a <nobr>🍐<b>pear</b></nobr> of <nobr>🍎<b>apples</b></nobr>!',
+    dialog: 'Now you have a <b>🍐 pear</b> of <b>🍎 apples</b>!',
   },
 ];
 
@@ -331,7 +473,7 @@ export const actions = [
     right: 'any',
     verb: 'pick',
     items: ['pear'],
-    dialog: '🍐 The fruit of the <nobr>🌳<b>world tree</b></nobr> comes in pears',
+    dialog: '🍐 The fruit of the <b>🌳 world tree</b> comes in pears',
   },
   { patient: 'pineTree', right: 'any', verb: 'pick', items: ['pineApple'] },
   // monetary exchange
@@ -397,7 +539,16 @@ export const actions = [
     verb: 'replace',
     items: ['gear'],
   },
+  { patient: 'boulder', verb: 'pick', items: ['pick'] },
+  {
+    patient: 'clover',
+    right: 'any',
+    verb: 'pick',
+    items: ['clover'],
+  },
 ];
+
+// TODO 🪨rock, 📄paper, ✂️scissors, 🦎lizard, 🖖spock
 
 /** @type {Array<import('./mechanics.js').EffectType>} */
 export const validEffectTypes = [

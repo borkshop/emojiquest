@@ -478,7 +478,7 @@ test('hot hands', t => {
     a v ]  <- apple in left hand
   `);
 
-  // an pineapple mysteriously appears in other hand
+  // a pineapple mysteriously appears in other hand
   s.inventory(1, 'pineApple');
   s.expectControls(`
     . ^ s
