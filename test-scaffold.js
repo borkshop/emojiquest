@@ -78,21 +78,30 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
         let glyph = '.';
         let open = ' ';
         let close = ' ';
-        for (const entity of entities) {
-          const type = types.get(entity);
-          t.assert(
-            type !== undefined,
-            `no type for entity ${entity} at (${x}, ${y})`,
-          );
-          if (type === -1) {
-            open = '(';
-            close = ')';
-          } else {
-            const tile = tileTypes[type];
-            t.assert(tile !== undefined);
-            const name = tile.name;
-            glyph = glyphsByTileName[name] || name.slice(0, 1);
-          }
+
+        const entityTypes = [...entities].map(entity => types.get(entity));
+        const nonReticleEntityTypes = entityTypes.filter(
+          entityType => entityType !== -1,
+        );
+        const entityGlyphs = nonReticleEntityTypes.map(entityType => {
+          const tile = tileTypes[entityType];
+          t.assert(tile !== undefined);
+          const name = tile.name;
+          return glyphsByTileName[name] || name.slice(0, 1);
+        });
+        t.assert(
+          nonReticleEntityTypes.length <= 1,
+          `Multiple non-reticle entity types at (${x}, ${y}): ${entityGlyphs
+            .map(glyph => JSON.stringify(glyph))
+            .join(', ')}`,
+        );
+
+        if (entityTypes.length > nonReticleEntityTypes.length) {
+          open = '(';
+          close = ')';
+        }
+        for (const entityGlyph of entityGlyphs) {
+          glyph = entityGlyph;
         }
         drawing += open + glyph + close;
       }
@@ -109,9 +118,7 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
       .replace(/ /g, '')
       .replace(/<-[^\n]*/g, '') // comments
       .trim();
-    const actual = draw()
-      .replace(/ /g, '')
-      .trim();
+    const actual = draw().replace(/ /g, '').trim();
     t.is(actual, expected);
   };
 
@@ -193,14 +200,15 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     worldWatcher,
   );
 
-  const { watcher: nineKeyWatcher, expect: expectControls, draw: drawControls } = makeTestWatcher(
-    t,
-    {
-      size: { x: 3, y: 3 },
-      tileTypes: mechanics.tileTypes,
-      glyphsByTileName,
-    },
-  );
+  const {
+    watcher: nineKeyWatcher,
+    expect: expectControls,
+    draw: drawControls,
+  } = makeTestWatcher(t, {
+    size: { x: 3, y: 3 },
+    tileTypes: mechanics.tileTypes,
+    glyphsByTileName,
+  });
 
   const { watcher: oneKeyWatcher, expect: expectButton } = makeTestWatcher(t, {
     size: { x: 1, y: 1 },
@@ -372,6 +380,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     const itemType = mechanics.itemTypesByName[itemName];
     t.assert(itemType !== undefined, `No such item type for name ${itemName}`);
     worldModel.put(player, slot, itemType);
+    controller.tock();
   };
 
   /**
