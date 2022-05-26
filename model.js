@@ -945,7 +945,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     }
     const effects = entityEffects(entity);
     assert((effects & (1 << effect)) !== 0);
-    return effect;
+    return 1 << effect;
   }
 
   /**
