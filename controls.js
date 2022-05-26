@@ -679,7 +679,10 @@ export const makeController = ({
               inventoryIndex,
             );
 
-            if (isEmptyItem(leftHandItemType()) && isEmptyItem(inventoryItemType)) {
+            if (
+              isEmptyItem(leftHandItemType()) &&
+              isEmptyItem(inventoryItemType)
+            ) {
               return packMode;
             }
 

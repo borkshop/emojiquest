@@ -163,11 +163,7 @@ export function makeMechanics({
     //   itemTypesByName.empty,
     //   '💩 These items do not combine.',
     // ];
-    return [
-      agentType,
-      reagentType,
-      '💩 These items do not combine.',
-    ];
+    return [agentType, reagentType, '💩 These items do not combine.'];
   }
 
   /**
