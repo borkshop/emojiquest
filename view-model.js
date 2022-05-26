@@ -12,7 +12,7 @@
 
 // @ts-check
 
-import { assertDefined } from './assert.js';
+import { assertDefined, assumeDefined } from './assert.js';
 import { setDifference } from './set.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -159,8 +159,10 @@ export function makeViewModel() {
   function remove(entity) {
     pressures.delete(entity);
     animating.delete(entity);
-    const tile = tiles.get(entity);
-    assertDefined(tile, `Cannot remove entity with unknown location ${entity}`);
+    const tile = assumeDefined(
+      tiles.get(entity),
+      `Cannot remove entity with unknown location ${entity}`,
+    );
     const { location } = tile;
     entityExitsTile(entity, location);
     const tileWatchers = watchers.get(location);
@@ -173,9 +175,8 @@ export function makeViewModel() {
 
   /** @type {MoveFn} */
   function move(entity, to) {
-    const tile = tiles.get(entity);
-    assertDefined(
-      tile,
+    const tile = assumeDefined(
+      tiles.get(entity),
       `Assertion failed: cannot move absent entity ${entity}`,
     );
     const { location: from, type } = tile;
@@ -260,8 +261,7 @@ export function makeViewModel() {
     }
 
     // Unregister watcher.
-    const tileWatchers = watchers.get(location);
-    assertDefined(tileWatchers);
+    const tileWatchers = assumeDefined(watchers.get(location));
     tileWatchers.delete(watcher);
     if (tileWatchers.size === 0) {
       watchers.delete(location);
@@ -303,8 +303,11 @@ export function makeViewModel() {
 
   /** @type {TransitionFn} */
   function transition(entity, transition) {
-    const tile = tiles.get(entity);
-    assertDefined(tile, `Assertion failed: no location for entity ${entity}`);
+    assertDefined(
+      tiles.get(entity),
+      `Assertion failed: no location for entity ${entity}`,
+    );
+
     animating.set(entity, transition);
   }
 
