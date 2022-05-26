@@ -616,6 +616,7 @@ export const makeController = ({
             // The agent becomes the byproduct when the formula above gets
             // reversed.  In this case, the agent becomes the byproduct, or
             // rather, it just moves from the top to the bottom slot.
+            nineKeyView.despawn(1);
             nineKeyView.move(4, 1, ss, 0);
             nineKeyView.spawn(4, productTileType);
           } else {
