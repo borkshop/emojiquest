@@ -15,6 +15,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   tile?: string,
  *   wanders?: string,
  *   dialog?: Array<string>,
+ *   health?: number,
+ *   stamina?: number,
  * }} AgentType
  */
 

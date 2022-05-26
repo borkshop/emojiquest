@@ -12,7 +12,7 @@
  * @type {Array<import('./mechanics.js').AgentType>}
  */
 export const validAgentTypes = [
-  { name: 'player', tile: 'happy' },
+  { name: 'player', tile: 'happy', health: 3, stamina: 3 },
   {
     name: 'pineTree',
     dialog: [

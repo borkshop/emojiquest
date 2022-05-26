@@ -463,6 +463,16 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         onInventory(e, slot, inventory[slot]);
       }
     }
+
+    const health = healths.get(e);
+    if (health !== undefined) {
+      onHealth(e, health);
+    }
+
+    const stamina = staminas.get(e);
+    if (stamina !== undefined) {
+      onStamina(e, stamina);
+    }
   }
 
   /**
@@ -820,6 +830,14 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     const tileType = defaultTileTypeForAgentType[entityType];
     macroViewModel.put(entity, location, tileType);
     macroViewModel.enter(entity);
+
+    const { health, stamina } = agentTypes[entityType];
+    if (health !== undefined) {
+      healths.set(entity, health);
+    }
+    if (stamina !== undefined) {
+      staminas.set(entity, stamina);
+    }
 
     return entity;
   }
