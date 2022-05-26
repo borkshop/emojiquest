@@ -148,33 +148,29 @@ export function makeMacroViewModel(
   }
 
   /**
-   * @param {...number} externals
+   * @param {number} external
    */
-  function exit(...externals) {
-    for (const external of externals) {
-      const internal = entity(external);
-      if (viewModel.watched(internal)) {
-        viewModel.transition(internal, {
-          bump: true,
-          stage: 'exit',
-        });
-      }
-      removes.set(external, internal);
+  function exit(external) {
+    const internal = entity(external);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'exit',
+      });
     }
+    removes.set(external, internal);
   }
 
   /**
-   * @param {...number} externals
+   * @param {number} external
    */
-  function enter(...externals) {
-    for (const external of externals) {
-      const internal = entity(external);
-      if (viewModel.watched(internal)) {
-        viewModel.transition(internal, {
-          bump: true,
-          stage: 'enter',
-        });
-      }
+  function enter(external) {
+    const internal = entity(external);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'enter',
+      });
     }
   }
 
