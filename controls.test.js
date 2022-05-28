@@ -119,14 +119,14 @@ test('the apple tree', t => {
     .(a).  <- reticle around apple
     [ . ]  <- empty hands, no D-pad
   `);
-  t.is(s.health, 0);
+  t.is(s.health, 3);
   s.command(9); // eat the apple (move to mouth)
   s.expectControls(`
     . ^ s
     < z >
     [ v ]
   `);
-  t.is(s.health, 1);
+  t.is(s.health, 4);
 });
 
 test('the pear tree', t => {
@@ -161,14 +161,14 @@ test('the pear tree', t => {
     .(p).  <- reticle around pear
     [ . ]  <- empty hands, no D-pad
   `);
-  t.is(s.stamina, 0);
+  t.is(s.stamina, 3);
   s.command(9); // eat the pear (move to mouth)
   s.expectControls(`
     . ^ s
     < z >
     [ v ]
   `);
-  t.is(s.stamina, 1);
+  t.is(s.stamina, 4);
 });
 
 test('trash inventory', t => {
