@@ -776,12 +776,17 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       if (inventory !== undefined && inventory.length >= 2) {
         const agent = inventory[0];
         const reagent = inventory[1];
-        const [product, byproduct, dialog] = craft(agent, reagent);
-        inventory[0] = product;
-        inventory[1] = byproduct;
-        onCraft(entity, { agent, reagent, product, byproduct });
-        if (dialog !== undefined) {
-          onDialog(entity, dialog);
+        const formula = craft(agent, reagent);
+        if (formula !== undefined) {
+          const [product, byproduct, dialog] = formula;
+          inventory[0] = product;
+          inventory[1] = byproduct;
+          onCraft(entity, { agent, reagent, product, byproduct });
+          if (dialog !== undefined) {
+            onDialog(entity, dialog);
+          }
+        } else {
+          onDialog(entity, `💩 Can’t combine these!`);
         }
       }
     }

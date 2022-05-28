@@ -144,7 +144,7 @@ export function makeMechanics({
   /**
    * @param {number} agentType
    * @param {number} reagentType
-   * @returns {[number, number, string?]} productType and byproductType
+   * @returns {[number, number, string?] | undefined} productType and byproductType
    */
   function craft(agentType, reagentType) {
     let formula = craftingFormulae.get(
@@ -157,13 +157,7 @@ export function makeMechanics({
     if (formula !== undefined) {
       return formula;
     }
-    // TODO Unfriendly mode:
-    // return [
-    //   itemTypesByName.poop,
-    //   itemTypesByName.empty,
-    //   '💩 These items do not combine.',
-    // ];
-    return [agentType, reagentType, '💩 These items do not combine.'];
+    return undefined;
   }
 
   /**
