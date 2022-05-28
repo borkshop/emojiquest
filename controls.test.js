@@ -206,13 +206,13 @@ test('craft softwood over axe', t => {
   s.expectControls(`
     . ^ s <- nothing in the pack
     < z >
-    a v p <- axe and softwood (as pinetree tile)
+    a v l <- axe and softwood (as lumber tile)
   `);
 
   s.command(3); // select softwood
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
-    .(p).  <- pine tree (agent) over
+    .(l).  <- lumber (agent) over
     [ a ]  <- axe (reagent)
   `);
 
@@ -264,14 +264,14 @@ test('craft axe over softwood', t => {
   s.expectControls(`
     . ^ s <- nothing in the pack
     < z >
-    a v p <- axe and softwood (as pinetree tile)
+    a v l <- axe and softwood (as lumber tile)
   `);
 
   s.command(1); // select axe
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(a).  <- axe (agent) over
-    [ p ]  <- pine tree (reagent)
+    [ l ]  <- softwood with lumber tile (reagent)
   `);
 
   s.command(2); // craft
