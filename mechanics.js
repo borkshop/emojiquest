@@ -206,9 +206,8 @@ export function makeMechanics({
 
     reap([yieldType]) {
       /** @type {Handler} */
-      function reapHandler(kit, { agent, patient, direction, destination }) {
+      function reapHandler(kit, { agent, patient, destination }) {
         kit.put(agent, 1, yieldType);
-        kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
         kit.macroViewModel.fell(patient);
         kit.destroyEntity(patient, destination);
       }
@@ -217,18 +216,16 @@ export function makeMechanics({
 
     cut([yieldType]) {
       /** @type {Handler} */
-      function cutHandler(kit, { agent, direction }) {
+      function cutHandler(kit, { agent }) {
         kit.put(agent, 1, yieldType);
-        kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return cutHandler;
     },
 
     pick([yieldType]) {
       /** @type {Handler} */
-      function cutHandler(kit, { agent, direction }) {
+      function cutHandler(kit, { agent }) {
         kit.put(agent, 0, yieldType);
-        kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return cutHandler;
     },
@@ -254,9 +251,8 @@ export function makeMechanics({
 
     replace([yieldType]) {
       /** @type {Handler} */
-      function replaceHandler(kit, { agent, direction }) {
+      function replaceHandler(kit, { agent }) {
         kit.put(agent, 0, yieldType);
-        kit.macroViewModel.bounce(agent, direction * quarturnToOcturn);
       }
       return replaceHandler;
     },

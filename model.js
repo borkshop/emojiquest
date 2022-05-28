@@ -726,9 +726,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         entitiesWriteBuffer[destination] = winner;
         entitiesWriteBuffer[origin] = 0;
       } else {
-        // Bounce
-        macroViewModel.bounce(winner, direction * quarturnToOcturn);
         if (!repeat) {
+          // Bounce
+          macroViewModel.bounce(winner, direction * quarturnToOcturn);
           // Bump
           bumps.push({
             agent: winner,

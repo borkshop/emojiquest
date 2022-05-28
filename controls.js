@@ -611,7 +611,6 @@ export const makeController = ({
             // byproduct, in other words, it is a catalyst and just bounces in
             // place.
             nineKeyView.replace(4, productTileType);
-            nineKeyView.bounce(4, nn);
           } else if (agentType === byproductType) {
             // The agent becomes the byproduct when the formula above gets
             // reversed.  In this case, the agent becomes the byproduct, or
@@ -1014,7 +1013,6 @@ export const makeController = ({
         dismissPack();
       }
       dismissWatch();
-      oneKeyView.replace(0, tileTypesByName.thumbUp);
 
       worldModel.unfollow(player, playerFollower);
     };
@@ -1029,6 +1027,7 @@ export const makeController = ({
         south: true,
       };
       exitPlayMode(player, handoff);
+      oneKeyView.replace(0, tileTypesByName.thumbUp);
       return enterMenuMode(position, player, handoff);
     };
 
@@ -1131,7 +1130,6 @@ export const makeController = ({
       west: true,
     });
 
-    oneKeyView.replace(0, tileTypesByName.thumbUp);
     menuController.show();
     dialogController.logHTML('🍔  <b>Hamburger Menu</b>');
 
@@ -1151,7 +1149,6 @@ export const makeController = ({
       nineKeyView.despawnOutward(ss);
     }
 
-    oneKeyView.replace(0, tileTypesByName.hamburger);
     dialogController.close();
     menuController.hide();
   };
@@ -1447,8 +1444,6 @@ export const makeController = ({
       nineKeyView.spawn(4, defaultTileTypeForAgentType[editType]);
     }
 
-    oneKeyView.replace(0, tileTypesByName.hamburger);
-
     updateEditorDialog();
 
     restoreEditorReticle(position);
@@ -1473,8 +1468,6 @@ export const makeController = ({
 
     dismissEditorReticle();
 
-    oneKeyView.replace(0, tileTypesByName.back);
-
     menuController.show();
 
     dialogController.close();
@@ -1495,6 +1488,7 @@ export const makeController = ({
       south: true,
     };
     exitMenuMode(handoff);
+    oneKeyView.replace(0, tileTypesByName.hamburger);
     return enterEditMode(position, player, handoff);
   };
 
@@ -1507,6 +1501,7 @@ export const makeController = ({
       south: true,
     };
     exitMenuMode(handoff);
+    oneKeyView.replace(0, tileTypesByName.hamburger);
     return enterPlayMode(player, handoff);
   };
 
@@ -1528,6 +1523,7 @@ export const makeController = ({
       south: true,
     };
     exitEditMode(handoff);
+    oneKeyView.replace(0, tileTypesByName.thumbUp);
     return enterMenuMode(position, player, handoff);
   };
 

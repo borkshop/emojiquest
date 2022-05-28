@@ -78,7 +78,10 @@ export function makeMacroViewModel(
    * @param {number} type
    */
   function put(external, location, type) {
-    assert(entities.get(external) === undefined);
+    assert(
+      entities.get(external) === undefined,
+      `Cannot create entity with used value ${external}`,
+    );
     const internal = create();
     entities.set(external, internal);
     locations.set(external, location);

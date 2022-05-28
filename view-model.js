@@ -12,7 +12,7 @@
 
 // @ts-check
 
-import { assertDefined, assumeDefined } from './assert.js';
+import { assert, assertDefined, assumeDefined } from './assert.js';
 import { setDifference } from './set.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
@@ -306,6 +306,14 @@ export function makeViewModel() {
     assertDefined(
       tiles.get(entity),
       `Assertion failed: no location for entity ${entity}`,
+    );
+
+    const priorTransition = animating.get(entity);
+    assert(
+      priorTransition === undefined,
+      `Only one transition can be scheduled per entity per turn ${entity} ${JSON.stringify(
+        transition,
+      )} over ${JSON.stringify(priorTransition)}`,
     );
 
     animating.set(entity, transition);
