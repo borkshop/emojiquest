@@ -110,7 +110,7 @@ export const validAgentTypes = [
   {
     name: 'major',
     dialog: [
-      '💂‍♀️ Hark! I’m <b>A♯ sharp Major</b> in service to her Majesty <b>👸 Princess Die</b>…',
+      '💂‍♀️ Hark! I’m <b>A♯ Major</b> in service to her Majesty <b>👸 Princess Die</b>…',
       '💂‍♀️ A <b>friend of mine⛏</b> has gone missing in the <b>⛰ Eural</b> <b>Mountains</b>, to the <b>👇 south</b>…',
       '💂‍♀️ They went searching for <b>🥉 precious</b> <b>medals</b>…',
       '💂‍♀️ Please help them if you can! 🔚',
@@ -126,7 +126,7 @@ export const validAgentTypes = [
   {
     name: 'miner',
     dialog: [
-      '👨‍🔧 Oy! I’m <b>A♭ flat miner</b>…',
+      '👨‍🔧 Oy! I’m <b>A♭ miner</b>…',
       '👨‍🔧 I came here with my sturdy <b>⛏ pick axe</b> but I was trapped by this <b>🪨 boulder</b>…',
       '👨‍🔧 Theres’s ore in <b>👇 these</b> <b>⛰ mountains</b>…',
       '👨‍🔧 One can make a <b>🥉 fortune!</b> 🔚',
