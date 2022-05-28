@@ -210,7 +210,11 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     glyphsByTileName,
   });
 
-  const { watcher: oneKeyWatcher, expect: expectButton } = makeTestWatcher(t, {
+  const {
+    watcher: oneKeyWatcher,
+    expect: expectButton,
+    draw: drawButton,
+  } = makeTestWatcher(t, {
     size: { x: 1, y: 1 },
     tileTypes: mechanics.tileTypes,
     glyphsByTileName,
@@ -410,6 +414,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     expectScene,
     drawScene,
     expectButton,
+    drawButton,
     world,
     mechanics,
     inventory,
