@@ -302,6 +302,35 @@ test('craft canoe', t => {
   `);
 });
 
+test('craft apple over apple', t => {
+  const s = makeScaffold(t);
+  s.scene('@');
+  s.inventory(0, 'apple');
+  s.inventory(1, 'apple');
+  s.play();
+  s.expectControls(`
+    . ^ s
+    < z >
+    a v a
+  `);
+
+  s.command(3); // select apple
+  s.expectControls(`
+    b . m
+    .(a).  <- apple (agent) over
+    [ a ]  <- apple (reagent)
+  `);
+
+  s.command(2); // craft
+  s.expectControls(`
+    b . m
+    .(p).  <- pear
+    [ . ]
+  `);
+  s.expectInventory(0, 'pear');
+  s.expectInventory(1, 'empty');
+});
+
 test('craft pineapple over pineapple fails', t => {
   const s = makeScaffold(t);
   s.scene('@');
