@@ -12,7 +12,7 @@
  */
 export function assert(condition, message) {
   if (!condition) {
-    throw new Error(`Assertion failed${message ? ` ${message}` : ''}`);
+    throw new Error(message || 'Assertion failed');
   }
 }
 
@@ -23,7 +23,7 @@ export function assert(condition, message) {
  */
 export function assertNonZero(value, message) {
   if (value === 0) {
-    throw new Error(`Assertion failed${message ? ` ${message}` : ''}`);
+    throw new Error(message || 'Assertion failed');
   }
 }
 
