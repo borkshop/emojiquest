@@ -61,7 +61,6 @@ export const directionCommand = Object.fromEntries(
  * reset, and command key up and down events.
  *
  * @typedef {Object} Delegate
- * @property {() => void} tock
  * @property {CommandFn} command
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
@@ -105,9 +104,6 @@ export const makeDriver = (delegate, options) => {
     // animation frame timing.
     const progress = makeProgress(animatedTransitionDuration, 1.0);
     delegate.animate(progress);
-
-    // Post-animated transition reset.
-    delegate.tock();
   }
 
   /**

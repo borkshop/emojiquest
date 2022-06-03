@@ -60,11 +60,12 @@ export function writeHealthBar({
     }
   };
 
-  const { animate, tock } = macroViewModel;
+  const { animate, tick, tock } = macroViewModel;
 
   const controller = {
     set,
     animate,
+    tick,
     tock,
   };
 

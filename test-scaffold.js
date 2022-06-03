@@ -252,6 +252,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     show() {},
     hide() {},
     animate() {},
+    tick() {},
     tock() {},
   };
 
@@ -276,6 +277,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
       health = newHealth;
     },
     animate() {},
+    tick() {},
     tock() {},
   };
 
@@ -286,6 +288,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
       stamina = newStamina;
     },
     animate() {},
+    tick() {},
     tock() {},
   };
 

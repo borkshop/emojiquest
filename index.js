@@ -257,10 +257,10 @@ const main = async () => {
 
   const response = await fetch(new URL('daia.json', import.meta.url).href);
   const worldData = await response.json();
+
   const player = worldModel.restore(worldData);
   if (typeof player === 'number' || player === undefined) {
     controls.play(player);
-    controls.tock();
   }
 
   const driver = makeDriver(controls, {

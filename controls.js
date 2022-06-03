@@ -479,11 +479,11 @@ export const makeController = ({
         const direction = commandDirection[command];
         if (direction !== undefined) {
           worldModel.intendToMove(player, direction, repeat);
-          tick();
+          worldModel.tick();
           return playMode;
         } else if (command === 5) {
           // stay
-          tick();
+          worldModel.tick();
           return playMode;
         } else if (
           command === 1 &&
@@ -567,7 +567,7 @@ export const makeController = ({
           } else if (command === 2 && isNotEmptyItem(rightHandItemType())) {
             // craft
             worldModel.intendToCraft(player);
-            tick();
+            worldModel.tick();
             return enterItemMode(leftOrRight, { announce: false });
           } else if (command === 1) {
             dialogController.close();
@@ -912,7 +912,7 @@ export const makeController = ({
       restoreWatch();
       dismissControllerReticle();
 
-      tick();
+      worldModel.tick();
 
       return playMode;
     };
@@ -1623,12 +1623,23 @@ export const makeController = ({
     return noop;
   };
 
+  const tick = () => {
+    worldMacroViewModel.tick();
+    cameraController.tick();
+    menuController.tick();
+    dialogController.close();
+    nineKeyMacroViewModel.tick();
+    oneKeyView.tick();
+    healthController.tick();
+    staminaController.tick();
+  };
+
   /**
    * @param {Progress} progress
    */
   const animate = progress => {
-    cameraController.animate(progress);
     worldMacroViewModel.animate(progress);
+    cameraController.animate(progress);
     nineKeyMacroViewModel.animate(progress);
     oneKeyViewModel.animate(progress);
     menuController.animate(progress);
@@ -1637,47 +1648,43 @@ export const makeController = ({
     staminaController.animate(progress);
   };
 
-  // The controller receives a command at the beginning of any driver-induced
-  // tick.  We arrive here only for ticks that take a game turn.
-  const tick = () => {
-    worldModel.tick();
-    cameraController.tick();
-    dialogController.close();
-  };
-
   const tock = () => {
     worldModel.tock();
+
     worldMacroViewModel.tock();
-    nineKeyMacroViewModel.tock();
-    oneKeyView.tock();
+    cameraController.tock();
     menuController.tock();
     dialogController.tock();
-    cameraController.tock();
+    nineKeyMacroViewModel.tock();
+    oneKeyView.tock();
     healthController.tock();
     staminaController.tock();
   };
-
-  tock();
 
   let mode = limboMode;
 
   /** @type {PressFn} */
   const command = (command, repeat) => {
+    tock();
     mode = mode.press(command, repeat);
+    tick();
   };
 
   /** @param {string} key */
   const etcCommand = key => {
+    let result = false;
     if (mode.etcPress) {
-      return mode.etcPress(key);
+      result = mode.etcPress(key);
     }
-    return false;
+    return result;
   };
 
   /** @param {number | undefined} player */
   const play = player => {
     if (mode.play) {
+      tock();
       mode = mode.play(player);
+      tick();
     }
   };
 

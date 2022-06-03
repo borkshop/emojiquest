@@ -71,6 +71,11 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
+ * @callback TickFn
+ * Informs the view that the animation turn has begun.
+ */
+
+/**
  * @callback TockFn
  * Informs the view that the animation turn has ended.
  */
@@ -84,6 +89,7 @@ import { quarturnToOcturn } from './geometry2d.js';
  * @property {FellFn} fell
  * @property {EnterFn} enter
  * @property {ExitFn} exit
+ * @property {TickFn} tick
  * @property {TockFn} tock
  */
 
@@ -799,7 +805,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * effects moves;
    */
   function tock() {
-    macroViewModel.tock();
     moves.clear();
     removes.clear();
     bumps.length = 0;
@@ -1158,6 +1163,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @returns {number | Array<string>} agent number if ok or corruption reasons
    */
   function restore(allegedSnapshot) {
+    macroViewModel.tock();
+
     // TODO validate that the snapshot world is generated from a world of the
     // same size.
     if (typeof allegedSnapshot !== 'object') {

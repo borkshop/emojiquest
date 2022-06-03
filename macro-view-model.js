@@ -34,6 +34,8 @@ export function makeMacroViewModel(
     stride = 1,
   } = {},
 ) {
+  let planning = true;
+
   /** @type {Map<number, number>} external to internal */
   const entities = new Map();
   /** @type {Map<number, number>} internal to location */
@@ -44,6 +46,10 @@ export function makeMacroViewModel(
   const moves = new Map();
   /** @type {Set<number>} internal */
   const replaced = new Set();
+
+  function assertPlanning() {
+    assert(planning, `Cannot send animation commands in macro view model planning phase`);
+  }
 
   let nextId = start;
   function create() {
@@ -78,6 +84,7 @@ export function makeMacroViewModel(
    * @param {number} type
    */
   function put(external, location, type) {
+    assertPlanning();
     assert(
       entities.get(external) === undefined,
       `Cannot create entity with used value ${external}`,
@@ -92,6 +99,7 @@ export function makeMacroViewModel(
    * @param {number} external
    */
   function remove(external) {
+    assertPlanning();
     const internal = entities.get(external);
     assert(internal !== undefined);
     viewModel.remove(internal);
@@ -107,6 +115,7 @@ export function makeMacroViewModel(
    * @param {number} directionOcturns
    */
   function give(external, origin, destination, type, directionOcturns) {
+    assertPlanning();
     assert(entities.get(external) === undefined);
     const internal = create();
     entities.set(external, internal);
@@ -126,6 +135,7 @@ export function makeMacroViewModel(
    * @param {number} directionOcturns
    */
   function take(external, directionOcturns) {
+    assertPlanning();
     const internal = entity(external);
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
@@ -139,6 +149,7 @@ export function makeMacroViewModel(
    * @param {number} external
    */
   function fell(external) {
+    assertPlanning();
     const internal = entity(external);
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
@@ -154,6 +165,7 @@ export function makeMacroViewModel(
    * @param {number} external
    */
   function exit(external) {
+    assertPlanning();
     const internal = entity(external);
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
@@ -168,6 +180,7 @@ export function makeMacroViewModel(
    * @param {number} external
    */
   function enter(external) {
+    assertPlanning();
     const internal = entity(external);
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
@@ -182,6 +195,7 @@ export function makeMacroViewModel(
    * @param {number} type
    */
   function replace(external, type) {
+    assertPlanning();
     const internal = entity(external);
     const location = locate(external);
     const replacement = create();
@@ -210,6 +224,7 @@ export function makeMacroViewModel(
    * @param {number} turn
    */
   function move(external, destination, directionOcturns, turn) {
+    assertPlanning();
     const internal = entity(external);
     moves.set(internal, destination);
     locations.set(external, destination);
@@ -226,6 +241,7 @@ export function makeMacroViewModel(
    * @param {number} directionOcturns
    */
   function bounce(external, directionOcturns) {
+    assertPlanning();
     const internal = entity(external);
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
@@ -254,6 +270,10 @@ export function makeMacroViewModel(
     return () => viewModel.up(internal);
   }
 
+  /**
+   * Conclude animated transitions from the prior turn, so new plans can be
+   * made.
+   */
   function tock() {
     for (const [internal, destination] of moves.entries()) {
       viewModel.move(internal, destination);
@@ -270,15 +290,30 @@ export function makeMacroViewModel(
     removes.clear();
     moves.clear();
     viewModel.tock();
+
+    planning = true;
+  }
+
+  function tick() {
+    if (!planning) {
+      return;
+    }
+    planning = false;
+    // TODO effect viewModel events according to accumulated plans.
   }
 
   const { animate } = viewModel;
 
   return {
-    animate,
+    tick,
     tock,
+
+    // Animation functions
+    animate,
     up,
     down,
+
+    // Planning functions
     put,
     remove,
     take,

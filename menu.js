@@ -100,6 +100,10 @@ export function createMenuBlade({
     }
   }
 
+  function tick() {
+    macroViewModel.tick();
+  }
+
   function tock() {
     macroViewModel.tock();
     prev = next;
@@ -150,6 +154,7 @@ export function createMenuBlade({
     goSouth,
     getState,
     animate,
+    tick,
     tock,
   };
 
