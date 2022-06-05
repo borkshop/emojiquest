@@ -197,6 +197,26 @@ test('trash inventory', t => {
   `);
 });
 
+test('chop down a tree', t => {
+  const s = makeScaffold(t);
+  s.scene(`
+    . . .
+    . @ A
+    . . .
+  `);
+  s.inventory(0, 'axe');
+  s.play();
+
+  s.command(6); // chop down tree
+  s.expectScene(`
+    . . .
+    . @ .  <- no tree
+    . . .
+  `);
+  s.expectInventory(0, 'axe');
+  s.expectInventory(1, 'hardwood');
+});
+
 test('craft softwood over axe', t => {
   const s = makeScaffold(t);
   s.scene('@');
