@@ -551,15 +551,4 @@ export const actions = [
 // TODO 🪨rock, 📄paper, ✂️scissors, 🦎lizard, 🖖spock
 
 /** @type {Array<import('./mechanics.js').EffectType>} */
-export const validEffectTypes = [
-  { name: 'none', tile: 'shirt' },
-  { name: 'warm', tile: 'coat' }, // 1
-  { name: 'fire' }, // 2
-  { name: 'float', tile: 'canoe' }, // 3
-  { name: 'power', tile: 'lightningBolt' }, // 4
-  { name: 'mojick', tile: 'rainbow' }, // 5
-  { name: 'water', tile: 'waterDroplet' }, // 6
-  { name: 'fly', tile: 'balloon' }, // 7
-  { name: 'wind', tile: 'wind' }, // 8
-  { name: 'any' },
-];
+export const validEffectTypes = [];

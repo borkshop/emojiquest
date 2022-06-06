@@ -189,17 +189,6 @@ const makeFlags = function* () {
 
 export const [terrainWater, terrainLava, terrainCold, terrainHot] = makeFlags();
 
-export const [
-  effectWarm,
-  effectFire,
-  effectFloat,
-  effectPower,
-  effectMojick,
-  effectWater,
-  effectFly,
-  effectWind,
-] = makeFlags();
-
 /**
  * @template T
  * @param {Array<T>} candidates
@@ -383,17 +372,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   const inventories = new Map();
 
-  /** @type {Map<number, number>}
-   * Bit vectors for the effects that each entity may choose from.
-   * Absence is equivalent to 0.
-   */
-  const effectsOwned = new Map();
-  /** @type {Map<number, number>}
-   * The bit number for the entity's chosen effect, from the effectsOwned bit
-   * vector.  The number 0 indicates effect 1.  Absence indicates no effect
-   * chosen.  The number -1 is equivalent to absence.
-   */
-  const effectsChosen = new Map();
   /** @type {Map<number, number>} */
   const healths = new Map();
   /** @type {Map<number, number>} */
@@ -632,33 +610,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       transit,
     } = advance({ position: source, direction });
 
-    const effects = entityEffect(entity);
-    // TODO merge entity effects from held or stowed inventory items.
-    const terrainFlags = terrain[target];
-
-    if (terrainFlags & terrainLava) {
-      if (!(effects & effectFly)) {
-        macroViewModel.bounce(entity, direction * quarturnToOcturn);
-        if (!talk(entity, entities[target])) {
-          onDialog(entity, `🌋 The lava is hot!`);
-        }
-        return;
-      }
-    }
-
-    if (terrainFlags & terrainWater) {
-      if (!(effects & (effectFloat | effectFly))) {
-        macroViewModel.bounce(entity, direction * quarturnToOcturn);
-        if (!talk(entity, entities[target])) {
-          onDialog(
-            entity,
-            `🌊 The water runs swiftly. You may need a <nobr>🛶<b>canoe</b></nobr>.`,
-          );
-        }
-        return;
-      }
-    }
-
     bids(target).set(entity, {
       position: source,
       direction,
@@ -677,6 +628,10 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     }
 
     craftIntents.add(entity);
+  }
+
+  function entityEffect() {
+    return effectTypesByName.empty;
   }
 
   const bumpKit = {
@@ -937,75 +892,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} entity
-   * @param {number} effect
-   */
-  function availEffect(entity, effect) {
-    const effects = entityEffects(entity) | (1 << effect);
-    effectsOwned.set(entity, effects);
-  }
-
-  /**
-   * @param {number} entity
-   * @returns {number} effects - bit vector, but with only one bit selected, if any.
-   */
-  function entityEffect(entity) {
-    const effect = effectsChosen.get(entity);
-    if (effect === undefined) {
-      return 0;
-    }
-    const effects = entityEffects(entity);
-    assert((effects & (1 << effect)) !== 0);
-    return 1 << effect;
-  }
-
-  /**
-   * @param {number} entity
-   * @param {number} effect - a bit index, 0 means 1 << 0.
-   */
-  function entityHasEffect(entity, effect) {
-    assert(effect >= 0);
-    const effects = entityEffects(entity);
-    return (effects & (1 << effect)) !== 0;
-  }
-
-  /**
-   * @param {number} entity
-   * @returns {number} effects - bit vector, 0 means no effects, 1 means effect
-   * 0.
-   */
-  function entityEffects(entity) {
-    const mask = effectsOwned.get(entity);
-    if (mask === undefined) {
-      return 0;
-    }
-    return mask;
-  }
-
-  /**
-   * @param {number} entity
-   * @returns {number} effect - a bit index, -1 means no choice,
-   * 0 means 1 << 0.
-   */
-  function entityEffectChoice(entity) {
-    const effect = effectsChosen.get(entity);
-    if (effect === undefined) {
-      return -1;
-    }
-    return effect;
-  }
-
-  /**
-   * @param {number} entity
-   * @param {number} effect - a bit index, 0 means 1 << 0.
-   */
-  function chooseEffect(entity, effect) {
-    const entityEffects = assumeDefined(effectsOwned.get(entity));
-    assert((entityEffects & (1 << effect)) !== 0);
-    effectsChosen.set(entity, effect);
-  }
-
-  /**
-   * @param {number} entity
    */
   function entityStamina(entity) {
     return assumeDefined(staminas.get(entity));
@@ -1021,20 +907,13 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   /**
    * @param {number} entity
    * @param {number} inventoryIndex
-   * @returns {'effect' | 'discard'}
+   * @returns {'discard'}
    */
   function use(entity, inventoryIndex) {
     const inventory = provideInventory(entity, 2);
     const itemType = inventory[inventoryIndex];
     const itemDescriptor = itemTypes[itemType];
     inventory[inventoryIndex] = emptyItem; // poof
-    const effectName = itemDescriptor.effect;
-    if (effectName !== undefined) {
-      const effectType = assumeDefined(effectTypesByName[effectName]) - 1;
-      availEffect(entity, effectType);
-      chooseEffect(entity, effectType);
-      return 'effect';
-    }
     const healthEffect = itemDescriptor.health;
     if (healthEffect !== undefined) {
       const oldHealth = healths.get(entity) || 0;
@@ -1151,8 +1030,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       types: retypes,
       inventories: reinventories,
       terrain: [...terrain.slice()],
-      // effectsOwned,
-      // effectsChosen,
       // healths,
       // staminas,
     };
@@ -1398,11 +1275,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       setTerrainFlags(location, purportedTerrain[location]);
     }
 
-    effectsChosen.clear();
-    effectsOwned.clear();
     healths.clear();
     staminas.clear();
-    // TODO load effectsChosen, effectsOwned, healths, staminas
+    // TODO load healths, staminas
 
     return agent;
   }
@@ -1425,11 +1300,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     entityTypeAt,
     entityStamina,
     entityHealth,
-    entityEffect,
-    entityHasEffect,
-    entityEffects,
-    entityEffectChoice,
-    chooseEffect,
     watchTerrain,
     unwatchTerrain,
     getTerrainFlags,

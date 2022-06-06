@@ -13,12 +13,7 @@
 
 // @ts-check
 
-import {
-  assert,
-  assertDefined,
-  assertNonZero,
-  assumeDefined,
-} from './assert.js';
+import { assert, assertDefined, assertNonZero } from './assert.js';
 import {
   north,
   nn,
@@ -178,7 +173,7 @@ export const makeController = ({
     // effectTypesByName,
     defaultTileTypeForAgentType,
     tileTypeForItemType,
-    tileTypeForEffectType,
+    // tileTypeForEffectType,
     // craft,
     // bump,
   } = mechanics;
@@ -311,12 +306,6 @@ export const makeController = ({
     const packNotEmpty = () => worldModel.anyPacked(player, 2);
     const packEmpty = () => !worldModel.anyPacked(player, 2);
 
-    const restoreEffect = () => {
-      const effectType = worldModel.entityEffectChoice(player) + 1;
-      const effectTileType = assumeDefined(tileTypeForEffectType[effectType]);
-      nineKeyView.spawnInward(effectTileType, ne);
-    };
-
     // Entity management:
 
     const restoreWatch = () => {
@@ -375,11 +364,9 @@ export const makeController = ({
      * @param {number} itemType
      */
     const recepticleTileType = itemType => {
-      const { comestible = false, effect = undefined } = itemTypes[itemType];
+      const { comestible = false } = itemTypes[itemType];
       let recepticleTileType = tileTypesByName.trash;
-      if (effect !== undefined) {
-        recepticleTileType = tileTypesByName.arm;
-      } else if (comestible) {
+      if (comestible) {
         recepticleTileType = tileTypesByName.mouth;
       }
       return recepticleTileType;
@@ -406,10 +393,6 @@ export const makeController = ({
       nineKeyView.despawnOutward(ne);
     };
 
-    const dismissEffect = () => {
-      nineKeyView.despawnOutward(ne);
-    };
-
     const dismissLeft = () => {
       nineKeyView.despawnOutward(sw);
     };
@@ -428,21 +411,6 @@ export const makeController = ({
           ? tileTypeForItemType[itemType]
           : gridTileTypes[itemGridIndex];
         nineKeyView.spawn(entityIndex, itemTileType);
-      }
-    };
-
-    const restoreEffects = () => {
-      for (let i = 0; i < 9; i++) {
-        const effectTileType = worldModel.entityHasEffect(player, i)
-          ? tileTypeForEffectType[i + 1]
-          : gridTileTypes[i];
-        nineKeyView.spawn(i, effectTileType);
-      }
-    };
-
-    const dismissEffects = () => {
-      for (let i = 0; i < 9; i++) {
-        nineKeyView.despawn(i);
       }
     };
 
@@ -500,13 +468,6 @@ export const makeController = ({
         } else if (command === 7 && packNotEmpty() && !repeat) {
           // stash
           return openStash();
-        } else if (
-          command === 9 &&
-          worldModel.entityEffects(player) !== 0 &&
-          !repeat
-        ) {
-          // effect chooser
-          return openEffects();
         } else if (command === 0 && !repeat) {
           return playToMenuMode(cursor.position, player);
         } else {
@@ -562,7 +523,7 @@ export const makeController = ({
         press(command, repeat) {
           if (repeat) return itemMode;
           if (command === 9) {
-            // trash / consume / convert to effect
+            // trash / consume
             return useItem(leftOrRight);
           } else if (command === 2 && isNotEmptyItem(rightHandItemType())) {
             // craft
@@ -744,7 +705,6 @@ export const makeController = ({
 
             restoreDpad({});
             restoreWatch();
-            restoreEffect();
 
             if (packNotEmpty()) {
               restorePack();
@@ -758,23 +718,6 @@ export const makeController = ({
       return packMode;
     };
 
-    /** @type {Mode} */
-    const effectMode = {
-      name: 'effect',
-      press(command, repeat) {
-        if (repeat) return mode;
-        if (command >= 1 && command <= 9) {
-          const chosenType = command;
-          if (worldModel.entityHasEffect(player, chosenType - 1)) {
-            return chooseEffect(chosenType - 1);
-          }
-          return effectMode;
-        } else {
-          return effectMode;
-        }
-      },
-    };
-
     // Utilities
     const handleLeftItem = () => {
       assert(isNotEmptyItem(leftHandItemType()));
@@ -782,7 +725,6 @@ export const makeController = ({
       // Transition from play mode to item handling mode.
       dismissDpad({});
       dismissWatch();
-      dismissEffect();
 
       // Move item in left hand to the center-middle.
       nineKeyView.move(0, 4, ne, 0);
@@ -809,7 +751,6 @@ export const makeController = ({
       // Transition from play mode to item handling mode.
       dismissDpad({});
       dismissWatch();
-      dismissEffect();
 
       // Move item in right hand to middle-center.
       nineKeyView.move(2, 4, nw, 0);
@@ -834,7 +775,6 @@ export const makeController = ({
 
     const openStash = () => {
       dismissPack();
-      dismissEffect();
       dismissDpad({});
       dismissWatch();
 
@@ -861,36 +801,15 @@ export const makeController = ({
       }
     };
 
-    const openEffects = () => {
-      // Transition from play mode to effect mode.
-      if (packNotEmpty()) {
-        dismissPack();
-      }
-      dismissEffect();
-      dismissDpad({});
-      dismissWatch();
-      dismissLeft();
-      dismissRight();
-
-      restoreEffects();
-
-      return effectMode;
-    };
-
     /**
      * @param {number} leftOrRight
      */
     const useItem = leftOrRight => {
-      dismissTrash(); // mouth or effect
+      dismissTrash(); // or mouth
 
       const use = worldModel.use(player, leftHandInventoryIndex);
-
-      if (use === 'effect') {
-        nineKeyView.move(4, 8, ne, 0);
-      } else {
-        nineKeyView.take(4, ne);
-        restoreEffect();
-      }
+      use;
+      nineKeyView.take(4, ne);
 
       if (packVisible && packEmpty()) {
         dismissPack();
@@ -933,7 +852,6 @@ export const makeController = ({
 
       restoreDpad({});
       restoreWatch();
-      restoreEffect();
 
       return playMode;
     };
@@ -955,7 +873,6 @@ export const makeController = ({
       }
       restoreDpad({});
       restoreWatch();
-      restoreEffect();
 
       return playMode;
     };
@@ -978,25 +895,6 @@ export const makeController = ({
     };
 
     /**
-     * @param {number} chosenType
-     */
-    const chooseEffect = chosenType => {
-      worldModel.chooseEffect(player, chosenType);
-
-      dismissEffects();
-      restoreLeft();
-      restoreRight();
-      restoreDpad({});
-      restoreWatch();
-      restoreEffect();
-      if (packNotEmpty()) {
-        restorePack();
-      }
-
-      return playMode;
-    };
-
-    /**
      * @param {number} player
      * @param {Object} handoff
      * @param {boolean} [handoff.north]
@@ -1008,7 +906,6 @@ export const makeController = ({
       dismissDpad(handoff);
       dismissLeft();
       dismissRight();
-      dismissEffect();
       if (packNotEmpty()) {
         dismissPack();
       }
@@ -1034,7 +931,6 @@ export const makeController = ({
     restoreDpad(handoff);
     restoreLeft();
     restoreRight();
-    restoreEffect();
     if (packNotEmpty()) {
       restorePack();
     }

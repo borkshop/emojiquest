@@ -22,7 +22,7 @@ test('play', t => {
   s.scene('@');
   s.play();
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -43,7 +43,7 @@ test('rest', t => {
   s.play();
   s.command(5); // rest
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -103,13 +103,13 @@ test('the apple tree', t => {
   s.scene('@ A');
   s.play();
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
   s.command(6); // bump tree to the east
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v ]
   `);
@@ -122,7 +122,7 @@ test('the apple tree', t => {
   t.is(s.health, 3);
   s.command(9); // eat the apple (move to mouth)
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -145,13 +145,13 @@ test('the pear tree', t => {
   `);
 
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
   s.command(6); // bump tree to the east
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     p v ]
   `);
@@ -164,7 +164,7 @@ test('the pear tree', t => {
   t.is(s.stamina, 3);
   s.command(9); // eat the pear (move to mouth)
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -177,7 +177,7 @@ test('trash inventory', t => {
   s.inventory(0, 'silver');
   s.play();
   s.expectControls(`
-    . ^ s <- nothing in the pack
+    . ^ . <- nothing in the pack
     < z >
     s v ] <- have silver medal
   `);
@@ -191,7 +191,7 @@ test('trash inventory', t => {
 
   s.command(9); // throw medal away
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -224,7 +224,7 @@ test('craft softwood over axe', t => {
   s.inventory(1, 'softwood');
   s.play();
   s.expectControls(`
-    . ^ s <- nothing in the pack
+    . ^ . <- nothing in the pack
     < z >
     a v l <- axe and softwood (as lumber tile)
   `);
@@ -253,7 +253,7 @@ test('craft axe from knife and hammer', t => {
   s.inventory(1, 'hammer');
   s.play();
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     k v h
   `);
@@ -282,7 +282,7 @@ test('craft axe over softwood', t => {
   s.inventory(1, 'softwood');
   s.play();
   s.expectControls(`
-    . ^ s <- nothing in the pack
+    . ^ . <- nothing in the pack
     < z >
     a v l <- axe and softwood (as lumber tile)
   `);
@@ -316,7 +316,7 @@ test('craft canoe', t => {
   s.expectInventory(0, 'canoe');
   s.expectInventory(1, 'spoon');
   s.expectControls(`
-    b . a  <- backpack and effect chooser (arm)
+    b . t  <- backpack and trash
     .(c).  <- canoe
     [ s ]  <- spoon
   `);
@@ -329,7 +329,7 @@ test('craft apple over apple', t => {
   s.inventory(1, 'apple');
   s.play();
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v a
   `);
@@ -358,7 +358,7 @@ test('craft pineapple over pineapple fails', t => {
   s.inventory(1, 'pineApple');
   s.play();
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     p v p
   `);
@@ -386,13 +386,13 @@ test('fill inventory', t => {
   s.scene('@ A');
   s.play();
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
   s.command(6); // bump tree to the east
   s.expectControls(`
-    . ^ s <- nothing in the pack
+    . ^ . <- nothing in the pack
     < z >
     a v ] <- got an apple
   `);
@@ -411,13 +411,13 @@ test('fill inventory', t => {
   s.command(1); // move apple to pack
   for (const slot of [2, 3, 4, /* 5 is center */ 6, 7, 8, 9]) {
     s.expectControls(`
-      b ^ s <- backpack no longer empty
+      b ^ . <- backpack no longer empty
       < z >
       [ v ]
     `);
     s.command(6); // bump tree to the east
     s.expectControls(`
-      b ^ s <- pack is not empty
+      b ^ . <- pack is not empty
       < z >
       a v ] <- got an apple
     `);
@@ -442,7 +442,7 @@ test('fill inventory', t => {
 
   s.command(6); // get an apple
   s.expectControls(`
-    b ^ s <- full pack
+    b ^ . <- full pack
     < z >
     a v ] <- got an apple
   `);
@@ -470,14 +470,14 @@ test('fill inventory', t => {
 
   s.command(3); // put apple in right hand
   s.expectControls(`
-    b ^ s <- full pack
+    b ^ . <- full pack
     < z >
     [ v a <- apple in right hand
   `);
 
   s.command(6); // one last apple
   s.expectControls(`
-    b ^ s <- full pack of apples
+    b ^ . <- full pack of apples
     < z >
     a v a <- lots of apples
   `);
@@ -490,7 +490,7 @@ test('juggling clockwise', t => {
 
   s.command(6); // bump the tree to get apple
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v ]  <- apple in left hand
   `);
@@ -504,14 +504,14 @@ test('juggling clockwise', t => {
 
   s.command(3); // move apple to right hand
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v a  <- apple in right hand
   `);
 
   s.command(6); // bump tree to get apple
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v a  <-  apples in both hands
   `);
@@ -525,7 +525,7 @@ test('juggling clockwise', t => {
 
   s.command(9); // eat the apple, returns other applee to right hand
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v a <- apple in right hand
   `);
@@ -538,7 +538,7 @@ test('hot hands', t => {
   s.play();
 
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v a  <- apple in right hand
   `);
@@ -552,7 +552,7 @@ test('hot hands', t => {
 
   s.command(1); // move apple to left hand
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v ]  <- apple in left hand
   `);
@@ -560,7 +560,7 @@ test('hot hands', t => {
   // a pineapple mysteriously appears in other hand
   s.inventory(1, 'pineApple');
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v p  <-
   `);
@@ -574,7 +574,7 @@ test('hot hands', t => {
 
   s.command(1); // put apple back in the left
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v p  <-
   `);
@@ -588,7 +588,7 @@ test('hot hands', t => {
 
   s.command(3); // switch apple to right hand, pineapple to left
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     p v a  <-
   `);
@@ -602,7 +602,7 @@ test('to and from pack with apple in left hand', t => {
   s.command(6); // get apple
   s.expectMode('play');
   s.expectControls(`
-    . ^ s  <- pack is empty
+    . ^ .  <- pack is empty
     < z >
     a v ]  <- apple in left hand
   `);
@@ -613,14 +613,14 @@ test('to and from pack with apple in left hand', t => {
   s.expectMode('pack');
   s.command(1); // put in slot 1
   s.expectControls(`
-    b ^ s  <- apple is in backpack
+    b ^ .  <- apple is in backpack
     < z >
     [ v ]
   `);
 
   s.command(6); // get another apple
   s.expectControls(`
-    b ^ s  <- other apple in pack
+    b ^ .  <- other apple in pack
     < z >
     a v ]  <- apple in left hand
   `);
@@ -632,7 +632,7 @@ test('to and from pack with apple in left hand', t => {
   s.command(9); // eat apple
   s.expectMode('play');
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v ]  <- apple should return to left hand
   `);
@@ -648,7 +648,7 @@ test('to and from pack with apple in right hand', t => {
   s.command(6); // get apple
   s.expectMode('play');
   s.expectControls(`
-    . ^ s  <- pack is empty
+    . ^ .  <- pack is empty
     < z >
     a v ]  <- apple in left hand
   `);
@@ -659,14 +659,14 @@ test('to and from pack with apple in right hand', t => {
   s.expectMode('pack');
   s.command(1); // put in slot 1
   s.expectControls(`
-    b ^ s  <- apple is in backpack
+    b ^ .  <- apple is in backpack
     < z >
     [ v ]
   `);
 
   s.command(6); // get another apple
   s.expectControls(`
-    b ^ s  <- other apple in pack
+    b ^ .  <- other apple in pack
     < z >
     a v ]  <- apple in left hand
   `);
@@ -675,7 +675,7 @@ test('to and from pack with apple in right hand', t => {
   s.expectMode('item');
   s.command(3); // place aple in right hand
   s.expectControls(`
-    b ^ s  <- other apple in pack
+    b ^ .  <- other apple in pack
     < z >
     [ v a  <- apple in right hand
   `);
@@ -687,7 +687,7 @@ test('to and from pack with apple in right hand', t => {
   s.command(9); // eat apple
   s.expectMode('play');
   s.expectControls(`
-    . ^ s  <- pack should be empty
+    . ^ .  <- pack should be empty
     < z >
     [ v a  <- apple should return to right hand
   `);
@@ -702,7 +702,7 @@ test('from pack with empty hands', t => {
   s.play();
 
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     [ v ]
   `);
@@ -723,7 +723,7 @@ test('from pack with empty hands', t => {
 
   s.command(9); // eat the apple
   s.expectControls(`
-    . ^ s  <- pack is empty again
+    . ^ .  <- pack is empty again
     < z >
     [ v ]  <- nothing in hand
   `);
@@ -736,7 +736,7 @@ test('from pack with empty hands, selecting empty pack position is no-op', t => 
   s.play();
 
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     [ v ]
   `);
@@ -765,7 +765,7 @@ test('to pack mode with an empty right hand', t => {
   s.play();
 
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     a v ]
   `);
@@ -796,7 +796,7 @@ test('to pack mode with full hands', t => {
   s.play();
 
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     a v p
   `);
@@ -817,7 +817,7 @@ test('to and from pack with full hands, left bias', t => {
   s.play();
 
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -825,7 +825,7 @@ test('to and from pack with full hands, left bias', t => {
   // manus et malum
   s.inventory(0, 'apple');
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v ]
   `);
@@ -833,7 +833,7 @@ test('to and from pack with full hands, left bias', t => {
   // immaculate reception
   s.inventory(1, 'pineApple');
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v p
   `);
@@ -868,7 +868,7 @@ test('to and from pack with full hands, left bias', t => {
 
   s.command(7); // stow in slot 7
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     [ v p  <- pineapple returns to right hand
   `);
@@ -889,7 +889,7 @@ test('to and from pack with full hands, right bias', t => {
   s.play();
 
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -897,7 +897,7 @@ test('to and from pack with full hands, right bias', t => {
   // manus et malum
   s.inventory(0, 'apple');
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v ]
   `);
@@ -905,7 +905,7 @@ test('to and from pack with full hands, right bias', t => {
   // immaculate reception
   s.inventory(1, 'pineApple');
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     a v p
   `);
@@ -940,7 +940,7 @@ test('to and from pack with full hands, right bias', t => {
 
   s.command(9); // stow in slot 9
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     a v ]  <- apple returns to left hand
   `);
@@ -969,7 +969,7 @@ test('menu', t => {
     . . .
   `);
   s.expectControls(`
-    . ^ s
+    . ^ .
     < z >
     [ v ]
   `);
@@ -1124,89 +1124,6 @@ test('medal shop', t => {
   `);
 });
 
-test('choice of effect', t => {
-  const s = makeScaffold(t);
-  s.scene('@');
-  s.inventory(0, 'coat');
-  s.play();
-
-  s.expectControls(`
-    . ^ s
-    < z >
-    c v ]
-  `);
-
-  s.command(1); // get coat
-  s.expectControls(`
-    b . a  <- backpack appears, since it can be stowed,
-    .(c).  <- arm appears since it can be equipped
-    [ . ]
-  `);
-
-  s.command(9); // don coat
-  s.expectControls(`
-    . ^ c
-    < z >
-    [ v ]
-  `);
-
-  s.command(9); // open effect chooser
-  s.expectControls(`
-    7 8 9
-    4 5 6
-    c 2 3
-  `);
-
-  s.command(1); // choose coat
-  s.expectControls(`
-    . ^ c
-    < z >
-    [ v ]
-  `);
-});
-
-test('choice of effect with non-empty pack', t => {
-  const s = makeScaffold(t);
-  s.scene('@');
-  s.inventory(0, 'coat');
-  s.inventory(2, 'pick');
-  s.play();
-
-  s.expectControls(`
-    b ^ s
-    < z >
-    c v ]
-  `);
-
-  s.command(1); // get coat
-  s.expectControls(`
-    b . a  <- backpack appears, since it can be stowed,
-    .(c).  <- arm appears since it can be equipped
-    [ . ]
-  `);
-
-  s.command(9); // don coat
-  s.expectControls(`
-    b ^ c
-    < z >
-    [ v ]
-  `);
-
-  s.command(9); // open effect chooser
-  s.expectControls(`
-    7 8 9
-    4 5 6
-    c 2 3
-  `);
-
-  s.command(1); // choose coat
-  s.expectControls(`
-    b ^ c
-    < z >
-    [ v ]
-  `);
-});
-
 test('exit play mode with a non-empty pack', t => {
   const s = makeScaffold(t);
   s.scene('@');
@@ -1214,7 +1131,7 @@ test('exit play mode with a non-empty pack', t => {
   s.play();
 
   s.expectControls(`
-    b ^ s
+    b ^ .
     < z >
     [ v ]
   `);

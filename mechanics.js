@@ -92,7 +92,7 @@ export function makeMechanics({
   tileTypes = [],
   validAgentTypes = [],
   validItemTypes = [],
-  validEffectTypes: effectTypes = [],
+  validEffectTypes = [],
 } = {}) {
   /** @type {Array<AgentType>} */
   const agentTypes = [
@@ -104,6 +104,12 @@ export function makeMechanics({
   const itemTypes = [
     ...specialDescriptions,
     ...validItemTypes.filter(desc => !specialNames.includes(desc.name)),
+  ];
+
+  /** @type {Array<EffectType>} */
+  const effectTypes = [
+    ...specialDescriptions,
+    ...validEffectTypes.filter(desc => !specialNames.includes(desc.name)),
   ];
 
   /**
