@@ -43,6 +43,8 @@ const noProgress = {
   sinusoidal: 0,
   sinusoidalQuarterTurn: 0,
   bounce: 0,
+  exit: 1,
+  enter: 0,
 };
 
 /**
@@ -67,12 +69,20 @@ export function placeEntity(
     bump = false,
     stage = 'stay',
   } = transition;
-  const { sinusoidal, sinusoidalQuarterTurn, bounce } = progress;
+  const { sinusoidal, sinusoidalQuarterTurn, bounce, linear, enter, exit } =
+    progress;
+  const adjustedDirectionOcturns =
+    stage === 'enter' ? (directionOcturns + 4) % 8 : directionOcturns;
   const { x: dx, y: dy } =
-    octurnVectors[(directionOcturns + 8 - coord.a * 2) % 8];
-  const shiftProgress = bump ? bounce : sinusoidal;
-  const scaleProgress =
-    stage === 'stay' ? 1 : stage === 'exit' ? 1 - sinusoidal : sinusoidal;
+    octurnVectors[(adjustedDirectionOcturns + 8 - coord.a * 2) % 8];
+  const shiftProgress = bump
+    ? bounce
+    : stage === 'stay'
+    ? linear
+    : stage === 'enter'
+    ? 1 - sinusoidal
+    : sinusoidal;
+  const scaleProgress = stage === 'stay' ? 1 : stage === 'exit' ? exit : enter;
   const transform = compose(
     scale(scaleProgress * (1 + pressure / 3)),
     rotate(sinusoidalQuarterTurn * rotation),

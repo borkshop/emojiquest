@@ -37,6 +37,8 @@ export async function* frameDeltas() {
  * @prop {number} sinusoidal
  * @prop {number} sinusoidalQuarterTurn
  * @prop {number} bounce
+ * @prop {number} enter
+ * @prop {number} exit
  */
 
 /**
@@ -54,11 +56,17 @@ export function makeProgress(elapsed, turns) {
   const sinusoidal = (1 - Math.cos(Math.PI * linear)) / 2;
   const bounce = (1 - Math.cos(Math.PI * 2 * sinusoidal)) / 16;
   const sinusoidalQuarterTurn = (-Math.PI / 2) * sinusoidal;
+
+  const enter = Math.max(0, sinusoidal * 2 - 1);
+  const exit = Math.max(0, 1 - sinusoidal * 2);
+
   return {
     elapsed,
     linear,
     sinusoidal,
     sinusoidalQuarterTurn,
     bounce,
+    exit,
+    enter,
   };
 }
