@@ -188,6 +188,28 @@ export const validAgentTypes = [
   {
     name: 'clover',
   },
+  {
+    name: 'warning',
+    dialog: [
+      '⚠️  No fowl play',
+      '⚠️  Nor egrets',
+      '⚠️  No good tern',
+      '⚠️  Goose unpunished',
+      '<b>🐧 The</b> <b>Management</b>',
+    ],
+  },
+  {
+    name: 'bee',
+    dialog: [
+      // '🐝 State your bizzness!…',
+      '🐝 I am a <b>bumblebee</b>…',
+      '🐝 Long ago, I was called a <b>dumbledore</b>…',
+      '🐝 I wove words in my <b>⦙beeline⦙</b>',
+      '🐝 I taught <b>mojick spelling</b>…',
+      '🐝 I could spell in 𝓬𝓾𝓻𝓼𝓲𝓿𝓮!',
+      '🐝 I could spell in 𝓫𝓵𝓮𝓼𝓼𝓲𝓿𝓮!',
+    ],
+  },
 ];
 
 /**
@@ -384,6 +406,8 @@ export const tileTypes = [
   { name: 'clover', text: '☘️    ' },
   { name: 'fleurDeLis', text: '⚜️   ' },
   { name: 'trident', text: '🔱     ' },
+  { name: 'warning', text: '🚧     ' },
+  { name: 'bee', text: '🐝     ' },
 ];
 
 /**
