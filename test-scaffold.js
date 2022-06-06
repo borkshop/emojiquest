@@ -1,5 +1,5 @@
 import { makeDaia } from './daia.js';
-import { makeModel } from './model.js';
+import { makeModel, terrainWater, terrainLava } from './model.js';
 import { makeMechanics } from './mechanics.js';
 import { makeController } from './controls.js';
 import { makeViewModel } from './view-model.js';
@@ -190,7 +190,9 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
   });
 
   const worldViewModel = makeViewModel();
-  const worldMacroViewModel = makeMacroViewModel(worldViewModel);
+  const worldMacroViewModel = makeMacroViewModel(worldViewModel, {
+    name: 'world',
+  });
 
   worldViewModel.watchEntities(
     makeBoxTileMap({
@@ -342,6 +344,34 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     }
   };
 
+  /**
+   * @param {string} spec
+   * @param {number} [f]
+   */
+  const terrain = (spec, f = 0) => {
+    const table = spec
+      .replace(/ +/g, '')
+      .split('\n')
+      .filter(Boolean)
+      .map(line => line.split(''));
+    let y = 0;
+    for (const line of table) {
+      let x = 0;
+      for (const glyph of line) {
+        const location = world.tileNumber({ x, y, f });
+        if (glyph === 'w') {
+          worldModel.setTerrainFlags(location, terrainWater);
+        } else if (glyph === 'l') {
+          worldModel.setTerrainFlags(location, terrainLava);
+        } else {
+          t.assert(glyph === '.');
+        }
+        x += 1;
+      }
+      y += 1;
+    }
+  };
+
   const play = () => {
     controller.play(player);
     controller.tock();
@@ -406,6 +436,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
 
   return {
     scene,
+    terrain,
     play,
     restore,
     command,
