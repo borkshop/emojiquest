@@ -45,6 +45,14 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
+ * @callback ReplaceFn
+ * Instructs the viewer to animate the entity glyph being gradually replaced.
+ *
+ * @param {number} entity
+ * @param {number} glyph
+ */
+
+/**
  * @callback TakeFn
  * Instructs the viewer to animate the entity being sent to the entity in the
  * given direction, as if taken by that entity.
@@ -85,6 +93,7 @@ import { quarturnToOcturn } from './geometry2d.js';
  * @property {PutFn} put
  * @property {MoveFn} move
  * @property {BounceFn} bounce
+ * @property {ReplaceFn} replace
  * @property {TakeFn} take
  * @property {FellFn} fell
  * @property {EnterFn} enter
