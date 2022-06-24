@@ -42,28 +42,13 @@ export function makeMacroViewModel(
   const locations = new Map();
   /** @type {Map<number, number>} external to internal */
   const removes = new Map();
-  /** @type {Map<number, number>} internal */
-  const rotations = new Map();
-  /** @type {Map<number, number>} internal */
-  const directions = new Map();
-  /** @type {Map<number, number>} internal */
-  const destinations = new Map();
+  /** @type {Map<number, number>} internal to location */
+  const moves = new Map();
   /** @type {Set<number>} internal */
   const replaced = new Set();
-  /** @type {Set<number>} internal */
-  const touched = new Set();
-  /** @type {Set<number>} internal */
-  const enters = new Set();
-  /** @type {Set<number>} internal */
-  const exits = new Set();
-  /** @type {Set<number>} internal */
-  const bumps = new Set();
 
   function assertPlanning() {
-    assert(
-      planning,
-      `Cannot send animation commands in macro view model planning phase`,
-    );
+    assert(planning, `Cannot send animation commands in macro view model planning phase`);
   }
 
   let nextId = start;
@@ -94,9 +79,6 @@ export function makeMacroViewModel(
   }
 
   /**
-   * Arranges for a new entity to appear spontaneously at a particular
-   * location.
-   *
    * @param {number} external
    * @param {number} location
    * @param {number} type
@@ -114,9 +96,6 @@ export function makeMacroViewModel(
   }
 
   /**
-   * Arranges for an entity to spontaneously disappear at the end of the
-   * current turn.
-   *
    * @param {number} external
    */
   function remove(external) {
@@ -129,9 +108,6 @@ export function makeMacroViewModel(
   }
 
   /**
-   * Arranges for an entity to gradually appear at a particular position,
-   * coming from a particular direction.
-   *
    * @param {number} external
    * @param {number} origin
    * @param {number} destination
@@ -145,64 +121,73 @@ export function makeMacroViewModel(
     entities.set(external, internal);
     viewModel.put(internal, origin, type);
     locations.set(external, destination);
-    destinations.set(internal, destination);
-    directions.set(internal, directionOcturns);
+    moves.set(internal, destination);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        stage: 'enter',
+      });
+    }
   }
 
   /**
-   * Arranges for an entity to gradually disappear from a particular position,
-   * going in a particular direction.
-   *
    * @param {number} external
    * @param {number} directionOcturns
    */
   function take(external, directionOcturns) {
     assertPlanning();
     const internal = entity(external);
-    touched.add(internal);
-    exits.add(internal);
-    directions.set(internal, directionOcturns);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        stage: 'exit',
+      });
+    }
     removes.set(external, internal);
   }
-
   /**
-   * Arranges for an entity to gradually disappear, like a tree falling to the
-   * axe.
-   *
    * @param {number} external
    */
   function fell(external) {
     assertPlanning();
     const internal = entity(external);
-    rotations.set(internal, 1);
-    exits.add(internal);
-    touched.add(internal);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        rotation: 1,
+        bump: true,
+        stage: 'exit',
+      });
+    }
     removes.set(external, internal);
   }
 
   /**
-   * Arranges for an entity to gradually disappear.
-   *
    * @param {number} external
    */
   function exit(external) {
     assertPlanning();
     const internal = entity(external);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'exit',
+      });
+    }
     removes.set(external, internal);
-    touched.add(internal);
-    exits.add(internal);
   }
 
   /**
-   * Arranges for an entity to gradually appear.
-   *
    * @param {number} external
    */
   function enter(external) {
     assertPlanning();
     const internal = entity(external);
-    enters.add(internal);
-    touched.add(internal);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'enter',
+      });
+    }
   }
 
   /**
@@ -220,26 +205,35 @@ export function makeMacroViewModel(
     entities.set(external, replacement);
 
     viewModel.put(replacement, location, type);
-
-    exits.add(internal);
-    touched.add(internal);
-    enters.add(replacement);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'exit',
+      });
+      viewModel.transition(replacement, {
+        bump: true,
+        stage: 'enter',
+      });
+    }
   }
 
   /**
    * @param {number} external
    * @param {number} destination
    * @param {number} directionOcturns
-   * @param {number} rotation
+   * @param {number} turn
    */
-  function move(external, destination, directionOcturns, rotation) {
+  function move(external, destination, directionOcturns, turn) {
     assertPlanning();
     const internal = entity(external);
-    destinations.set(internal, destination);
-    directions.set(internal, directionOcturns);
-    rotations.set(internal, rotation);
+    moves.set(internal, destination);
     locations.set(external, destination);
-    touched.add(internal);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        rotation: turn,
+      });
+    }
   }
 
   /**
@@ -249,9 +243,12 @@ export function makeMacroViewModel(
   function bounce(external, directionOcturns) {
     assertPlanning();
     const internal = entity(external);
-    touched.add(internal);
-    bumps.add(internal);
-    directions.set(internal, directionOcturns);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        bump: true,
+      });
+    }
   }
 
   /**
@@ -278,7 +275,7 @@ export function makeMacroViewModel(
    * made.
    */
   function tock() {
-    for (const [internal, destination] of destinations.entries()) {
+    for (const [internal, destination] of moves.entries()) {
       viewModel.move(internal, destination);
     }
     for (const [external, internal] of removes.entries()) {
@@ -291,9 +288,7 @@ export function makeMacroViewModel(
     }
     replaced.clear();
     removes.clear();
-    rotations.clear();
-    destinations.clear();
-    directions.clear();
+    moves.clear();
     viewModel.tock();
 
     planning = true;
@@ -304,53 +299,7 @@ export function makeMacroViewModel(
       return;
     }
     planning = false;
-
-    for (const internal of touched) {
-      assert(!(enters.has(internal) && exits.has(internal)));
-
-      if (exits.has(internal)) {
-        if (viewModel.watched(internal)) {
-          const directionOcturns = directions.get(internal);
-          if (directionOcturns !== undefined) {
-            viewModel.transition(internal, {
-              directionOcturns,
-              stage: 'exit',
-            });
-          } else {
-            viewModel.transition(internal, {
-              bump: true,
-              stage: 'exit',
-            });
-          }
-        }
-      } else if (enters.has(internal)) {
-        if (viewModel.watched(internal)) {
-          viewModel.transition(internal, {
-            bump: true,
-            stage: 'enter',
-          });
-        }
-      } else {
-        const destination = directions.get(internal);
-        if (destination !== undefined) {
-          const directionOcturns = directions.get(internal) || 0;
-          const rotation = rotations.get(internal) || 0;
-          const bump = bumps.has(internal);
-          if (viewModel.watched(internal)) {
-            viewModel.transition(internal, {
-              bump,
-              directionOcturns,
-              rotation,
-            });
-          }
-        }
-      }
-    }
-
-    touched.clear();
-    exits.clear();
-    enters.clear();
-    bumps.clear();
+    // TODO effect viewModel events according to accumulated plans.
   }
 
   const { animate } = viewModel;
