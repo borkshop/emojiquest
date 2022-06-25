@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=0.5" />
+  <link rel="stylesheet" type="text/css" href="index.css" />
+  <title>Cube</title>
+</head>
+
+<body>
+  <canvas id="world"></canvas>
+  <script type="module">
+    import {
+      default as demo,
+      generateCurvedTiles,
+      generateSimpleTiles,
+    } from './gldemo.js';
+
+    function makeRandom(seed = 0xdead_beefn) {
+      let randState = seed;
+      const rand = () => (randState = randState * 6364136223846793005n + 1442695040888963407n) >> 17n & 0xffff_ffffn;
+      const randn = n => rand() % n;
+      const random = () => Number(rand()) / 0x1_0000_0000;
+      return {rand, randn, random};
+    }
+
+    const $world = document.querySelector('canvas#world');
+    if ($world) demo({
+      $world,
+      cellSize: 130,
+      tileSize: 256,
+
+      build(world) {
+        const landCurveTiles = world.makeTileSheet(generateCurvedTiles({
+          aFill: '#5c9e31', // land
+          bFill: '#61b2e4', // water
+          // gridLineStyle: 'red',
+        }));
+
+        const foreTiles = world.makeTileSheet(generateSimpleTiles(
+          {glyph: '🧚'},
+          {glyph: '🍵'},
+          {glyph: '🫖'},
+          {glyph: '⛵'}
+        ));
+
+        const facet = world.makeFacet({x: 0, y: 0, width: 5, height: 5});
+
+        const bgSQ = facet.makeLayer(landCurveTiles);
+        const bg = facet.makeLayer(landCurveTiles, {x: -0.5, y: -0.5});
+        {
+          const isWater = new Uint8Array(bg.width * bg.height);
+          const {random} = makeRandom();
+          for (let i = 0; i < isWater.length; i++)
+            isWater[i] = random() > 0.5 ? 1 : 0;
+
+          const land = landCurveTiles.getLayerID(0b0000);
+          const water = landCurveTiles.getLayerID(0b1111);
+          for (let y = 0; y < bg.height; y++)
+            for (let x = 0; x < bg.width; x++)
+              bgSQ.set(x, y, {
+                layerID: isWater[y * bg.width + x] ? water : land
+              });
+
+          const stride = bg.width;
+          for (let y = 0; y < bg.height; y++) {
+            for (let x = 0; x < bg.width; x++) {
+              const nw = isWater[(y + 0) * stride + x + 0];
+              const ne = isWater[(y + 0) * stride + x + 1];
+              const sw = isWater[(y + 1) * stride + x + 0];
+              const se = isWater[(y + 1) * stride + x + 1];
+              const tileID = ((nw << 1 | ne) << 1 | se) << 1 | sw;
+              const layerID = landCurveTiles.getLayerID(tileID);
+              bg.set(x, y, {layerID});
+            }
+          }
+
+        }
+        bg.send();
+        bgSQ.send();
+        bgSQ.visible = false;
+
+        const fg = facet.makeLayer(foreTiles);
+        {
+          const {randn, random} = makeRandom();
+          for (let y = 0; y < fg.height; y++) {
+            for (let x = 0; x < fg.width; x++) {
+              const tileID = Number(randn(2n * BigInt(foreTiles.size)));
+              const layerID = foreTiles.getLayerID(tileID);
+              const spin = random();
+              fg.set(x, y, {layerID, spin});
+            }
+          }
+        }
+        fg.send();
+      },
+
+    });
+  </script>
+</body>
+
+</html>
