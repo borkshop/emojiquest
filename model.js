@@ -37,14 +37,6 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
- * @callback BounceFn
- * Instructs the viewer to animate the entity bumping in the direction but not
- * moving.
- * @param {number} entity
- * @param {number} directionQuarturns
- */
-
-/**
  * @callback ReplaceFn
  * Instructs the viewer to animate the entity glyph being gradually replaced.
  *
@@ -85,6 +77,14 @@ import { quarturnToOcturn } from './geometry2d.js';
  * @callback ExitFn
  * Instructs the viewer to animate the entity out of the view.
  * @param {number} entity
+ */
+
+/**
+ * @callback BounceFn
+ * Instructs the viewer to animate the entity bumping in the direction but not
+ * moving.
+ * @param {number} entity
+ * @param {number} directionQuarturns
  */
 
 /**
