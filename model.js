@@ -1033,19 +1033,41 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   }
 
   /**
-   * @param {number} _entity
+   * @param {number} entity
    */
-  function hot(_entity) {
-    // TODO
-    return false;
+  function temperature(entity) {
+    const location = locate(entity);
+    const terrainFlags = getTerrainFlags(location);
+    let base = 0;
+    if ((terrainFlags & terrainHot) !== 0) {
+      base += 1;
+    }
+    if ((terrainFlags & terrainCold) !== 0) {
+      base -= 1;
+    }
+    // Held items, TODO worn items.
+    for (const slot of [0, 1]) {
+      const itemTypeNumber = inventory(entity, slot);
+      const itemType = itemTypes[itemTypeNumber];
+      if (itemType.heat !== undefined) {
+        base += itemType.heat;
+      }
+    }
+    return base;
   }
 
   /**
-   * @param {number} _entity
+   * @param {number} entity
    */
-  function cold(_entity) {
-    // TODO
-    return false;
+  function hot(entity) {
+    return temperature(entity) > 0;
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function cold(entity) {
+    return temperature(entity) < 0;
   }
 
   /**
