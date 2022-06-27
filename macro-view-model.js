@@ -48,7 +48,10 @@ export function makeMacroViewModel(
   const replaced = new Set();
 
   function assertPlanning() {
-    assert(planning, `Cannot send animation commands in macro view model planning phase`);
+    assert(
+      planning,
+      `Cannot send animation commands in macro view model planning phase`,
+    );
   }
 
   let nextId = start;
@@ -238,6 +241,37 @@ export function makeMacroViewModel(
 
   /**
    * @param {number} external
+   * @param {number} type
+   * @param {number} destination
+   * @param {number} directionOcturns
+   * @param {number} turn
+   */
+  function movingReplace(external, type, destination, directionOcturns, turn) {
+    assertPlanning();
+    const internal = entity(external);
+    const replacement = create();
+
+    replaced.add(internal);
+    locations.set(external, destination);
+    entities.set(external, replacement);
+
+    viewModel.put(replacement, destination, type);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        directionOcturns,
+        rotation: turn,
+        stage: 'exit',
+      });
+      viewModel.transition(replacement, {
+        directionOcturns,
+        rotation: turn,
+        stage: 'enter',
+      });
+    }
+  }
+
+  /**
+   * @param {number} external
    * @param {number} directionOcturns
    */
   function bounce(external, directionOcturns) {
@@ -324,5 +358,6 @@ export function makeMacroViewModel(
     move,
     bounce,
     replace,
+    movingReplace,
   };
 }

@@ -12,7 +12,19 @@
  * @type {Array<import('./mechanics.js').AgentType>}
  */
 export const validAgentTypes = [
-  { name: 'player', tile: 'happy', health: 3, stamina: 3 },
+  {
+    name: 'player',
+    tile: 'happy',
+    health: 3,
+    stamina: 3,
+    modes: [
+      { tile: 'cold', cold: true },
+      { tile: 'hot', hot: true },
+      { tile: 'swimming', immersed: true },
+      { tile: 'boating', immersed: true, holds: 'canoe' },
+      { tile: 'death', dead: true },
+    ],
+  },
   {
     name: 'pineTree',
     dialog: [
@@ -267,7 +279,7 @@ export const validItemTypes = [
     health: 2,
     tip: '🍍 A delicious <b>🌲 pine</b> <b>🍎 apple</b>.',
   },
-  { name: 'canoe', effect: 'float', tip: '🛶 Row, row, row your boat.' },
+  { name: 'canoe', tip: '🛶 Row, row, row your boat.', boat: true },
   { name: 'dagger', tip: '🗡 It’s called dagger emoji.' },
   { name: 'doubleDagger', tip: '⚔️  Dual wield or duel wield?' },
   { name: 'wrench', tip: '🔧 To turn, to twist, to spindle.' },
@@ -289,8 +301,8 @@ export const validItemTypes = [
   { name: 'hammerAndWrench', tip: '🛠 Smash <b>and</b> grab.' },
   {
     name: 'coat',
-    effect: 'warm',
     tip: '🧥 It’s a coat! It’s a jacket! No, it’s <b>super warm</b>!',
+    heat: 1,
   },
   {
     name: 'pear',
@@ -408,6 +420,11 @@ export const tileTypes = [
   { name: 'trident', text: '🔱     ' },
   { name: 'warning', text: '🚧     ' },
   { name: 'bee', text: '🐝     ' },
+  { name: 'cold', text: '🥶' },
+  { name: 'hot', text: '🥵' },
+  { name: 'swimming', text: '🏊' },
+  { name: 'boating', text: '🚣' },
+  { name: 'death', text: '💀  ' },
 ];
 
 /**

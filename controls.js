@@ -661,6 +661,9 @@ export const makeController = ({
             dismissPackItemsExcept(inventoryIndex);
 
             worldModel.swap(player, leftHandInventoryIndex, inventoryIndex);
+            // Have to tick when moving things between pack and hands because
+            // this can cause a face change.
+            worldModel.tick();
           } else {
             return packMode;
           }

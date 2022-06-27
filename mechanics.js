@@ -17,8 +17,27 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   dialog?: Array<string>,
  *   health?: number,
  *   stamina?: number,
+ *   modes?: Array<{
+ *     tile: string,
+ *     holds?: string,
+ *     has?: string,
+ *     hot?: true,
+ *     cold?: true,
+ *     sick?: true,
+ *     dead?: true,
+ *     immersed?: true,
+ *   }>,
  * }} AgentType
  */
+
+/** @typedef {{has: true, item: number} |
+ *   {holds: true, item: number} |
+ *   {hot: true} |
+ *   {cold: true} |
+ *   {sick: true} |
+ *   {immersed: true} |
+ *   {dead: true}
+ * } Condition */
 
 /**
  * @typedef {{
@@ -27,7 +46,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   comestible?: boolean,
  *   health?: number,
  *   stamina?: number,
- *   effect?: string,
+ *   heat?: number,
+ *   boat?: boolean,
  *   tip?: string,
  * }} ItemType
  */
@@ -69,6 +89,23 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   name: string,
  *   tile?: string,
  * }} EffectType
+ */
+
+/**
+ * @typedef {Object} Kit
+ * @property {(entity: number) => number} entityType
+ * @property {(entity: number) => number} entityEffect
+ * @property {(entity: number, slot: number) => number} inventory
+ * @property {(entity: number, slot: number, itemType: number) => void} put
+ * @property {(entity: number, itemType: number) => boolean} has
+ * @property {(entity: number, itemType: number) => boolean} holds
+ * @property {(entity: number) => boolean} cold
+ * @property {(entity: number) => boolean} hot
+ * @property {(entity: number) => boolean} sick
+ * @property {(entity: number) => boolean} immersed
+ * @property {(entity: number) => boolean} dead
+ * @property {import('./model.js').MacroViewModel} macroViewModel
+ * @property {(entity: number, location: number) => void} destroyEntity
  */
 
 const specialNames = ['invalid', 'empty', 'any'];
@@ -309,16 +346,6 @@ export function makeMechanics({
   }
 
   /**
-   * @typedef {Object} Kit
-   * @property {(entity: number) => number} entityType
-   * @property {(entity: number) => number} entityEffect
-   * @property {(entity: number, slot: number) => number} inventory
-   * @property {(entity: number, slot: number, itemType: number) => void} put
-   * @property {import('./model.js').MacroViewModel} macroViewModel
-   * @property {(entity: number, location: number) => void} destroyEntity
-   */
-
-  /**
    * @param {Kit} kit
    * @param {HandlerParameters} parameters
    */
@@ -419,6 +446,100 @@ export function makeMechanics({
     bumpingFormulae.set(key, { handler, dialog });
   }
 
+  // Cross-reference agent modes.
+  const tileTypeForAgentTypePrograms = agentTypes.map(agentDesc => {
+    const { modes } = agentDesc;
+    if (modes !== undefined) {
+      return modes.map(
+        ({ tile, has, holds, hot, cold, sick, immersed, dead }) => {
+          const tileType = assumeDefined(
+            tileTypesByName[tile],
+            `No  tile type for name ${tile} for agent ${agentDesc.name}`,
+          );
+          /** @type {Array<Condition>}} */
+          const conditions = [];
+          if (has !== undefined) {
+            conditions.push({
+              has: true,
+              item: assumeDefined(
+                itemTypesByName[has],
+                `No item type for name ${has} for agent modes of ${agentDesc.name}`,
+              ),
+            });
+          }
+          if (holds !== undefined) {
+            conditions.push({
+              holds: true,
+              item: assumeDefined(
+                itemTypesByName[holds],
+                `No item type for name ${holds} for agent modes of ${agentDesc.name}`,
+              ),
+            });
+          }
+          if (hot) {
+            conditions.push({ hot: true });
+          }
+          if (cold) {
+            conditions.push({ cold: true });
+          }
+          if (sick) {
+            conditions.push({ sick: true });
+          }
+          if (immersed) {
+            conditions.push({ immersed: true });
+          }
+          if (dead) {
+            conditions.push({ dead: true });
+          }
+          return {
+            tileType,
+            conditions,
+          };
+        },
+      );
+    }
+    return [];
+  });
+
+  /**
+   * @param {number} agent
+   * @param {Kit} kit
+   */
+  function tileTypeForAgent(agent, kit) {
+    const agentType = kit.entityType(agent);
+    const program = assumeDefined(tileTypeForAgentTypePrograms[agentType]);
+    let tileType = defaultTileTypeForAgentType[agentType];
+    for (const statement of program) {
+      const { tileType: betterTileType, conditions } = statement;
+      if (
+        conditions.every(condition => {
+          if ('item' in condition) {
+            assertDefined(condition.item);
+            if ('holds' in condition) {
+              return kit.holds(agent, condition.item);
+            } else if ('has' in condition) {
+              return kit.has(agent, condition.item);
+            }
+          } else if ('hot' in condition) {
+            return kit.hot(agent);
+          } else if ('cold' in condition) {
+            return kit.cold(agent);
+          } else if ('sick' in condition) {
+            return kit.sick(agent);
+          } else if ('immersed' in condition) {
+            return kit.immersed(agent);
+          } else if ('dead' in condition) {
+            return kit.dead(agent);
+          }
+          return false;
+        })
+      ) {
+        tileType = betterTileType;
+      }
+    }
+    return tileType;
+  }
+
   return {
     agentTypes,
     itemTypes,
@@ -428,7 +549,8 @@ export function makeMechanics({
     agentTypesByName,
     itemTypesByName,
     effectTypesByName,
-    defaultTileTypeForAgentType,
+    tileTypeForAgent,
+    defaultTileTypeForAgentType, // TODO deprecate for tileTypeForAgent
     tileTypeForItemType,
     tileTypeForEffectType,
     craft,

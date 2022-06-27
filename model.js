@@ -53,6 +53,15 @@ import { quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
+ * @callback MovingReplaceFn
+ * @param {number} entity
+ * @param {number} type
+ * @param {number} destination
+ * @param {number} directionQuarturns
+ * @param {number} turnQuarturns
+ */
+
+/**
  * @callback TakeFn
  * Instructs the viewer to animate the entity being sent to the entity in the
  * given direction, as if taken by that entity.
@@ -94,6 +103,7 @@ import { quarturnToOcturn } from './geometry2d.js';
  * @property {MoveFn} move
  * @property {BounceFn} bounce
  * @property {ReplaceFn} replace
+ * @property {MovingReplaceFn} movingReplace
  * @property {TakeFn} take
  * @property {FellFn} fell
  * @property {EnterFn} enter
@@ -174,6 +184,7 @@ import { quarturnToOcturn } from './geometry2d.js';
 
 /**
  * @typedef {Object} BidExtension
+ * @property {number} destination
  * @property {boolean} repeat - Repeated actions should only attempt to move
  * the agent, not perform object specific interactions.
  */
@@ -227,7 +238,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // agentTypesByName,
     itemTypesByName,
     effectTypesByName,
-    defaultTileTypeForAgentType,
+    tileTypeForAgent,
+    defaultTileTypeForAgentType, // TODO deprecated
     // tileTypeForItemType,
     // tileTypeForEffectType,
     craft,
@@ -333,10 +345,16 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   const targets = new Map();
   /** @type {Set<number>} entity numbers of mobile entities */
   const mobiles = new Set();
-  /** @type {Set<number>} */
-  const moves = new Set();
+  /** @type {Map<number, Bid>} */
+  const moves = new Map();
   /** @type {Set<number>} */
   const removes = new Set();
+  /** @type {Map<number, number>} */
+  const bounces = new Map();
+  /** @type {Map<number, number>} entity to mode number (0 implied if absent) */
+  const tileTypes = new Map();
+  /** @type {Set<number>} entities that may have changed mode*/
+  const staleTileTypes = new Set();
   /** @type {Array<{agent: number, patient: number, origin: number, destination: number, direction: number}>} */
   const bumps = [];
   /** @type {Map<number, {type: number, next: number}>} */
@@ -411,6 +429,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   function destroyEntity(entity, location) {
     removes.add(entity);
     entityTypes.delete(entity);
+    tileTypes.delete(entity);
     mobiles.delete(entity);
     locations.delete(entity);
     entitiesWriteBuffer[location] = 0;
@@ -621,6 +640,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
     bids(target).set(entity, {
       position: source,
+      destination: target,
       direction,
       turn,
       transit,
@@ -643,11 +663,19 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     return effectTypesByName.empty;
   }
 
-  const bumpKit = {
+  const kit = {
     entityType,
     entityEffect,
     inventory,
     put,
+    has,
+    holds,
+    cold,
+    hot,
+    sick,
+    afloat,
+    immersed,
+    dead,
     destroyEntity,
     macroViewModel,
   };
@@ -680,25 +708,19 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       const losers = [...options.keys()];
       const winner = pluck(losers, Math.floor(Math.random() * losers.length));
       const change = assumeDefined(options.get(winner));
-      const { position: origin, direction, turn, repeat } = change;
+      const { position: origin, direction, repeat } = change;
       const patient = entities[destination];
       if (patient === 0) {
         // Move
-        macroViewModel.move(
-          winner,
-          destination,
-          direction * quarturnToOcturn,
-          turn,
-        );
-        onMove(winner, change, destination);
         locations.set(winner, destination);
-        moves.add(winner);
+        staleTileTypes.add(winner);
+        moves.set(winner, change);
         entitiesWriteBuffer[destination] = winner;
         entitiesWriteBuffer[origin] = 0;
       } else {
         if (!repeat) {
           // Bounce
-          macroViewModel.bounce(winner, direction * quarturnToOcturn);
+          bounces.set(winner, direction);
           // Bump
           bumps.push({
             agent: winner,
@@ -723,7 +745,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // be destroyed by another bump and therein may lay race conditions.
     for (const { agent, patient, destination, direction } of bumps) {
       if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
-        const bumped = bump(bumpKit, {
+        const bumped = bump(kit, {
           agent,
           patient,
           destination,
@@ -760,6 +782,61 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         }
       }
     }
+
+    // Orchestrate moves and moves combined with type type changes.
+    for (const [entity, change] of moves.entries()) {
+      let newType;
+      if (staleTileTypes.has(entity)) {
+        staleTileTypes.delete(entity);
+        const oldType = assumeDefined(tileTypes.get(entity));
+        newType = tileTypeForAgent(entity, kit);
+        if (oldType == newType) {
+          newType = undefined;
+        } else {
+          tileTypes.set(entity, newType);
+        }
+        // Hold my beer.
+        staleTileTypes.delete(entity);
+      }
+      const { destination, direction, turn } = change;
+      if (newType !== undefined) {
+        macroViewModel.movingReplace(
+          entity,
+          newType,
+          destination,
+          direction * quarturnToOcturn,
+          turn,
+        );
+      } else {
+        macroViewModel.move(
+          entity,
+          destination,
+          direction * quarturnToOcturn,
+          turn,
+        );
+      }
+      onMove(entity, change, destination);
+      bounces.delete(entity);
+    }
+
+    // Handle any remaining tile type change for entities that changed but did
+    // not move.
+    for (const entity of staleTileTypes) {
+      const oldType = assumeDefined(tileTypes.get(entity));
+      const newType = tileTypeForAgent(entity, kit);
+      if (oldType !== newType) {
+        console.log('hERE');
+        macroViewModel.replace(entity, newType);
+        tileTypes.set(entity, newType);
+        bounces.delete(entity);
+      }
+    }
+    staleTileTypes.clear();
+
+    for (const [entity, direction] of bounces.entries()) {
+      macroViewModel.bounce(entity, direction * quarturnToOcturn);
+    }
+    bounces.clear();
 
     // Swap generations.
     [entitiesWriteBuffer, entities] = [entities, entitiesWriteBuffer];
@@ -818,10 +895,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     const entity = createEntity(entityType);
     entities[location] = entity;
     locations.set(entity, location);
-    const tileType = defaultTileTypeForAgentType[entityType];
-    macroViewModel.put(entity, location, tileType);
-    macroViewModel.enter(entity);
-
     const { health, stamina } = agentTypes[entityType];
     if (health !== undefined) {
       healths.set(entity, health);
@@ -829,6 +902,13 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (stamina !== undefined) {
       staminas.set(entity, stamina);
     }
+
+    // tileType must be computed after stats and inventory
+    const tileType = tileTypeForAgent(entity, kit);
+    tileTypes.set(entity, tileType);
+
+    macroViewModel.put(entity, location, tileType);
+    macroViewModel.enter(entity);
 
     return entity;
   }
@@ -882,6 +962,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     const inventory = provideInventory(entity, slot + 1);
     inventory[slot] = itemType;
     onInventory(entity, slot, itemType);
+    staleTileTypes.add(entity);
   }
 
   /**
@@ -897,6 +978,82 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       return itemTypesByName.empty;
     }
     return inventory[slot];
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} itemType
+   */
+  function has(entity, itemType) {
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return false;
+    }
+    return inventory.includes(itemType);
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} itemType
+   */
+  function holds(entity, itemType) {
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return false;
+    }
+    return inventory.slice(0, 2).includes(itemType);
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function afloat(entity) {
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return false;
+    }
+    return inventory.slice(0, 2).some(itemType => itemTypes[itemType].boat);
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function immersed(entity) {
+    const location = locate(entity);
+    const terrainFlags = getTerrainFlags(location);
+    return (terrainFlags & terrainWater) !== 0;
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function dead(entity) {
+    const health = healths.get(entity) || 0;
+    return health <= 0;
+  }
+
+  /**
+   * @param {number} _entity
+   */
+  function hot(_entity) {
+    // TODO
+    return false;
+  }
+
+  /**
+   * @param {number} _entity
+   */
+  function cold(_entity) {
+    // TODO
+    return false;
+  }
+
+  /**
+   * @param {number} _entity
+   */
+  function sick(_entity) {
+    // TODO
+    return false;
   }
 
   /**
@@ -937,6 +1094,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       staminas.set(entity, newStamina);
       onStamina(entity, newStamina);
     }
+    staleTileTypes.add(entity);
     return 'discard';
   }
 
@@ -952,6 +1110,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     assert(i < inventory.length);
     assert(j < inventory.length);
     [inventory[i], inventory[j]] = [inventory[j], inventory[i]];
+    staleTileTypes.add(entity);
   }
 
   /**
@@ -1264,10 +1423,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       const purportedEntity = purportedEntities[location];
       if (purportedEntity !== 0) {
         const type = assumeDefined(purportedEntityTypes.get(purportedEntity));
-        const tileType = defaultTileTypeForAgentType[type];
         const actualEntity = createEntity(type);
         assert(actualEntity === purportedEntity);
-        macroViewModel.put(actualEntity, location, tileType);
         entities[location] = actualEntity;
         locations.set(actualEntity, location);
       }
@@ -1287,6 +1444,14 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     healths.clear();
     staminas.clear();
     // TODO load healths, staminas
+
+    // Tile type for each agent is a function of its inventory and related state
+    // so must be computed last.
+    for (const [entity, location] of locations.entries()) {
+      const tileType = tileTypeForAgent(entity, kit);
+      tileTypes.set(entity, tileType);
+      macroViewModel.put(entity, location, tileType);
+    }
 
     return agent;
   }
