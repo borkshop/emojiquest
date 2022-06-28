@@ -342,7 +342,6 @@ export const tileTypes = [
   { name: 'swap', text: '🤝    ' },
   { name: 'right', text: '🫱   ', turn: 6 },
   { name: 'watch', text: '⏱ ' },
-  { name: 'back', text: '🔙     ' },
   { name: 'health', text: '❤️ ' },
   { name: 'stamina', text: '💛 ' },
   { name: 'healthSlot', text: '🖤 ' },
