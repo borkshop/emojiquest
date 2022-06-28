@@ -874,7 +874,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       }
       const newType = tileTypeForAgent(entity, kit);
       if (oldType !== newType) {
-        console.log('hERE');
         macroViewModel.replace(entity, newType);
         tileTypes.set(entity, newType);
         bounces.delete(entity);
