@@ -1,5 +1,11 @@
 import { makeDaia } from './daia.js';
-import { makeModel, terrainWater, terrainLava } from './model.js';
+import {
+  makeModel,
+  terrainWater,
+  terrainLava,
+  terrainCold,
+  terrainHot,
+} from './model.js';
 import { makeMechanics } from './mechanics.js';
 import { makeController } from './controls.js';
 import { makeViewModel } from './view-model.js';
@@ -128,7 +134,7 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
 /**
  * @param {import('ava').ExecutionContext} t
  */
-export const makeScaffold = (t, { size = 3 } = {}) => {
+export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
   /** @type {Record<string, string>} */
   const glyphsByTileName = {
     north: '^',
@@ -150,6 +156,9 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     happy: '@',
     appleTree: 'A',
     knittingNeedles: 'n',
+    ...Object.fromEntries(
+      Object.entries(legend).map(([glyph, name]) => [name, glyph]),
+    ),
   };
 
   /** @type {number | undefined} */
@@ -163,6 +172,7 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
     M: 'mountain',
     B: 'bank',
     F: 'forge',
+    ...legend,
   };
 
   const mechanics = makeMechanics({
@@ -360,9 +370,13 @@ export const makeScaffold = (t, { size = 3 } = {}) => {
       for (const glyph of line) {
         const location = world.tileNumber({ x, y, f });
         if (glyph === 'w') {
-          worldModel.setTerrainFlags(location, terrainWater);
+          worldModel.toggleTerrainFlags(location, terrainWater);
         } else if (glyph === 'l') {
-          worldModel.setTerrainFlags(location, terrainLava);
+          worldModel.toggleTerrainFlags(location, terrainLava);
+        } else if (glyph === 'h') {
+          worldModel.toggleTerrainFlags(location, terrainHot);
+        } else if (glyph === 'c') {
+          worldModel.toggleTerrainFlags(location, terrainCold);
         } else {
           t.assert(glyph === '.');
         }
