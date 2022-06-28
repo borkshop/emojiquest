@@ -404,6 +404,13 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   /** @type {Map<number, number>} */
   const staminas = new Map();
 
+  /** @type {Set<number>} */
+  const staleHealths = new Set();
+  /** @type {Map<number, number>} */
+  const healthTrajectories = new Map();
+  /** @type {Set<number>} */
+  const staleHealthTrajectories = new Set();
+
   /**
    * Note that entity numbers are not reused and this could lead to problems if
    * the next ID counter fills the double precision mantissa.
@@ -432,6 +439,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     tileTypes.delete(entity);
     mobiles.delete(entity);
     locations.delete(entity);
+    entityTypes.delete(entity);
+    mobiles.delete(entity);
+    staleTileTypes.delete(entity);
+    staleHealths.delete(entity);
+    staleHealthTrajectories.delete(entity);
     entitiesWriteBuffer[location] = 0;
   }
 
@@ -699,6 +711,36 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       intendToMove(entity, Math.floor(Math.random() * 4));
     }
 
+    // Update entity health trajectories
+    for (const entity of staleHealthTrajectories) {
+      const unhealthy = temperature(entity) !== 0;
+      if (unhealthy) {
+        healthTrajectories.set(entity, -1);
+      } else {
+        healthTrajectories.delete(entity);
+      }
+    }
+
+    // Update entity health
+    for (const [entity, trajectory] of healthTrajectories.entries()) {
+      let health = healths.get(entity) || 0;
+      health += trajectory;
+      health = Math.max(0, health);
+      if (health === 0) {
+        healths.delete(entity);
+      } else {
+        healths.set(entity, health);
+      }
+      staleHealths.add(entity);
+      staleTileTypes.add(entity);
+    }
+
+    // Emit health change
+    for (const entity of staleHealths) {
+      const health = healths.get(entity) || 0;
+      onHealth(entity, health);
+    }
+
     // Prepare the next generation
     entitiesWriteBuffer.set(entities);
 
@@ -714,6 +756,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         // Move
         locations.set(winner, destination);
         staleTileTypes.add(winner);
+        staleHealthTrajectories.add(winner);
         moves.set(winner, change);
         entitiesWriteBuffer[destination] = winner;
         entitiesWriteBuffer[origin] = 0;
@@ -822,7 +865,13 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // Handle any remaining tile type change for entities that changed but did
     // not move.
     for (const entity of staleTileTypes) {
-      const oldType = assumeDefined(tileTypes.get(entity));
+      const oldType = tileTypes.get(entity);
+      if (oldType === undefined) {
+        // TODO something is causing entities to get added to the stale bucket
+        // after they were removed. Shrug.
+        continue;
+        // throw new Error(`Assertion failure: entity ${entity} at ${locations.get(entity)} has no tile type`);
+      }
       const newType = tileTypeForAgent(entity, kit);
       if (oldType !== newType) {
         console.log('hERE');
@@ -910,6 +959,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     macroViewModel.put(entity, location, tileType);
     macroViewModel.enter(entity);
 
+    staleHealthTrajectories.add(entity);
+    staleHealths.add(entity);
+
     return entity;
   }
 
@@ -924,6 +976,9 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       inventories.delete(entity);
       entityTypes.delete(entity);
       mobiles.delete(entity);
+      staleTileTypes.delete(entity);
+      staleHealths.delete(entity);
+      staleHealthTrajectories.delete(entity);
       entities[location] = 0;
     }
     return entity;
@@ -963,6 +1018,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     inventory[slot] = itemType;
     onInventory(entity, slot, itemType);
     staleTileTypes.add(entity);
+    staleHealthTrajectories.add(entity);
   }
 
   /**
@@ -1107,7 +1163,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       const oldHealth = healths.get(entity) || 0;
       const newHealth = Math.min(5, oldHealth + 1);
       healths.set(entity, newHealth);
-      onHealth(entity, newHealth);
+      staleHealths.add(entity);
     }
     const staminaEffect = itemDescriptor.stamina;
     if (staminaEffect !== undefined) {
@@ -1133,6 +1189,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     assert(j < inventory.length);
     [inventory[i], inventory[j]] = [inventory[j], inventory[i]];
     staleTileTypes.add(entity);
+    staleHealthTrajectories.add(entity);
   }
 
   /**
