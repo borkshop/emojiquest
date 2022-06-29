@@ -101,6 +101,7 @@ test('move', t => {
 test('the apple tree', t => {
   const s = makeScaffold(t);
   s.scene('@ A');
+  s.health = 3;
   s.play();
   s.expectControls(`
     . ^ .
@@ -136,6 +137,7 @@ test('the pear tree', t => {
     . @ P
     . . .
   `);
+  s.stamina = 3;
   s.play();
 
   s.expectScene(`

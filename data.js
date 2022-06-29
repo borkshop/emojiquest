@@ -15,14 +15,18 @@ export const validAgentTypes = [
   {
     name: 'player',
     tile: 'happy',
-    health: 3,
-    stamina: 3,
+    health: 5,
+    stamina: 0,
     modes: [
-      { tile: 'cold', cold: true },
-      { tile: 'hot', hot: true },
+      { tile: 'ecstatic', health: 5, stamina: 5 },
       { tile: 'swimming', immersed: true },
       { tile: 'boating', immersed: true, holds: 'canoe' },
-      { tile: 'death', dead: true },
+      { tile: 'cold', cold: true },
+      { tile: 'hot', hot: true },
+      { tile: 'sad', health: 3 },
+      { tile: 'bad', health: 2 },
+      { tile: 'grimmace', health: 1 },
+      { tile: 'death', health: 0 },
     ],
   },
   {
@@ -222,6 +226,7 @@ export const validAgentTypes = [
       '🐝 I could spell in 𝓫𝓵𝓮𝓼𝓼𝓲𝓿𝓮!',
     ],
   },
+  { name: 'swimBriefs' }, // temporary
 ];
 
 /**
@@ -313,6 +318,11 @@ export const validItemTypes = [
   {
     name: 'clover',
     tip: '☘️  One leaf shy of lucky.',
+  },
+  {
+    name: 'swimBriefs',
+    tip: '🩲 Keep on swimming.',
+    swimGear: true,
   },
 ];
 
@@ -424,6 +434,11 @@ export const tileTypes = [
   { name: 'swimming', text: '🏊' },
   { name: 'boating', text: '🚣' },
   { name: 'death', text: '💀  ' },
+  { name: 'ecstatic', text: '😀       ' }, // 5
+  { name: 'sad', text: '🙁  ' }, // 3
+  { name: 'bad', text: '☹️         ' }, // 2
+  { name: 'grimmace', text: '😬          ' }, // 1
+  { name: 'swimBriefs', text: '🩲  ' },
 ];
 
 /**
@@ -492,7 +507,8 @@ export const recipes = [
 export const actions = [
   // raw material
   { patient: 'axe', verb: 'take', items: ['axe'] },
-  { patient: 'coat', verb: 'take', items: ['coat'] },
+  { patient: 'coat', verb: 'take', items: ['coat'] }, // temporary
+  { patient: 'swimBriefs', verb: 'take', items: ['swimBriefs'] }, // temporary
   { patient: 'pineTree', left: 'axe', verb: 'reap', items: ['softwood'] },
   { patient: 'appleTree', left: 'axe', verb: 'reap', items: ['hardwood'] },
   { patient: 'pick', right: 'any', verb: 'take', items: ['pick'] },

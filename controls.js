@@ -444,6 +444,7 @@ export const makeController = ({
     const playMode = {
       name: 'play',
       press(command, repeat) {
+        repeat = repeat && worldModel.entityHealth(player) === 5;
         const direction = commandDirection[command];
         if (direction !== undefined) {
           worldModel.intendToMove(player, direction, repeat);

@@ -24,7 +24,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *     hot?: true,
  *     cold?: true,
  *     sick?: true,
- *     dead?: true,
+ *     health?: number,
+ *     stamina?: number,
  *     immersed?: true,
  *   }>,
  * }} AgentType
@@ -36,7 +37,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   {cold: true} |
  *   {sick: true} |
  *   {immersed: true} |
- *   {dead: true}
+ *   {health: number} |
+ *   {stamina: number}
  * } Condition */
 
 /**
@@ -48,6 +50,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  *   stamina?: number,
  *   heat?: number,
  *   boat?: boolean,
+ *   swimGear?: boolean,
  *   tip?: string,
  * }} ItemType
  */
@@ -103,7 +106,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  * @property {(entity: number) => boolean} hot
  * @property {(entity: number) => boolean} sick
  * @property {(entity: number) => boolean} immersed
- * @property {(entity: number) => boolean} dead
+ * @property {(entity: number) => number} entityHealth
+ * @property {(entity: number) => number} entityStamina
  * @property {import('./model.js').MacroViewModel} macroViewModel
  * @property {(entity: number, location: number) => void} destroyEntity
  */
@@ -451,7 +455,7 @@ export function makeMechanics({
     const { modes } = agentDesc;
     if (modes !== undefined) {
       return modes.map(
-        ({ tile, has, holds, hot, cold, sick, immersed, dead }) => {
+        ({ tile, has, holds, hot, cold, sick, immersed, health, stamina }) => {
           const tileType = assumeDefined(
             tileTypesByName[tile],
             `No  tile type for name ${tile} for agent ${agentDesc.name}`,
@@ -488,8 +492,11 @@ export function makeMechanics({
           if (immersed) {
             conditions.push({ immersed: true });
           }
-          if (dead) {
-            conditions.push({ dead: true });
+          if (health !== undefined) {
+            conditions.push({ health });
+          }
+          if (stamina !== undefined) {
+            conditions.push({ stamina });
           }
           return {
             tileType,
@@ -528,8 +535,10 @@ export function makeMechanics({
             return kit.sick(agent);
           } else if ('immersed' in condition) {
             return kit.immersed(agent);
-          } else if ('dead' in condition) {
-            return kit.dead(agent);
+          } else if ('health' in condition) {
+            return kit.entityHealth(agent) === condition.health;
+          } else if ('stamina' in condition) {
+            return kit.entityStamina(agent) === condition.stamina;
           }
           return false;
         })

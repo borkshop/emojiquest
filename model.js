@@ -185,6 +185,8 @@ import { quarturnToOcturn } from './geometry2d.js';
 /**
  * @typedef {Object} BidExtension
  * @property {number} destination
+ * @property {number} health
+ * @property {number} stamina
  * @property {boolean} repeat - Repeated actions should only attempt to move
  * the agent, not perform object specific interactions.
  */
@@ -650,14 +652,25 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       transit,
     } = advance({ position: source, direction });
 
-    bids(target).set(entity, {
-      position: source,
-      destination: target,
-      direction,
-      turn,
-      transit,
-      repeat,
-    });
+    const { passable, dialog, health, stamina } = pass(entity, target);
+    if (!passable) {
+      assertDefined(dialog);
+      bounces.set(entity, direction);
+      onDialog(entity, dialog);
+    } else {
+      assertDefined(health);
+      assertDefined(stamina);
+      bids(target).set(entity, {
+        position: source,
+        destination: target,
+        direction,
+        turn,
+        transit,
+        repeat,
+        health,
+        stamina,
+      });
+    }
   }
 
   /**
@@ -687,7 +700,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     sick,
     afloat,
     immersed,
-    dead,
+    entityHealth,
+    entityStamina,
     destroyEntity,
     macroViewModel,
   };
@@ -732,13 +746,13 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         healths.set(entity, health);
       }
       staleHealths.add(entity);
-      staleTileTypes.add(entity);
     }
 
     // Emit health change
     for (const entity of staleHealths) {
       const health = healths.get(entity) || 0;
       onHealth(entity, health);
+      staleTileTypes.add(entity);
     }
 
     // Prepare the next generation
@@ -750,7 +764,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       const losers = [...options.keys()];
       const winner = pluck(losers, Math.floor(Math.random() * losers.length));
       const change = assumeDefined(options.get(winner));
-      const { position: origin, direction, repeat } = change;
+      const { position: origin, direction, repeat, health, stamina } = change;
       const patient = entities[destination];
       if (patient === 0) {
         // Move
@@ -760,6 +774,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         moves.set(winner, change);
         entitiesWriteBuffer[destination] = winner;
         entitiesWriteBuffer[origin] = 0;
+        adjustHealth(winner, health);
+        adjustStamina(winner, stamina);
       } else {
         if (!repeat) {
           // Bounce
@@ -1067,7 +1083,24 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     if (inventory === undefined) {
       return false;
     }
-    return inventory.slice(0, 2).some(itemType => itemTypes[itemType].boat);
+    return inventory.slice(0, 2).some(itemType => {
+      const itemDesc = itemTypes[itemType];
+      return 'swimGear' in itemDesc;
+    });
+  }
+
+  /**
+   * @param {number} entity
+   */
+  function aboat(entity) {
+    const inventory = inventories.get(entity);
+    if (inventory === undefined) {
+      return false;
+    }
+    return inventory.slice(0, 2).some(itemType => {
+      const itemDesc = itemTypes[itemType];
+      return 'boat' in itemDesc;
+    });
   }
 
   /**
@@ -1077,14 +1110,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     const location = locate(entity);
     const terrainFlags = getTerrainFlags(location);
     return (terrainFlags & terrainWater) !== 0;
-  }
-
-  /**
-   * @param {number} entity
-   */
-  function dead(entity) {
-    const health = healths.get(entity) || 0;
-    return health <= 0;
   }
 
   /**
@@ -1135,16 +1160,44 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /**
    * @param {number} entity
+   * @param {number} location
+   */
+  function pass(entity, location) {
+    const terrainFlags = getTerrainFlags(location);
+    // const health = healths.get(entity) || 0;
+    const stamina = staminas.get(entity) || 0;
+    // TODO
+    // if (healths.get(entity) || 0 === 0) {
+    //   return { passable: false, dialog: '💀!!1!' };
+    // }
+    if ((terrainFlags & terrainWater) !== 0) {
+      if (afloat(entity)) {
+        if (stamina > 0) {
+          return { passable: true, stamina: -1, health: 0 };
+        } else {
+          return { passable: true, stamina: 0, health: -1 };
+        }
+      } else if (aboat(entity)) {
+        return { passable: true, stamina: 0, health: 0 };
+      } else {
+        return { passable: false, dialog: '🌊!!1!' };
+      }
+    }
+    return { passable: true, stamina: 0, health: 0 };
+  }
+
+  /**
+   * @param {number} entity
    */
   function entityStamina(entity) {
-    return assumeDefined(staminas.get(entity));
+    return staminas.get(entity) || 0;
   }
 
   /**
    * @param {number} entity
    */
   function entityHealth(entity) {
-    return assumeDefined(healths.get(entity));
+    return healths.get(entity) || 0;
   }
 
   /**
@@ -1159,10 +1212,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     inventory[inventoryIndex] = emptyItem; // poof
     const healthEffect = itemDescriptor.health;
     if (healthEffect !== undefined) {
-      const oldHealth = healths.get(entity) || 0;
-      const newHealth = Math.min(5, oldHealth + 1);
-      healths.set(entity, newHealth);
-      staleHealths.add(entity);
+      adjustHealth(entity, 1);
     }
     const staminaEffect = itemDescriptor.stamina;
     if (staminaEffect !== undefined) {
@@ -1173,6 +1223,57 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     }
     staleTileTypes.add(entity);
     return 'discard';
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} amount
+   */
+  function adjustStamina(entity, amount) {
+    if (amount === 0) return;
+    const oldStamina = staminas.get(entity) || 0;
+    const newStamina = Math.max(0, Math.min(5, oldStamina + amount));
+    setStamina(entity, newStamina);
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} stamina
+   */
+  function setStamina(entity, stamina) {
+    if (stamina === 0) {
+      staminas.delete(entity);
+    } else {
+      staminas.set(entity, stamina);
+    }
+    // TODO
+    // staleStaminas.add(entity);
+    onStamina(entity, stamina);
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} amount
+   */
+  function adjustHealth(entity, amount) {
+    if (amount === 0) return;
+    const oldHealth = healths.get(entity) || 0;
+    const newHealth = Math.max(0, Math.min(5, oldHealth + amount));
+    setHealth(entity, newHealth);
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} health
+   */
+  function setHealth(entity, health) {
+    if (health === 0) {
+      healths.delete(entity);
+    } else {
+      healths.set(entity, health);
+    }
+    staleHealths.add(entity);
+    onHealth(entity, health);
   }
 
   /**
@@ -1549,9 +1650,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     craft,
     locate,
     entityAt,
+    entityType,
     entityTypeAt,
     entityStamina,
     entityHealth,
+    setHealth, // for tests only
+    setStamina, // for tests only
     watchTerrain,
     unwatchTerrain,
     getTerrainFlags,

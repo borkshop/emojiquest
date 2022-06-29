@@ -1,3 +1,4 @@
+import { assertDefined } from './assert.js';
 import { makeDaia } from './daia.js';
 import {
   makeModel,
@@ -470,8 +471,18 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     get health() {
       return health;
     },
+    /** @param {number} health */
+    set health(health) {
+      assertDefined(player);
+      worldModel.setHealth(player, health);
+    },
     get stamina() {
       return stamina;
+    },
+    /** @param {number} stamina */
+    set stamina(stamina) {
+      assertDefined(player);
+      worldModel.setStamina(player, stamina);
     },
   };
 };
