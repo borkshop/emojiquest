@@ -1177,12 +1177,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
           return { passable: true, stamina: 0, health: -1 };
         }
       } else if (aboat(entity)) {
-        return { passable: true, stamina: 0, health: 0 };
+        return { passable: true, stamina: 1, health: 0 };
       } else {
         return { passable: false, dialog: '🌊!!1!' };
       }
     }
-    return { passable: true, stamina: 0, health: 0 };
+    return { passable: true, stamina: 1, health: 0 };
   }
 
   /**
