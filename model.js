@@ -1164,12 +1164,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    */
   function pass(entity, location) {
     const terrainFlags = getTerrainFlags(location);
-    // const health = healths.get(entity) || 0;
+    const health = healths.get(entity) || 0;
     const stamina = staminas.get(entity) || 0;
-    // TODO
-    // if (healths.get(entity) || 0 === 0) {
-    //   return { passable: false, dialog: '💀!!1!' };
-    // }
+    if (health === 0) {
+      return { passable: false, dialog: '💀!!1!' };
+    }
     if ((terrainFlags & terrainWater) !== 0) {
       if (afloat(entity)) {
         if (stamina > 0) {
