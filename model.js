@@ -727,7 +727,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
     // Update entity health trajectories
     for (const entity of staleHealthTrajectories) {
-      const unhealthy = temperature(entity) !== 0;
+      const unhealthy = hot(entity) || cold(entity);
       if (unhealthy) {
         healthTrajectories.set(entity, -1);
       } else {
@@ -1140,7 +1140,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} entity
    */
   function hot(entity) {
-    return temperature(entity) > 0;
+    return temperature(entity) > 1;
   }
 
   /**
