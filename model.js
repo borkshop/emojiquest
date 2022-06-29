@@ -1364,21 +1364,39 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       });
     }
 
+    /** @type {Array<{entity: number, health: number}} */
+    const rehealths = [];
+    for (const [entity, health] of healths.entries()) {
+      const reentity = assumeDefined(renames.get(entity));
+      rehealths.push({
+        entity: reentity,
+        health,
+      });
+    }
+    /** @type {Array<{entity: number, stamina: number}} */
+    const restaminas = [];
+    for (const [entity, stamina] of staminas.entries()) {
+      const reentity = assumeDefined(renames.get(entity));
+      restaminas.push({
+        entity: reentity,
+        stamina,
+      });
+    }
+
     /** @type {number | undefined} reagent */
     let reagent;
     if (agent !== undefined) {
       reagent = assumeDefined(renames.get(agent));
     }
 
-    // TODO capture agent entity id
     return {
       agent: reagent,
       locations: relocations,
       types: retypes,
       inventories: reinventories,
       terrain: [...terrain.slice()],
-      // healths,
-      // staminas,
+      healths: rehealths,
+      staminas: restaminas,
     };
   }
 
@@ -1401,6 +1419,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       types: allegedTypes,
       inventories: allegedInventories,
       terrain: allegedTerrain,
+      healths: allegedHealths,
+      staminas: allegedStaminas,
     } = snapshot;
 
     if (allegedAgent === undefined) {
@@ -1428,6 +1448,16 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       return ['missing "terrain"'];
     } else if (!Array.isArray(allegedTerrain)) {
       return ['"terrain" must be an array'];
+    }
+    if (allegedHealths === undefined) {
+      return ['missing "healths"'];
+    } else if (!Array.isArray(allegedHealths)) {
+      return ['"healths" must be an array'];
+    }
+    if (allegedStaminas === undefined) {
+      return ['missing "staminas"'];
+    } else if (!Array.isArray(allegedStaminas)) {
+      return ['"staminas" must be an array'];
     }
 
     /** @type {Map<number, number>} */
@@ -1515,7 +1545,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       const { entity: allegedEntity, inventory: allegedInventory } = entry;
       if (typeof allegedEntity !== 'number') {
         errors.push(
-          `every entry in "inventories" must have an "entry" number, got ${JSON.stringify(
+          `every entry in "inventories" must have an "entity" number, got ${JSON.stringify(
             allegedEntity,
           )}`,
         );
@@ -1561,6 +1591,84 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       purportedInventories.set(reentity, inventory);
     }
 
+    /** @type {Map<number, number>} */
+    const purportedHealths = new Map();
+    for (const allegedEntry of allegedHealths) {
+      if (typeof allegedEntry !== 'object') {
+        errors.push(
+          `every entry in "healths" must be an "object", got ${JSON.stringify(
+            allegedEntry,
+          )}`,
+        );
+        continue;
+      }
+      const entry = /* @type {{[name: string]: unknown}} */ allegedEntry;
+      const { entity: allegedEntity, health: allegedHealth } = entry;
+      if (typeof allegedEntity !== 'number') {
+        errors.push(
+          `every entry in "healths" must have an "entity" number, got ${JSON.stringify(
+            allegedEntity,
+          )}`,
+        );
+        continue;
+      }
+      if (typeof allegedHealth !== 'number') {
+        errors.push(
+          `every entry in "healths" must have an "health" number, got ${JSON.stringify(
+            allegedHealth,
+          )}`,
+        );
+        continue;
+      }
+      const reentity = renames.get(allegedEntity);
+      if (reentity === undefined) {
+        errors.push(
+          `an entry in "healths" for the alleged entity ${allegedEntity} is missing from the map`,
+        );
+        continue;
+      }
+      purportedHealths.set(reentity, allegedHealth);
+    }
+
+    /** @type {Map<number, number>} */
+    const purportedStaminas = new Map();
+    for (const allegedEntry of allegedStaminas) {
+      if (typeof allegedEntry !== 'object') {
+        errors.push(
+          `every entry in "staminas" must be an "object", got ${JSON.stringify(
+            allegedEntry,
+          )}`,
+        );
+        continue;
+      }
+      const entry = /* @type {{[name: string]: unknown}} */ allegedEntry;
+      const { entity: allegedEntity, stamina: allegedStamina } = entry;
+      if (typeof allegedEntity !== 'number') {
+        errors.push(
+          `every entry in "staminas" must have an "entity" number, got ${JSON.stringify(
+            allegedEntity,
+          )}`,
+        );
+        continue;
+      }
+      if (typeof allegedStamina !== 'number') {
+        errors.push(
+          `every entry in "staminas" must have an "stamina" number, got ${JSON.stringify(
+            allegedStamina,
+          )}`,
+        );
+        continue;
+      }
+      const reentity = renames.get(allegedEntity);
+      if (reentity === undefined) {
+        errors.push(
+          `an entry in "staminas" for the alleged entity ${allegedEntity} is missing from the map`,
+        );
+        continue;
+      }
+      purportedStaminas.set(reentity, allegedStamina);
+    }
+
     const agent = renames.get(allegedAgent);
     if (agent === undefined) {
       errors.push(`Missing entity for alleged player agent ${allegedAgent}`);
@@ -1592,6 +1700,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     // Reset just in case there's some dangling state transition in progress.
     tock();
     mobiles.clear();
+    healths.clear();
+    staminas.clear();
     for (let location = 0; location < size; location += 1) {
       const entity = entities[location];
       if (entity !== 0) {
@@ -1606,6 +1716,14 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
         assert(actualEntity === purportedEntity);
         entities[location] = actualEntity;
         locations.set(actualEntity, location);
+        const actualHealth = purportedHealths.get(purportedEntity) || 0;
+        if (actualHealth !== 0) {
+          healths.set(actualEntity, actualHealth);
+        }
+        const actualStamina = purportedStaminas.get(purportedEntity) || 0;
+        if (actualStamina !== 0) {
+          staminas.set(actualEntity, actualStamina);
+        }
       }
     }
     inventories.clear();
@@ -1619,10 +1737,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     for (let location = 0; location < size; location += 1) {
       setTerrainFlags(location, purportedTerrain[location]);
     }
-
-    healths.clear();
-    staminas.clear();
-    // TODO load healths, staminas
 
     // Tile type for each agent is a function of its inventory and related state
     // so must be computed last.
