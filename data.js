@@ -506,17 +506,70 @@ export const recipes = [
  */
 export const actions = [
   // raw material
-  { patient: 'axe', verb: 'take', items: ['axe'] },
+  {
+    patient: 'axe',
+    verb: 'take',
+    items: ['axe'],
+    dialog: '🪓 You get an axe.',
+  },
   { patient: 'coat', verb: 'take', items: ['coat'] }, // temporary
   { patient: 'swimBriefs', verb: 'take', items: ['swimBriefs'] }, // temporary
-  { patient: 'pineTree', left: 'axe', verb: 'reap', items: ['softwood'] },
-  { patient: 'appleTree', left: 'axe', verb: 'reap', items: ['hardwood'] },
-  { patient: 'pick', right: 'any', verb: 'take', items: ['pick'] },
-  { patient: 'mountain', left: 'pick', verb: 'cut', items: ['copper'] },
-  { patient: 'ewe', left: 'scissors', verb: 'cut', items: ['yarn'] },
-  { patient: 'ewe', left: 'knife', verb: 'reap', items: ['meat'] },
-  { patient: 'ram', left: 'scissors', verb: 'cut', items: ['yarn'] },
-  { patient: 'ram', left: 'knife', verb: 'reap', items: ['meat'] },
+  {
+    patient: 'pineTree',
+    left: 'axe',
+    verb: 'reap',
+    items: ['softwood'],
+    dialog: '🌲🪓🔜🪵 You chop down a pine tree.',
+  },
+  {
+    patient: 'appleTree',
+    left: 'axe',
+    verb: 'reap',
+    items: ['hardwood'],
+    dialog: '🌳🪓🔜🪵 You chop down an apple tree.',
+  },
+  {
+    patient: 'pick',
+    right: 'any',
+    verb: 'take',
+    items: ['pick'],
+    dialog: '⛏ Got pick?',
+  },
+  {
+    patient: 'mountain',
+    left: 'pick',
+    verb: 'cut',
+    items: ['copper'],
+    dialog: '⛰⛏🔜🥉 You win copper!',
+  },
+  {
+    patient: 'ewe',
+    left: 'scissors',
+    verb: 'cut',
+    items: ['yarn'],
+    dialog: '🐑✂️🔜🧶 Wool becomes ewe?',
+  },
+  {
+    patient: 'ewe',
+    left: 'knife',
+    verb: 'reap',
+    items: ['meat'],
+    dialog: '🐑🔪🔜🥩 Was this a Miss Steak?',
+  },
+  {
+    patient: 'ram',
+    left: 'scissors',
+    verb: 'cut',
+    items: ['yarn'],
+    dialog: '🐏✂️🔜🧶 Shear audacity!',
+  },
+  {
+    patient: 'ram',
+    left: 'knife',
+    verb: 'reap',
+    items: ['meat'],
+    dialog: '🐏🐑🔪🔜🥩 Meat your maker!',
+  },
   {
     patient: 'appleTree',
     right: 'any',
@@ -531,7 +584,13 @@ export const actions = [
     items: ['pear'],
     dialog: '🍐 The fruit of the <b>🌳 world tree</b> comes in pears',
   },
-  { patient: 'pineTree', right: 'any', verb: 'pick', items: ['pineApple'] },
+  {
+    patient: 'pineTree',
+    right: 'any',
+    verb: 'pick',
+    items: ['pineApple'],
+    dialog: '🍍 Got <i>pine</i> apple. ',
+  },
   // monetary exchange
   {
     patient: 'bank',
@@ -539,6 +598,7 @@ export const actions = [
     right: 'copper',
     verb: 'merge',
     items: ['silver'],
+    dialog: '🥉🥉🔜🥈 Traded copper up.',
   },
   {
     patient: 'bank',
@@ -546,6 +606,7 @@ export const actions = [
     right: 'copper',
     verb: 'merge',
     items: ['gold'],
+    dialog: '🥈🥉🔜🥇 I love gold!',
   },
   {
     patient: 'bank',
@@ -553,25 +614,21 @@ export const actions = [
     right: 'silver',
     verb: 'merge',
     items: ['gold'],
+    dialog: '🥉🥈🔜🥇 Gold, I love!',
   },
   {
     patient: 'bank',
     left: 'silver',
     verb: 'split',
     items: ['copper', 'copper'],
+    dialog: '🥈🔜🥉🥉 A bird in hand is worth two in the bush.',
   },
   {
     patient: 'bank',
-    right: 'silver',
-    verb: 'split',
-    items: ['copper', 'copper'],
-  },
-  { patient: 'bank', left: 'gold', verb: 'split', items: ['silver', 'copper'] },
-  {
-    patient: 'bank',
-    right: 'gold',
+    left: 'gold',
     verb: 'split',
     items: ['silver', 'copper'],
+    dialog: '🥇🔜🥈🥉 Don’t spend it all in one place.',
   },
   // forgery
   {
@@ -580,6 +637,7 @@ export const actions = [
     right: 'any',
     verb: 'replace',
     items: ['link'],
+    dialog: '🔗 Link awakened.',
   },
   {
     patient: 'forge',
@@ -587,6 +645,7 @@ export const actions = [
     right: 'any',
     verb: 'replace',
     items: ['bolt'],
+    dialog: '🔩 Forged a bolt.',
   },
   {
     patient: 'forge',
@@ -594,13 +653,20 @@ export const actions = [
     right: 'any',
     verb: 'replace',
     items: ['gear'],
+    dialog: '⚙️  Gear made.',
   },
-  { patient: 'boulder', verb: 'pick', items: ['pick'] },
+  {
+    patient: 'boulder',
+    verb: 'pick',
+    items: ['pick'],
+    dialog: '⛏ You find a pick under this boulder.',
+  },
   {
     patient: 'clover',
     right: 'any',
     verb: 'pick',
     items: ['clover'],
+    dialog: '☘️ One leaf shy of lucky.',
   },
 ];
 
