@@ -15,7 +15,7 @@
 // @ts-check
 
 import { assert, assertDefined, assumeDefined } from './assert.js';
-import { quarturnToOcturn } from './geometry2d.js';
+import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
 
 /**
  * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
@@ -187,7 +187,6 @@ import { quarturnToOcturn } from './geometry2d.js';
  * @property {number} destination
  * @property {number} health
  * @property {number} stamina
- * @property {boolean} repeat - Repeated actions should only attempt to move
  * the agent, not perform object specific interactions.
  */
 
@@ -364,6 +363,8 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
 
   /** @type {Set<number>} */
   const craftIntents = new Set();
+  /** @type {Map<number, number>} agent to patient */
+  const bumpIntents = new Map();
 
   /**
    * Functions to inform of the motion of an entity.
@@ -634,42 +635,58 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
   }
 
   /**
-   * @param {number} entity
+   * @param {number} agent
    * @param {number} direction - in quarters clockwise from north
    * @param {boolean} repeat - whether the agent intends to act upon the
    * patient before them.
    */
-  function intendToMove(entity, direction, repeat = false) {
-    if (moveIntents.has(entity) || craftIntents.has(entity)) {
+  function intendToMove(agent, direction, repeat = false) {
+    if (
+      moveIntents.has(agent) ||
+      craftIntents.has(agent) ||
+      bumpIntents.has(agent)
+    ) {
       return;
     }
-    moveIntents.set(entity, direction);
+    moveIntents.set(agent, direction);
 
-    const source = locate(entity);
+    const origin = locate(agent);
     const {
-      position: target,
+      position: destination,
       turn,
       transit,
-    } = advance({ position: source, direction });
+    } = advance({ position: origin, direction });
 
-    const { passable, dialog, health, stamina } = pass(entity, target);
-    if (!passable) {
-      assertDefined(dialog);
-      bounces.set(entity, direction);
-      onDialog(entity, dialog);
+    const patient = entities[destination];
+    if (patient !== 0) {
+      if (!repeat) {
+        bumps.push({
+          agent,
+          patient,
+          origin,
+          destination,
+          direction,
+        });
+      }
     } else {
-      assertDefined(health);
-      assertDefined(stamina);
-      bids(target).set(entity, {
-        position: source,
-        destination: target,
-        direction,
-        turn,
-        transit,
-        repeat,
-        health,
-        stamina,
-      });
+      const { passable, dialog, health, stamina } = pass(agent, destination);
+      if (!passable) {
+        assertDefined(dialog);
+        bounces.set(agent, direction);
+        onDialog(agent, dialog);
+      } else {
+        assertDefined(health);
+        assertDefined(stamina);
+        bids(destination).set(agent, {
+          position: origin,
+          destination,
+          direction,
+          turn,
+          transit,
+          health,
+          stamina,
+        });
+      }
     }
   }
 
@@ -677,7 +694,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
    * @param {number} entity
    */
   function intendToCraft(entity) {
-    if (moveIntents.has(entity) || craftIntents.has(entity)) {
+    if (
+      moveIntents.has(entity) ||
+      craftIntents.has(entity) ||
+      bumpIntents.has(entity)
+    ) {
       return;
     }
 
@@ -688,9 +709,35 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     return effectTypesByName.empty;
   }
 
+  /**
+   * @param {number} entity
+   * @param {number} direction
+   * @param {number} location
+   */
+  function take(entity, direction, location) {
+    macroViewModel.take(
+      entity,
+      (direction * quarturnToOcturn + halfOcturn) % fullOcturn,
+    );
+    destroyEntity(entity, location);
+    bounces.delete(entity);
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} location
+   */
+  function fell(entity, location) {
+    macroViewModel.fell(entity);
+    destroyEntity(entity, location);
+    bounces.delete(entity);
+  }
+
   const kit = {
     entityType,
     entityEffect,
+    take,
+    fell,
     inventory,
     put,
     has,
@@ -702,8 +749,6 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     immersed,
     entityHealth,
     entityStamina,
-    destroyEntity,
-    macroViewModel,
   };
 
   /**
@@ -764,32 +809,19 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       const losers = [...options.keys()];
       const winner = pluck(losers, Math.floor(Math.random() * losers.length));
       const change = assumeDefined(options.get(winner));
-      const { position: origin, direction, repeat, health, stamina } = change;
-      const patient = entities[destination];
-      if (patient === 0) {
-        // Move
-        locations.set(winner, destination);
-        staleTileTypes.add(winner);
-        staleHealthTrajectories.add(winner);
-        moves.set(winner, change);
-        entitiesWriteBuffer[destination] = winner;
-        entitiesWriteBuffer[origin] = 0;
-        adjustHealth(winner, health);
-        adjustStamina(winner, stamina);
-      } else {
-        if (!repeat) {
-          // Bounce
-          bounces.set(winner, direction);
-          // Bump
-          bumps.push({
-            agent: winner,
-            patient,
-            origin,
-            destination,
-            direction,
-          });
-        }
-      }
+      const { position: origin, health, stamina } = change;
+      assert(entities[destination] === 0);
+
+      // Move
+      locations.set(winner, destination);
+      staleTileTypes.add(winner);
+      staleHealthTrajectories.add(winner);
+      moves.set(winner, change);
+      entitiesWriteBuffer[destination] = winner;
+      entitiesWriteBuffer[origin] = 0;
+      adjustHealth(winner, health);
+      adjustStamina(winner, stamina);
+
       // Bounce all of the candidates that did not get to proceed in the
       // direction they intended.
       for (const loser of losers) {
@@ -799,11 +831,12 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
       }
     }
 
-    // Successfully bump an entity that did not move.
-    // TODO break this into phases since an entity that doesn't move can also
-    // be destroyed by another bump and therein may lay race conditions.
+    // Bump.
     for (const { agent, patient, destination, direction } of bumps) {
-      if (!moves.has(patient) && !removes.has(patient) && !removes.has(agent)) {
+      bounces.set(agent, direction);
+      if (!moves.has(patient)) {
+        // A side-effect of bumping may include cancellation of the above
+        // bounce, in the case that the agent is destroyed by another bump.
         const bumped = bump(kit, {
           agent,
           patient,
@@ -898,7 +931,11 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     staleTileTypes.clear();
 
     for (const [entity, direction] of bounces.entries()) {
-      macroViewModel.bounce(entity, direction * quarturnToOcturn);
+      // Some entities may have been removed, as in the case of all entities
+      // that participate in a bump cycle.
+      if (entityTypes.has(entity)) {
+        macroViewModel.bounce(entity, direction * quarturnToOcturn);
+      }
     }
     bounces.clear();
 
@@ -915,6 +952,7 @@ export function makeModel({ size, advance, macroViewModel, mechanics }) {
     bumps.length = 0;
     targets.clear();
     moveIntents.clear();
+    bumpIntents.clear();
     craftIntents.clear();
   }
 

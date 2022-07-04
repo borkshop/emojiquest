@@ -7,7 +7,6 @@
 // @ts-check
 
 import { assertDefined, assumeDefined } from './assert.js';
-import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
 
 /**
  * @typedef {{
@@ -98,6 +97,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  * @typedef {Object} Kit
  * @property {(entity: number) => number} entityType
  * @property {(entity: number) => number} entityEffect
+ * @property {(entity: number, direction: number, location: number) => void} take
+ * @property {(entity: number, location: number) => void} fell
  * @property {(entity: number, slot: number) => number} inventory
  * @property {(entity: number, slot: number, itemType: number) => void} put
  * @property {(entity: number, itemType: number) => boolean} has
@@ -108,8 +109,6 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  * @property {(entity: number) => boolean} immersed
  * @property {(entity: number) => number} entityHealth
  * @property {(entity: number) => number} entityStamina
- * @property {import('./model.js').MacroViewModel} macroViewModel
- * @property {(entity: number, location: number) => void} destroyEntity
  */
 
 const specialNames = ['invalid', 'empty', 'any'];
@@ -242,11 +241,7 @@ export function makeMechanics({
       /** @type {Handler} */
       function takeHandler(kit, { agent, patient, direction, destination }) {
         kit.put(agent, 0, yieldType);
-        kit.macroViewModel.take(
-          patient,
-          (direction * quarturnToOcturn + halfOcturn) % fullOcturn,
-        );
-        kit.destroyEntity(patient, destination);
+        kit.take(patient, direction, destination);
       }
       return takeHandler;
     },
@@ -255,8 +250,7 @@ export function makeMechanics({
       /** @type {Handler} */
       function reapHandler(kit, { agent, patient, destination }) {
         kit.put(agent, 1, yieldType);
-        kit.macroViewModel.fell(patient);
-        kit.destroyEntity(patient, destination);
+        kit.fell(patient, destination);
       }
       return reapHandler;
     },
