@@ -13,6 +13,7 @@ test('freeze to death', t => {
     . @ .
     . . .
   `);
+  s.health = 5;
 
   s.play();
   s.expectScene(`
@@ -20,15 +21,36 @@ test('freeze to death', t => {
     . c . <- cold!
     . . .
   `);
+  t.is(s.health, 5);
+
+  s.command(5); // rest
+  s.expectScene(`
+    . . .
+    . c . <- cold!
+    . . .
+  `);
+  t.is(s.health, 4);
+
+  s.command(5); // rest
+  s.expectScene(`
+    . . .
+    . s . <- sad!
+    . . .
+  `);
   t.is(s.health, 3);
 
   s.command(5); // rest
+  s.expectScene(`
+    . . .
+    . b . <- bad!
+    . . .
+  `);
   t.is(s.health, 2);
 
   s.command(5); // rest
   s.expectScene(`
     . . .
-    . c . <- still merely cold!
+    . g . <- grimmacing, near death.
     . . .
   `);
   t.is(s.health, 1);
@@ -58,6 +80,7 @@ test('freeze til don a coat', t => {
     . @ C
     . . .
   `);
+  s.health = 5;
 
   s.play();
   s.expectScene(`
@@ -65,22 +88,22 @@ test('freeze til don a coat', t => {
     . c C <- cold!, coat
     . . .
   `);
-  t.is(s.health, 3);
+  t.is(s.health, 5);
 
   s.command(5); // rest
-  t.is(s.health, 2);
+  t.is(s.health, 4);
 
   s.command(6); // get coat
-  t.is(s.health, 1);
+  t.is(s.health, 3);
   s.expectScene(`
     . . .
-    . @ . <- not so cold
+    . s . <- not so cold, just sad
     . . .
   `);
 
   s.command(5); // rest
-  t.is(s.health, 1);
+  t.is(s.health, 3);
 
   s.command(5); // rest
-  t.is(s.health, 1);
+  t.is(s.health, 3);
 });
