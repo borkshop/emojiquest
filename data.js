@@ -50,10 +50,9 @@ export const validAgentTypes = [
     dialog: [
       '👨‍💼 Welcome to the <b>🏦 River Bank</b>…',
       '👨‍💼 While you’re here, we can exchange <b>🥉🥈🥇precious</b> <b>medals</b>…',
-      '🥉🥉🔜🥈',
-      '🥈🥉🔜🥇',
-      '🥇🔜🥈🥉',
-      '🥇🔜🥈🥉',
+      '🥉🥉🔜🥈 Trade small for large…',
+      '🥈🥉🔜🥇 Or, large for larger…',
+      '🥇🔜🥈🥉 Even break your change…',
       '👨‍💼 Visit the main branch of <b>🏦 Bank of Dysia</b> on the far side of the <b>🎲 world</b>. 🔚',
     ],
   },
@@ -65,24 +64,25 @@ export const validAgentTypes = [
       '👩‍🏭	This is a <b>forge</b> where we do honest <b>forgery</b>…',
       '👨‍🏭	Here you can smelt <b>🥇🥈🥉precious</b> <b>medals</b>…',
       '👩‍🏭	Place a medal in the forge to craft a useful component…',
-      '🥉 🔜  🔗  ',
-      '🥈 🔜  🔩  ',
-      '🥇 🔜  ⚙️   ',
+      '🥉 🔜  🔗  We make links from copper…',
+      '🥈 🔜  🔩  Bolts from silver…',
+      '🥇 🔜  ⚙️   And gears from gold…',
       '👨‍🏭	Components can be combined to make other components…',
-      '🔗 / 🔗 🔜 ⛓ ',
-      '🔗 / 🔩 🔜 🔨 ',
-      '🔗 / ⚙️  🔜 🛡 ',
-      '🔩 / 🔗 🔜 🔧 ',
-      '🔩 / 🔩 🔜 🔪 ',
-      '🔩 / ⚙️  🔜 🥄 ',
-      '⚙️  / 🔗 🔜 ⚓️ ',
-      '⚙️  / 🔩 🔜 ⛏ ',
-      '⚙️  / ⚙️  🔜 🚲 ',
-      '🔪 / 🔪 🔜 ✂️  ',
-      '🔩 / 🔪 🔜 🗡 ',
-      '🔨 / 🔪 🔜 🪓 ',
-      '🔨 / 🔧 🔜 🛠 ',
-      '⚙️  / ⛓ 🔜 🗑 ',
+      '🔩 / 🔩 🔜 🔪 We can forge knives from bolts… ',
+      '🔗 / 🔩 🔜 🔨 A link over a bolt makes a hammer…',
+      '👩‍🏭	The combinations are quite exhaustive! 🔚',
+      // '🔩 / ⚙️  🔜 🥄 ', // Cow clues this
+      // '🔨 / 🔪 🔜 🪓 ', // Jack and Hariet clue this
+      // '🔪 / 🔪 🔜 ✂️  ', // Harriet clues this
+      // '🔗 / 🔗 🔜 ⛓ ',
+      // '🔗 / ⚙️  🔜 🛡 ',
+      // '🔩 / 🔗 🔜 🔧 ',
+      // '⚙️  / 🔗 🔜 ⚓️ ',
+      // '⚙️  / 🔩 🔜 ⛏ ',
+      // '⚙️  / ⚙️  🔜 🚲 ',
+      // '🔩 / 🔪 🔜 🗡 ',
+      // '🔨 / 🔧 🔜 🛠 ',
+      // '⚙️  / ⛓ 🔜 🗑 ',
     ],
   },
   {
@@ -136,7 +136,9 @@ export const validAgentTypes = [
     name: 'harriet',
     dialog: [
       '💇‍♀️ Did you know that you can shear <b>🐑 sheep</b> with <b>✂️  scissors</b>?',
-      '💇‍♀️ That’s why scissors are an improvement over just <b>🔪 two knives</b>. 🔚 ',
+      '💇‍♀️ That’s why scissors are an improvement over just <b>🔪 two knives</b>…',
+      '💇‍♀️ I knit with <b>🧶 yarn</b> and <b>🥢 needles</b>…',
+      '💇‍♀️ My friend, <b>🧓 Jack</b> <b>🔪 whittled</b> my needles from <b>🌲🪵 soft wood</b>. 🔚',
     ],
   },
   {
@@ -163,10 +165,12 @@ export const validAgentTypes = [
     name: 'jack',
     dialog: [
       '🧓    Hello, I’m <b>Jack</b>…',
+      '🧓    A <b>🪵 Lumber Jack</b> needs an <b>🪓 axe</b>…',
+      '🧓    For an <b>🪓 axe</b>, <b>🏭 forge</b> a <b>🔪 knife</b> on a <b>🔨 hammer</b>…',
       '🧓    It’s hard to stay warm in the <b>❄️  frigid north</b>…',
-      '🧓    That’s why I knit myself a <b>🧥 jacket</b>…',
+      '🧓    That’s why I knit myself a <b>🧥 Jacket</b>…',
       '🧓    To knit, you’ll need <b>🧶 yarn</b> and <b>🥢 needles</b>…',
-      '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>.',
+      '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>. 🔚',
     ],
   },
   {
@@ -227,6 +231,16 @@ export const validAgentTypes = [
     ],
   },
   { name: 'swimBriefs' }, // temporary
+  {
+    name: 'cow',
+    dialog: [
+      '🐄 Moo, Low, Clue…',
+      '🐄 At a <b>🏭 forge</b>, weld <b>🔩 bolt</b> over a <b>⚙️  gear</b>…',
+      '🐄 Then, like a <b>🍽 dish</b>, you can run away with a <b>🥄 spoon</b>…',
+      '🐄 Or hollow out a <b>🪵 log</b> to make a <b>🛶 canoe…',
+      '🐄 Whatever works for you! 🔚',
+    ],
+  },
 ];
 
 /**
@@ -439,6 +453,7 @@ export const tileTypes = [
   { name: 'bad', text: '☹️         ' }, // 2
   { name: 'grimmace', text: '😬          ' }, // 1
   { name: 'swimBriefs', text: '🩲  ' },
+  { name: 'cow', text: '🐄   ' },
 ];
 
 /**
