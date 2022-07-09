@@ -28,6 +28,18 @@ export const validAgentTypes = [
       { tile: 'grimmace', health: 1 },
       { tile: 'death', health: 0 },
     ],
+    slots: [
+      { tile: 'left', held: true },
+      { tile: 'right', held: true },
+      { tile: 'one', pack: true },
+      { tile: 'two', pack: true },
+      { tile: 'three', pack: true },
+      { tile: 'four', pack: true },
+      { tile: 'six', pack: true },
+      { tile: 'seven', pack: true },
+      { tile: 'eight', pack: true },
+      { tile: 'nine', pack: true },
+    ],
   },
   {
     name: 'pineTree',

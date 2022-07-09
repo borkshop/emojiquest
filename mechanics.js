@@ -7,6 +7,7 @@
 // @ts-check
 
 import { assertDefined, assumeDefined } from './assert.js';
+import { heldSlot, packSlot } from './model.js';
 
 /**
  * @typedef {{
@@ -26,6 +27,11 @@ import { assertDefined, assumeDefined } from './assert.js';
  *     health?: number,
  *     stamina?: number,
  *     immersed?: true,
+ *   }>,
+ *   slots?: Array<{
+ *     tile: string,
+ *     held?: true,
+ *     pack?: true,
  *   }>,
  * }} AgentType
  */
@@ -51,6 +57,7 @@ import { assertDefined, assumeDefined } from './assert.js';
  *   boat?: boolean,
  *   swimGear?: boolean,
  *   tip?: string,
+ *   slot?: string,
  * }} ItemType
  */
 
@@ -543,6 +550,62 @@ export function makeMechanics({
     return tileType;
   }
 
+  const tileTypeForAgentSlots = agentTypes.map(agentDesc => {
+    const { slots } = agentDesc;
+    if (slots === undefined) {
+      return [];
+    }
+    return slots.map(({ tile, held, pack }) => {
+      const tileType = assumeDefined(
+        tileTypesByName[tile],
+        `No slot tile type for name ${tile} for agent ${agentDesc.name}`,
+      );
+      let slotFlags = 0;
+      slotFlags |= held === true ? heldSlot : 0;
+      slotFlags |= pack === true ? packSlot : 0;
+      return { tileType, slotFlags };
+    });
+  });
+
+  const nullSlotDesc = { tileType: tileTypesByName.empty, slotFlags: 0 };
+
+  /**
+   * @param {number} agentType
+   * @param {number} slot
+   */
+  function describeSlot(agentType, slot) {
+    const slots = tileTypeForAgentSlots[agentType];
+    if (slot >= slots.length) {
+      return nullSlotDesc;
+    }
+    return slots[slot];
+  }
+
+  const agentSlotsByName = agentTypes.map(agentDesc => {
+    const { slots } = agentDesc;
+    if (slots === undefined) {
+      return {};
+    }
+    return Object.fromEntries(
+      slots.map(({ tile }, index) => {
+        return [tile, index];
+      }),
+    );
+  });
+
+  /**
+   * @param {number} agentType
+   * @param {number} itemType
+   */
+  function slotForItem(agentType, itemType) {
+    const itemDesc = assumeDefined(itemTypes[itemType]);
+    if (itemDesc.slot === undefined) {
+      return undefined;
+    }
+    const slotsByName = assumeDefined(agentSlotsByName[agentType]);
+    return slotsByName[itemDesc.slot];
+  }
+
   return {
     agentTypes,
     itemTypes,
@@ -554,6 +617,8 @@ export function makeMechanics({
     effectTypesByName,
     tileTypeForAgent,
     defaultTileTypeForAgentType, // TODO deprecate for tileTypeForAgent
+    describeSlot,
+    slotForItem,
     tileTypeForItemType,
     tileTypeForEffectType,
     craft,

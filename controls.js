@@ -173,6 +173,7 @@ export const makeController = ({
     // effectTypesByName,
     defaultTileTypeForAgentType,
     tileTypeForItemType,
+    describeSlot,
     // tileTypeForEffectType,
     // craft,
     // bump,
@@ -196,20 +197,6 @@ export const makeController = ({
     assert(itemType !== 0, `Invalid item type ${itemType}`);
     return itemType !== emptyItem;
   };
-
-  // TODO reserve these tile type names when we move tile types
-  // into the world save.
-  const gridTileTypes = [
-    tileTypesByName.one,
-    tileTypesByName.two,
-    tileTypesByName.three,
-    tileTypesByName.four,
-    tileTypesByName.five,
-    tileTypesByName.six,
-    tileTypesByName.seven,
-    tileTypesByName.eight,
-    tileTypesByName.nine,
-  ];
 
   // State:
 
@@ -402,14 +389,14 @@ export const makeController = ({
     };
 
     const restorePackItems = () => {
+      const playerType = worldModel.entityType(player);
       for (let i = 0; i < 8; i++) {
         const inventoryIndex = i + 2;
         const itemType = worldModel.inventory(player, inventoryIndex);
         const entityIndex = entityIndexForInventoryIndex[inventoryIndex];
-        const itemGridIndex = itemGridIndexes[i];
         const itemTileType = isNotEmptyItem(itemType)
           ? tileTypeForItemType[itemType]
-          : gridTileTypes[itemGridIndex];
+          : describeSlot(playerType, inventoryIndex).tileType;
         nineKeyView.spawn(entityIndex, itemTileType);
       }
     };

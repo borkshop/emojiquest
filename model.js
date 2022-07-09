@@ -210,6 +210,11 @@ const makeFlags = function* () {
 
 export const [terrainWater, terrainLava, terrainCold, terrainHot] = makeFlags();
 
+export const [
+  heldSlot,
+  packSlot,
+] = makeFlags();
+
 /**
  * @template T
  * @param {Array<T>} candidates
