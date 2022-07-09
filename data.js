@@ -241,6 +241,37 @@ export const validAgentTypes = [
       '🐄 Whatever works for you! 🔚',
     ],
   },
+  {
+    name: 'palmTree',
+    dialog: [
+      '🌴 This is bananas.',
+      '🌴 Wanna date?',
+    ],
+  },
+  {
+    name: 'palmIsland',
+    dialog: [
+      '🏝 This is bananas.',
+      '🏝 Wanna date?',
+    ],
+  },
+  {
+    name: 'sponge',
+    dialog: [
+      '🧽  I’m planted, but not a plant…',
+      '🧽  I’m inanimate, yet am an animal…',
+      '🧽  I’m a *sponge*. 🔚',
+    ],
+  },
+  {
+    name: 'shark',
+    dialog: [
+      '🦈 I am a <b>loan shark</b>…',
+      '🦈 I won’t bite…',
+      '🦈 But, I will exchange <b>🥉🥈🥇 precious</b> <b>medals</b>…',
+      '🦈 MARIA DIEI:<br> Seas the day! 🔚',
+    ],
+  },
 ];
 
 /**
@@ -338,6 +369,17 @@ export const validItemTypes = [
     tip: '🩲 Keep on swimming.',
     swimGear: true,
   },
+  {
+    name: 'banana',
+    tip: '🍌 It’s peanut butter jelly time.',
+    health: 1,
+  },
+  {
+    name: 'date',
+    tip: '📆 Try the figs too.',
+    stamina: 1,
+  }
+
 ];
 
 /**
@@ -454,6 +496,12 @@ export const tileTypes = [
   { name: 'grimmace', text: '😬          ' }, // 1
   { name: 'swimBriefs', text: '🩲  ' },
   { name: 'cow', text: '🐄   ' },
+  { name: 'palmTree', text: '🌴' },
+  { name: 'palmIsland', text: '🏝' },
+  { name: 'date', text: '📆   '},
+  { name: 'banana', text: '🍌' },
+  { name: 'sponge', text: '🧽' },
+  { name: 'shark', text: '🦈    ' },
 ];
 
 /**
@@ -606,6 +654,21 @@ export const actions = [
     items: ['pineApple'],
     dialog: '🍍 Got <i>pine</i> apple. ',
   },
+  {
+    patient: 'palmTree',
+    right: 'any',
+    verb: 'pick',
+    items: ['banana'],
+    dialog: '🍌 Got banana.',
+  },
+  {
+    patient: 'palmIsland',
+    right: 'any',
+    verb: 'pick',
+    items: ['banana'],
+    dialog: '🍌 Got banana.',
+  },
+
   // monetary exchange
   {
     patient: 'bank',
@@ -645,6 +708,47 @@ export const actions = [
     items: ['silver', 'copper'],
     dialog: '🥇🔜🥈🥉 Don’t spend it all in one place.',
   },
+
+  // Loan shark exchange
+  {
+    patient: 'shark',
+    left: 'copper',
+    right: 'copper',
+    verb: 'merge',
+    items: ['silver'],
+    dialog: '🥉🥉🔜🥈 Such silver!',
+  },
+  {
+    patient: 'shark',
+    left: 'silver',
+    right: 'copper',
+    verb: 'merge',
+    items: ['gold'],
+    dialog: '🥈🥉🔜🥇 Have gold!',
+  },
+  {
+    patient: 'shark',
+    left: 'copper',
+    right: 'silver',
+    verb: 'merge',
+    items: ['gold'],
+    dialog: '🥉🥈🔜🥇 Have gold!',
+  },
+  {
+    patient: 'shark',
+    left: 'silver',
+    verb: 'split',
+    items: ['copper', 'copper'],
+    dialog: '🥈🔜🥉🥉 A fish in jaws is worth two in the coral.',
+  },
+  {
+    patient: 'shark',
+    left: 'gold',
+    verb: 'split',
+    items: ['silver', 'copper'],
+    dialog: '🥇🔜🥈🥉 Divide and conquer.',
+  },
+
   // forgery
   {
     patient: 'forge',
