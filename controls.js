@@ -62,7 +62,7 @@ const noop = () => {};
  * arbitrary keypresses to some modes in order to defer the problem of creating
  * a coherent user interface for these experimental bindings.
  * @param {string} key
- * @returns {boolean}
+ * @returns {{used: boolean, mode: Mode}}
  */
 
 /**
@@ -1163,14 +1163,14 @@ export const makeController = ({
       },
       etcPress(key) {
         if (key === 'w') {
-          worldModel.toggleTerrainFlags(position, 0b1);
-          return true;
+          worldModel.toggleTerrainFlags(cursor.position, 0b1);
+          return {used: true, mode: editMode};
         }
         if (key === 'm') {
-          worldModel.toggleTerrainFlags(position, 0b10);
-          return true;
+          worldModel.toggleTerrainFlags(cursor.position, 0b10);
+          return {used: true, mode: editMode};
         }
-        return false;
+        return {used: false, mode: editMode};
       },
     };
 
@@ -1572,11 +1572,11 @@ export const makeController = ({
 
   /** @param {string} key */
   const etcCommand = key => {
-    let result = false;
+    let used = false;
     if (mode.etcPress) {
-      result = mode.etcPress(key);
+      ({used, mode} = mode.etcPress(key));
     }
-    return result;
+    return used;
   };
 
   /** @param {number | undefined} player */
