@@ -255,17 +255,11 @@ export const validAgentTypes = [
   },
   {
     name: 'palmTree',
-    dialog: [
-      '🌴 This is bananas.',
-      '🌴 Wanna date?',
-    ],
+    dialog: ['🌴 This is bananas.', '🌴 Wanna date?'],
   },
   {
     name: 'palmIsland',
-    dialog: [
-      '🏝 This is bananas.',
-      '🏝 Wanna date?',
-    ],
+    dialog: ['🏝 This is bananas.', '🏝 Wanna date?'],
   },
   {
     name: 'sponge',
@@ -390,8 +384,7 @@ export const validItemTypes = [
     name: 'date',
     tip: '📆 Try the figs too.',
     stamina: 1,
-  }
-
+  },
 ];
 
 /**
@@ -510,7 +503,7 @@ export const tileTypes = [
   { name: 'cow', text: '🐄   ' },
   { name: 'palmTree', text: '🌴' },
   { name: 'palmIsland', text: '🏝' },
-  { name: 'date', text: '📆   '},
+  { name: 'date', text: '📆   ' },
   { name: 'banana', text: '🍌' },
   { name: 'sponge', text: '🧽' },
   { name: 'shark', text: '🦈    ' },
