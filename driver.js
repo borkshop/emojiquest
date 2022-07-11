@@ -57,11 +57,17 @@ export const directionCommand = Object.fromEntries(
  */
 
 /**
+ * @callback KeysFn
+ * @returns {{[key: string]: number}}
+ */
+
+/**
  * The delegate is an object that the driver will drive input, animation, turn
  * reset, and command key up and down events.
  *
  * @typedef {Object} Delegate
  * @property {CommandFn} command
+ * @property {KeysFn} keys
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
  */
@@ -200,8 +206,16 @@ export const makeDriver = (delegate, options) => {
     }
   }
 
+  /**
+   * @param {string} key
+   * @returns {number | undefined} command
+   */
+  function commandForKey(key) {
+    return delegate.keys()[key];
+  }
+
   run();
   animate();
 
-  return { down, up };
+  return { down, up, commandForKey };
 };

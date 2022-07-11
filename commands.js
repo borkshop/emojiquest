@@ -1,46 +1,11 @@
 // @ts-check
 
-/** @type {Record<string, number>} */
-const commandForKey = {
-  ArrowUp: 8,
-  ArrowLeft: 4,
-  ArrowRight: 6,
-  ArrowDown: 2,
-  ' ': 5,
-
-  0: 0,
-  1: 1,
-  2: 2,
-  3: 3,
-  4: 4,
-  5: 5,
-  6: 6,
-  7: 7,
-  8: 8,
-  9: 9,
-
-  h: 4,
-  j: 2,
-  k: 8,
-  l: 6,
-
-  m: 1,
-  ',': 2,
-  '.': 3,
-
-  u: 7,
-  i: 8,
-  o: 9,
-
-  d: 3,
-  f: 1,
-};
-
 /**
  * @param {Window} window
  * @param {Object} driver
  * @param {(command: number) => void} driver.up
  * @param {(command: number) => void} driver.down
+ * @param {(key: string) => number | undefined} driver.commandForKey
  */
 export const makeCommandDispatcher = (window, driver) => {
   const commandHolders = new Array(10).fill(undefined).map(() => new Set());
@@ -82,19 +47,26 @@ export const makeCommandDispatcher = (window, driver) => {
   // and be on equal footing with the controller key dispatchers, making the
   // command dispatcher purely a mux.
 
+  // Account for how the key to command mapping changes due to mode switching.
+  // Each keyup will cancel whatever command it innitiated.
+  const commandForKey = new Map();
+
   window.addEventListener('keydown', event => {
     const { key, repeat, metaKey } = event;
     if (repeat || metaKey) return;
-    const command = commandForKey[key];
+    const command = driver.commandForKey(key);
     if (command === undefined) return;
+    event.stopPropagation();
+    commandForKey.set(key, command);
     down(key, command);
   });
 
   window.addEventListener('keyup', event => {
     const { key, repeat, metaKey } = event;
     if (repeat || metaKey) return;
-    const command = commandForKey[key];
+    const command = commandForKey.get(key);
     if (command === undefined) return;
+    event.stopPropagation();
     up(key, command);
   });
 

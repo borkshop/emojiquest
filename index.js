@@ -273,7 +273,7 @@ const main = async () => {
   watchControllerCommands($controls, $hamburger, dispatcher, { tileSizePx });
 
   // TODO properly integrate water and magma in an editor mode
-  window.addEventListener('keypress', event => {
+  window.addEventListener('keydown', event => {
     if (controls.etcCommand(event.key)) {
       event.stopPropagation();
     }

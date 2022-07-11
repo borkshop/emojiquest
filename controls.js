@@ -35,6 +35,50 @@ import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 import { load, save } from './file.js';
 
+const arrowKeys = {
+  ArrowUp: 8,
+  ArrowLeft: 4,
+  ArrowRight: 6,
+  ArrowDown: 2,
+
+  h: 4,
+  j: 2,
+  k: 8,
+  l: 6,
+
+  w: 8,
+  a: 4,
+  s: 2,
+  d: 6,
+};
+
+const handKeys = {
+  ' ': 5, // rest
+
+  z: 1, // left
+  c: 3, // right
+  q: 7, // pack
+  e: 9, // use/trash
+
+  u: 1, // left
+  i: 3, // right
+  p: 7, // pack
+  o: 9, // use/trash
+};
+
+const numberKeys = {
+  0: 0,
+  1: 1,
+  2: 2,
+  3: 3,
+  4: 4,
+  5: 5,
+  6: 6,
+  7: 7,
+  8: 8,
+  9: 9,
+};
+
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */
 /** @typedef {import('./animation2d.js').Coord} Coord */
@@ -52,9 +96,17 @@ const noop = () => {};
  */
 
 /**
+ * @callback CommandFn
+ * @param {number} command
+ * @param {boolean} repeat
+ * @returns {void}
+ */
+
+/**
  * @callback PressFn
  * @param {number} command
  * @param {boolean} repeat
+ * @returns {Mode}
  */
 
 /**
@@ -62,7 +114,7 @@ const noop = () => {};
  * arbitrary keypresses to some modes in order to defer the problem of creating
  * a coherent user interface for these experimental bindings.
  * @param {string} key
- * @returns {{used: boolean, mode: Mode}}
+ * @returns {boolean} used
  */
 
 /**
@@ -89,9 +141,10 @@ const noop = () => {};
  */
 
 /**
- * @typedef {Object} Mode
+ * @typedef {object} Mode
  * @prop {string} name
  * @prop {PressFn} press
+ * @prop {{[key: string]: number}} keys - accelerator table
  * @prop {EtcPressFn} [etcPress]
  * @prop {MoveFn} [move]
  * @prop {CraftFn} [craft]
@@ -260,6 +313,7 @@ export const makeController = ({
   /** @type {Mode} */
   const limboMode = {
     name: 'limbo',
+    keys: {},
     press(_command, _repeat) {
       return limboMode;
     },
@@ -430,6 +484,11 @@ export const makeController = ({
     /** @type {Mode} */
     const playMode = {
       name: 'play',
+      keys: {
+        ...numberKeys,
+        ...arrowKeys,
+        ...handKeys,
+      },
       press(command, repeat) {
         repeat = repeat && worldModel.entityHealth(player) === 5;
         const direction = commandDirection[command];
@@ -508,6 +567,13 @@ export const makeController = ({
       /** @type {Mode} */
       const itemMode = {
         name: 'item',
+        keys: {
+          ...numberKeys,
+          ...handKeys,
+          Backspace: 9,
+          Escape: 1,
+          // ' ': 5,
+        },
         press(command, repeat) {
           if (repeat) return itemMode;
           if (command === 9) {
@@ -607,6 +673,10 @@ export const makeController = ({
       /** @type {Mode} */
       const packMode = {
         name: 'pack',
+        keys: {
+          ...numberKeys,
+          Escape: 5,
+        },
         press(command, repeat) {
           if (repeat) return packMode;
           if (command === 5) {
@@ -947,12 +1017,24 @@ export const makeController = ({
     /** @type {Mode} */
     const menuMode = {
       name: 'menu',
+      keys: {
+        ...numberKeys,
+        ...arrowKeys,
+        Enter: 0,
+        Escape: 5,
+      },
       press(command, repeat) {
         if (repeat) return mode;
         if (command === 8) {
           menuController.goNorth();
         } else if (command === 2) {
           menuController.goSouth();
+        } else if (command === 5) {
+          if (player === undefined) {
+            return menuToEditMode(position, player);
+          } else {
+            return menuToPlayMode(player);
+          }
         } else if (command === 0) {
           const state = menuController.getState();
           if (state === 'play') {
@@ -1111,6 +1193,15 @@ export const makeController = ({
     /** @type {Mode} */
     const editMode = {
       name: 'edit',
+      keys: {
+        ...numberKeys,
+        ...arrowKeys,
+        x: 9, // cut
+        y: 9, // yank
+        p: 1, // paste
+        f: 1, // fill
+        z: 3, // erase delete
+      },
       press(command, repeat) {
         const direction = commandDirection[command];
         if (direction !== undefined) {
@@ -1151,13 +1242,13 @@ export const makeController = ({
       etcPress(key) {
         if (key === 'w') {
           worldModel.toggleTerrainFlags(cursor.position, 0b1);
-          return {used: true, mode: editMode};
+          return true;
         }
         if (key === 'm') {
           worldModel.toggleTerrainFlags(cursor.position, 0b10);
-          return {used: true, mode: editMode};
+          return true;
         }
-        return {used: false, mode: editMode};
+        return false;
       },
     };
 
@@ -1183,6 +1274,12 @@ export const makeController = ({
       /** @type {Mode} */
       const chooseAgentMode = {
         name: 'chooseAgent',
+        keys: {
+          ...numberKeys,
+          ...arrowKeys,
+          Escape: 5,
+          Enter: 5,
+        },
         press(command, repeat) {
           if (repeat) return mode;
           if (command === 8) {
@@ -1550,18 +1647,22 @@ export const makeController = ({
 
   let mode = limboMode;
 
-  /** @type {PressFn} */
+  /** @type {CommandFn} */
   const command = (command, repeat) => {
     tock();
     mode = mode.press(command, repeat);
     tick();
   };
 
+  const keys = () => {
+    return mode.keys || {};
+  };
+
   /** @param {string} key */
   const etcCommand = key => {
     let used = false;
     if (mode.etcPress) {
-      ({used, mode} = mode.etcPress(key));
+      used = mode.etcPress(key);
     }
     return used;
   };
@@ -1584,6 +1685,7 @@ export const makeController = ({
     animate,
     down,
     command,
+    keys,
     play,
     modeName,
     etcCommand,
