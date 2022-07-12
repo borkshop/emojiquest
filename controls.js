@@ -1240,12 +1240,14 @@ export const makeController = ({
         }
       },
       etcPress(key) {
-        if (key === 'w') {
-          worldModel.toggleTerrainFlags(cursor.position, 0b1);
+        // TODO deepen the menu system so there is a dedicated mode for
+        // drawing water and lava flags that can be used on mobile.
+        if (key === 'r') {
+          worldModel.toggleTerrainFlags(cursor.position, terrainWater);
           return true;
         }
         if (key === 'm') {
-          worldModel.toggleTerrainFlags(cursor.position, 0b10);
+          worldModel.toggleTerrainFlags(cursor.position, terrainLava);
           return true;
         }
         return false;
