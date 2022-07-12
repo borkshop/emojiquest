@@ -68,7 +68,7 @@ export const directionCommand = Object.fromEntries(
  * @typedef {Object} Delegate
  * @property {CommandFn} command
  * @property {KeysFn} keys
- * @property {(key: string) => void} press
+ * @property {(key: string) => boolean} press
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
  */
@@ -84,6 +84,13 @@ export const makeDriver = (delegate, options) => {
 
   /** @type {Array<Set<string>>} */
   const commandHolders = new Array(10).fill(undefined).map(() => new Set());
+  /**
+   * Account for how the key to command mapping changes due to mode switching.
+   * Each keyup will cancel whatever command it innitiated.
+   * @type {Map<string, number>}
+   */
+  const lastCommandForKey = new Map();
+
   /** @type {Deferred<void>} */
   let sync = defer();
   /** @type {Deferred<void>} */
@@ -171,9 +178,19 @@ export const makeDriver = (delegate, options) => {
 
   /**
    * @param {string} holder
-   * @param {number} command
+   * @param {number} [command]
+   * @returns {boolean}
    */
   function down(holder, command) {
+    if (command === undefined) {
+      // The command for each key is mode-dependent.
+      command = commandForKey(holder);
+      if (command === undefined)  {
+        return delegate.press(holder);
+      }
+      lastCommandForKey.set(holder, command);
+    }
+
     // Commands can be held by multiple holders (keys, mouse
     // events, touch events).
     // This paragraph ensures that we only proceed for the
@@ -183,7 +200,7 @@ export const makeDriver = (delegate, options) => {
     const alreadyHeld = holders.size !== 0;
     holders.add(holder);
     if (alreadyHeld) {
-      return;
+      return true;
     }
 
     assert(!held.has(command));
@@ -203,25 +220,36 @@ export const makeDriver = (delegate, options) => {
     // already.
     sync.resolve();
     sync = defer();
+
+    return true;
   }
 
   /**
    * @param {string} holder
-   * @param {number} command
+   * @param {number} [command]
+   * @returns {boolean}
    */
   function up(holder, command) {
+    if (command === undefined) {
+      command = lastCommandForKey.get(holder);
+      if (command === undefined) {
+        return false;
+      };
+      lastCommandForKey.delete(holder);
+    }
+
     // Multiple holders can hold down a command button.
     // This paragraph ensures we only proceed when the last
     // holder on the command gets released.
     const holders = commandHolders[command];
     holders.delete(holder);
     if (holders.size !== 0) {
-      return;
+      return true;
     }
 
     const descriptor = held.get(command);
     if (descriptor === undefined) {
-      return;
+      return true;
     }
     const { up } = descriptor;
     up();
@@ -230,14 +258,14 @@ export const makeDriver = (delegate, options) => {
     if (held.size === 0) {
       moment.set(0);
     }
+
+    return true;
   }
 
   const cancel = () => {
-    for (const [command, holders] of commandHolders.entries()) {
-      if (holders.size) {
-        for (const holder of holders) {
-          up(holder, command);
-        }
+    for (const holders of commandHolders.values()) {
+      for (const holder of holders) {
+        up(holder);
       }
     }
   };
@@ -253,9 +281,7 @@ export const makeDriver = (delegate, options) => {
   run();
   animate();
 
-  const { press } = delegate;
-
-  return { down, up, press, commandForKey, cancel };
+  return { down, up, cancel };
 };
 
 /** @typedef {ReturnType<makeDriver>} Driver */

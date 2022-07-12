@@ -59,7 +59,7 @@ export const watchControllerCommands = (
   dispatcher,
   { tileSizePx },
 ) => {
-  const { up, down, press, commandForKey, cancel } = dispatcher;
+  const { up, down, cancel } = dispatcher;
 
   let previousCommand = -1;
 
@@ -187,24 +187,14 @@ export const watchControllerCommands = (
   $controls.addEventListener('touchstart', onControlsTouchStart);
   $controls.addEventListener('touchend', onControlsTouchEnd);
 
-  // Account for how the key to command mapping changes due to mode switching.
-  // Each keyup will cancel whatever command it innitiated.
-  // TODO push command for key tracking down a layer, into the driver.
-  const lastCommandForKey = new Map();
-
   /**
    * @param {KeyboardEvent} event
    */
   const onKeyDown = event => {
     const { key, repeat, metaKey } = event;
     if (repeat || metaKey) return;
-    const command = commandForKey(key);
-    event.stopPropagation();
-    if (command === undefined) {
-      press(key);
-    } else {
-      lastCommandForKey.set(key, command);
-      down(key, command);
+    if (down(key)) {
+      event.stopPropagation();
     }
   };
 
@@ -214,23 +204,14 @@ export const watchControllerCommands = (
   const onKeyUp = event => {
     const { key, repeat, metaKey } = event;
     if (repeat || metaKey) return;
-    const command = lastCommandForKey.get(key);
-    if (command === undefined) return;
-    event.stopPropagation();
-    up(key, command);
-  };
-
-  const onBlur = () => {
-    for (const [key, command] of lastCommandForKey.entries()) {
-      up(key, command);
+    if (up(key)) {
+      event.stopPropagation();
     }
-    lastCommandForKey.clear();
-    cancel();
   };
 
   $window.addEventListener('keydown', onKeyDown);
   $window.addEventListener('keyup', onKeyUp);
-  $window.addEventListener('blur', onBlur);
+  $window.addEventListener('blur', cancel);
 
   const onHamburgerMouseDown = () => {
     down('Mouse', 0);
