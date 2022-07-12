@@ -1659,7 +1659,7 @@ export const makeController = ({
   };
 
   /** @param {string} key */
-  const etcCommand = key => {
+  const press = key => {
     let used = false;
     if (mode.etcPress) {
       used = mode.etcPress(key);
@@ -1684,10 +1684,10 @@ export const makeController = ({
     tock,
     animate,
     down,
+    press,
     command,
     keys,
     play,
     modeName,
-    etcCommand,
   };
 };

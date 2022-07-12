@@ -68,6 +68,7 @@ export const directionCommand = Object.fromEntries(
  * @typedef {Object} Delegate
  * @property {CommandFn} command
  * @property {KeysFn} keys
+ * @property {(key: string) => void} press
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
  */
@@ -81,6 +82,8 @@ export const directionCommand = Object.fromEntries(
 export const makeDriver = (delegate, options) => {
   const { animatedTransitionDuration, moment } = options;
 
+  /** @type {Array<Set<string>>} */
+  const commandHolders = new Array(10).fill(undefined).map(() => new Set());
   /** @type {Deferred<void>} */
   let sync = defer();
   /** @type {Deferred<void>} */
@@ -167,9 +170,22 @@ export const makeDriver = (delegate, options) => {
   }
 
   /**
+   * @param {string} holder
    * @param {number} command
    */
-  function down(command) {
+  function down(holder, command) {
+    // Commands can be held by multiple holders (keys, mouse
+    // events, touch events).
+    // This paragraph ensures that we only proceed for the
+    // first holder, and track the holder so we don't release
+    // until it and all others are up.
+    const holders = commandHolders[command];
+    const alreadyHeld = holders.size !== 0;
+    holders.add(holder);
+    if (alreadyHeld) {
+      return;
+    }
+
     assert(!held.has(command));
     const up = delegate.down(command);
     held.set(command, { start: performance.now(), up });
@@ -190,9 +206,19 @@ export const makeDriver = (delegate, options) => {
   }
 
   /**
+   * @param {string} holder
    * @param {number} command
    */
-  function up(command) {
+  function up(holder, command) {
+    // Multiple holders can hold down a command button.
+    // This paragraph ensures we only proceed when the last
+    // holder on the command gets released.
+    const holders = commandHolders[command];
+    holders.delete(holder);
+    if (holders.size !== 0) {
+      return;
+    }
+
     const descriptor = held.get(command);
     if (descriptor === undefined) {
       return;
@@ -206,6 +232,16 @@ export const makeDriver = (delegate, options) => {
     }
   }
 
+  const cancel = () => {
+    for (const [command, holders] of commandHolders.entries()) {
+      if (holders.size) {
+        for (const holder of holders) {
+          up(holder, command);
+        }
+      }
+    }
+  };
+
   /**
    * @param {string} key
    * @returns {number | undefined} command
@@ -217,5 +253,9 @@ export const makeDriver = (delegate, options) => {
   run();
   animate();
 
-  return { down, up, commandForKey };
+  const { press } = delegate;
+
+  return { down, up, press, commandForKey, cancel };
 };
+
+/** @typedef {ReturnType<makeDriver>} Driver */

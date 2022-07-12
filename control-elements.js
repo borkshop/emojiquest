@@ -45,18 +45,22 @@ export const makeControllerElementWatchers = (
 };
 
 /**
+ * @param {typeof window} $window
  * @param {Element} $controls
  * @param {Element} $hamburger
- * @param {import('./commands.js').CommandDispatcher} dispatcher
+ * @param {import('./driver.js').Driver} dispatcher
  * @param {Object} args
  * @param {number} args.tileSizePx
  */
 export const watchControllerCommands = (
+  $window,
   $controls,
   $hamburger,
   dispatcher,
   { tileSizePx },
 ) => {
+  const { up, down, press, commandForKey, cancel } = dispatcher;
+
   let previousCommand = -1;
 
   /**
@@ -89,20 +93,20 @@ export const watchControllerCommands = (
       if (previousCommand === -1) {
         // unpressed to pressed
         previousCommand = command;
-        dispatcher.down('Mouse', previousCommand);
+        down('Mouse', previousCommand);
       } else {
         // steadily down, maybe relocated
         if (previousCommand !== command) {
-          dispatcher.up('Mouse', previousCommand);
+          up('Mouse', previousCommand);
           previousCommand = command;
-          dispatcher.down('Mouse', previousCommand);
+          down('Mouse', previousCommand);
         }
       }
     } else {
       // to unpressed
       if (previousCommand !== -1) {
         // pressed to unpressed
-        dispatcher.up('Mouse', previousCommand);
+        up('Mouse', previousCommand);
         previousCommand = -1;
       } /* else { // steadily unpressed
       } */
@@ -183,12 +187,57 @@ export const watchControllerCommands = (
   $controls.addEventListener('touchstart', onControlsTouchStart);
   $controls.addEventListener('touchend', onControlsTouchEnd);
 
+  // Account for how the key to command mapping changes due to mode switching.
+  // Each keyup will cancel whatever command it innitiated.
+  // TODO push command for key tracking down a layer, into the driver.
+  const lastCommandForKey = new Map();
+
+  /**
+   * @param {KeyboardEvent} event
+   */
+  const onKeyDown = event => {
+    const { key, repeat, metaKey } = event;
+    if (repeat || metaKey) return;
+    const command = commandForKey(key);
+    event.stopPropagation();
+    if (command === undefined) {
+      press(key);
+    } else {
+      lastCommandForKey.set(key, command);
+      down(key, command);
+    }
+  };
+
+  /**
+   * @param {KeyboardEvent} event
+   */
+  const onKeyUp = event => {
+    const { key, repeat, metaKey } = event;
+    if (repeat || metaKey) return;
+    const command = lastCommandForKey.get(key);
+    if (command === undefined) return;
+    event.stopPropagation();
+    up(key, command);
+  };
+
+  const onBlur = () => {
+    for (const [key, command] of lastCommandForKey.entries()) {
+      up(key, command);
+    }
+    lastCommandForKey.clear();
+    cancel();
+  };
+
+  $window.addEventListener('keydown', onKeyDown);
+  $window.addEventListener('keyup', onKeyUp);
+  $window.addEventListener('blur', onBlur);
+
   const onHamburgerMouseDown = () => {
-    dispatcher.down('Mouse', 0);
+    down('Mouse', 0);
   };
 
   const onHamburgerMouseUp = () => {
-    dispatcher.up('Mouse', 0);
+    up('Mouse', 0);
   };
 
   $hamburger.addEventListener('mousedown', onHamburgerMouseDown);

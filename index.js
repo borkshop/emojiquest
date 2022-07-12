@@ -12,7 +12,6 @@ import {
   watchControllerCommands,
 } from './control-elements.js';
 import { makeDriver } from './driver.js';
-import { makeCommandDispatcher } from './commands.js';
 import { makeMechanics } from './mechanics.js';
 import {
   recipes,
@@ -268,15 +267,8 @@ const main = async () => {
     animatedTransitionDuration,
   });
 
-  const dispatcher = makeCommandDispatcher(window, driver);
-
-  watchControllerCommands($controls, $hamburger, dispatcher, { tileSizePx });
-
-  // TODO properly integrate water and magma in an editor mode
-  window.addEventListener('keydown', event => {
-    if (controls.etcCommand(event.key)) {
-      event.stopPropagation();
-    }
+  watchControllerCommands(window, $controls, $hamburger, driver, {
+    tileSizePx,
   });
 };
 
