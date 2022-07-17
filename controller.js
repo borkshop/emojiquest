@@ -1113,10 +1113,7 @@ export const makeController = ({
                       mode = menuMode;
                     }
                   },
-                )
-                .finally(() => {
-                  mode = menuMode;
-                });
+                );
               exitMenuMode({});
               return limboMode;
             } else if (state === 'save') {
