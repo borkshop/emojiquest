@@ -247,7 +247,7 @@ export const validAgentTypes = [
     name: 'cow',
     dialog: [
       '🐄 Moo, Low, Clue…',
-      '🐄 At a <b>🏭 forge</b>, weld <b>🔩 bolt</b> over a <b>⚙️  gear</b>…',
+      '🐄 Weld <b>🔩 bolt</b> over a <b>⚙️  gear</b>…',
       '🐄 Then, like a <b>🍽 dish</b>, you can run away with a <b>🥄 spoon</b>…',
       '🐄 Or hollow out a <b>🪵 log</b> to make a <b>🛶 canoe…',
       '🐄 Whatever works for you! 🔚',
