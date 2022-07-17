@@ -206,32 +206,34 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {Object} args
  * @param {import('./view-model.js').Watcher} args.nineKeyWatcher
  * @param {import('./view-model.js').Watcher} args.oneKeyWatcher
- * @param {import('./daia.js').AdvanceFn} args.advance,
- * @param {import('./daia.js').ToponymFn} args.toponym
- * @param {import('./model.js').Model} args.worldModel
- * @param {import('./macro-view-model.js').MacroViewModel} args.worldMacroViewModel
- * @param {FollowCursorFn} args.followCursor
- * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {import('./menu.js').MenuController} args.menuController
- * @param {CameraController} args.cameraController
  * @param {import('./dialog.js').DialogController} args.dialogController
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
+ * @param {FollowCursorFn} args.followCursor
+ * @param {Object} world
+ * @param {import('./daia.js').AdvanceFn} world.advance,
+ * @param {import('./daia.js').ToponymFn} world.toponym
+ * @param {import('./model.js').Model} world.worldModel
+ * @param {import('./macro-view-model.js').MacroViewModel} world.worldMacroViewModel
+ * @param {import('./mechanics.js').Mechanics} world.mechanics
+ * @param {CameraController} world.cameraController
  */
 export const makeController = ({
   nineKeyWatcher,
   oneKeyWatcher,
+  menuController,
+  dialogController,
+  healthController,
+  staminaController,
+  followCursor,
+}, {
   worldModel,
   worldMacroViewModel,
   cameraController,
   toponym,
   advance,
-  followCursor,
   mechanics,
-  menuController,
-  dialogController,
-  healthController,
-  staminaController,
 }) => {
   const {
     agentTypes,

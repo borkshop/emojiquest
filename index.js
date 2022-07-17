@@ -229,17 +229,18 @@ const main = async () => {
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
-    worldModel,
-    worldMacroViewModel,
-    toponym: world.toponym,
-    advance: world.advance,
-    followCursor,
-    mechanics,
     menuController,
-    cameraController,
     dialogController,
     healthController,
     staminaController,
+    followCursor,
+  }, {
+    worldModel,
+    worldMacroViewModel,
+    cameraController,
+    mechanics,
+    toponym: world.toponym,
+    advance: world.advance,
   });
 
   /**

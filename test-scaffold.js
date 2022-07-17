@@ -308,17 +308,18 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
+    followCursor,
+    menuController,
+    dialogController,
+    healthController,
+    staminaController,
+  }, {
+    mechanics,
     worldModel,
     worldMacroViewModel,
     cameraController,
     toponym,
     advance,
-    followCursor,
-    mechanics,
-    menuController,
-    dialogController,
-    healthController,
-    staminaController,
   });
 
   /**
