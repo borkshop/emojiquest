@@ -16,6 +16,9 @@
 import { assert, assertDefined, assertNonZero } from './assert.js';
 import {
   north,
+  west,
+  east,
+  south,
   nn,
   ne,
   ee,
@@ -30,10 +33,25 @@ import {
 import { terrainWater, terrainLava, terrainCold, terrainHot } from './model.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
-import { commandDirection } from './driver.js';
 import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 import { load, save } from './file.js';
+
+/** @type {Record<number, number>} */
+export const commandDirection = {
+  8: north,
+  4: west,
+  6: east,
+  2: south,
+};
+
+/** @type {Record<number, number>} */
+export const directionCommand = Object.fromEntries(
+  Object.entries(commandDirection).map(([command, direction]) => [
+    +direction,
+    +command,
+  ]),
+);
 
 const arrowKeys = {
   ArrowUp: 8,
@@ -1682,12 +1700,28 @@ export const makeController = ({
     return mode.name;
   };
 
+  /**
+   * @param {number} direction
+   */
+  const commandForDirection = direction => {
+    return directionCommand[direction];
+  };
+
+  /**
+   * @param {number} command
+   */
+  const directionForCommand = command => {
+    return commandDirection[command];
+  };
+
   return {
     tock,
     animate,
     down,
     press,
     command,
+    commandForDirection,
+    directionForCommand,
     keys,
     play,
     modeName,

@@ -23,28 +23,12 @@ import { frameDeltas } from './animation.js';
 import { assert } from './assert.js';
 import { makeProgress } from './animation.js';
 import { delay, defer } from './async.js';
-import { north, east, south, west, fullQuarturn } from './geometry2d.js';
+import { fullQuarturn } from './geometry2d.js';
 
 /**
  * @template T
  * @typedef {import('./async.js').Deferred<T>} Deferred
  */
-
-/** @type {Record<number, number>} */
-export const commandDirection = {
-  8: north,
-  4: west,
-  6: east,
-  2: south,
-};
-
-/** @type {Record<number, number>} */
-export const directionCommand = Object.fromEntries(
-  Object.entries(commandDirection).map(([command, direction]) => [
-    +direction,
-    +command,
-  ]),
-);
 
 /**
  * @typedef {import('./animation.js').Progress} Progress
@@ -71,6 +55,8 @@ export const directionCommand = Object.fromEntries(
  * @property {(key: string) => boolean} press
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
+ * @property {(direction: number) => number} commandForDirection
+ * @property {(command: number) => number} directionForCommand
  */
 
 /**
@@ -127,13 +113,16 @@ export const makeDriver = (controller, options) => {
    * @param {boolean} repeat
    */
   async function issue(command, repeat) {
-    const direction = commandDirection[command];
+    const direction = controller.directionForCommand(command);
     if (direction === undefined) {
       await tickTock(command, repeat);
     } else {
       const momentumAdjustedDirection =
         (direction + moment.get()) % fullQuarturn;
-      await tickTock(directionCommand[momentumAdjustedDirection], repeat);
+      await tickTock(
+        controller.commandForDirection(momentumAdjustedDirection),
+        repeat,
+      );
     }
   }
 
@@ -185,7 +174,7 @@ export const makeDriver = (controller, options) => {
     if (command === undefined) {
       // The command for each key is mode-dependent.
       command = commandForKey(holder);
-      if (command === undefined)  {
+      if (command === undefined) {
         return controller.press(holder);
       }
       lastCommandForKey.set(holder, command);
@@ -234,7 +223,7 @@ export const makeDriver = (controller, options) => {
       command = lastCommandForKey.get(holder);
       if (command === undefined) {
         return false;
-      };
+      }
       lastCommandForKey.delete(holder);
     }
 
