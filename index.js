@@ -226,15 +226,6 @@ const main = async () => {
     { viewText },
   );
 
-  const world = {
-    worldModel,
-    worldMacroViewModel,
-    cameraController,
-    mechanics,
-    toponym: daia.toponym,
-    advance: daia.advance,
-  };
-
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
@@ -243,7 +234,8 @@ const main = async () => {
     healthController,
     staminaController,
     followCursor,
-  }, world);
+    mechanics,
+  });
 
   /**
    * The moment preserves the intended heading of the player agent if they
@@ -260,9 +252,17 @@ const main = async () => {
   const response = await fetch(new URL('daia.json', import.meta.url).href);
   const worldData = await response.json();
 
+  const world = {
+    worldModel,
+    worldMacroViewModel,
+    cameraController,
+    toponym: daia.toponym,
+    advance: daia.advance,
+  };
+
   const player = worldModel.restore(worldData);
   if (typeof player === 'number' || player === undefined) {
-    controller.play(player);
+    controller.play(world, player);
   }
 
   const driver = makeDriver(controller, {

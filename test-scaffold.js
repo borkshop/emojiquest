@@ -185,7 +185,7 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     validEffectTypes,
   });
 
-  const world = makeDaia({
+  const daia = makeDaia({
     faceSize: size,
     tileSizePx: NaN,
   });
@@ -234,8 +234,8 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
   });
 
   const worldModel = makeModel({
-    size: world.worldArea,
-    advance: world.advance,
+    size: daia.worldArea,
+    advance: daia.advance,
     macroViewModel: worldMacroViewModel,
     mechanics,
   });
@@ -248,7 +248,7 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     tock() {},
   };
 
-  const { toponym, advance } = world;
+  const { toponym, advance } = daia;
 
   /**
    * @param {number} _destination
@@ -305,6 +305,15 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     tock() {},
   };
 
+  const world = {
+    mechanics,
+    worldModel,
+    worldMacroViewModel,
+    cameraController,
+    toponym,
+    advance,
+  };
+
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
@@ -313,13 +322,7 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     dialogController,
     healthController,
     staminaController,
-  }, {
     mechanics,
-    worldModel,
-    worldMacroViewModel,
-    cameraController,
-    toponym,
-    advance,
   });
 
   /**
@@ -337,7 +340,7 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
       let x = 0;
       for (const glyph of line) {
         if (glyph !== '.') {
-          const location = world.tileNumber({ x, y, f });
+          const location = daia.tileNumber({ x, y, f });
           // t.log({x, y, f, location});
           const agentTypeName = agentTypesByGlyph[glyph];
           t.assert(
@@ -370,7 +373,7 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     for (const line of table) {
       let x = 0;
       for (const glyph of line) {
-        const location = world.tileNumber({ x, y, f });
+        const location = daia.tileNumber({ x, y, f });
         if (glyph === 'w') {
           worldModel.toggleTerrainFlags(location, terrainWater);
         } else if (glyph === 'l') {
@@ -389,7 +392,7 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
   };
 
   const play = () => {
-    controller.play(player);
+    controller.play(world, player);
     controller.tock();
   };
 
