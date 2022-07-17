@@ -113,7 +113,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
- * @typedef {import('./camera-controller.js').CursorChange} CursorChange
+ * @typedef {import('./daia.js').CursorChange} CursorChange
  */
 
 /**

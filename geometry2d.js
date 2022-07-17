@@ -13,10 +13,14 @@
  * }} Point
  */
 
-import { count } from './iteration.js';
+function* enumerate() {
+  for (let i = 0; true; i += 1) {
+    yield i;
+  }
+}
 
 /* quarter turns */
-export const [north, east, south, west] = count();
+export const [north, east, south, west] = enumerate();
 
 /** @type {Array<Point>} */
 export const quarturnVectors = [
@@ -55,7 +59,7 @@ export const corners = [
 ];
 
 /* eighth slices */
-export const [nn, ne, ee, se, ss, sw, ww, nw, oo] = count();
+export const [nn, ne, ee, se, ss, sw, ww, nw, oo] = enumerate();
 
 /** @type {Array<Point>} */
 export const sliceVectors = [
