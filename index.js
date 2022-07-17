@@ -6,11 +6,11 @@ import { cell } from './cell.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
-import { makeController } from './controls.js';
+import { makeController } from './controller.js';
 import {
   makeControllerElementWatchers,
   watchControllerCommands,
-} from './control-elements.js';
+} from './controller-elements.js';
 import { makeDriver } from './driver.js';
 import { makeMechanics } from './mechanics.js';
 import {
@@ -226,7 +226,7 @@ const main = async () => {
     { viewText },
   );
 
-  const controls = makeController({
+  const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
     worldModel,
@@ -259,10 +259,10 @@ const main = async () => {
 
   const player = worldModel.restore(worldData);
   if (typeof player === 'number' || player === undefined) {
-    controls.play(player);
+    controller.play(player);
   }
 
-  const driver = makeDriver(controls, {
+  const driver = makeDriver(controller, {
     moment,
     animatedTransitionDuration,
   });

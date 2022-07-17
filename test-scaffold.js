@@ -8,7 +8,7 @@ import {
   terrainHot,
 } from './model.js';
 import { makeMechanics } from './mechanics.js';
-import { makeController } from './controls.js';
+import { makeController } from './controller.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeBoxTileMap } from './tile-map-box.js';
