@@ -109,7 +109,7 @@ const main = async () => {
     faceSize: facetsPerFaceSize,
   });
 
-  const world = makeDaia({
+  const daia = makeDaia({
     tileSizePx,
     faceSize,
   });
@@ -131,8 +131,8 @@ const main = async () => {
   });
 
   const worldModel = makeModel({
-    size: world.worldArea,
-    advance: world.advance,
+    size: daia.worldArea,
+    advance: daia.advance,
     macroViewModel: worldMacroViewModel,
     mechanics,
   });
@@ -156,11 +156,11 @@ const main = async () => {
     frustumRadius,
     createEntity,
 
-    faceSizePx: world.faceSizePx,
-    tileNumber: world.tileNumber,
-    tileCoordinate: world.tileCoordinate,
-    tileCoordinateOnFace: world.tileCoordinateOnFace,
-    advance: world.advance,
+    faceSizePx: daia.faceSizePx,
+    tileNumber: daia.tileNumber,
+    tileCoordinate: daia.tileCoordinate,
+    tileCoordinateOnFace: daia.tileCoordinateOnFace,
+    advance: daia.advance,
 
     facetNumber: facetWorld.tileNumber,
     facetCoordinate: facetWorld.tileCoordinate,
@@ -226,6 +226,15 @@ const main = async () => {
     { viewText },
   );
 
+  const world = {
+    worldModel,
+    worldMacroViewModel,
+    cameraController,
+    mechanics,
+    toponym: daia.toponym,
+    advance: daia.advance,
+  };
+
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
@@ -234,14 +243,7 @@ const main = async () => {
     healthController,
     staminaController,
     followCursor,
-  }, {
-    worldModel,
-    worldMacroViewModel,
-    cameraController,
-    mechanics,
-    toponym: world.toponym,
-    advance: world.advance,
-  });
+  }, world);
 
   /**
    * The moment preserves the intended heading of the player agent if they

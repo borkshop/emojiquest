@@ -203,6 +203,16 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  */
 
 /**
+ * @typedef {object} World
+ * @prop {import('./model.js').Model} worldModel
+ * @prop {import('./mechanics.js').Mechanics} mechanics
+ * @prop {import('./daia.js').AdvanceFn} advance,
+ * @prop {import('./daia.js').ToponymFn} toponym
+ * @prop {import('./macro-view-model.js').MacroViewModel} worldMacroViewModel
+ * @prop {CameraController} cameraController
+ */
+
+/**
  * @param {Object} args
  * @param {import('./view-model.js').Watcher} args.nineKeyWatcher
  * @param {import('./view-model.js').Watcher} args.oneKeyWatcher
@@ -211,13 +221,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {FollowCursorFn} args.followCursor
- * @param {Object} world
- * @param {import('./daia.js').AdvanceFn} world.advance,
- * @param {import('./daia.js').ToponymFn} world.toponym
- * @param {import('./model.js').Model} world.worldModel
- * @param {import('./macro-view-model.js').MacroViewModel} world.worldMacroViewModel
- * @param {import('./mechanics.js').Mechanics} world.mechanics
- * @param {CameraController} world.cameraController
+ * @param {World} world
  */
 export const makeController = ({
   nineKeyWatcher,
