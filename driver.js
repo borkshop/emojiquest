@@ -62,10 +62,10 @@ export const directionCommand = Object.fromEntries(
  */
 
 /**
- * The delegate is an object that the driver will drive input, animation, turn
+ * The controller is an object that the driver will drive input, animation, turn
  * reset, and command key up and down events.
  *
- * @typedef {Object} Delegate
+ * @typedef {object} Controller
  * @property {CommandFn} command
  * @property {KeysFn} keys
  * @property {(key: string) => boolean} press
@@ -74,12 +74,12 @@ export const directionCommand = Object.fromEntries(
  */
 
 /**
- * @param {Delegate} delegate
+ * @param {Controller} controller
  * @param {Object} options
  * @param {number} options.animatedTransitionDuration
  * @param {Cell<number>} options.moment
  */
-export const makeDriver = (delegate, options) => {
+export const makeDriver = (controller, options) => {
   const { animatedTransitionDuration, moment } = options;
 
   /** @type {Array<Set<string>>} */
@@ -112,14 +112,14 @@ export const makeDriver = (delegate, options) => {
     // Pre-animated transition reset.
     timeSinceTransitionStart = 0;
 
-    delegate.command(command, repeat);
+    controller.command(command, repeat);
 
     await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
 
     // Ensure that the animation gets all the way to 100%, regardless of
     // animation frame timing.
     const progress = makeProgress(animatedTransitionDuration, 1.0);
-    delegate.animate(progress);
+    controller.animate(progress);
   }
 
   /**
@@ -172,7 +172,7 @@ export const makeDriver = (delegate, options) => {
         elapsed,
         timeSinceTransitionStart / animatedTransitionDuration,
       );
-      delegate.animate(progress);
+      controller.animate(progress);
     }
   }
 
@@ -186,7 +186,7 @@ export const makeDriver = (delegate, options) => {
       // The command for each key is mode-dependent.
       command = commandForKey(holder);
       if (command === undefined)  {
-        return delegate.press(holder);
+        return controller.press(holder);
       }
       lastCommandForKey.set(holder, command);
     }
@@ -204,7 +204,7 @@ export const makeDriver = (delegate, options) => {
     }
 
     assert(!held.has(command));
-    const up = delegate.down(command);
+    const up = controller.down(command);
     held.set(command, { start: performance.now(), up });
 
     // If a command key goes down during an animated transition for a prior
@@ -275,7 +275,7 @@ export const makeDriver = (delegate, options) => {
    * @returns {number | undefined} command
    */
   function commandForKey(key) {
-    return delegate.keys()[key];
+    return controller.keys()[key];
   }
 
   run();
