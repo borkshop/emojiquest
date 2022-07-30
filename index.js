@@ -88,14 +88,26 @@ const createHamburger = ({ tileSizePx }) => {
   return $hamburger;
 };
 
-const main = async () => {
-  const tileSizePx = 130; // the height and width of a tile in pixels
+/**
+ * @param {unknown} worldData - TODO clarify type
+ * @param {Node} parentElement
+ * @param {Node} nextSibling
+ * @param {object} args
+ * @param {number} args.tileSizePx
+ * @param {CreateEntityFn} args.createEntity
+ * @param {import('./mechanics.js').Mechanics} args.mechanics
+ */
+const makeWorld = (
+  worldData,
+  parentElement,
+  nextSibling,
+  { tileSizePx, createEntity, mechanics },
+) => {
   const facetSize = 9; // the height and width of a facet in units of tiles
   const facetsPerFaceSize = 9; // the height and width of a face in units of facets
   const faceSize = facetsPerFaceSize * facetSize; // the height and width of a face in tiles
-  const facetSizePx = facetSize * tileSizePx;
   const frustumRadius = 10;
-  const animatedTransitionDuration = 300;
+  const facetSizePx = facetSize * tileSizePx;
 
   // Model
 
@@ -114,15 +126,6 @@ const main = async () => {
     faceSize,
   });
 
-  const mechanics = makeMechanics({
-    recipes,
-    actions,
-    tileTypes,
-    validAgentTypes,
-    validItemTypes,
-    validEffectTypes,
-  });
-
   // View
 
   const worldViewModel = makeViewModel();
@@ -136,16 +139,6 @@ const main = async () => {
     macroViewModel: worldMacroViewModel,
     mechanics,
   });
-
-  const createEntity = makeEntityCreator(mechanics);
-
-  const documentElement = document.documentElement;
-  const parentElement = document.body;
-  const nextSibling = null;
-
-  documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
-  documentElement.style.setProperty('--faceSize', `${faceSize}`);
-  documentElement.style.setProperty('--facetSize', `${facetSize}`);
 
   const { $map, cameraController } = makeMap({
     faceSize,
@@ -177,6 +170,43 @@ const main = async () => {
   });
 
   parentElement.insertBefore($map, nextSibling);
+
+  const world = {
+    worldModel,
+    worldMacroViewModel,
+    cameraController,
+    toponym: daia.toponym,
+    advance: daia.advance,
+  };
+
+  const player = worldModel.restore(worldData);
+
+  return { world, player };
+};
+
+const main = async () => {
+  const tileSizePx = 130; // the height and width of a tile in pixels
+  const animatedTransitionDuration = 300;
+
+  const mechanics = makeMechanics({
+    recipes,
+    actions,
+    tileTypes,
+    validAgentTypes,
+    validItemTypes,
+    validEffectTypes,
+  });
+
+  const createEntity = makeEntityCreator(mechanics);
+
+  const documentElement = document.documentElement;
+  const parentElement = document.body;
+  const nextSibling = null;
+
+  documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
+
+  const $mapAnchor = document.createTextNode('');
+  parentElement.insertBefore($mapAnchor, nextSibling);
 
   const { element: $dialogBox, controller: dialogController } =
     createDialogBox();
@@ -211,6 +241,18 @@ const main = async () => {
   parentElement.insertBefore($hamburger, nextSibling);
 
   /**
+   * The moment preserves the intended heading of the player agent if they
+   * transit from one face of the world to another and suffer a forced
+   * orientation change. For example, transiting over the north edge of the north
+   * polar facet of the world implies a 180 degree rotation, so if the player
+   * continues "north", they would otherwise bounce back and forth between the
+   * top and back face of the world.  Preserving the moment allows northward
+   * travel to translate to southward travel along the back face, until the
+   * player releases the "north" key.
+   */
+  const moment = cell(0);
+
+  /**
    * @param {number} _destination
    * @param {import('./daia.js').CursorChange} change
    */
@@ -226,6 +268,63 @@ const main = async () => {
     { viewText },
   );
 
+  /**
+   * @param {unknown} worldData
+   */
+  const playWorld = worldData => {
+    const { world, player } = makeWorld(worldData, parentElement, $mapAnchor, {
+      tileSizePx,
+      createEntity,
+      mechanics,
+    });
+    if (typeof player === 'number' || player === undefined) {
+      controller.play(world, player);
+    } else {
+      let message = '';
+      for (const error of player) {
+        message += `${error}<br>`;
+        console.error(error);
+      }
+      dialogController.logHTML(message);
+      // TODO induce controller to go to menu without the option of play.
+    }
+  };
+
+  const types = [
+    {
+      description: 'Emoji Quest Game Save',
+      accept: {
+        'application/json': ['.json'],
+      },
+    },
+  ];
+
+  const loadWorld = async () => {
+    const [handle] = await window.showOpenFilePicker({
+      types,
+      multiple: false,
+    });
+    if (handle !== undefined) {
+      const file = await handle.getFile();
+      const text = await file.text();
+      const data = JSON.parse(text);
+      playWorld(data);
+    }
+    return;
+  };
+
+  /**
+   * @param {unknown} worldData
+   */
+  const saveWorld = async worldData => {
+    const handle = await window.showSaveFilePicker({ types });
+    const stream = await handle.createWritable();
+    const text = JSON.stringify(worldData);
+    const blob = new Blob([text]);
+    await stream.write(blob);
+    await stream.close();
+  };
+
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
@@ -235,35 +334,9 @@ const main = async () => {
     staminaController,
     followCursor,
     mechanics,
+    loadWorld,
+    saveWorld,
   });
-
-  /**
-   * The moment preserves the intended heading of the player agent if they
-   * transit from one face of the world to another and suffer a forced
-   * orientation change. For example, transiting over the north edge of the north
-   * polar facet of the world implies a 180 degree rotation, so if the player
-   * continues "north", they would otherwise bounce back and forth between the
-   * top and back face of the world.  Preserving the moment allows northward
-   * travel to translate to southward travel along the back face, until the
-   * player releases the "north" key.
-   */
-  const moment = cell(0);
-
-  const response = await fetch(new URL('daia.json', import.meta.url).href);
-  const worldData = await response.json();
-
-  const world = {
-    worldModel,
-    worldMacroViewModel,
-    cameraController,
-    toponym: daia.toponym,
-    advance: daia.advance,
-  };
-
-  const player = worldModel.restore(worldData);
-  if (typeof player === 'number' || player === undefined) {
-    controller.play(world, player);
-  }
 
   const driver = makeDriver(controller, {
     moment,
@@ -273,6 +346,10 @@ const main = async () => {
   watchControllerCommands(window, $controls, $hamburger, driver, {
     tileSizePx,
   });
+
+  const response = await fetch(new URL('daia.json', import.meta.url).href);
+  const worldData = await response.json();
+  playWorld(worldData);
 };
 
 main();

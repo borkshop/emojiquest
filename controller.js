@@ -35,7 +35,6 @@ import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
 import { makeBoxTileMap } from './tile-map-box.js';
-import { load, save } from './file.js';
 
 /** @type {Record<number, number>} */
 export const commandDirection = {
@@ -228,6 +227,8 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @param {import('./dialog.js').DialogController} args.dialogController
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
+ * @param {() => Promise<void>} args.loadWorld
+ * @param {(worldData: unknown) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
  */
 export const makeController = ({
@@ -239,6 +240,8 @@ export const makeController = ({
   staminaController,
   followCursor,
   mechanics,
+  loadWorld,
+  saveWorld,
 }) => {
   const {
     agentTypes,
@@ -1088,36 +1091,11 @@ export const makeController = ({
               // TODO this call to tock() bypasses the driver.
               // Perhaps this should be appealing to the driver instead.
               tock();
-              load(worldModel.restore)
-                .then(
-                  (
-                    /** @type {undefined | number | Array<string>} */ result,
-                  ) => {
-                    // TODO switch on whether the restored world has
-                    // or does not have a player associated and go either
-                    // to limbo mode or directly to edit mode.
-                    if (
-                      typeof result === 'undefined' ||
-                      typeof result === 'number'
-                    ) {
-                      play(world, result);
-                      // TODO handle cases where user dismissed dialog or
-                      // selected no file.
-                    } else {
-                      let message = '';
-                      for (const error of result) {
-                        message += `${error}<br>`;
-                        console.error(error);
-                      }
-                      dialogController.logHTML(message);
-                      mode = menuMode;
-                    }
-                  },
-                );
+              loadWorld();
               exitMenuMode({});
               return limboMode;
             } else if (state === 'save') {
-              save(worldModel.capture, player).finally(() => {
+              saveWorld(worldModel.capture(player)).finally(() => {
                 mode = menuMode;
               });
               return limboMode;

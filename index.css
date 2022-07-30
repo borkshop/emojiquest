@@ -108,8 +108,6 @@ aside.menu {
   position: absolute;
   top: 0;
   left: 0;
-  width: calc(var(--faceSize) * var(--tileSizePx) * 1px);
-  height: calc(var(--faceSize) * var(--tileSizePx) * 1px);
   transform-origin: top left;
 }
 
@@ -118,8 +116,6 @@ aside.menu {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--facetSize) * var(--tileSizePx) * 1px);
-  height: calc(var(--facetSize) * var(--tileSizePx) * 1px);
   color: white;
   border: 0;
   margin: 0;
