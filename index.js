@@ -28,6 +28,8 @@ import { makeMap } from './map.js';
 import { writeHealthBar } from './health.js';
 import { writeStaminaBar } from './stamina.js';
 
+import { validate } from './file.js';
+
 const svgNS = 'http://www.w3.org/2000/svg';
 
 /** @typedef {import('./animation2d.js').Coord} Coord */
@@ -89,7 +91,7 @@ const createHamburger = ({ tileSizePx }) => {
 };
 
 /**
- * @param {unknown} worldData - TODO clarify type
+ * @param {import('./model.js').Snapshot} snapshot
  * @param {Node} parentElement
  * @param {Node} nextSibling
  * @param {object} args
@@ -98,7 +100,7 @@ const createHamburger = ({ tileSizePx }) => {
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  */
 const makeWorld = (
-  worldData,
+  snapshot,
   parentElement,
   nextSibling,
   { tileSizePx, createEntity, mechanics },
@@ -138,6 +140,7 @@ const makeWorld = (
     advance: daia.advance,
     macroViewModel: worldMacroViewModel,
     mechanics,
+    snapshot,
   });
 
   const { $map, cameraController } = makeMap({
@@ -179,9 +182,7 @@ const makeWorld = (
     advance: daia.advance,
   };
 
-  const player = worldModel.restore(worldData);
-
-  return { world, player };
+  return world;
 };
 
 const main = async () => {
@@ -272,22 +273,27 @@ const main = async () => {
    * @param {unknown} worldData
    */
   const playWorld = worldData => {
-    const { world, player } = makeWorld(worldData, parentElement, $mapAnchor, {
-      tileSizePx,
-      createEntity,
-      mechanics,
-    });
-    if (typeof player === 'number' || player === undefined) {
-      controller.play(world, player);
-    } else {
+    const result = validate(worldData, mechanics);
+    if ('errors' in result) {
       let message = '';
-      for (const error of player) {
+      for (const error of result.errors) {
         message += `${error}<br>`;
         console.error(error);
       }
       dialogController.logHTML(message);
-      // TODO induce controller to go to menu without the option of play.
+      return;
     }
+
+    const { snapshot } = result;
+    const world = makeWorld(snapshot, parentElement, $mapAnchor, {
+      tileSizePx,
+      createEntity,
+      mechanics,
+    });
+    // TODO dispose of prior world.
+
+    const { player } = snapshot;
+    controller.play(world, player);
   };
 
   const types = [

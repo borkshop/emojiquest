@@ -1152,10 +1152,9 @@ test('exit play mode with a non-empty pack', t => {
 test('restore', async t => {
   const path = url.fileURLToPath(new URL('daia.json', import.meta.url));
   const text = await fs.readFile(path, 'utf8');
-  const json = JSON.parse(text);
+  const worldData = JSON.parse(text);
 
-  const s = makeScaffold(t, { size: 81 });
-  s.restore(json);
+  const s = makeScaffold(t, { size: 81, worldData });
   s.play();
 
   s.expectMode('play');

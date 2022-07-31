@@ -20,6 +20,7 @@ import {
   validItemTypes,
   validEffectTypes,
 } from './data.js';
+import { validate } from './file.js';
 
 /**
  * @param {import('ava').ExecutionContext} t
@@ -134,8 +135,15 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
 
 /**
  * @param {import('ava').ExecutionContext} t
+ * @param {object} args
+ * @param {number} [args.size]
+ * @param {{[glyph: string]: string}} [args.legend]
+ * @param {unknown} [args.worldData]
  */
-export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
+export const makeScaffold = (
+  t,
+  { size = 3, legend = {}, worldData = undefined } = {},
+) => {
   /** @type {Record<string, string>} */
   const glyphsByTileName = {
     north: '^',
@@ -233,11 +241,25 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     glyphsByTileName,
   });
 
+  /** @type {import('./model.js').Snapshot | undefined} */
+  let snapshot = undefined;
+  if (worldData !== undefined) {
+    const result = validate(worldData, mechanics);
+    if ('errors' in result) {
+      t.fail(result.errors.join(', '));
+    }
+    if ('snapshot' in result) {
+      snapshot = result.snapshot;
+      player = snapshot.player;
+    }
+  }
+
   const worldModel = makeModel({
     size: daia.worldArea,
     advance: daia.advance,
     macroViewModel: worldMacroViewModel,
     mechanics,
+    snapshot,
   });
 
   const cameraController = {
@@ -399,18 +421,6 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
   };
 
   /**
-   * @param {unknown} data
-   */
-  const restore = data => {
-    const result = worldModel.restore(data);
-    if (typeof result === 'number') {
-      player = result;
-    } else {
-      t.fail(result.join(', '));
-    }
-  };
-
-  /**
    * @param {number} digit
    * @param {boolean} [repeat]
    */
@@ -459,7 +469,6 @@ export const makeScaffold = (t, { size = 3, legend = {} } = {}) => {
     scene,
     terrain,
     play,
-    restore,
     command,
     controller,
     worldModel,
