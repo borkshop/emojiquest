@@ -1154,7 +1154,7 @@ test('restore', async t => {
   const text = await fs.readFile(path, 'utf8');
   const worldData = JSON.parse(text);
 
-  const s = makeScaffold(t, { size: 81, worldData });
+  const s = makeScaffold(t, { tilesPerFacet: 9, facetsPerFace: 9, worldData });
   s.play();
 
   s.expectMode('play');

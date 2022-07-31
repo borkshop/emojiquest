@@ -215,6 +215,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @prop {import('./daia.js').AdvanceFn} advance,
  * @prop {import('./daia.js').ToponymFn} toponym
  * @prop {import('./macro-view-model.js').MacroViewModel} worldMacroViewModel
+ * @prop {(player: number | undefined) => unknown} capture
  * @prop {CameraController} cameraController
  */
 
@@ -350,6 +351,7 @@ export const makeController = ({
       cameraController,
       toponym,
       advance,
+      capture,
     } = world;
 
     /**
@@ -1095,7 +1097,7 @@ export const makeController = ({
               exitMenuMode({});
               return limboMode;
             } else if (state === 'save') {
-              saveWorld(worldModel.capture(player)).finally(() => {
+              saveWorld(capture(player)).finally(() => {
                 mode = menuMode;
               });
               return limboMode;

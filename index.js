@@ -91,7 +91,7 @@ const createHamburger = ({ tileSizePx }) => {
 };
 
 /**
- * @param {import('./model.js').Snapshot} snapshot
+ * @param {import('./file.js').Snapshot} snapshot
  * @param {Node} parentElement
  * @param {Node} nextSibling
  * @param {object} args
@@ -105,8 +105,12 @@ const makeWorld = (
   nextSibling,
   { tileSizePx, createEntity, mechanics },
 ) => {
-  const facetSize = 9; // the height and width of a facet in units of tiles
-  const facetsPerFaceSize = 9; // the height and width of a face in units of facets
+  const { facetsPerFace, tilesPerFacet } = snapshot.levels[0];
+
+  // TODO Reconcile these synonyms.
+  const facetSize = facetsPerFace; // the height and width of a facet in units of tiles
+  const facetsPerFaceSize = tilesPerFacet; // the height and width of a face in units of facets
+
   const faceSize = facetsPerFaceSize * facetSize; // the height and width of a face in tiles
   const frustumRadius = 10;
   const facetSizePx = facetSize * tileSizePx;
@@ -174,6 +178,22 @@ const makeWorld = (
 
   parentElement.insertBefore($map, nextSibling);
 
+  /**
+   * @param {number | undefined} player
+   */
+  const capture = player => {
+    return {
+      levels: [
+        {
+          topology: 'daia',
+          facetsPerFace,
+          tilesPerFacet,
+        },
+      ],
+      ...worldModel.capture(player),
+    };
+  };
+
   const dispose = () => {
     $map.remove();
   };
@@ -184,6 +204,7 @@ const makeWorld = (
     cameraController,
     toponym: daia.toponym,
     advance: daia.advance,
+    capture,
     dispose,
   };
 

@@ -136,13 +136,19 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
 /**
  * @param {import('ava').ExecutionContext} t
  * @param {object} args
- * @param {number} [args.size]
+ * @param {number} [args.tilesPerFacet]
+ * @param {number} [args.facetsPerFace]
  * @param {{[glyph: string]: string}} [args.legend]
  * @param {unknown} [args.worldData]
  */
 export const makeScaffold = (
   t,
-  { size = 3, legend = {}, worldData = undefined } = {},
+  {
+    tilesPerFacet = 3,
+    facetsPerFace = 1,
+    legend = {},
+    worldData = undefined,
+  } = {},
 ) => {
   /** @type {Record<string, string>} */
   const glyphsByTileName = {
@@ -192,6 +198,8 @@ export const makeScaffold = (
     validItemTypes,
     validEffectTypes,
   });
+
+  const size = tilesPerFacet * facetsPerFace;
 
   const daia = makeDaia({
     faceSize: size,
@@ -327,6 +335,17 @@ export const makeScaffold = (
     tock() {},
   };
 
+  const capture = () => ({
+    levels: [
+      {
+        topology: 'daia',
+        facetsPerFace,
+        tilesPerFacet,
+      },
+    ],
+    ...worldModel.capture(player),
+  });
+
   const world = {
     mechanics,
     worldModel,
@@ -334,6 +353,7 @@ export const makeScaffold = (
     cameraController,
     toponym,
     advance,
+    capture,
   };
 
   const controller = makeController({
@@ -499,5 +519,6 @@ export const makeScaffold = (
       assertDefined(player);
       worldModel.setStamina(player, stamina);
     },
+    capture,
   };
 };

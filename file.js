@@ -8,6 +8,20 @@
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
+ * @property {[Level]} levels - TODO generalize array
+ */
+
+/**
+ * @typedef {DaiaLevel} Level
+ */
+
+/**
+ * @typedef {object} DaiaLevel
+ * @property {"daia"} topology
+ * @property {number} facetsPerFace - facets per face along each edge, so 2x2
+ * facets if 2.
+ * @property {number} tilesPerFacet - tiles per facet along each edge, so 3x3
+ * if 3, and 6x6 tiles on each face if facetsPerFace is 2.
  */
 
 /**
@@ -16,8 +30,6 @@
  * @returns {{snapshot: Snapshot} | {errors: Array<string>}}
  */
 export const validate = (allegedSnapshot, mechanics) => {
-  // TODO validate that the snapshot world is generated from a world of the
-  // same size.
   if (typeof allegedSnapshot !== 'object') {
     return { errors: ['expected to begin with an object'] };
   }
@@ -26,6 +38,7 @@ export const validate = (allegedSnapshot, mechanics) => {
   );
   const {
     player: allegedPlayer,
+    levels: allegedLevels,
     locations: allegedLocations,
     types: allegedTypes,
     inventories: allegedInventories,
@@ -39,6 +52,11 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['missing "player"'] };
   } else if (typeof allegedPlayer !== 'number') {
     return { errors: ['"player" must be a number'] };
+  }
+  if (allegedLevels === undefined) {
+    return { errors: ['missing "levels"'] };
+  } else if (!Array.isArray(allegedLevels)) {
+    return { errors: ['"levels" must be an array'] };
   }
   if (allegedTypes === undefined) {
     return { errors: ['missing "types"'] };
@@ -71,8 +89,40 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['"staminas" must be an array'] };
   }
 
-  // TODO parameterize topology and consequently size.
-  const size = allegedTerrain.length;
+  if (allegedLevels.length !== 1) {
+    return { errors: ['"levels"  must only contain 1 level'] };
+  }
+  const allegedLevel = allegedLevels[0];
+  if (typeof allegedLevel !== 'object' || allegedLevel === null) {
+    return { errors: ['"levels[0]" must be an object'] };
+  }
+  const presumedLevel = /** @type {{[name: string]: unknown}} */ (allegedLevel);
+
+  // TODO generalize for multiple levels of varying topology.
+  const { topology, facetsPerFace, tilesPerFacet } = presumedLevel;
+  if (topology !== 'daia') {
+    return { errors: ['"levels[0].topology" must be "daia"'] };
+  }
+  if (typeof facetsPerFace !== 'number') {
+    return { errors: ['"levels[0].facetsPerFace" must be a number'] };
+  }
+  if (typeof tilesPerFacet !== 'number') {
+    return { errors: ['"levels[0].tilesPerFacet" must be a number'] };
+  }
+
+  /** @type {DaiaLevel} */
+  const purportedLevel = {
+    topology,
+    facetsPerFace,
+    tilesPerFacet,
+  };
+
+  /** @type {[Level]} */
+  const purportedLevels = [purportedLevel];
+
+  // Compute size from level data.
+  // TODO generalize for multiple levels of varying topology.
+  const size = 6 * facetsPerFace ** 2 * tilesPerFacet ** 2;
 
   /** @type {Map<number, number>} */
   const allegedEntityTypes = new Map();
@@ -289,8 +339,6 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors };
   }
 
-  // This check is tautological, but retained to ensure the invariant persists
-  // in the face of evolution of the algorithm and format.
   if (allegedTerrain.length !== size) {
     errors.push(`"terrain" must be exactly ${size} long`);
     return { errors };
@@ -316,6 +364,7 @@ export const validate = (allegedSnapshot, mechanics) => {
   const snapshot = {
     player,
     size,
+    levels: purportedLevels,
     entities: purportedEntities,
     terrain: purportedTerrain,
     entityTypes: purportedEntityTypes,
