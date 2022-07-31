@@ -174,12 +174,17 @@ const makeWorld = (
 
   parentElement.insertBefore($map, nextSibling);
 
+  const dispose = () => {
+    $map.remove();
+  };
+
   const world = {
     worldModel,
     worldMacroViewModel,
     cameraController,
     toponym: daia.toponym,
     advance: daia.advance,
+    dispose,
   };
 
   return world;
@@ -269,6 +274,8 @@ const main = async () => {
     { viewText },
   );
 
+  let dispose = Function.prototype;
+
   /**
    * @param {unknown} worldData
    */
@@ -284,13 +291,17 @@ const main = async () => {
       return;
     }
 
+    // Dispose of prior world.
+    dispose();
+
     const { snapshot } = result;
     const world = makeWorld(snapshot, parentElement, $mapAnchor, {
       tileSizePx,
       createEntity,
       mechanics,
     });
-    // TODO dispose of prior world.
+
+    dispose = world.dispose;
 
     const { player } = snapshot;
     controller.play(world, player);
