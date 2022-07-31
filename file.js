@@ -25,7 +25,7 @@ export const validate = (allegedSnapshot, mechanics) => {
     allegedSnapshot
   );
   const {
-    agent: allegedAgent,
+    player: allegedPlayer,
     locations: allegedLocations,
     types: allegedTypes,
     inventories: allegedInventories,
@@ -34,11 +34,11 @@ export const validate = (allegedSnapshot, mechanics) => {
     staminas: allegedStaminas,
   } = presumedSnapshot;
 
-  if (allegedAgent === undefined) {
-    // TODO allow for missing agent, go to limbo after restore.
-    return { errors: ['missing "agent"'] };
-  } else if (typeof allegedAgent !== 'number') {
-    return { errors: ['"agent" must be a number'] };
+  if (allegedPlayer === undefined) {
+    // TODO allow for missing player, go to limbo after restore.
+    return { errors: ['missing "player"'] };
+  } else if (typeof allegedPlayer !== 'number') {
+    return { errors: ['"player" must be a number'] };
   }
   if (allegedTypes === undefined) {
     return { errors: ['missing "types"'] };
@@ -283,9 +283,9 @@ export const validate = (allegedSnapshot, mechanics) => {
     purportedStaminas.set(reentity, allegedStamina);
   }
 
-  const agent = renames.get(allegedAgent);
-  if (agent === undefined) {
-    errors.push(`Missing entity for alleged player agent ${allegedAgent}`);
+  const player = renames.get(allegedPlayer);
+  if (player === undefined) {
+    errors.push(`Missing entity for alleged player player ${allegedPlayer}`);
     return { errors };
   }
 
@@ -314,7 +314,7 @@ export const validate = (allegedSnapshot, mechanics) => {
 
   /** @type {Snapshot} */
   const snapshot = {
-    player: agent,
+    player,
     size,
     entities: purportedEntities,
     terrain: purportedTerrain,

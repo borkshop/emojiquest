@@ -1381,12 +1381,11 @@ export function makeModel({
     return true;
   }
 
-  // TODO rename agent to player in model file
   // TODO allow for absence of player in model file
   /**
-   * @param {number | undefined} agent
+   * @param {number | undefined} player
    */
-  function capture(agent) {
+  function capture(player) {
     const renames = new Map();
     const relocations = [];
 
@@ -1438,14 +1437,14 @@ export function makeModel({
       });
     }
 
-    /** @type {number | undefined} reagent */
-    let reagent;
-    if (agent !== undefined) {
-      reagent = assumeDefined(renames.get(agent));
+    /** @type {number | undefined} replayer */
+    let replayer;
+    if (player !== undefined) {
+      replayer = assumeDefined(renames.get(player));
     }
 
     return {
-      agent: reagent,
+      player: replayer,
       locations: relocations,
       types: retypes,
       inventories: reinventories,
