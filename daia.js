@@ -141,6 +141,7 @@
  * @returns {string}
  */
 
+import { assert } from './assert.js';
 import { north, east, south, west, moddivpoint } from './geometry2d.js';
 import {
   compose,
@@ -334,6 +335,7 @@ export function makeDaia({
   /** @type {TileCoordinateFn} */
   function tileCoordinate(t) {
     const f = Math.floor(t / faceArea);
+    assert(f < 6);
     const n = t % faceArea;
     const y = Math.floor(n / faceSize);
     const x = n % faceSize;
@@ -390,7 +392,8 @@ export function makeDaia({
     const coord = tileCoordinate(position);
     const { f } = coord;
     if (transits(coord, direction)) {
-      const turn = faceRotations[f][direction];
+      const rotations = faceRotations[f];
+      const turn = rotations[direction];
       return {
         position: seams[f][direction](coord),
         direction: (direction + turn + 4) % 4,
