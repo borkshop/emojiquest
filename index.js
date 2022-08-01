@@ -106,14 +106,10 @@ const makeWorld = (
   { tileSizePx, createEntity, mechanics },
 ) => {
   const { facetsPerFace, tilesPerFacet } = snapshot.levels[0];
+  const tilesPerFace = tilesPerFacet * facetsPerFace;
 
-  // TODO Reconcile these synonyms.
-  const facetSize = facetsPerFace; // the height and width of a facet in units of tiles
-  const facetsPerFaceSize = tilesPerFacet; // the height and width of a face in units of facets
-
-  const faceSize = facetsPerFaceSize * facetSize; // the height and width of a face in tiles
   const frustumRadius = 10;
-  const facetSizePx = facetSize * tileSizePx;
+  const facetSizePx = tilesPerFacet * tileSizePx;
 
   // Model
 
@@ -124,12 +120,12 @@ const makeWorld = (
 
   const facetWorld = makeDaia({
     tileSizePx, // presumed irrelevant
-    faceSize: facetsPerFaceSize,
+    faceSize: facetsPerFace,
   });
 
   const daia = makeDaia({
     tileSizePx,
-    faceSize,
+    faceSize: tilesPerFace,
   });
 
   // View
@@ -148,9 +144,8 @@ const makeWorld = (
   });
 
   const { $map, cameraController } = makeMap({
-    faceSize,
-    facetSize,
-    facetsPerFaceSize,
+    tilesPerFacet,
+    facetsPerFace,
     tileSizePx,
     facetSizePx,
     frustumRadius,

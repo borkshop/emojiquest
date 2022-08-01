@@ -115,15 +115,13 @@ const centerVector = { x: 0.5, y: 0.5 };
 
 /**
  * @param {Object} options
- * @param {number} options.facetSize
- * @param {number} options.facetsPerFaceSize
+ * @param {number} options.tilesPerFacet
  * @param {import('./daia.js').TileNumberFn} options.tileNumber
  * @param {import('./daia.js').TileCoordinateFn} options.facetCoordinate
  * @param {import('./daia.js').AdvanceFn} options.advance
  */
 const makeFacetMapper = ({
-  facetsPerFaceSize,
-  facetSize,
+  tilesPerFacet,
   tileNumber,
   facetCoordinate,
   advance,
@@ -137,13 +135,13 @@ const makeFacetMapper = ({
 
     const { f: face, x: originX, y: originY } = facetCoordinate(facet);
     const origin = {
-      x: originX * facetsPerFaceSize,
-      y: originY * facetsPerFaceSize,
+      x: originX * tilesPerFacet,
+      y: originY * tilesPerFacet,
     };
 
     // body
-    for (let y = 0; y < facetSize; y++) {
-      for (let x = 0; x < facetSize; x++) {
+    for (let y = 0; y < tilesPerFacet; y++) {
+      for (let x = 0; x < tilesPerFacet; x++) {
         const t = tileNumber({
           f: face,
           x: origin.x + x,
@@ -158,9 +156,9 @@ const makeFacetMapper = ({
     // // flaps
     // for (let direction = 0; direction < 4; direction++) {
     //   const across = (direction + 1) % 4;
-    //   let edge = transform(corners[direction], scale(facetsPerFaceSize - 1));
+    //   let edge = transform(corners[direction], scale(facetsPerFace - 1));
     //   edge = transform(edge, translate(origin));
-    //   for (let distance = 0; distance < facetSize; distance++) {
+    //   for (let distance = 0; distance < tilesPerFacet; distance++) {
     //     const position = tileNumber({
     //       f: face,
     //       ...edge
@@ -176,7 +174,7 @@ const makeFacetMapper = ({
     // }
 
     // west flap
-    for (let y = 0; y < facetSize; y++) {
+    for (let y = 0; y < tilesPerFacet; y++) {
       const position = tileNumber({
         f: face,
         x: origin.x,
@@ -191,22 +189,22 @@ const makeFacetMapper = ({
     }
 
     // east flap
-    for (let y = 0; y < facetSize; y++) {
+    for (let y = 0; y < tilesPerFacet; y++) {
       const position = tileNumber({
         f: face,
-        x: origin.x + facetSize - 1,
+        x: origin.x + tilesPerFacet - 1,
         y: origin.y + y,
       });
       const flap = advance({ position, direction: east });
       tileMap.set(flap.position, {
-        x: facetSize,
+        x: tilesPerFacet,
         y,
         a: flap.turn,
       });
     }
 
     // north flap
-    for (let x = 0; x < facetSize; x++) {
+    for (let x = 0; x < tilesPerFacet; x++) {
       const position = tileNumber({
         f: face,
         x: origin.x + x,
@@ -221,16 +219,16 @@ const makeFacetMapper = ({
     }
 
     // south flap
-    for (let x = 0; x < facetSize; x++) {
+    for (let x = 0; x < tilesPerFacet; x++) {
       const position = tileNumber({
         f: face,
         x: origin.x + x,
-        y: origin.y + facetSize - 1,
+        y: origin.y + tilesPerFacet - 1,
       });
       const flap = advance({ position, direction: south });
       tileMap.set(flap.position, {
         x,
-        y: facetSize,
+        y: tilesPerFacet,
         a: flap.turn,
       });
     }
@@ -245,8 +243,8 @@ const makeFacetMapper = ({
  * @param {Object} args
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
- * @param {number} args.facetSize - the height and width of a facet in tiles
- * @param {number} args.tileSizePx - the height and width of a facet in pixels
+ * @param {number} args.tilesPerFacet - the height and width of a facet in tiles
+ * @param {number} args.facetSizePx - the height and width of a facet in pixels
  * @param {(location: number) => number} args.getTerrainFlags
  * @param {CreateEntityFn} args.createEntity
  * @param {EntityWatchFn} args.watchEntities
@@ -256,8 +254,8 @@ export function makeFacetCreator({
   watchTerrain,
   unwatchTerrain,
   getTerrainFlags,
-  facetSize,
-  tileSizePx,
+  tilesPerFacet,
+  facetSizePx,
   createEntity,
   watchEntities,
   unwatchEntities,
@@ -274,9 +272,13 @@ export function makeFacetCreator({
     const backTiles = new Map();
 
     const $facet = document.createElementNS(svgNS, 'svg');
-    $facet.setAttributeNS(null, 'viewBox', `0 0 ${facetSize} ${facetSize}`);
-    $facet.setAttributeNS(null, 'height', `${facetSize * tileSizePx}`);
-    $facet.setAttributeNS(null, 'width', `${facetSize * tileSizePx}`);
+    $facet.setAttributeNS(
+      null,
+      'viewBox',
+      `0 0 ${tilesPerFacet} ${tilesPerFacet}`,
+    );
+    $facet.setAttributeNS(null, 'height', `${facetSizePx}`);
+    $facet.setAttributeNS(null, 'width', `${facetSizePx}`);
     $facet.setAttributeNS(null, 'class', 'facet');
 
     const $back = document.createElementNS(svgNS, 'g');
@@ -390,7 +392,6 @@ export function makeFacetCreator({
  * @param {Object} args
  * @param {HTMLElement} args.$viewport
  * @param {number} args.face
- * @param {number} args.faceSize
  * @param {number} args.tileSizePx
  * @param {number} args.faceSizePx
  * @param {number} args.facetSizePx
@@ -505,9 +506,8 @@ const makeFace = ({
 
 /**
  * @param {Object} args
- * @param {number} args.faceSize
- * @param {number} args.facetSize
- * @param {number} args.facetsPerFaceSize
+ * @param {number} args.tilesPerFacet
+ * @param {number} args.facetsPerFace
  * @param {number} args.tileSizePx
  * @param {number} args.faceSizePx
  * @param {number} args.facetSizePx
@@ -528,12 +528,11 @@ const makeFace = ({
  * @param {import('./daia.js').AdvanceFn} args.faceAdvance
  */
 export const makeMap = ({
-  faceSize,
-  facetSize,
+  tilesPerFacet,
   tileSizePx,
   faceSizePx,
   facetSizePx,
-  facetsPerFaceSize,
+  facetsPerFace,
   frustumRadius,
   createEntity,
   watchEntities,
@@ -550,8 +549,7 @@ export const makeMap = ({
   faceAdvance,
 }) => {
   const tilesForFacet = makeFacetMapper({
-    facetSize,
-    facetsPerFaceSize,
+    tilesPerFacet,
     tileNumber,
     facetCoordinate,
     advance,
@@ -576,8 +574,8 @@ export const makeMap = ({
     watchTerrain,
     unwatchTerrain,
     getTerrainFlags,
-    facetSize,
-    tileSizePx,
+    tilesPerFacet,
+    facetSizePx,
     createEntity,
     watchEntities,
     unwatchEntities,
@@ -587,7 +585,6 @@ export const makeMap = ({
     makeFace({
       $viewport,
       face,
-      faceSize,
 
       tileSizePx,
       faceSizePx,
@@ -625,8 +622,8 @@ export const makeMap = ({
     const { f, x, y } = tileCoordinate(tile);
     return facetNumber({
       f,
-      x: Math.floor(x / facetsPerFaceSize),
-      y: Math.floor(y / facetsPerFaceSize),
+      x: Math.floor(x / tilesPerFacet),
+      y: Math.floor(y / tilesPerFacet),
     });
   };
 
