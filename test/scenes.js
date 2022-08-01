@@ -1,7 +1,7 @@
 // Run with yarn test scenes.js
 
 import test from 'ava';
-import { makeScaffold } from './test-scaffold.js';
+import { makeScaffold } from '../test-scaffold.js';
 
 test('metal shop scene', async t => {
   const s = makeScaffold(t, {
