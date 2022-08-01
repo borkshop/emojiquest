@@ -1,3 +1,6 @@
+import url from 'url';
+import fs from 'fs/promises';
+
 import { assertDefined } from './assert.js';
 import { makeDaia } from './daia.js';
 import {
@@ -485,6 +488,15 @@ export const makeScaffold = (
     t.is(actualItemName, expectedItemName);
   };
 
+  /**
+   * @param {string} location
+   * @param {string} referrer
+   */
+  const save = async (location, referrer) => {
+    const path = url.fileURLToPath(new URL(location, referrer));
+    await fs.writeFile(path, JSON.stringify(capture()));
+  };
+
   return {
     scene,
     terrain,
@@ -520,5 +532,6 @@ export const makeScaffold = (
       worldModel.setStamina(player, stamina);
     },
     capture,
+    save,
   };
 };
