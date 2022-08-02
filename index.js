@@ -154,7 +154,6 @@ const makeWorld = (
     faceSizePx: daia.faceSizePx,
     tileNumber: daia.tileNumber,
     tileCoordinate: daia.tileCoordinate,
-    tileCoordinateOnFace: daia.tileCoordinateOnFace,
     advance: daia.advance,
 
     facetNumber: facetWorld.tileNumber,

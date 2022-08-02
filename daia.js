@@ -84,13 +84,6 @@
  */
 
 /**
- * @callback TileCoordinateOnFaceFn
- * @param {number} t - tile index
- * @param {number} f - face index
- * @returns {TileCoordinateOnFace=}
- */
-
-/**
  * @callback TileNumberFn
  * @param {TileQuery} coord - tile coordinate
  * @returns {number}
@@ -209,7 +202,6 @@ export const arrows = [
  * @prop {NeighborFn} neighbor
  * @prop {AdvanceFn} advance
  * @prop {TileCoordinateFn} tileCoordinate
- * @prop {TileCoordinateOnFaceFn} tileCoordinateOnFace
  * @prop {TileNumberFn} tileNumber
  * @prop {TileTransformFn} tileTransform
  * @prop {CameraTransformFn} cameraTransform
@@ -342,35 +334,6 @@ export function makeDaia({
     return { t, f, n, x, y };
   }
 
-  /** @type {TileCoordinateOnFaceFn} */
-  function tileCoordinateOnFace(t, g) {
-    const f = Math.floor(t / faceArea);
-    const n = t % faceArea;
-    const y = Math.floor(n / faceSize);
-    const x = n % faceSize;
-    if (g === f) {
-      return { x, y, a: 0 };
-    }
-    return undefined;
-    // const f2g = faceNeighbors[f].indexOf(g);
-    // if (f2g === -1) {
-    //   return undefined;
-    // }
-    // if (!transits({x, y}, f2g)) {
-    //   return undefined;
-    // }
-    // const neighbor = seams[f][f2g]({x, y});
-    // const turn = faceRotations[f][f2g];
-    // const coord = tileCoordinate(neighbor);
-    // const g2f = (f2g + 4 - turn) % 4;
-    // const g2fv = quarturnVectors[f2g];
-    // return {
-    //   x: coord.x + g2fv.x,
-    //   y: coord.y + g2fv.y,
-    //   a: 0,
-    // };
-  }
-
   /** @type {TileNumberFn} */
   function tileNumber({ x, y, f }) {
     return f * faceArea + y * faceSize + x;
@@ -463,7 +426,6 @@ export function makeDaia({
     worldArea,
     faceSizePx,
     tileCoordinate,
-    tileCoordinateOnFace,
     tileNumber,
     neighbor,
     advance,

@@ -90,7 +90,6 @@ import { tileColor } from './brand.js';
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./daia.js').Cursor} Cursor */
 /** @typedef {import('./daia.js').CursorChange} CursorChange */
-/** @typedef {import('./daia.js').TileCoordinateOnFaceFn} TileCoordinateOnFaceFn */
 /** @typedef {import('./view-model.js').Watcher} Watcher */
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
@@ -400,7 +399,6 @@ export function makeFacetCreator({
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags
- * @param {TileCoordinateOnFaceFn} args.tileCoordinateOnFace
  * @param {ReturnType<makeFacetCreator>['createFacet']} args.createFacet
  */
 const makeFace = ({
@@ -522,7 +520,6 @@ const makeFace = ({
  * @param {import('./daia.js').TileNumberFn} args.facetNumber
  * @param {import('./daia.js').TileCoordinateFn} args.tileCoordinate
  * @param {import('./daia.js').TileCoordinateFn} args.facetCoordinate
- * @param {import('./daia.js').TileCoordinateOnFaceFn} args.tileCoordinateOnFace
  * @param {import('./daia.js').AdvanceFn} args.advance
  * @param {import('./daia.js').TileCoordinateFn} args.faceTileCoordinate
  * @param {import('./daia.js').AdvanceFn} args.faceAdvance
@@ -544,7 +541,6 @@ export const makeMap = ({
   facetNumber,
   facetCoordinate,
   tileCoordinate,
-  tileCoordinateOnFace,
   advance,
   faceAdvance,
 }) => {
@@ -595,7 +591,6 @@ export const makeMap = ({
       getTerrainFlags,
       watchEntities,
       unwatchEntities,
-      tileCoordinateOnFace,
       createFacet,
     }),
   );
