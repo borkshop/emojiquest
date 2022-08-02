@@ -209,28 +209,54 @@ export const makeScaffold = (
     tileSizePx: NaN,
   });
 
-  const {
-    watcher: worldWatcher,
-    expect: expectScene,
-    draw: drawScene,
-  } = makeTestWatcher(t, {
-    size: { x: size, y: size },
-    tileTypes: mechanics.tileTypes,
-    glyphsByTileName,
-  });
-
   const worldViewModel = makeViewModel();
   const worldMacroViewModel = makeMacroViewModel(worldViewModel, {
     name: 'world',
   });
 
-  worldViewModel.watchEntities(
-    makeBoxTileMap({
-      x: size,
-      y: size,
-    }),
-    worldWatcher,
-  );
+  const faces = new Array(6).fill(undefined).map((_, face) => {
+    const {
+      watcher: worldWatcher,
+      expect: expectScene,
+      draw: drawScene,
+    } = makeTestWatcher(t, {
+      size: { x: size, y: size },
+      tileTypes: mechanics.tileTypes,
+      glyphsByTileName,
+    });
+
+    worldViewModel.watchEntities(
+      makeBoxTileMap(
+        {
+          x: size,
+          y: size,
+        },
+        {
+          x: 0,
+          y: 0,
+        },
+        daia.faceArea * face,
+      ),
+      worldWatcher,
+    );
+
+    return { expectScene, drawScene };
+  });
+
+  const expectScenes = faces.map(({ expectScene }) => expectScene);
+  const drawScenes = faces.map(({ drawScene }) => drawScene);
+
+  /**
+   * @param {string} looselyExpected
+   * @param {number} [face]
+   */
+  const expectScene = (looselyExpected, face = 0) =>
+    expectScenes[face](looselyExpected);
+
+  /**
+   * @param {number} [face]
+   */
+  const drawScene = (face = 0) => drawScenes[face]();
 
   const {
     watcher: nineKeyWatcher,
