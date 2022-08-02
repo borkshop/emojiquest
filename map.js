@@ -150,27 +150,7 @@ const makeFacetMapper = ({
       }
     }
 
-    // Here follows a buggy but mostly working attempt to replace
-    // the four hand-rolled cases below:
-    // // flaps
-    // for (let direction = 0; direction < 4; direction++) {
-    //   const across = (direction + 1) % 4;
-    //   let edge = transform(corners[direction], scale(facetsPerFace - 1));
-    //   edge = transform(edge, translate(origin));
-    //   for (let distance = 0; distance < tilesPerFacet; distance++) {
-    //     const position = tileNumber({
-    //       f: face,
-    //       ...edge
-    //     });
-    //     const next = advance({position, direction});
-    //     const flap = transform(edge, translate(quarturnVectors[direction]));
-    //     tileMap.set(next.position, {
-    //       ...flap,
-    //       a: next.turn
-    //     });
-    //     edge = transform(edge, translate(quarturnVectors[across]));
-    //   }
-    // }
+    // TODO generalize the four unrolled flap loops below into a nested loop.
 
     // west flap
     for (let y = 0; y < tilesPerFacet; y++) {
@@ -505,7 +485,6 @@ const makeFace = ({
 /**
  * @param {Object} args
  * @param {number} args.tilesPerFacet
- * @param {number} args.facetsPerFace
  * @param {number} args.tileSizePx
  * @param {number} args.faceSizePx
  * @param {number} args.facetSizePx
@@ -529,7 +508,6 @@ export const makeMap = ({
   tileSizePx,
   faceSizePx,
   facetSizePx,
-  facetsPerFace,
   frustumRadius,
   createEntity,
   watchEntities,

@@ -145,7 +145,6 @@ const makeWorld = (
 
   const { $map, cameraController } = makeMap({
     tilesPerFacet,
-    facetsPerFace,
     tileSizePx,
     facetSizePx,
     frustumRadius,
