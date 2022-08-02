@@ -117,18 +117,6 @@
  */
 
 /**
- * @callback TileTransformFn
- * @param {number} t
- * @returns {Matrix}
- */
-
-/**
- * @callback CameraTransformFn
- * @param {number} t
- * @returns {Matrix}
- */
-
-/**
  * @callback ToponymFn
  * @param {number} t
  * @returns {string}
@@ -136,15 +124,6 @@
 
 import { assert } from './assert.js';
 import { north, east, south, west, moddivpoint } from './geometry2d.js';
-import {
-  compose,
-  inverse,
-  identity,
-  translate,
-  rotateX,
-  rotateY,
-  rotateZ,
-} from './matrix3d.js';
 
 const no = 0; // steady as she goes
 const cw = 1; // clockwise
@@ -173,15 +152,6 @@ export const faceRotations = [
   [cw, no, cw, no], // 5
 ];
 
-const faceTransforms = [
-  [], // 0 front
-  [rotateY(Math.PI / 2)], // 1 right
-  [rotateZ(-Math.PI / 2), rotateX(-Math.PI / 2)], // 2 bottom
-  [rotateZ(-Math.PI / 2), rotateX(Math.PI / 2)], // 3 top
-  [rotateY(-Math.PI / 2)], // 4 left
-  [rotateY(Math.PI)], // 5 back
-].map(matrixes => compose(...matrixes));
-
 export const faceNames = ['Dysia', 'Oria', 'Infra', 'Borea', 'Occia', 'Euia'];
 
 export const faceSymbols = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -199,12 +169,9 @@ export const arrows = [
  * @prop {number} faceArea
  * @prop {number} faceSizePx
  * @prop {number} worldArea
- * @prop {NeighborFn} neighbor
  * @prop {AdvanceFn} advance
  * @prop {TileCoordinateFn} tileCoordinate
  * @prop {TileNumberFn} tileNumber
- * @prop {TileTransformFn} tileTransform
- * @prop {CameraTransformFn} cameraTransform
  * @prop {ToponymFn} toponym
  */
 
@@ -218,37 +185,10 @@ export const arrows = [
 export function makeDaia({
   faceSize = 1,
   tileSizePx = 100,
-  transform = identity,
 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
   const faceSizePx = tileSizePx * faceSize;
-
-  const cornerTransform = translate({
-    x: -faceSizePx / 2 + tileSizePx / 2,
-    y: -faceSizePx / 2 + tileSizePx / 2,
-    z: faceSizePx / 2,
-  });
-
-  const cornerAdjustment = translate({
-    x: -tileSizePx / 2,
-    y: -tileSizePx / 2,
-    z: 0,
-  });
-
-  const centerTransform = translate({
-    x: faceSizePx / 2 - tileSizePx / 2,
-    y: faceSizePx / 2 - tileSizePx / 2,
-    z: -faceSizePx / 2 + tileSizePx / 2,
-  });
-
-  const faceCorners = faceTransforms.map(matrix =>
-    compose(cornerTransform, matrix, transform, cornerAdjustment),
-  );
-
-  const faceOrigins = faceTransforms.map(matrix =>
-    compose(inverse(matrix), centerTransform),
-  );
 
   /**
    * @param {{x: number, y: number}} position
@@ -339,17 +279,6 @@ export function makeDaia({
     return f * faceArea + y * faceSize + x;
   }
 
-  /** @type {NeighborFn} */
-  function neighbor(t, direction) {
-    const coord = tileCoordinate(t);
-    const { f } = coord;
-    if (transits(coord, direction)) {
-      return knits[direction](t);
-    } else {
-      return seams[f][direction](coord);
-    }
-  }
-
   /** @type {AdvanceFn} */
   function advance({ position, direction }) {
     const coord = tileCoordinate(position);
@@ -371,32 +300,6 @@ export function makeDaia({
         transit: false,
       };
     }
-  }
-
-  /** @type {TileTransformFn} */
-  function tileTransform(t) {
-    const { f, y, x } = tileCoordinate(t);
-    return compose(
-      translate({
-        x: tileSizePx * x,
-        y: tileSizePx * y,
-        z: 0,
-      }),
-      faceCorners[f],
-    );
-  }
-
-  /** @type {CameraTransformFn} */
-  function cameraTransform(t) {
-    const { f, y, x } = tileCoordinate(t);
-    return compose(
-      faceOrigins[f],
-      translate({
-        x: -tileSizePx * x,
-        y: -tileSizePx * y,
-        z: 0,
-      }),
-    );
   }
 
   /**
@@ -427,10 +330,7 @@ export function makeDaia({
     faceSizePx,
     tileCoordinate,
     tileNumber,
-    neighbor,
     advance,
-    tileTransform,
-    cameraTransform,
     toponym,
   };
 }
