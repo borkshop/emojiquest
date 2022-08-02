@@ -2,6 +2,7 @@
 
 import { fullQuarturn } from './geometry2d.js';
 import { makeDaia } from './daia.js';
+import { makeDaiaToponym } from './daia-names.js';
 import { cell } from './cell.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
@@ -128,6 +129,8 @@ const makeWorld = (
     faceSize: tilesPerFace,
   });
 
+  const toponym = makeDaiaToponym(daia);
+
   // View
 
   const worldViewModel = makeViewModel();
@@ -195,7 +198,7 @@ const makeWorld = (
     worldModel,
     worldMacroViewModel,
     cameraController,
-    toponym: daia.toponym,
+    toponym,
     advance: daia.advance,
     capture,
     dispose,

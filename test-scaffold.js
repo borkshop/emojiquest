@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 
 import { assertDefined } from './assert.js';
 import { makeDaia } from './daia.js';
+import { makeDaiaToponym } from './daia-names.js';
 import {
   makeModel,
   terrainWater,
@@ -209,6 +210,8 @@ export const makeScaffold = (
     tileSizePx: NaN,
   });
 
+  const toponym = makeDaiaToponym(daia);
+
   const worldViewModel = makeViewModel();
   const worldMacroViewModel = makeMacroViewModel(worldViewModel, {
     name: 'world',
@@ -307,7 +310,7 @@ export const makeScaffold = (
     tock() {},
   };
 
-  const { toponym, advance } = daia;
+  const { advance } = daia;
 
   /**
    * @param {number} _destination

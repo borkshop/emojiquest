@@ -116,14 +116,8 @@
  * @returns {CursorChange}
  */
 
-/**
- * @callback ToponymFn
- * @param {number} t
- * @returns {string}
- */
-
 import { assert } from './assert.js';
-import { north, east, south, west, moddivpoint } from './geometry2d.js';
+import { north, east, south, west } from './geometry2d.js';
 
 const no = 0; // steady as she goes
 const cw = 1; // clockwise
@@ -152,16 +146,6 @@ export const faceRotations = [
   [cw, no, cw, no], // 5
 ];
 
-export const faceNames = ['Dysia', 'Oria', 'Infra', 'Borea', 'Occia', 'Euia'];
-
-export const faceSymbols = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-
-export const arrows = [
-  ['↘', '↓', '↙'],
-  ['→', '⨯', '←'],
-  ['↗', '↑', '↖'],
-];
-
 /**
  * @typedef {Object} Daia
  * @prop {number} faceSize
@@ -172,7 +156,6 @@ export const arrows = [
  * @prop {AdvanceFn} advance
  * @prop {TileCoordinateFn} tileCoordinate
  * @prop {TileNumberFn} tileNumber
- * @prop {ToponymFn} toponym
  */
 
 /**
@@ -182,10 +165,7 @@ export const arrows = [
  * @param {Matrix} [options.transform]
  * @returns {Daia}
  */
-export function makeDaia({
-  faceSize = 1,
-  tileSizePx = 100,
-}) {
+export function makeDaia({ faceSize = 1, tileSizePx = 100 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
   const faceSizePx = tileSizePx * faceSize;
@@ -302,26 +282,6 @@ export function makeDaia({
     }
   }
 
-  /**
-   * @param {number} t
-   */
-  function toponym(t) {
-    const { f, x, y } = tileCoordinate(t);
-    const {
-      q: { x: qx, y: qy },
-      r: { x: rx, y: ry },
-    } = moddivpoint({ x, y }, { x: faceSize / 3, y: faceSize / 3 });
-    const {
-      q: { x: sx, y: sy },
-      r: { x: tx, y: ty },
-    } = moddivpoint({ x: rx, y: ry }, { x: faceSize / 9, y: faceSize / 9 });
-    const {
-      q: { x: ux, y: uy },
-      r: { x: vx, y: vy },
-    } = moddivpoint({ x: tx, y: ty }, { x: faceSize / 27, y: faceSize / 27 });
-    return `${faceSymbols[f]} ${arrows[qy][qx]} ${arrows[sy][sx]} ${arrows[uy][ux]} ${arrows[vy][vx]} @${t}`;
-  }
-
   return {
     faceSize,
     tileSizePx,
@@ -331,6 +291,5 @@ export function makeDaia({
     tileCoordinate,
     tileNumber,
     advance,
-    toponym,
   };
 }
