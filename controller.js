@@ -516,6 +516,7 @@ export const makeController = ({
           ...numberKeys,
           ...arrowKeys,
           ...handKeys,
+          Escape: 0,
         },
         press(command, repeat) {
           repeat = repeat && worldModel.entityHealth(player) === 5;
