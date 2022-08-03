@@ -40,6 +40,7 @@ export const validate = (allegedSnapshot, mechanics) => {
     player: allegedPlayer,
     levels: allegedLevels,
     locations: allegedLocations,
+    entities: allegedEntities,
     types: allegedTypes,
     inventories: allegedInventories,
     terrain: allegedTerrain,
@@ -57,6 +58,11 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['missing "levels"'] };
   } else if (!Array.isArray(allegedLevels)) {
     return { errors: ['"levels" must be an array'] };
+  }
+  if (allegedEntities === undefined) {
+    return { errors: ['missing "entities"'] };
+  } else if (!Array.isArray(allegedEntities)) {
+    return { errors: ['"entities" must be an array'] };
   }
   if (allegedTypes === undefined) {
     return { errors: ['missing "types"'] };
@@ -127,31 +133,18 @@ export const validate = (allegedSnapshot, mechanics) => {
   /** @type {Map<number, number>} */
   const allegedEntityTypes = new Map();
   const errors = [];
-  for (const allegedEntry of allegedTypes) {
-    if (typeof allegedEntry !== 'object') {
-      errors.push(
-        `every entry in "types" must be an object, got ${JSON.stringify(
-          allegedEntry,
-        )}`,
-      );
-      continue;
-    }
-    const entry = /** @type {{[name: string]: unknown}} */ (allegedEntry);
-    const { entity: allegedEntity, type: allegedType } = entry;
+  if (allegedEntities.length !== allegedTypes.length) {
+    errors.push('"entities" and "types" must be the same length');
+  }
+  for (let i = 0; i < Math.min(allegedEntities.length, allegedTypes.length); i += 1) {
+    const allegedEntity = allegedEntities[i];
+    const allegedType = allegedTypes[i];
     if (typeof allegedEntity !== 'number') {
-      errors.push(
-        `every entry in "types" must be an object with an "entity" property, got ${JSON.stringify(
-          allegedEntity,
-        )}`,
-      );
+      errors.push(`every value in "entities" must be a number, got ${JSON.stringify(allegedEntity)} at ${i}`);
       continue;
     }
     if (typeof allegedType !== 'number') {
-      errors.push(
-        `every entry in "types" must be an object with an "type" property, got ${JSON.stringify(
-          allegedType,
-        )}`,
-      );
+      errors.push(`every value in "types" must be a number, got ${JSON.stringify(allegedType)} at ${i}`);
       continue;
     }
     allegedEntityTypes.set(allegedEntity, allegedType);
