@@ -136,15 +136,27 @@ export const validate = (allegedSnapshot, mechanics) => {
   if (allegedEntities.length !== allegedTypes.length) {
     errors.push('"entities" and "types" must be the same length');
   }
-  for (let i = 0; i < Math.min(allegedEntities.length, allegedTypes.length); i += 1) {
+  for (
+    let i = 0;
+    i < Math.min(allegedEntities.length, allegedTypes.length);
+    i += 1
+  ) {
     const allegedEntity = allegedEntities[i];
     const allegedType = allegedTypes[i];
     if (typeof allegedEntity !== 'number') {
-      errors.push(`every value in "entities" must be a number, got ${JSON.stringify(allegedEntity)} at ${i}`);
+      errors.push(
+        `every value in "entities" must be a number, got ${JSON.stringify(
+          allegedEntity,
+        )} at ${i}`,
+      );
       continue;
     }
     if (typeof allegedType !== 'number') {
-      errors.push(`every value in "types" must be a number, got ${JSON.stringify(allegedType)} at ${i}`);
+      errors.push(
+        `every value in "types" must be a number, got ${JSON.stringify(
+          allegedType,
+        )} at ${i}`,
+      );
       continue;
     }
     allegedEntityTypes.set(allegedEntity, allegedType);
