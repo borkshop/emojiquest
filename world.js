@@ -1,5 +1,6 @@
 // @ts-check
 
+import { assert } from './assert.js';
 import { makeDaia } from './daia.js';
 import { makeDaiaToponym } from './daia-names.js';
 import { makeViewModel } from './view-model.js';
@@ -29,92 +30,264 @@ export const makeWorld = (
   nextSibling,
   { tileSizePx, createEntity, mechanics },
 ) => {
-  const { facetsPerFace, tilesPerFacet } = snapshot.levels[0];
-  const tilesPerFace = tilesPerFacet * facetsPerFace;
-
   const frustumRadius = 10;
-  const facetSizePx = tilesPerFacet * tileSizePx;
 
-  // Model
+  const levelSizes = snapshot.levels.map(level => {
+    const { facetsPerFace, tilesPerFacet } = level;
+    const tilesPerFace = tilesPerFacet * facetsPerFace;
 
-  const faceWorld = makeDaia({
-    tileSizePx, // presumed irrelevant
-    faceSize: 1,
+    const tileDaia = makeDaia({
+      tileSizePx,
+      faceSize: tilesPerFace,
+    });
+
+    return tileDaia.worldArea;
   });
 
-  const facetWorld = makeDaia({
-    tileSizePx, // presumed irrelevant
-    faceSize: facetsPerFace,
-  });
-
-  const daia = makeDaia({
-    tileSizePx,
-    faceSize: tilesPerFace,
-  });
-
-  const toponym = makeDaiaToponym(daia);
-
-  // View
+  // Aggregate data from layers.
+  let size = 0;
+  /** @type {Array<number>} */
+  const starts = [];
+  for (const levelSize of levelSizes) {
+    starts.push(size);
+    size += levelSize;
+  }
 
   const worldViewModel = makeViewModel();
   const worldMacroViewModel = makeMacroViewModel(worldViewModel, {
     name: 'world',
   });
 
+  /**
+   * @param {number} global
+   */
+  const locate = global => {
+    for (let i = 0; i < starts.length; i += 1) {
+      const start = starts[i];
+      if (global >= start) {
+        return {
+          level: levels[i],
+          local: global - start,
+        };
+      }
+    }
+    assert(false);
+  };
+
+  /** @type {import('./daia.js').AdvanceFn} */
+  const advance = ({
+    position: previousGlobalPosition,
+    direction: previousDirection,
+  }) => {
+    // TODO consider binary search here, if many layers.
+    for (let i = 0; i < starts.length; i += 1) {
+      const start = starts[i];
+      if (previousGlobalPosition > start) {
+        const previousLocalPosition = previousGlobalPosition - start;
+        const {
+          position: nextLocalPosition,
+          direction: nextDirection,
+          turn,
+          transit,
+        } = levels[i].advance({
+          position: previousLocalPosition - start,
+          direction: previousDirection,
+        });
+        const nextGlobalPosition = nextLocalPosition + start;
+        return {
+          position: nextGlobalPosition,
+          direction: nextDirection,
+          turn,
+          transit,
+        };
+      }
+    }
+    assert(false);
+  };
+
   const worldModel = makeModel({
-    size: daia.worldArea,
-    advance: daia.advance,
+    size,
+    advance,
     macroViewModel: worldMacroViewModel,
     mechanics,
     snapshot,
   });
 
-  const { $map, cameraController } = makeMap({
-    tilesPerFacet,
-    tileSizePx,
-    facetSizePx,
-    frustumRadius,
-    createEntity,
+  const levels = snapshot.levels.map((level, i) => {
+    const { facetsPerFace, tilesPerFacet } = level;
+    const tilesPerFace = tilesPerFacet * facetsPerFace;
 
-    faceSizePx: daia.faceSizePx,
-    tileNumber: daia.tileNumber,
-    tileCoordinate: daia.tileCoordinate,
-    advance: daia.advance,
+    const facetSizePx = tilesPerFacet * tileSizePx;
 
-    facetNumber: facetWorld.tileNumber,
-    facetCoordinate: facetWorld.tileCoordinate,
+    /**
+     * @param {Iterable<number>} locations
+     * @param {(location: number) => void} watcher
+     */
+    const watchTerrain = (locations, watcher) => {
+      return worldModel.watchTerrain(
+        [...locations].map(location => location + starts[i]),
+        watcher,
+      );
+    };
 
-    faceTileCoordinate: faceWorld.tileCoordinate,
-    faceAdvance: faceWorld.advance,
+    /**
+     * @param {Iterable<number>} locations
+     * @param {(location: number) => void} watcher
+     */
+    const unwatchTerrain = (locations, watcher) => {
+      return worldModel.watchTerrain(
+        [...locations].map(location => location + starts[i]),
+        watcher,
+      );
+    };
 
-    watchTerrain: worldModel.watchTerrain,
-    unwatchTerrain: worldModel.unwatchTerrain,
-    getTerrainFlags: worldModel.getTerrainFlags,
+    /**
+     * @param {number} location
+     */
+    const getTerrainFlags = location => {
+      return worldModel.getTerrainFlags(location + starts[i]);
+    };
 
-    watchEntities: worldViewModel.watchEntities,
-    unwatchEntities: worldViewModel.unwatchEntities,
+    /** @type {import('./view-model.js').EntityWatchFn} */
+    const watchEntities = (tiles, watcher) => {
+      return worldViewModel.watchEntities(
+        new Map(
+          [...tiles.entries()].map(([local, coord]) => [
+            local + starts[i],
+            coord,
+          ]),
+        ),
+        watcher,
+      );
+    };
+
+    /** @type {import('./view-model.js').EntityWatchFn} */
+    const unwatchEntities = (tiles, watcher) => {
+      return worldViewModel.unwatchEntities(
+        new Map(
+          [...tiles.entries()].map(([local, coord]) => [
+            local + starts[i],
+            coord,
+          ]),
+        ),
+        watcher,
+      );
+    };
+
+    // Model
+
+    const faceDaia = makeDaia({
+      tileSizePx, // presumed irrelevant
+      faceSize: 1,
+    });
+
+    const facetDaia = makeDaia({
+      tileSizePx, // presumed irrelevant
+      faceSize: facetsPerFace,
+    });
+
+    const tileDaia = makeDaia({
+      tileSizePx,
+      faceSize: tilesPerFace,
+    });
+
+    const toponym = makeDaiaToponym(tileDaia);
+
+    // View
+
+    const { $map, cameraController } = makeMap({
+      tilesPerFacet,
+      tileSizePx,
+      facetSizePx,
+      frustumRadius,
+      createEntity,
+
+      faceSizePx: tileDaia.faceSizePx,
+      tileNumber: tileDaia.tileNumber,
+      tileCoordinate: tileDaia.tileCoordinate,
+      advance: tileDaia.advance,
+
+      facetNumber: facetDaia.tileNumber,
+      facetCoordinate: facetDaia.tileCoordinate,
+
+      faceTileCoordinate: faceDaia.tileCoordinate,
+      faceAdvance: faceDaia.advance,
+
+      watchTerrain,
+      unwatchTerrain,
+      getTerrainFlags,
+
+      watchEntities,
+      unwatchEntities,
+    });
+
+    parentElement.insertBefore($map, nextSibling);
+
+    const dispose = () => {
+      $map.remove();
+    };
+
+    return {
+      descriptor: {
+        topology: 'daia',
+        facetsPerFace,
+        tilesPerFacet,
+      },
+      size: tileDaia.worldArea,
+      advance: tileDaia.advance,
+      cameraController,
+      toponym,
+      dispose,
+    };
   });
-
-  parentElement.insertBefore($map, nextSibling);
 
   /**
    * @param {number | undefined} player
    */
   const capture = player => {
     return {
-      levels: [
-        {
-          topology: 'daia',
-          facetsPerFace,
-          tilesPerFacet,
-        },
-      ],
+      levels: levels.map(({ descriptor }) => descriptor),
       ...worldModel.capture(player),
     };
   };
 
+  /** @type {import('./controller.js').CameraController} */
+  const cameraController = {
+    jump(global) {
+      const { level, local } = locate(global);
+      return level.cameraController.jump(local);
+    },
+    move(global, change) {
+      const { level, local } = locate(global);
+      return level.cameraController.move(local, change);
+    },
+    animate(progress) {
+      for (const { cameraController } of levels) {
+        cameraController.animate(progress);
+      }
+    },
+    tick() {
+      for (const { cameraController } of levels) {
+        cameraController.tick();
+      }
+    },
+    tock() {
+      for (const { cameraController } of levels) {
+        cameraController.tock();
+      }
+    },
+  };
+
+  /** @param {number} global */
+  const toponym = global => {
+    const { level, local } = locate(global);
+    return level.toponym(local);
+  };
+
   const dispose = () => {
-    $map.remove();
+    for (const { dispose } of levels) {
+      dispose();
+    }
   };
 
   const world = {
@@ -122,7 +295,7 @@ export const makeWorld = (
     worldMacroViewModel,
     cameraController,
     toponym,
-    advance: daia.advance,
+    advance,
     capture,
     dispose,
   };
