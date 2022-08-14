@@ -1,7 +1,7 @@
 import test from 'ava';
 import { makeMechanics } from '../mechanics.js';
-import * as data from '../data.js';
+import * as emojiQuestMechanics from '../emojiquest/mechanics.js';
 
 test('precompile mechanics', t => {
-  t.notThrows(() => makeMechanics(data));
+  t.notThrows(() => makeMechanics(emojiQuestMechanics));
 });

@@ -9,7 +9,7 @@
 // @ts-check
 
 /**
- * @type {Array<import('./mechanics.js').AgentType>}
+ * @type {Array<import('../mechanics.js').AgentType>}
  */
 export const validAgentTypes = [
   {
@@ -281,7 +281,7 @@ export const validAgentTypes = [
 ];
 
 /**
- * @type {Array<import('./mechanics.js').ItemType>}
+ * @type {Array<import('../mechanics.js').ItemType>}
  */
 export const validItemTypes = [
   {
@@ -388,7 +388,7 @@ export const validItemTypes = [
 ];
 
 /**
- * @type {Array<import('./mechanics.js').TileType>}
+ * @type {Array<import('../mechanics.js').TileType>}
  */
 export const tileTypes = [
   { name: 'invalid', text: '�' },
@@ -510,7 +510,7 @@ export const tileTypes = [
 ];
 
 /**
- * @type {Array<import('./mechanics.js').Recipe>}
+ * @type {Array<import('../mechanics.js').Recipe>}
  */
 export const recipes = [
   // metallurgy 1
@@ -570,7 +570,7 @@ export const recipes = [
 ];
 
 /**
- * @type {Array<import('./mechanics.js').Action>}
+ * @type {Array<import('../mechanics.js').Action>}
  */
 export const actions = [
   // raw material
@@ -796,5 +796,5 @@ export const actions = [
 
 // TODO 🪨rock, 📄paper, ✂️scissors, 🦎lizard, 🖖spock
 
-/** @type {Array<import('./mechanics.js').EffectType>} */
+/** @type {Array<import('../mechanics.js').EffectType>} */
 export const validEffectTypes = [];

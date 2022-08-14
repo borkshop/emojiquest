@@ -16,7 +16,7 @@ import {
   validAgentTypes,
   validItemTypes,
   validEffectTypes,
-} from './data.js';
+} from './emojiquest/mechanics.js';
 
 import { createDialogBox } from './dialog.js';
 import { createMenuBlade } from './menu.js';

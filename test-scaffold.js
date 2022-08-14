@@ -23,7 +23,7 @@ import {
   validAgentTypes,
   validItemTypes,
   validEffectTypes,
-} from './data.js';
+} from './emojiquest/mechanics.js';
 import { validate } from './file.js';
 
 /**
