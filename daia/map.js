@@ -86,7 +86,7 @@ import { makeTileKeeper } from '../tile-keeper.js';
 import { tileColor } from '../brand.js';
 
 /** @typedef {import('../lib/geometry2d.js').Point} Point */
-/** @typedef {import('../animation.js').Progress} Progress */
+/** @typedef {import('../progress.js').Progress} Progress */
 /** @typedef {import('../animation2d.js').Coord} Coord */
 /** @typedef {import('../topology.js').Cursor} Cursor */
 /** @typedef {import('../topology.js').CursorChange} CursorChange */
@@ -333,7 +333,7 @@ export function makeFacetCreator({
     watchTerrain(tiles.keys(), mark);
 
     /**
-     * @param {import('../animation.js').Progress} _progress
+     * @param {import('../progress.js').Progress} _progress
      */
     const animate = _progress => {
       for (const location of marked) {
@@ -357,7 +357,7 @@ export function makeFacetCreator({
   };
 
   /**
-   * @param {import('../animation.js').Progress} progress
+   * @param {import('../progress.js').Progress} progress
    */
   const animateFacets = progress => {
     for (const animate of animators) {
@@ -812,7 +812,7 @@ export const makeMap = ({
   };
 
   /**
-   * @param {import('../animation.js').Progress} progress
+   * @param {import('../progress.js').Progress} progress
    */
   const animate = progress => {
     if (progress.linear > 1) {

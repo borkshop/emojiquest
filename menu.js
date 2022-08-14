@@ -72,7 +72,7 @@ export function createMenuBlade({
 
   macroViewModel.put(entity, state, pointerTileType);
 
-  /** @type {import('./animation.js').AnimateFn} */
+  /** @type {import('./progress.js').AnimateFn} */
   function animate(progress) {
     macroViewModel.animate(progress);
 

@@ -96,8 +96,8 @@ const numberKeys = {
   9: 9,
 };
 
-/** @typedef {import('./animation.js').AnimateFn} AnimateFn */
-/** @typedef {import('./animation.js').Progress} Progress */
+/** @typedef {import('./progress.js').AnimateFn} AnimateFn */
+/** @typedef {import('./progress.js').Progress} Progress */
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./animation2d.js').Transition} Transition */
 /** @typedef {import('./view-model.js').Watcher} Watcher */

@@ -79,7 +79,7 @@ export const createDialogBox = () => {
     }
   };
 
-  /** @param {import('./animation').Progress} progress */
+  /** @param {import('./progress.js').Progress} progress */
   const animate = progress => {
     if (progress.linear >= 1) return;
 

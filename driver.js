@@ -21,7 +21,7 @@
 
 import { frameDeltas } from './animation.js';
 import { assert } from './lib/assert.js';
-import { makeProgress } from './animation.js';
+import { makeProgress } from './progress.js';
 import { delay, defer } from './lib/async.js';
 import { fullQuarturn } from './lib/geometry2d.js';
 
@@ -31,7 +31,7 @@ import { fullQuarturn } from './lib/geometry2d.js';
  */
 
 /**
- * @typedef {import('./animation.js').Progress} Progress
+ * @typedef {import('./progress.js').Progress} Progress
  */
 
 /**
