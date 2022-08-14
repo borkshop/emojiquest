@@ -39,6 +39,7 @@
     "exclude": [
       "**/build/**/*",
       "**/test/**/*",
+      "**/scratch/**/*",
       "**/node_modules/**/*",
       "**/test-*.js",
       "**/*.test.js",

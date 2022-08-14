@@ -1,5 +1,6 @@
 coverage
 build
+scratch
 lib/matrix2d.js
 brand.js
 daia.json
