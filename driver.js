@@ -22,12 +22,12 @@
 import { frameDeltas } from './animation.js';
 import { assert } from './lib/assert.js';
 import { makeProgress } from './animation.js';
-import { delay, defer } from './async.js';
+import { delay, defer } from './lib/async.js';
 import { fullQuarturn } from './lib/geometry2d.js';
 
 /**
  * @template T
- * @typedef {import('./async.js').Deferred<T>} Deferred
+ * @typedef {import('./lib/async.js').Deferred<T>} Deferred
  */
 
 /**
