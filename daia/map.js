@@ -88,8 +88,8 @@ import { tileColor } from '../brand.js';
 /** @typedef {import('../geometry2d.js').Point} Point */
 /** @typedef {import('../animation.js').Progress} Progress */
 /** @typedef {import('../animation2d.js').Coord} Coord */
-/** @typedef {import('../daia.js').Cursor} Cursor */
-/** @typedef {import('../daia.js').CursorChange} CursorChange */
+/** @typedef {import('../topology.js').Cursor} Cursor */
+/** @typedef {import('../topology.js').CursorChange} CursorChange */
 /** @typedef {import('../view-model.js').Watcher} Watcher */
 /** @typedef {import('../view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('../view-model.js').EntityWatchFn} EntityWatchFn */
@@ -115,9 +115,9 @@ const centerVector = { x: 0.5, y: 0.5 };
 /**
  * @param {Object} options
  * @param {number} options.tilesPerFacet
- * @param {import('../daia.js').TileNumberFn} options.tileNumber
- * @param {import('../daia.js').TileCoordinateFn} options.facetCoordinate
- * @param {import('../daia.js').AdvanceFn} options.advance
+ * @param {import('../topology.js').TileNumberFn} options.tileNumber
+ * @param {import('../topology.js').TileCoordinateFn} options.facetCoordinate
+ * @param {import('../topology.js').AdvanceFn} options.advance
  */
 const makeFacetMapper = ({
   tilesPerFacet,
@@ -495,13 +495,13 @@ const makeFace = ({
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags
- * @param {import('../daia.js').TileNumberFn} args.tileNumber
- * @param {import('../daia.js').TileNumberFn} args.facetNumber
- * @param {import('../daia.js').TileCoordinateFn} args.tileCoordinate
- * @param {import('../daia.js').TileCoordinateFn} args.facetCoordinate
- * @param {import('../daia.js').AdvanceFn} args.advance
- * @param {import('../daia.js').TileCoordinateFn} args.faceTileCoordinate
- * @param {import('../daia.js').AdvanceFn} args.faceAdvance
+ * @param {import('../topology.js').TileNumberFn} args.tileNumber
+ * @param {import('../topology.js').TileNumberFn} args.facetNumber
+ * @param {import('../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../topology.js').TileCoordinateFn} args.facetCoordinate
+ * @param {import('../topology.js').AdvanceFn} args.advance
+ * @param {import('../topology.js').TileCoordinateFn} args.faceTileCoordinate
+ * @param {import('../topology.js').AdvanceFn} args.faceAdvance
  */
 export const makeMap = ({
   tilesPerFacet,

@@ -51,73 +51,11 @@
 
 // @ts-check
 
-/** @typedef {import('./matrix3d.js').Matrix} Matrix */
-/** @typedef {import('./vector2d.js').Point} Point */
+/** @typedef {import('../vector2d.js').Point} Point */
+/** @typedef {import('../matrix3d.js').Matrix} Matrix */
 
-/**
- * @typedef {Object} TileCoordinate
- * @prop {number} t - tile number
- * @prop {number} f - face number of tile
- * @prop {number} n - row major index of tile on face
- * @prop {number} x - horizontal position on face
- * @prop {number} y - vertical position on face
- */
-
-/**
- * @typedef {Object} TileCoordinateOnFace
- * @prop {number} x - horizontal position on face
- * @prop {number} y - vertical position on face
- * @prop {number} a - angle
- */
-
-/**
- * @typedef {Object} TileQuery
- * @prop {number} f - face number of tile
- * @prop {number} x - horizontal position on face
- * @prop {number} y - vertical position on face
- */
-
-/**
- * @callback TileCoordinateFn
- * @param {number} t - tile index
- * @returns {TileCoordinate}
- */
-
-/**
- * @callback TileNumberFn
- * @param {TileQuery} coord - tile coordinate
- * @returns {number}
- */
-
-/**
- * @callback NeighborFn
- * @param {number} t
- * @param {number} direction
- * @returns {number}
- */
-
-/**
- * @typedef {Object} Cursor
- * @prop {number} position
- * @prop {number} direction
- */
-
-/**
- * @typedef {Object} CursorChange
- * @prop {number} position
- * @prop {number} direction
- * @prop {number} turn
- * @prop {boolean} transit
- */
-
-/**
- * @callback AdvanceFn
- * @param {Cursor} cursor
- * @returns {CursorChange}
- */
-
-import { assert } from './assert.js';
-import { north, east, south, west } from './geometry2d.js';
+import { assert } from '../assert.js';
+import { north, east, south, west } from '../geometry2d.js';
 
 const no = 0; // steady as she goes
 const cw = 1; // clockwise
@@ -153,16 +91,15 @@ export const faceRotations = [
  * @prop {number} faceArea
  * @prop {number} faceSizePx
  * @prop {number} worldArea
- * @prop {AdvanceFn} advance
- * @prop {TileCoordinateFn} tileCoordinate
- * @prop {TileNumberFn} tileNumber
+ * @prop {import('../topology.js').AdvanceFn} advance
+ * @prop {import('../topology.js').TileCoordinateFn} tileCoordinate
+ * @prop {import('../topology.js').TileNumberFn} tileNumber
  */
 
 /**
  * @param {Object} options
  * @param {number} [options.faceSize]
  * @param {number} [options.tileSizePx]
- * @param {Matrix} [options.transform]
  * @returns {Daia}
  */
 export function makeDaia({ faceSize = 1, tileSizePx = 100 }) {
@@ -244,7 +181,7 @@ export function makeDaia({ faceSize = 1, tileSizePx = 100 }) {
     (/** @type {number} */ t) => t - 1, // east
   ];
 
-  /** @type {TileCoordinateFn} */
+  /** @type {import('../topology.js').TileCoordinateFn} */
   function tileCoordinate(t) {
     const f = Math.floor(t / faceArea);
     assert(f < 6);
@@ -254,12 +191,12 @@ export function makeDaia({ faceSize = 1, tileSizePx = 100 }) {
     return { t, f, n, x, y };
   }
 
-  /** @type {TileNumberFn} */
+  /** @type {import('../topology.js').TileNumberFn} */
   function tileNumber({ x, y, f }) {
     return f * faceArea + y * faceSize + x;
   }
 
-  /** @type {AdvanceFn} */
+  /** @type {import('../topology.js').AdvanceFn} */
   function advance({ position, direction }) {
     const coord = tileCoordinate(position);
     const { f } = coord;

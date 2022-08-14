@@ -10,7 +10,7 @@
 import { circle } from './circle.js';
 import { setDifference } from './set.js';
 
-/** @typedef {import('./daia.js').AdvanceFn} AdvanceFn */
+/** @typedef {import('./topology.js').AdvanceFn} AdvanceFn */
 
 /**
  * @callback TileFn

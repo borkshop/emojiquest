@@ -2,7 +2,7 @@ import url from 'url';
 import fs from 'fs/promises';
 
 import { assertDefined } from './assert.js';
-import { makeDaia } from './daia.js';
+import { makeDaia } from './daia/topology.js';
 import { makeDaiaToponym } from './daia-names.js';
 import {
   makeModel,
@@ -314,7 +314,7 @@ export const makeScaffold = (
 
   /**
    * @param {number} _destination
-   * @param {import('./daia.js').CursorChange} _change
+   * @param {import('./topology.js').CursorChange} _change
    */
   const followCursor = (_destination, _change) => {};
 

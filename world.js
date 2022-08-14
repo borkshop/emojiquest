@@ -1,7 +1,7 @@
 // @ts-check
 
 import { assert } from './assert.js';
-import { makeDaia } from './daia.js';
+import { makeDaia } from './daia/topology.js';
 import { makeDaiaToponym } from './daia-names.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
@@ -74,7 +74,7 @@ export const makeWorld = (
     assert(false);
   };
 
-  /** @type {import('./daia.js').AdvanceFn} */
+  /** @type {import('./topology.js').AdvanceFn} */
   const advance = ({
     position: previousGlobalPosition,
     direction: previousDirection,

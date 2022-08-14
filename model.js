@@ -18,7 +18,7 @@ import { assert, assertDefined, assumeDefined } from './assert.js';
 import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
 
 /**
- * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
+ * @typedef {import('./topology.js').AdvanceFn} AdvanceFn
  */
 
 /**
@@ -113,7 +113,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
  */
 
 /**
- * @typedef {import('./daia.js').CursorChange} CursorChange
+ * @typedef {import('./topology.js').CursorChange} CursorChange
  */
 
 /**

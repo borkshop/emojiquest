@@ -109,7 +109,7 @@ const noop = () => {};
 /**
  * @callback FollowCursorFn
  * @param {number} destination
- * @param {import('./daia.js').CursorChange} change
+ * @param {import('./topology.js').CursorChange} change
  */
 
 /**
@@ -154,7 +154,7 @@ const noop = () => {};
 
 /**
  * @callback MoveFn
- * @param {import('./daia.js').CursorChange} change
+ * @param {import('./topology.js').CursorChange} change
  * @param {number} destination
  */
 
@@ -190,7 +190,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
 /**
  * @typedef {Object} CameraController
  * @prop {(location: number) => void} jump
- * @prop {(destination: number, change: import('./daia.js').CursorChange) => void} move
+ * @prop {(destination: number, change: import('./topology.js').CursorChange) => void} move
  * @prop {() => void} tick
  * @prop {() => void} tock
  * @prop {(progress: Progress) => void} animate
@@ -212,7 +212,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
 /**
  * @typedef {object} World
  * @prop {import('./model.js').Model} worldModel
- * @prop {import('./daia.js').AdvanceFn} advance,
+ * @prop {import('./topology.js').AdvanceFn} advance,
  * @prop {import('./daia-names.js').ToponymFn} toponym
  * @prop {import('./macro-view-model.js').MacroViewModel} worldMacroViewModel
  * @prop {(player: number | undefined) => unknown} capture

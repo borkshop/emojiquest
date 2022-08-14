@@ -16,7 +16,7 @@
 import { north, south, east, west } from './geometry2d.js';
 
 /**
- * @typedef {import('./daia.js').AdvanceFn} AdvanceFn
+ * @typedef {import('./topology.js').AdvanceFn} AdvanceFn
  */
 
 /**

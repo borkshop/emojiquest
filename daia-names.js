@@ -65,7 +65,7 @@ export function ternym(scale, x, y, arrows) {
 /**
  * @param {object} args
  * @param {number} args.faceSize
- * @param {import('./daia.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('./topology.js').TileCoordinateFn} args.tileCoordinate
  */
 export function makeDaiaToponym({ faceSize, tileCoordinate }) {
   /**
