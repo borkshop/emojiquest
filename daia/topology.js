@@ -51,7 +51,7 @@
 
 // @ts-check
 
-/** @typedef {import('../vector2d.js').Point} Point */
+/** @typedef {import('../lib/vector2d.js').Point} Point */
 
 import { assert } from '../lib/assert.js';
 import { north, east, south, west } from '../lib/geometry2d.js';
