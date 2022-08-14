@@ -13,7 +13,7 @@
 // @ts-check
 
 import { assert, assertDefined, assumeDefined } from './assert.js';
-import { setDifference } from './set.js';
+import { setDifference } from './lib/set.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */
 /** @typedef {import('./animation.js').Progress} Progress */

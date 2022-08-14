@@ -8,7 +8,7 @@
 // @ts-check
 
 import { circle } from './circle.js';
-import { setDifference } from './set.js';
+import { setDifference } from './lib/set.js';
 
 /** @typedef {import('./topology.js').AdvanceFn} AdvanceFn */
 
