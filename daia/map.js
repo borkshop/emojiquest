@@ -70,8 +70,8 @@
 //    |  |
 //    +--+
 
-import { assumeDefined } from './assert.js';
-import { quarturnVectors, north, east, south, west } from './geometry2d.js';
+import { assumeDefined } from '../assert.js';
+import { quarturnVectors, north, east, south, west } from '../geometry2d.js';
 import {
   identity,
   compose,
@@ -79,20 +79,20 @@ import {
   rotate,
   rotateQuarturn,
   matrixStyle,
-} from './matrix2d.js';
-import { add as addVectors, scale as scaleVector } from './vector2d.js';
-import { placeEntity } from './animation2d.js';
-import { makeTileKeeper } from './tile-keeper.js';
-import { tileColor } from './brand.js';
+} from '../matrix2d.js';
+import { add as addVectors, scale as scaleVector } from '../vector2d.js';
+import { placeEntity } from '../animation2d.js';
+import { makeTileKeeper } from '../tile-keeper.js';
+import { tileColor } from '../brand.js';
 
-/** @typedef {import('./geometry2d.js').Point} Point */
-/** @typedef {import('./animation.js').Progress} Progress */
-/** @typedef {import('./animation2d.js').Coord} Coord */
-/** @typedef {import('./daia.js').Cursor} Cursor */
-/** @typedef {import('./daia.js').CursorChange} CursorChange */
-/** @typedef {import('./view-model.js').Watcher} Watcher */
-/** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
-/** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('../geometry2d.js').Point} Point */
+/** @typedef {import('../animation.js').Progress} Progress */
+/** @typedef {import('../animation2d.js').Coord} Coord */
+/** @typedef {import('../daia.js').Cursor} Cursor */
+/** @typedef {import('../daia.js').CursorChange} CursorChange */
+/** @typedef {import('../view-model.js').Watcher} Watcher */
+/** @typedef {import('../view-model.js').PlaceFn} PlaceFn */
+/** @typedef {import('../view-model.js').EntityWatchFn} EntityWatchFn */
 
 /**
  * @callback CreateEntityFn
@@ -115,9 +115,9 @@ const centerVector = { x: 0.5, y: 0.5 };
 /**
  * @param {Object} options
  * @param {number} options.tilesPerFacet
- * @param {import('./daia.js').TileNumberFn} options.tileNumber
- * @param {import('./daia.js').TileCoordinateFn} options.facetCoordinate
- * @param {import('./daia.js').AdvanceFn} options.advance
+ * @param {import('../daia.js').TileNumberFn} options.tileNumber
+ * @param {import('../daia.js').TileCoordinateFn} options.facetCoordinate
+ * @param {import('../daia.js').AdvanceFn} options.advance
  */
 const makeFacetMapper = ({
   tilesPerFacet,
@@ -333,7 +333,7 @@ export function makeFacetCreator({
     watchTerrain(tiles.keys(), mark);
 
     /**
-     * @param {import('./animation.js').Progress} _progress
+     * @param {import('../animation.js').Progress} _progress
      */
     const animate = _progress => {
       for (const location of marked) {
@@ -357,7 +357,7 @@ export function makeFacetCreator({
   };
 
   /**
-   * @param {import('./animation.js').Progress} progress
+   * @param {import('../animation.js').Progress} progress
    */
   const animateFacets = progress => {
     for (const animate of animators) {
@@ -431,7 +431,7 @@ const makeFace = ({
   };
 
   /**
-   * @param {import('./animation2d.js').Coord} destination
+   * @param {import('../animation2d.js').Coord} destination
    */
   const relocate = ({ x, y, a }) => {
     const transform = compose(
@@ -495,13 +495,13 @@ const makeFace = ({
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags
- * @param {import('./daia.js').TileNumberFn} args.tileNumber
- * @param {import('./daia.js').TileNumberFn} args.facetNumber
- * @param {import('./daia.js').TileCoordinateFn} args.tileCoordinate
- * @param {import('./daia.js').TileCoordinateFn} args.facetCoordinate
- * @param {import('./daia.js').AdvanceFn} args.advance
- * @param {import('./daia.js').TileCoordinateFn} args.faceTileCoordinate
- * @param {import('./daia.js').AdvanceFn} args.faceAdvance
+ * @param {import('../daia.js').TileNumberFn} args.tileNumber
+ * @param {import('../daia.js').TileNumberFn} args.facetNumber
+ * @param {import('../daia.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../daia.js').TileCoordinateFn} args.facetCoordinate
+ * @param {import('../daia.js').AdvanceFn} args.advance
+ * @param {import('../daia.js').TileCoordinateFn} args.faceTileCoordinate
+ * @param {import('../daia.js').AdvanceFn} args.faceAdvance
  */
 export const makeMap = ({
   tilesPerFacet,
@@ -812,7 +812,7 @@ export const makeMap = ({
   };
 
   /**
-   * @param {import('./animation.js').Progress} progress
+   * @param {import('../animation.js').Progress} progress
    */
   const animate = progress => {
     if (progress.linear > 1) {

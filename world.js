@@ -6,7 +6,7 @@ import { makeDaiaToponym } from './daia-names.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
-import { makeMap } from './map.js';
+import { makeMap } from './daia/map.js';
 
 /**
  * @callback CreateEntityFn
