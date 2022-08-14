@@ -20,7 +20,7 @@
  */
 
 import { frameDeltas } from './animation.js';
-import { assert } from './assert.js';
+import { assert } from './lib/assert.js';
 import { makeProgress } from './animation.js';
 import { delay, defer } from './async.js';
 import { fullQuarturn } from './geometry2d.js';

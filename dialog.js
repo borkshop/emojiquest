@@ -1,6 +1,6 @@
 // @ts-check
 
-import { assert } from './assert.js';
+import { assert } from './lib/assert.js';
 
 import { scale, matrixStyle } from './matrix2d.js';
 

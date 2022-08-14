@@ -14,7 +14,7 @@
 
 // @ts-check
 
-import { assert, assertDefined, assumeDefined } from './assert.js';
+import { assert, assertDefined, assumeDefined } from './lib/assert.js';
 import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
 
 /**

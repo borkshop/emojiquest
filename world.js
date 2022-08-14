@@ -1,6 +1,6 @@
 // @ts-check
 
-import { assert } from './assert.js';
+import { assert } from './lib/assert.js';
 import { makeDaia } from './daia/topology.js';
 import { makeDaiaToponym } from './daia/toponym.js';
 import { makeViewModel } from './view-model.js';

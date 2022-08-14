@@ -54,7 +54,7 @@
 /** @typedef {import('../vector2d.js').Point} Point */
 /** @typedef {import('../matrix3d.js').Matrix} Matrix */
 
-import { assert } from '../assert.js';
+import { assert } from '../lib/assert.js';
 import { north, east, south, west } from '../geometry2d.js';
 
 const no = 0; // steady as she goes

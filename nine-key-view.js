@@ -1,6 +1,6 @@
 // @ts-check
 
-import { assert, assertNonZero } from './assert.js';
+import { assert, assertNonZero } from './lib/assert.js';
 import { halfOcturn, fullOcturn, octurnVectors } from './geometry2d.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 

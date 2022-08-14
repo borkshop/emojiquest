@@ -1,6 +1,6 @@
 // @ts-check
 
-import { assumeDefined } from './assert.js';
+import { assumeDefined } from './lib/assert.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeElementWatcher } from './element-watcher.js';

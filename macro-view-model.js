@@ -12,7 +12,7 @@
 
 // @ts-check
 
-import { assert, assumeDefined } from './assert.js';
+import { assert, assumeDefined } from './lib/assert.js';
 
 /**
  * @typedef {import('./view-model.js').ViewModel} ViewModel

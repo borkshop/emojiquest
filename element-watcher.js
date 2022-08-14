@@ -6,7 +6,7 @@
 
 // @ts-check
 
-import { assumeDefined } from './assert.js';
+import { assumeDefined } from './lib/assert.js';
 import { placeEntity } from './animation2d.js';
 
 /**

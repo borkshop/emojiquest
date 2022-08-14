@@ -1,7 +1,7 @@
 import url from 'url';
 import fs from 'fs/promises';
 
-import { assertDefined } from './assert.js';
+import { assertDefined } from './lib/assert.js';
 import { makeDaia } from './daia/topology.js';
 import { makeDaiaToponym } from './daia/toponym.js';
 import {

@@ -13,7 +13,7 @@
 
 // @ts-check
 
-import { assert, assertDefined, assertNonZero } from './assert.js';
+import { assert, assertDefined, assertNonZero } from './lib/assert.js';
 import {
   north,
   west,

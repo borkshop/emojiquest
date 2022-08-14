@@ -12,7 +12,7 @@
 
 // @ts-check
 
-import { assert, assertDefined, assumeDefined } from './assert.js';
+import { assert, assertDefined, assumeDefined } from './lib/assert.js';
 import { setDifference } from './lib/set.js';
 
 /** @typedef {import('./animation.js').AnimateFn} AnimateFn */

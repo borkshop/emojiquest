@@ -70,7 +70,7 @@
 //    |  |
 //    +--+
 
-import { assumeDefined } from '../assert.js';
+import { assumeDefined } from '../lib/assert.js';
 import { quarturnVectors, north, east, south, west } from '../geometry2d.js';
 import {
   identity,

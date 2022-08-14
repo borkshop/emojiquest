@@ -6,7 +6,7 @@
 
 // @ts-check
 
-import { assertDefined, assumeDefined } from './assert.js';
+import { assertDefined, assumeDefined } from './lib/assert.js';
 import { heldSlot, packSlot } from './model.js';
 
 /**
