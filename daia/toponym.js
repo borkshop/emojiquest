@@ -2,12 +2,6 @@
 
 import { moddivpoint } from '../lib/geometry2d.js';
 
-/**
- * @callback ToponymFn
- * @param {number} t
- * @returns {string}
- */
-
 export const faceNames = ['Dysia', 'Oria', 'Infra', 'Borea', 'Occia', 'Euia'];
 
 export const faceSymbols = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];

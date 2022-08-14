@@ -213,7 +213,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @typedef {object} World
  * @prop {import('./model.js').Model} worldModel
  * @prop {import('./topology.js').AdvanceFn} advance,
- * @prop {import('./daia/toponym.js').ToponymFn} toponym
+ * @prop {import('./topology.js').ToponymFn} toponym
  * @prop {import('./macro-view-model.js').MacroViewModel} worldMacroViewModel
  * @prop {(player: number | undefined) => unknown} capture
  * @prop {CameraController} cameraController

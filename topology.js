@@ -57,3 +57,9 @@ export {};
  * @param {Cursor} cursor
  * @returns {CursorChange}
  */
+
+/**
+ * @callback ToponymFn
+ * @param {number} t
+ * @returns {string}
+ */

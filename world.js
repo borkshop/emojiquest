@@ -1,12 +1,22 @@
 // @ts-check
 
 import { assert } from './lib/assert.js';
-import { makeDaia } from './daia/topology.js';
-import { makeDaiaToponym } from './daia/toponym.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
-import { makeMap } from './daia/map.js';
+
+// Supported level types:
+import { sizeDaiaLevel, makeDaiaLevel } from './daia/level.js';
+
+/**
+ * @typedef {object} Level
+ * @prop {import('./file.js').Level} descriptor
+ * @prop {number} size
+ * @prop {import('./topology.js').AdvanceFn} advance
+ * @prop {import('./topology.js').ToponymFn} toponym
+ * @prop {import('./controller.js').CameraController} cameraController
+ * @prop {() => void} dispose
+ */
 
 /**
  * @callback CreateEntityFn
@@ -33,14 +43,10 @@ export const makeWorld = (
   const frustumRadius = 10;
 
   const levelSizes = snapshot.levels.map(level => {
-    const { facetsPerFace, tilesPerFacet } = level;
-    const tilesPerFace = tilesPerFacet * facetsPerFace;
-
-    const tileDaia = makeDaia({
-      faceSize: tilesPerFace,
-    });
-
-    return tileDaia.worldArea;
+    if (level.topology === 'daia') {
+      return sizeDaiaLevel(level);
+    }
+    assert(false, `Unrecognized level topology ${level.topology}`);
   });
 
   // Aggregate data from layers.
@@ -112,129 +118,22 @@ export const makeWorld = (
     snapshot,
   });
 
+  /** @type {Array<Level>} */
   const levels = snapshot.levels.map((level, i) => {
-    const { facetsPerFace, tilesPerFacet } = level;
-    const tilesPerFace = tilesPerFacet * facetsPerFace;
-
-    const facetSizePx = tilesPerFacet * tileSizePx;
-
-    /**
-     * @param {Iterable<number>} locations
-     * @param {(location: number) => void} watcher
-     */
-    const watchTerrain = (locations, watcher) => {
-      return worldModel.watchTerrain(
-        [...locations].map(location => location + starts[i]),
-        watcher,
-      );
-    };
-
-    /**
-     * @param {Iterable<number>} locations
-     * @param {(location: number) => void} watcher
-     */
-    const unwatchTerrain = (locations, watcher) => {
-      return worldModel.watchTerrain(
-        [...locations].map(location => location + starts[i]),
-        watcher,
-      );
-    };
-
-    /**
-     * @param {number} location
-     */
-    const getTerrainFlags = location => {
-      return worldModel.getTerrainFlags(location + starts[i]);
-    };
-
-    /** @type {import('./view-model.js').EntityWatchFn} */
-    const watchEntities = (tiles, watcher) => {
-      return worldViewModel.watchEntities(
-        new Map(
-          [...tiles.entries()].map(([local, coord]) => [
-            local + starts[i],
-            coord,
-          ]),
-        ),
-        watcher,
-      );
-    };
-
-    /** @type {import('./view-model.js').EntityWatchFn} */
-    const unwatchEntities = (tiles, watcher) => {
-      return worldViewModel.unwatchEntities(
-        new Map(
-          [...tiles.entries()].map(([local, coord]) => [
-            local + starts[i],
-            coord,
-          ]),
-        ),
-        watcher,
-      );
-    };
-
-    // Model
-
-    const faceDaia = makeDaia({
-      faceSize: 1,
-    });
-
-    const facetDaia = makeDaia({
-      faceSize: facetsPerFace,
-    });
-
-    const tileDaia = makeDaia({
-      faceSize: tilesPerFace,
-    });
-
-    const toponym = makeDaiaToponym(tileDaia);
-
-    // View
-
-    const { $map, cameraController } = makeMap({
-      tilesPerFacet,
-      tileSizePx,
-      facetSizePx,
-      frustumRadius,
-      createEntity,
-
-      faceSizePx: tileDaia.faceSize * tileSizePx,
-      tileNumber: tileDaia.tileNumber,
-      tileCoordinate: tileDaia.tileCoordinate,
-      advance: tileDaia.advance,
-
-      facetNumber: facetDaia.tileNumber,
-      facetCoordinate: facetDaia.tileCoordinate,
-
-      faceTileCoordinate: faceDaia.tileCoordinate,
-      faceAdvance: faceDaia.advance,
-
-      watchTerrain,
-      unwatchTerrain,
-      getTerrainFlags,
-
-      watchEntities,
-      unwatchEntities,
-    });
-
-    parentElement.insertBefore($map, nextSibling);
-
-    const dispose = () => {
-      $map.remove();
-    };
-
-    return {
-      descriptor: {
-        topology: 'daia',
-        facetsPerFace,
-        tilesPerFacet,
-      },
-      size: tileDaia.worldArea,
-      advance: tileDaia.advance,
-      cameraController,
-      toponym,
-      dispose,
-    };
+    if (level.topology === 'daia') {
+      return makeDaiaLevel({
+        level,
+        offset: starts[i],
+        frustumRadius,
+        parentElement,
+        nextSibling,
+        tileSizePx,
+        createEntity,
+        worldModel,
+        worldViewModel,
+      });
+    }
+    assert(false, `Unrecognized level topology ${level.topology}`);
   });
 
   /**

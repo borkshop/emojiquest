@@ -17,7 +17,7 @@
 
 /**
  * @typedef {object} DaiaLevel
- * @property {"daia"} topology
+ * @property {string} topology
  * @property {number} facetsPerFace - facets per face along each edge, so 2x2
  * facets if 2.
  * @property {number} tilesPerFacet - tiles per facet along each edge, so 3x3
