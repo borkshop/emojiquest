@@ -253,7 +253,9 @@ const main = async () => {
     tileSizePx,
   });
 
-  const response = await fetch(new URL('emojiquest/emojiquest.json', import.meta.url).href);
+  const response = await fetch(
+    new URL('emojiquest/emojiquest.json', import.meta.url).href,
+  );
   const worldData = await response.json();
   playWorld(worldData);
 };

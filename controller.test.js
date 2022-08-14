@@ -1150,7 +1150,9 @@ test('exit play mode with a non-empty pack', t => {
 // This of course covers restoration, but is also a useful utility for ad-hoc
 // test failure isolation and reproduction.
 test('restore', async t => {
-  const path = url.fileURLToPath(new URL('emojiquest/emojiquest.json', import.meta.url));
+  const path = url.fileURLToPath(
+    new URL('emojiquest/emojiquest.json', import.meta.url),
+  );
   const text = await fs.readFile(path, 'utf8');
   const worldData = JSON.parse(text);
 
