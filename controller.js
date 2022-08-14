@@ -29,7 +29,7 @@ import {
   nw,
   halfOcturn,
   fullOcturn,
-} from './geometry2d.js';
+} from './lib/geometry2d.js';
 import { terrainWater, terrainLava, terrainCold, terrainHot } from './model.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';

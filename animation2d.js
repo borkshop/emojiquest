@@ -6,7 +6,7 @@
 
 // @ts-check
 
-import { octurnVectors } from './geometry2d.js';
+import { octurnVectors } from './lib/geometry2d.js';
 import { compose, translate, rotate, scale, matrixStyle } from './matrix2d.js';
 
 /** @typedef {import('./animation.js').Progress} Progress */

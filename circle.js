@@ -13,7 +13,7 @@
 
 // @ts-check
 
-import { north, south, east, west } from './geometry2d.js';
+import { north, south, east, west } from './lib/geometry2d.js';
 
 /**
  * @typedef {import('./topology.js').AdvanceFn} AdvanceFn

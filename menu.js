@@ -5,7 +5,7 @@ import { makeMacroViewModel } from './macro-view-model.js';
 import { rotate, matrixStyle } from './matrix2d.js';
 import { makeElementWatcher } from './element-watcher.js';
 import { makeBoxTileMap } from './tile-map-box.js';
-import { ss, nn } from './geometry2d.js';
+import { ss, nn } from './lib/geometry2d.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 

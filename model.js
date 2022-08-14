@@ -15,7 +15,7 @@
 // @ts-check
 
 import { assert, assertDefined, assumeDefined } from './lib/assert.js';
-import { halfOcturn, fullOcturn, quarturnToOcturn } from './geometry2d.js';
+import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 
 /**
  * @typedef {import('./topology.js').AdvanceFn} AdvanceFn

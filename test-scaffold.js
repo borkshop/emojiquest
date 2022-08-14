@@ -29,7 +29,7 @@ import { validate } from './file.js';
 /**
  * @param {import('ava').ExecutionContext} t
  * @param {Object} args
- * @param {import('./geometry2d.js').Point} args.size
+ * @param {import('./lib/geometry2d.js').Point} args.size
  * @param {Array<import('./mechanics.js').TileType>} args.tileTypes
  * @param {Record<string, string>} args.glyphsByTileName
  */

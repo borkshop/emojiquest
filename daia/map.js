@@ -71,7 +71,7 @@
 //    +--+
 
 import { assumeDefined } from '../lib/assert.js';
-import { quarturnVectors, north, east, south, west } from '../geometry2d.js';
+import { quarturnVectors, north, east, south, west } from '../lib/geometry2d.js';
 import {
   identity,
   compose,
@@ -85,7 +85,7 @@ import { placeEntity } from '../animation2d.js';
 import { makeTileKeeper } from '../tile-keeper.js';
 import { tileColor } from '../brand.js';
 
-/** @typedef {import('../geometry2d.js').Point} Point */
+/** @typedef {import('../lib/geometry2d.js').Point} Point */
 /** @typedef {import('../animation.js').Progress} Progress */
 /** @typedef {import('../animation2d.js').Coord} Coord */
 /** @typedef {import('../topology.js').Cursor} Cursor */

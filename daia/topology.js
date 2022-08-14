@@ -55,7 +55,7 @@
 /** @typedef {import('../matrix3d.js').Matrix} Matrix */
 
 import { assert } from '../lib/assert.js';
-import { north, east, south, west } from '../geometry2d.js';
+import { north, east, south, west } from '../lib/geometry2d.js';
 
 const no = 0; // steady as she goes
 const cw = 1; // clockwise

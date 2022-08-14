@@ -1,6 +1,6 @@
 // @ts-check
 
-import { moddivpoint } from '../geometry2d.js';
+import { moddivpoint } from '../lib/geometry2d.js';
 
 /**
  * @callback ToponymFn
