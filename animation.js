@@ -7,7 +7,7 @@
 
 // @ts-check
 
-import { clamp } from './math.js';
+import { clamp } from './lib/math.js';
 
 /**
  * @returns {Promise<number>} - resolves to the current high-res time at the
