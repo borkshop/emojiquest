@@ -37,7 +37,6 @@ export const makeWorld = (
     const tilesPerFace = tilesPerFacet * facetsPerFace;
 
     const tileDaia = makeDaia({
-      tileSizePx,
       faceSize: tilesPerFace,
     });
 
@@ -177,17 +176,14 @@ export const makeWorld = (
     // Model
 
     const faceDaia = makeDaia({
-      tileSizePx, // presumed irrelevant
       faceSize: 1,
     });
 
     const facetDaia = makeDaia({
-      tileSizePx, // presumed irrelevant
       faceSize: facetsPerFace,
     });
 
     const tileDaia = makeDaia({
-      tileSizePx,
       faceSize: tilesPerFace,
     });
 
@@ -202,7 +198,7 @@ export const makeWorld = (
       frustumRadius,
       createEntity,
 
-      faceSizePx: tileDaia.faceSizePx,
+      faceSizePx: tileDaia.faceSize * tileSizePx,
       tileNumber: tileDaia.tileNumber,
       tileCoordinate: tileDaia.tileCoordinate,
       advance: tileDaia.advance,

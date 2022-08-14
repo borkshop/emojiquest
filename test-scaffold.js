@@ -205,10 +205,7 @@ export const makeScaffold = (
 
   const size = tilesPerFacet * facetsPerFace;
 
-  const daia = makeDaia({
-    faceSize: size,
-    tileSizePx: NaN,
-  });
+  const daia = makeDaia({ faceSize: size });
 
   const toponym = makeDaiaToponym(daia);
 

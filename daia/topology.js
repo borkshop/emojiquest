@@ -86,9 +86,7 @@ export const faceRotations = [
 /**
  * @typedef {Object} Daia
  * @prop {number} faceSize
- * @prop {number} tileSizePx
  * @prop {number} faceArea
- * @prop {number} faceSizePx
  * @prop {number} worldArea
  * @prop {import('../topology.js').AdvanceFn} advance
  * @prop {import('../topology.js').TileCoordinateFn} tileCoordinate
@@ -98,13 +96,11 @@ export const faceRotations = [
 /**
  * @param {Object} options
  * @param {number} [options.faceSize]
- * @param {number} [options.tileSizePx]
  * @returns {Daia}
  */
-export function makeDaia({ faceSize = 1, tileSizePx = 100 }) {
+export function makeDaia({ faceSize = 1 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
-  const faceSizePx = tileSizePx * faceSize;
 
   /**
    * @param {{x: number, y: number}} position
@@ -220,10 +216,8 @@ export function makeDaia({ faceSize = 1, tileSizePx = 100 }) {
 
   return {
     faceSize,
-    tileSizePx,
     faceArea,
     worldArea,
-    faceSizePx,
     tileCoordinate,
     tileNumber,
     advance,
