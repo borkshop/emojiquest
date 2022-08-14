@@ -79,7 +79,7 @@ import {
   rotate,
   rotateQuarturn,
   matrixStyle,
-} from '../matrix2d.js';
+} from '../lib/matrix2d.js';
 import { add as addVectors, scale as scaleVector } from '../vector2d.js';
 import { placeEntity } from '../animation2d.js';
 import { makeTileKeeper } from '../tile-keeper.js';

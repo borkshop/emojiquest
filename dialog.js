@@ -2,7 +2,7 @@
 
 import { assert } from './lib/assert.js';
 
-import { scale, matrixStyle } from './matrix2d.js';
+import { scale, matrixStyle } from './lib/matrix2d.js';
 
 export const createDialogBox = () => {
   const element = document.createComment('');

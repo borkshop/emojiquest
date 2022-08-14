@@ -2,7 +2,7 @@
 
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
-import { rotate, matrixStyle } from './matrix2d.js';
+import { rotate, matrixStyle } from './lib/matrix2d.js';
 import { makeElementWatcher } from './element-watcher.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 import { ss, nn } from './lib/geometry2d.js';
