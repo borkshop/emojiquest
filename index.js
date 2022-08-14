@@ -1,7 +1,7 @@
 // @ts-check
 
 import { fullQuarturn } from './geometry2d.js';
-import { cell } from './cell.js';
+import { cell } from './lib/cell.js';
 import { makeController } from './controller.js';
 import {
   makeControllerElementWatchers,

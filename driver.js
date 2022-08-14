@@ -16,7 +16,7 @@
 
 /**
  * @template T
- * @typedef {import('./cell.js').Cell<T>} Cell
+ * @typedef {import('./lib/cell.js').Cell<T>} Cell
  */
 
 import { frameDeltas } from './animation.js';
