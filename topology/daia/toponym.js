@@ -1,6 +1,6 @@
 // @ts-check
 
-import { moddivpoint } from '../lib/geometry2d.js';
+import { moddivpoint } from '../../lib/geometry2d.js';
 
 export const faceNames = ['Dysia', 'Oria', 'Infra', 'Borea', 'Occia', 'Euia'];
 
@@ -61,7 +61,7 @@ export function ternym(scale, x, y, arrows) {
 /**
  * @param {object} args
  * @param {number} args.faceSize
- * @param {import('../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
  */
 export function makeDaiaToponym({ faceSize, tileCoordinate }) {
   /**

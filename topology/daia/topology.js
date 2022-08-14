@@ -51,10 +51,10 @@
 
 // @ts-check
 
-/** @typedef {import('../lib/vector2d.js').Point} Point */
+/** @typedef {import('../../lib/vector2d.js').Point} Point */
 
-import { assert } from '../lib/assert.js';
-import { north, east, south, west } from '../lib/geometry2d.js';
+import { assert } from '../../lib/assert.js';
+import { north, east, south, west } from '../../lib/geometry2d.js';
 
 const no = 0; // steady as she goes
 const cw = 1; // clockwise
@@ -88,9 +88,9 @@ export const faceRotations = [
  * @prop {number} faceSize
  * @prop {number} faceArea
  * @prop {number} worldArea
- * @prop {import('../topology.js').AdvanceFn} advance
- * @prop {import('../topology.js').TileCoordinateFn} tileCoordinate
- * @prop {import('../topology.js').TileNumberFn} tileNumber
+ * @prop {import('../../topology.js').AdvanceFn} advance
+ * @prop {import('../../topology.js').TileCoordinateFn} tileCoordinate
+ * @prop {import('../../topology.js').TileNumberFn} tileNumber
  */
 
 /**
@@ -176,7 +176,7 @@ export function makeDaia({ faceSize = 1 }) {
     (/** @type {number} */ t) => t - 1, // east
   ];
 
-  /** @type {import('../topology.js').TileCoordinateFn} */
+  /** @type {import('../../topology.js').TileCoordinateFn} */
   function tileCoordinate(t) {
     const f = Math.floor(t / faceArea);
     assert(f < 6);
@@ -186,12 +186,12 @@ export function makeDaia({ faceSize = 1 }) {
     return { t, f, n, x, y };
   }
 
-  /** @type {import('../topology.js').TileNumberFn} */
+  /** @type {import('../../topology.js').TileNumberFn} */
   function tileNumber({ x, y, f }) {
     return f * faceArea + y * faceSize + x;
   }
 
-  /** @type {import('../topology.js').AdvanceFn} */
+  /** @type {import('../../topology.js').AdvanceFn} */
   function advance({ position, direction }) {
     const coord = tileCoordinate(position);
     const { f } = coord;

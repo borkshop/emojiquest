@@ -1,5 +1,5 @@
 import test from 'ava';
-import { ternym } from '../daia/toponym.js';
+import { ternym } from '../topology/daia/toponym.js';
 
 export const arrows = [
   ['nw', 'nn', 'ne'],

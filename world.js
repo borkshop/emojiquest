@@ -6,7 +6,7 @@ import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
 
 // Supported level types:
-import { sizeDaiaLevel, makeDaiaLevel } from './daia/level.js';
+import { sizeDaiaLevel, makeDaiaLevel } from './topology/daia/level.js';
 
 /**
  * @typedef {object} Level

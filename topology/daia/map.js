@@ -70,14 +70,14 @@
 //    |  |
 //    +--+
 
-import { assumeDefined } from '../lib/assert.js';
+import { assumeDefined } from '../../lib/assert.js';
 import {
   quarturnVectors,
   north,
   east,
   south,
   west,
-} from '../lib/geometry2d.js';
+} from '../../lib/geometry2d.js';
 import {
   identity,
   compose,
@@ -85,20 +85,20 @@ import {
   rotate,
   rotateQuarturn,
   matrixStyle,
-} from '../lib/matrix2d.js';
-import { add as addVectors, scale as scaleVector } from '../lib/vector2d.js';
-import { placeEntity } from '../animation2d.js';
-import { makeTileKeeper } from '../tile-keeper.js';
-import { tileColor } from '../brand.js';
+} from '../../lib/matrix2d.js';
+import { add as addVectors, scale as scaleVector } from '../../lib/vector2d.js';
+import { placeEntity } from '../../animation2d.js';
+import { makeTileKeeper } from '../../tile-keeper.js';
+import { tileColor } from '../../brand.js';
 
-/** @typedef {import('../lib/geometry2d.js').Point} Point */
-/** @typedef {import('../progress.js').Progress} Progress */
-/** @typedef {import('../animation2d.js').Coord} Coord */
-/** @typedef {import('../topology.js').Cursor} Cursor */
-/** @typedef {import('../topology.js').CursorChange} CursorChange */
-/** @typedef {import('../view-model.js').Watcher} Watcher */
-/** @typedef {import('../view-model.js').PlaceFn} PlaceFn */
-/** @typedef {import('../view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('../../lib/geometry2d.js').Point} Point */
+/** @typedef {import('../../progress.js').Progress} Progress */
+/** @typedef {import('../../animation2d.js').Coord} Coord */
+/** @typedef {import('../../topology.js').Cursor} Cursor */
+/** @typedef {import('../../topology.js').CursorChange} CursorChange */
+/** @typedef {import('../../view-model.js').Watcher} Watcher */
+/** @typedef {import('../../view-model.js').PlaceFn} PlaceFn */
+/** @typedef {import('../../view-model.js').EntityWatchFn} EntityWatchFn */
 
 /**
  * @callback CreateEntityFn
@@ -121,9 +121,9 @@ const centerVector = { x: 0.5, y: 0.5 };
 /**
  * @param {Object} options
  * @param {number} options.tilesPerFacet
- * @param {import('../topology.js').TileNumberFn} options.tileNumber
- * @param {import('../topology.js').TileCoordinateFn} options.facetCoordinate
- * @param {import('../topology.js').AdvanceFn} options.advance
+ * @param {import('../../topology.js').TileNumberFn} options.tileNumber
+ * @param {import('../../topology.js').TileCoordinateFn} options.facetCoordinate
+ * @param {import('../../topology.js').AdvanceFn} options.advance
  */
 const makeFacetMapper = ({
   tilesPerFacet,
@@ -339,7 +339,7 @@ export function makeFacetCreator({
     watchTerrain(tiles.keys(), mark);
 
     /**
-     * @param {import('../progress.js').Progress} _progress
+     * @param {import('../../progress.js').Progress} _progress
      */
     const animate = _progress => {
       for (const location of marked) {
@@ -363,7 +363,7 @@ export function makeFacetCreator({
   };
 
   /**
-   * @param {import('../progress.js').Progress} progress
+   * @param {import('../../progress.js').Progress} progress
    */
   const animateFacets = progress => {
     for (const animate of animators) {
@@ -437,7 +437,7 @@ const makeFace = ({
   };
 
   /**
-   * @param {import('../animation2d.js').Coord} destination
+   * @param {import('../../animation2d.js').Coord} destination
    */
   const relocate = ({ x, y, a }) => {
     const transform = compose(
@@ -501,13 +501,13 @@ const makeFace = ({
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags
- * @param {import('../topology.js').TileNumberFn} args.tileNumber
- * @param {import('../topology.js').TileNumberFn} args.facetNumber
- * @param {import('../topology.js').TileCoordinateFn} args.tileCoordinate
- * @param {import('../topology.js').TileCoordinateFn} args.facetCoordinate
- * @param {import('../topology.js').AdvanceFn} args.advance
- * @param {import('../topology.js').TileCoordinateFn} args.faceTileCoordinate
- * @param {import('../topology.js').AdvanceFn} args.faceAdvance
+ * @param {import('../../topology.js').TileNumberFn} args.tileNumber
+ * @param {import('../../topology.js').TileNumberFn} args.facetNumber
+ * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../../topology.js').TileCoordinateFn} args.facetCoordinate
+ * @param {import('../../topology.js').AdvanceFn} args.advance
+ * @param {import('../../topology.js').TileCoordinateFn} args.faceTileCoordinate
+ * @param {import('../../topology.js').AdvanceFn} args.faceAdvance
  */
 export const makeMap = ({
   tilesPerFacet,
@@ -818,7 +818,7 @@ export const makeMap = ({
   };
 
   /**
-   * @param {import('../progress.js').Progress} progress
+   * @param {import('../../progress.js').Progress} progress
    */
   const animate = progress => {
     if (progress.linear > 1) {

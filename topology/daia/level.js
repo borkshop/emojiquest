@@ -28,9 +28,9 @@ export const sizeDaiaLevel = level => {
  * @param {number} args.offset
  * @param {number} args.frustumRadius
  * @param {number} args.tileSizePx
- * @param {import('../world.js').CreateEntityFn} args.createEntity
- * @param {import('../model.js').Model} args.worldModel
- * @param {import('../view-model.js').ViewModel} args.worldViewModel
+ * @param {import('../../world.js').CreateEntityFn} args.createEntity
+ * @param {import('../../model.js').Model} args.worldModel
+ * @param {import('../../view-model.js').ViewModel} args.worldViewModel
  */
 export const makeDaiaLevel = ({
   level,
@@ -77,7 +77,7 @@ export const makeDaiaLevel = ({
     return worldModel.getTerrainFlags(location + offset);
   };
 
-  /** @type {import('../view-model.js').EntityWatchFn} */
+  /** @type {import('../../view-model.js').EntityWatchFn} */
   const watchEntities = (tiles, watcher) => {
     return worldViewModel.watchEntities(
       new Map(
@@ -87,7 +87,7 @@ export const makeDaiaLevel = ({
     );
   };
 
-  /** @type {import('../view-model.js').EntityWatchFn} */
+  /** @type {import('../../view-model.js').EntityWatchFn} */
   const unwatchEntities = (tiles, watcher) => {
     return worldViewModel.unwatchEntities(
       new Map(

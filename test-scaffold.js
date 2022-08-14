@@ -2,8 +2,8 @@ import url from 'url';
 import fs from 'fs/promises';
 
 import { assertDefined } from './lib/assert.js';
-import { makeDaia } from './daia/topology.js';
-import { makeDaiaToponym } from './daia/toponym.js';
+import { makeDaia } from './topology/daia/topology.js';
+import { makeDaiaToponym } from './topology/daia/toponym.js';
 import {
   makeModel,
   terrainWater,
