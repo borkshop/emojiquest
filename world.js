@@ -2,7 +2,7 @@
 
 import { assert } from './assert.js';
 import { makeDaia } from './daia/topology.js';
-import { makeDaiaToponym } from './daia-names.js';
+import { makeDaiaToponym } from './daia/toponym.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';

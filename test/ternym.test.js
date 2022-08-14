@@ -1,5 +1,5 @@
 import test from 'ava';
-import { ternym } from '../daia-names.js';
+import { ternym } from '../daia/toponym.js';
 
 export const arrows = [
   ['nw', 'nn', 'ne'],

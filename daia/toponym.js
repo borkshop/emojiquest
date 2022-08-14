@@ -1,4 +1,6 @@
-import { moddivpoint } from './geometry2d.js';
+// @ts-check
+
+import { moddivpoint } from '../geometry2d.js';
 
 /**
  * @callback ToponymFn
@@ -65,7 +67,7 @@ export function ternym(scale, x, y, arrows) {
 /**
  * @param {object} args
  * @param {number} args.faceSize
- * @param {import('./topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../topology.js').TileCoordinateFn} args.tileCoordinate
  */
 export function makeDaiaToponym({ faceSize, tileCoordinate }) {
   /**

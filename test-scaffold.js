@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 
 import { assertDefined } from './assert.js';
 import { makeDaia } from './daia/topology.js';
-import { makeDaiaToponym } from './daia-names.js';
+import { makeDaiaToponym } from './daia/toponym.js';
 import {
   makeModel,
   terrainWater,
