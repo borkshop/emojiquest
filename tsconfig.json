@@ -25,5 +25,5 @@
     "noFallthroughCasesInSwitch": true
   },
 
-  "exclude": ["build", "coverage"]
+  "exclude": ["build", "coverage", "scratch"]
 }
