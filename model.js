@@ -201,6 +201,18 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 /** @typedef {Model['capture']} CaptureFn */
 
 /**
+ * @callback WatchTerrainFn
+ * @param {Iterable<number>} locations
+ * @param {(location: number) => void} watcher
+ */
+
+/**
+ * @callback GetTerrainFlagsFn
+ * @param {number} location
+ * @returns {number}
+ */
+
+/**
  * @typedef {object} Snapshot
  * @property {number | undefined} player
  * @property {number} size
@@ -281,10 +293,7 @@ export function makeModel({
   /** @type {Map<number, Set<(location: number) => void>>} */
   const terrainWatchers = new Map();
 
-  /**
-   * @param {Iterable<number>} locations
-   * @param {(location: number) => void} watcher
-   */
+  /** @type {WatchTerrainFn} */
   const watchTerrain = (locations, watcher) => {
     for (const location of locations) {
       let watchers = terrainWatchers.get(location);
@@ -296,10 +305,7 @@ export function makeModel({
     }
   };
 
-  /**
-   * @param {Iterable<number>} locations
-   * @param {(location: number) => void} watcher
-   */
+  /** @type {WatchTerrainFn} */
   const unwatchTerrain = (locations, watcher) => {
     for (const location of locations) {
       const watchers = assumeDefined(terrainWatchers.get(location));
@@ -311,9 +317,7 @@ export function makeModel({
     }
   };
 
-  /**
-   * @param {number} location
-   */
+  /** @type {GetTerrainFlagsFn} */
   const getTerrainFlags = location => {
     return terrain[location];
   };

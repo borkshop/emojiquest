@@ -25,77 +25,32 @@ export const sizeDaiaLevel = level => {
  * @param {DaiaLevel} args.level
  * @param {Node} args.parentElement
  * @param {Node} args.nextSibling
- * @param {number} args.offset
  * @param {number} args.frustumRadius
  * @param {number} args.tileSizePx
  * @param {import('../../world.js').CreateEntityFn} args.createEntity
- * @param {import('../../model.js').Model} args.worldModel
- * @param {import('../../view-model.js').ViewModel} args.worldViewModel
+ * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
+ * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
+ * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
+ * @param {import('../../view-model.js').EntityWatchFn} args.watchEntities
+ * @param {import('../../view-model.js').EntityWatchFn} args.unwatchEntities
  */
 export const makeDaiaLevel = ({
   level,
-  offset,
   parentElement,
   nextSibling,
   tileSizePx,
   createEntity,
   frustumRadius,
-  worldModel,
-  worldViewModel,
+  watchTerrain,
+  unwatchTerrain,
+  getTerrainFlags,
+  watchEntities,
+  unwatchEntities,
 }) => {
   const { facetsPerFace, tilesPerFacet } = level;
   const tilesPerFace = tilesPerFacet * facetsPerFace;
 
   const facetSizePx = tilesPerFacet * tileSizePx;
-
-  /**
-   * @param {Iterable<number>} locations
-   * @param {(location: number) => void} watcher
-   */
-  const watchTerrain = (locations, watcher) => {
-    return worldModel.watchTerrain(
-      [...locations].map(location => location + offset),
-      watcher,
-    );
-  };
-
-  /**
-   * @param {Iterable<number>} locations
-   * @param {(location: number) => void} watcher
-   */
-  const unwatchTerrain = (locations, watcher) => {
-    return worldModel.watchTerrain(
-      [...locations].map(location => location + offset),
-      watcher,
-    );
-  };
-
-  /**
-   * @param {number} location
-   */
-  const getTerrainFlags = location => {
-    return worldModel.getTerrainFlags(location + offset);
-  };
-
-  /** @type {import('../../view-model.js').EntityWatchFn} */
-  const watchEntities = (tiles, watcher) => {
-    return worldViewModel.watchEntities(
-      new Map(
-        [...tiles.entries()].map(([local, coord]) => [local + offset, coord]),
-      ),
-      watcher,
-    );
-  };
-
-  /** @type {import('../../view-model.js').EntityWatchFn} */
-  const unwatchEntities = (tiles, watcher) => {
-    return worldViewModel.unwatchEntities(
-      new Map(
-        [...tiles.entries()].map(([local, coord]) => [local + offset, coord]),
-      ),
-      watcher,
-    );
-  };
 
   // Model
 

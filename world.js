@@ -52,9 +52,9 @@ export const makeWorld = (
   // Aggregate data from layers.
   let size = 0;
   /** @type {Array<number>} */
-  const starts = [];
+  const offsets = [];
   for (const levelSize of levelSizes) {
-    starts.push(size);
+    offsets.push(size);
     size += levelSize;
   }
 
@@ -67,8 +67,8 @@ export const makeWorld = (
    * @param {number} global
    */
   const locate = global => {
-    for (let i = 0; i < starts.length; i += 1) {
-      const start = starts[i];
+    for (let i = 0; i < offsets.length; i += 1) {
+      const start = offsets[i];
       if (global >= start) {
         return {
           level: levels[i],
@@ -85,8 +85,8 @@ export const makeWorld = (
     direction: previousDirection,
   }) => {
     // TODO consider binary search here, if many layers.
-    for (let i = 0; i < starts.length; i += 1) {
-      const start = starts[i];
+    for (let i = 0; i < offsets.length; i += 1) {
+      const start = offsets[i];
       if (previousGlobalPosition > start) {
         const previousLocalPosition = previousGlobalPosition - start;
         const {
@@ -120,17 +120,70 @@ export const makeWorld = (
 
   /** @type {Array<Level>} */
   const levels = snapshot.levels.map((level, i) => {
+    const offset = offsets[i];
+
+    /**
+     * @param {Iterable<number>} locations
+     * @param {(location: number) => void} watcher
+     */
+    const watchTerrain = (locations, watcher) => {
+      return worldModel.watchTerrain(
+        [...locations].map(location => location + offset),
+        watcher,
+      );
+    };
+
+    /**
+     * @param {Iterable<number>} locations
+     * @param {(location: number) => void} watcher
+     */
+    const unwatchTerrain = (locations, watcher) => {
+      return worldModel.watchTerrain(
+        [...locations].map(location => location + offset),
+        watcher,
+      );
+    };
+
+    /**
+     * @param {number} location
+     */
+    const getTerrainFlags = location => {
+      return worldModel.getTerrainFlags(location + offset);
+    };
+
+    /** @type {import('./view-model.js').EntityWatchFn} */
+    const watchEntities = (tiles, watcher) => {
+      return worldViewModel.watchEntities(
+        new Map(
+          [...tiles.entries()].map(([local, coord]) => [local + offset, coord]),
+        ),
+        watcher,
+      );
+    };
+
+    /** @type {import('./view-model.js').EntityWatchFn} */
+    const unwatchEntities = (tiles, watcher) => {
+      return worldViewModel.unwatchEntities(
+        new Map(
+          [...tiles.entries()].map(([local, coord]) => [local + offset, coord]),
+        ),
+        watcher,
+      );
+    };
+
     if (level.topology === 'daia') {
       return makeDaiaLevel({
         level,
-        offset: starts[i],
         frustumRadius,
         parentElement,
         nextSibling,
         tileSizePx,
         createEntity,
-        worldModel,
-        worldViewModel,
+        watchTerrain,
+        unwatchTerrain,
+        getTerrainFlags,
+        watchEntities,
+        unwatchEntities,
       });
     }
     assert(false, `Unrecognized level topology ${level.topology}`);
