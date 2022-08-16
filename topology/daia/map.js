@@ -99,6 +99,8 @@ import { tileColor } from '../../brand.js';
 /** @typedef {import('../../view-model.js').Watcher} Watcher */
 /** @typedef {import('../../view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('../../view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('../../model.js').WatchTerrainFn} WatchTerrainFn */
+/** @typedef {import('../../model.js').GetTerrainFlagsFn} GetTerrainFlagsFn */
 
 /**
  * @callback CreateEntityFn
@@ -226,11 +228,11 @@ const makeFacetMapper = ({
 
 /**
  * @param {Object} args
- * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
- * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {number} args.tilesPerFacet - the height and width of a facet in tiles
  * @param {number} args.facetSizePx - the height and width of a facet in pixels
- * @param {(location: number) => number} args.getTerrainFlags
+ * @param {WatchTerrainFn} args.watchTerrain
+ * @param {WatchTerrainFn} args.unwatchTerrain
+ * @param {GetTerrainFlagsFn} args.getTerrainFlags
  * @param {CreateEntityFn} args.createEntity
  * @param {EntityWatchFn} args.watchEntities
  * @param {EntityWatchFn} args.unwatchEntities
