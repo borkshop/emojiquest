@@ -7,6 +7,7 @@ import { makeModel } from './model.js';
 
 // Supported level types:
 import { sizeDaiaLevel, makeDaiaLevel } from './topology/daia/level.js';
+import { sizeTorusLevel, makeTorusLevel } from './topology/torus/level.js';
 
 /**
  * @typedef {object} Level
@@ -43,10 +44,13 @@ export const makeWorld = (
   const frustumRadius = 10;
 
   const levelSizes = snapshot.levels.map(level => {
-    if (level.topology === 'daia') {
+    const { topology } = level;
+    if (topology === 'daia') {
       return sizeDaiaLevel(level);
+    } else if (topology === 'torus') {
+      return sizeTorusLevel(level);
     }
-    assert(false, `Unrecognized level topology ${level.topology}`);
+    assert(false, `Unrecognized level topology ${topology}`);
   });
 
   // Aggregate data from layers.
@@ -171,7 +175,8 @@ export const makeWorld = (
       );
     };
 
-    if (level.topology === 'daia') {
+    const { topology } = level;
+    if (topology === 'daia') {
       return makeDaiaLevel({
         level,
         frustumRadius,
@@ -185,8 +190,22 @@ export const makeWorld = (
         watchEntities,
         unwatchEntities,
       });
+    } else if (topology === 'torus') {
+      return makeTorusLevel({
+        level,
+        // frustumRadius,
+        parentElement,
+        nextSibling,
+        tileSizePx,
+        createEntity,
+        watchTerrain,
+        unwatchTerrain,
+        getTerrainFlags,
+        watchEntities,
+        unwatchEntities,
+      });
     }
-    assert(false, `Unrecognized level topology ${level.topology}`);
+    assert(false, `Unrecognized level topology ${topology}`);
   });
 
   /**

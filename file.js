@@ -1,3 +1,5 @@
+/** @typedef {import('./lib/vector2d.js').Point} Point */
+
 /**
  * @typedef {object} Snapshot
  * @property {number | undefined} player
@@ -8,21 +10,52 @@
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
- * @property {[Level]} levels - TODO generalize array
+ * @property {Array<Level>} levels
  */
 
 /**
- * @typedef {DaiaLevel} Level
+ * @typedef {DaiaLevel | TorusLevel} Level
  */
 
 /**
  * @typedef {object} DaiaLevel
- * @property {string} topology
+ * @property {'daia'} topology
  * @property {number} facetsPerFace - facets per face along each edge, so 2x2
  * facets if 2.
  * @property {number} tilesPerFacet - tiles per facet along each edge, so 3x3
  * if 3, and 6x6 tiles on each face if facetsPerFace is 2.
  */
+
+/**
+ * @typedef {object} TorusLevel
+ * @property {'torus'} topology
+ * @property {Point} tilesPerChunk
+ * @property {Point} chunksPerLevel
+ */
+
+import { dot } from './lib/vector2d.js';
+
+/**
+ * @param {unknown} allegedPoint
+ * @returns {Point | undefined}
+ */
+const validatePoint = allegedPoint => {
+  if (typeof allegedPoint !== 'object') {
+    return undefined;
+  }
+  if (allegedPoint === null) {
+    return undefined;
+  }
+  const presumedPoint = /** @type {{[name: string]: unknown}} */ (allegedPoint);
+  const { x, y } = presumedPoint;
+  if (typeof x !== 'number') {
+    return undefined;
+  }
+  if (typeof y !== 'number') {
+    return undefined;
+  }
+  return { x, y };
+};
 
 /**
  * @param {unknown} allegedSnapshot
@@ -95,40 +128,66 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['"staminas" must be an array'] };
   }
 
-  if (allegedLevels.length !== 1) {
-    return { errors: ['"levels"  must only contain 1 level'] };
-  }
-  const allegedLevel = allegedLevels[0];
-  if (typeof allegedLevel !== 'object' || allegedLevel === null) {
-    return { errors: ['"levels[0]" must be an object'] };
-  }
-  const presumedLevel = /** @type {{[name: string]: unknown}} */ (allegedLevel);
-
-  // TODO generalize for multiple levels of varying topology.
-  const { topology, facetsPerFace, tilesPerFacet } = presumedLevel;
-  if (topology !== 'daia') {
-    return { errors: ['"levels[0].topology" must be "daia"'] };
-  }
-  if (typeof facetsPerFace !== 'number') {
-    return { errors: ['"levels[0].facetsPerFace" must be a number'] };
-  }
-  if (typeof tilesPerFacet !== 'number') {
-    return { errors: ['"levels[0].tilesPerFacet" must be a number'] };
+  if (allegedLevels.length < 1) {
+    return { errors: ['"levels"  must contain at least 1 level'] };
   }
 
-  /** @type {DaiaLevel} */
-  const purportedLevel = {
-    topology,
-    facetsPerFace,
-    tilesPerFacet,
-  };
+  /** @type {Array<Level>} */
+  const purportedLevels = [];
+  let size = 0;
 
-  /** @type {[Level]} */
-  const purportedLevels = [purportedLevel];
+  for (let index = 0; index < allegedLevels.length; index += 1) {
+    const allegedLevel = allegedLevels[index];
+    if (typeof allegedLevel !== 'object' || allegedLevel === null) {
+      return { errors: ['"levels[0]" must be an object'] };
+    }
+    const presumedLevel = /** @type {{[name: string]: unknown}} */ (
+      allegedLevel
+    );
 
-  // Compute size from level data.
-  // TODO generalize for multiple levels of varying topology.
-  const size = 6 * facetsPerFace ** 2 * tilesPerFacet ** 2;
+    const { topology } = presumedLevel;
+    if (topology === 'daia') {
+      const { facetsPerFace, tilesPerFacet } = presumedLevel;
+      if (typeof facetsPerFace !== 'number') {
+        return { errors: ['"levels[0].facetsPerFace" must be a number'] };
+      }
+      if (typeof tilesPerFacet !== 'number') {
+        return { errors: ['"levels[0].tilesPerFacet" must be a number'] };
+      }
+
+      /** @type {DaiaLevel} */
+      const purportedLevel = {
+        topology,
+        facetsPerFace,
+        tilesPerFacet,
+      };
+      purportedLevels.push(purportedLevel);
+      // Compute size from level data.
+      size += 6 * facetsPerFace ** 2 * tilesPerFacet ** 2;
+    } else if (topology === 'torus') {
+      const { tilesPerChunk, chunksPerLevel } = presumedLevel;
+      const purportedTilesPerChunk = validatePoint(tilesPerChunk);
+      if (purportedTilesPerChunk === undefined) {
+        return { errors: ['"levels[0].tilesPerChunk" must be a {x, y} size'] };
+      }
+      const purportedChunksPerLevel = validatePoint(chunksPerLevel);
+      if (purportedChunksPerLevel === undefined) {
+        return { errors: ['"levels[0].chunksPerLevel" must be a {x, y} size'] };
+      }
+      /** @type {TorusLevel} */
+      const purportedLevel = {
+        topology,
+        tilesPerChunk: purportedTilesPerChunk,
+        chunksPerLevel: purportedChunksPerLevel,
+      };
+      purportedLevels.push(purportedLevel);
+      // Compute size from level data.
+      const { x, y } = dot(purportedTilesPerChunk, purportedChunksPerLevel);
+      size += x * y;
+    } else {
+      return { errors: ['"levels[0].topology" must be "daia" or "torus"'] };
+    }
+  }
 
   /** @type {Map<number, number>} */
   const allegedEntityTypes = new Map();

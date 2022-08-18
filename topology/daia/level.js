@@ -104,7 +104,7 @@ export const makeDaiaLevel = ({
 
   return {
     descriptor: {
-      topology: 'daia',
+      topology: /** @type {'daia'} */ ('daia'),
       facetsPerFace,
       tilesPerFacet,
     },
