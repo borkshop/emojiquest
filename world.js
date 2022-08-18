@@ -87,7 +87,7 @@ export const makeWorld = (
     // TODO consider binary search here, if many layers.
     for (let i = 0; i < offsets.length; i += 1) {
       const start = offsets[i];
-      if (previousGlobalPosition > start) {
+      if (previousGlobalPosition >= start) {
         const previousLocalPosition = previousGlobalPosition - start;
         const {
           position: nextLocalPosition,
@@ -107,7 +107,7 @@ export const makeWorld = (
         };
       }
     }
-    assert(false);
+    assert(false, `Starting position outside world: ${previousGlobalPosition}`);
   };
 
   const worldModel = makeModel({
