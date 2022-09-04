@@ -83,6 +83,14 @@ export const makeTorusLevel = ({
 
   parentElement.insertBefore($map, nextSibling);
 
+  const show = () => {
+    $map.style.display = 'block';
+  };
+
+  const hide = () => {
+    $map.style.display = 'none';
+  };
+
   const dispose = () => {
     $map.remove();
   };
@@ -97,6 +105,8 @@ export const makeTorusLevel = ({
     advance,
     cameraController,
     toponym,
+    show,
+    hide,
     dispose,
   };
 };

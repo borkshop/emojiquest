@@ -16,6 +16,8 @@ import { sizeTorusLevel, makeTorusLevel } from './topology/torus/level.js';
  * @prop {import('./topology.js').AdvanceFn} advance
  * @prop {import('./topology.js').ToponymFn} toponym
  * @prop {import('./controller.js').CameraController} cameraController
+ * @prop {() => void} show
+ * @prop {() => void} hide
  * @prop {() => void} dispose
  */
 
@@ -218,10 +220,33 @@ export const makeWorld = (
     };
   };
 
+  /** @type {number | undefined} */
+  let cursorLevel;
+  /** @type {number | undefined} */
+  let nextLevel;
+
+  /** @param {number} top */
+  const display = top => {
+    for (let index = 0; index < top; index += 1) {
+      levels[index].hide();
+    }
+    levels[top].show();
+    for (let index = top + 1; index < levels.length; index += 1) {
+      levels[index].hide();
+    }
+  };
+
   /** @type {import('./controller.js').CameraController} */
   const cameraController = {
     jump(global) {
-      const { level, local } = locate(global);
+      // TODO detect level change, hide map, show map,
+      // convert jump to enter and exit if necessary.
+      const { level, local, index } = locate(global);
+      if (cursorLevel !== index) {
+        cursorLevel = index;
+        nextLevel = index;
+        display(index);
+      }
       return level.cameraController.jump(local);
     },
     move(global, change) {
@@ -229,6 +254,10 @@ export const makeWorld = (
       return level.cameraController.move(local, change);
     },
     animate(progress) {
+      if (nextLevel !== undefined && progress.linear >= 0.5) {
+        display(nextLevel);
+        nextLevel = undefined;
+      }
       for (const { cameraController } of levels) {
         cameraController.animate(progress);
       }
@@ -239,6 +268,10 @@ export const makeWorld = (
       }
     },
     tock() {
+      if (nextLevel !== undefined) {
+        display(nextLevel);
+        nextLevel = undefined;
+      }
       for (const { cameraController } of levels) {
         cameraController.tock();
       }

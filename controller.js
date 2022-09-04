@@ -159,12 +159,18 @@ const noop = () => {};
  */
 
 /**
+ * @callback JumpFn
+ * @param {number} destination
+ */
+
+/**
  * @typedef {object} Mode
  * @prop {string} name
  * @prop {PressFn} press
  * @prop {{[key: string]: number}} keys - accelerator table
  * @prop {EtcPressFn} [etcPress]
  * @prop {MoveFn} [move]
+ * @prop {JumpFn} [jump]
  * @prop {CraftFn} [craft]
  * @prop {InventoryFn} [inventory]
  * @prop {PlayFn} [play]
@@ -303,6 +309,11 @@ export const makeController = ({
     move(_entity, change, destination) {
       if (mode.move !== undefined) {
         mode.move(change, destination);
+      }
+    },
+    jump(_entity, destination) {
+      if (mode.jump !== undefined) {
+        mode.jump(destination);
       }
     },
     craft(_entity, recipe) {
@@ -554,6 +565,12 @@ export const makeController = ({
           cursor = { ...change, position: destination };
           cameraController.move(destination, change);
           followCursor(destination, change);
+        },
+        jump(destination) {
+          cursor = { position: destination, direction: north };
+          cameraController.jump(destination);
+          // TODO reset momentum somehow like:
+          // followCursor(destination, change);
         },
         inventory(slot, itemType) {
           if (slot === 0) {

@@ -241,6 +241,33 @@ export function makeMacroViewModel(
 
   /**
    * @param {number} external
+   * @param {number} destination
+   * @param {number} type
+   */
+  function jump(external, destination, type) {
+    assertPlanning();
+    const internal = entity(external);
+    locations.set(external, destination);
+    const replacement = create();
+    viewModel.put(replacement, destination, type);
+    replaced.add(internal);
+    entities.set(external, replacement);
+    if (viewModel.watched(internal)) {
+      viewModel.transition(internal, {
+        bump: true,
+        stage: 'exit',
+      });
+    }
+    if (viewModel.watched(replacement)) {
+      viewModel.transition(replacement, {
+        bump: true,
+        stage: 'enter',
+      });
+    }
+  }
+
+  /**
+   * @param {number} external
    * @param {number} type
    * @param {number} destination
    * @param {number} directionOcturns
@@ -356,6 +383,7 @@ export function makeMacroViewModel(
     enter,
     fell,
     move,
+    jump,
     bounce,
     replace,
     movingReplace,

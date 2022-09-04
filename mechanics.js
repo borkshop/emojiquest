@@ -116,6 +116,8 @@ import { heldSlot, packSlot } from './model.js';
  * @property {(entity: number) => boolean} immersed
  * @property {(entity: number) => number} entityHealth
  * @property {(entity: number) => number} entityStamina
+ * @property {(entity: number) => number | undefined} entityTargetLocation
+ * @property {(entity: number, location: number) => void} jump
  */
 
 const specialNames = ['invalid', 'empty', 'any'];
@@ -242,6 +244,8 @@ export function makeMechanics({
    * @returns {Handler}
    */
 
+  // TODO each verb should assert that it receives defined item types for
+  // however many items it needs.
   /** @type {Record<string, Verb>} */
   const verbs = {
     take([yieldType]) {
@@ -303,6 +307,17 @@ export function makeMechanics({
         kit.put(agent, 0, yieldType);
       }
       return replaceHandler;
+    },
+
+    jump([]) {
+      /** @type {Handler} */
+      const jump = (kit, { agent, patient }) => {
+        const location = kit.entityTargetLocation(patient);
+        if (location !== undefined) {
+          kit.jump(agent, location);
+        }
+      };
+      return jump;
     },
   };
 
@@ -423,7 +438,6 @@ export function makeMechanics({
     } = action;
 
     const productType = itemTypesByName[items[0]];
-    assertDefined(productType, items[0]);
     const byproductType = itemTypesByName[items[1]];
     const makeVerb = verbs[verb];
     assertDefined(makeVerb);

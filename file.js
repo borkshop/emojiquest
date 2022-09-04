@@ -11,6 +11,7 @@
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
  * @property {Array<Level>} levels
+ * @property {Map<number, number>} entityTargetLocations
  */
 
 /**
@@ -79,6 +80,7 @@ export const validate = (allegedSnapshot, mechanics) => {
     terrain: allegedTerrain,
     healths: allegedHealths,
     staminas: allegedStaminas,
+    entityTargetLocations: allegedEntityTargetLocations,
   } = presumedSnapshot;
 
   if (allegedPlayer === undefined) {
@@ -126,6 +128,12 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['missing "staminas"'] };
   } else if (!Array.isArray(allegedStaminas)) {
     return { errors: ['"staminas" must be an array'] };
+  }
+
+  if (allegedEntityTargetLocations === undefined) {
+    return { errors: ['missing "entityTargetLocations"'] };
+  } else if (!Array.isArray(allegedEntityTargetLocations)) {
+    return { errors: ['"entityTargetLocations" must be an array'] };
   }
 
   if (allegedLevels.length < 1) {
@@ -397,6 +405,51 @@ export const validate = (allegedSnapshot, mechanics) => {
     purportedStaminas.set(reentity, allegedStamina);
   }
 
+  /** @type {Map<number, number>} */
+  const purportedEntityTargetLocations = new Map();
+  for (const allegedEntry of allegedEntityTargetLocations) {
+    if (typeof allegedEntry !== 'object') {
+      errors.push(
+        `every entry in "entityTargetLocations" must be an "object", got ${JSON.stringify(
+          allegedEntry,
+        )}`,
+      );
+      continue;
+    }
+    const entry = /* @type {{[name: string]: unknown}} */ allegedEntry;
+    const { entity: allegedEntity, location: allegedLocation } = entry;
+    if (typeof allegedEntity !== 'number') {
+      errors.push(
+        `every entry in "entityTargetLocations" must have an "entity" number, got ${JSON.stringify(
+          allegedEntity,
+        )}`,
+      );
+      continue;
+    }
+    if (typeof allegedLocation !== 'number') {
+      errors.push(
+        `every entry in "entityTargetLocations" must have an "location" number, got ${JSON.stringify(
+          allegedLocation,
+        )}`,
+      );
+      continue;
+    }
+    const reentity = renames.get(allegedEntity);
+    if (reentity === undefined) {
+      errors.push(
+        `an entry in "entityTargetLocations" for the alleged entity ${allegedEntity} is missing from the map`,
+      );
+      continue;
+    }
+    if (allegedLocation >= size || allegedLocation < 0) {
+      errors.push(
+        `an entry in "entityTargetLocations" for the alleged entity ${allegedEntity} has a location ${allegedLocation} that is outside the bounds of the world`,
+      );
+      continue;
+    }
+    purportedEntityTargetLocations.set(reentity, allegedLocation);
+  }
+
   const player = renames.get(allegedPlayer);
   if (player === undefined) {
     errors.push(`Missing entity for alleged player player ${allegedPlayer}`);
@@ -435,6 +488,7 @@ export const validate = (allegedSnapshot, mechanics) => {
     healths: purportedHealths,
     staminas: purportedStaminas,
     inventories: purportedInventories,
+    entityTargetLocations: purportedEntityTargetLocations,
   };
 
   return {

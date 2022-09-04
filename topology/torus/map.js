@@ -450,7 +450,6 @@ export const makeTorusMap = ({
    * @param {number} destination
    */
   const jump = destination => {
-
     // drift = { x: 0, y: 0 };
     const coordinate = tileCoordinate(destination);
     cursor = coordinate;

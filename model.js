@@ -37,6 +37,13 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  */
 
 /**
+ * @callback JumpFn
+ * @param {number} entity
+ * @param {number} destination
+ * @param {number} type
+ */
+
+/**
  * @callback ReplaceFn
  * Instructs the viewer to animate the entity glyph being gradually replaced.
  *
@@ -101,6 +108,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @typedef {Object} MacroViewModel
  * @property {PutFn} put
  * @property {MoveFn} move
+ * @property {JumpFn} jump
  * @property {BounceFn} bounce
  * @property {ReplaceFn} replace
  * @property {MovingReplaceFn} movingReplace
@@ -130,6 +138,12 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @callback OnMoveFn
  * @param {number} e - entity that moved
  * @param {CursorChange} transition
+ * @param {number} destination
+ */
+
+/**
+ * @callback OnJumpFn
+ * @param {number} e - entity that moved
  * @param {number} destination
  */
 
@@ -169,6 +183,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 /**
  * @typedef {Object} Follower
  * @property {OnMoveFn} move
+ * @property {OnJumpFn} jump
  * @property {OnCraftFn} craft
  * @property {OnInventoryFn} inventory
  * @property {OnDialogFn} dialog
@@ -183,15 +198,14 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  */
 
 /**
- * @typedef {Object} BidExtension
- * @property {number} destination
- * @property {number} health
- * @property {number} stamina
- * the agent, not perform object specific interactions.
- */
-
-/**
- * @typedef {CursorChange & BidExtension} Bid
+ * @typedef {Object} Bid
+ * @prop {number} position - origin
+ * @prop {number | undefined} direction
+ * @prop {number | undefined} turn
+ * @prop {boolean} transit
+ * @prop {number} destination
+ * @prop {number} health
+ * @prop {number} stamina
  */
 
 /**
@@ -222,6 +236,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
+ * @property {Map<number, number>} entityTargetLocations
  */
 
 const makeFlags = function* () {
@@ -354,8 +369,8 @@ export function makeModel({
   // priorities locally each turn.
   // const priorities = new Array(size);
 
-  /** @type {Map<number, number>} entity number -> heading in quarter turns clockwise from north */
-  const moveIntents = new Map();
+  /** @type {Set<number>} entity number */
+  const moveIntents = new Set();
 
   /** @type {Map<number, number>} entity number -> location number */
   const locations = new Map();
@@ -435,6 +450,9 @@ export function makeModel({
   const healthTrajectories = new Map();
   /** @type {Set<number>} */
   const staleHealthTrajectories = new Set();
+
+  /** @type {Map<number, number>} for teleport/warp/jump */
+  const entityTargetLocations = new Map();
 
   /**
    * Note that entity numbers are not reused and this could lead to problems if
@@ -545,6 +563,19 @@ export function makeModel({
     if (entityFollowers !== undefined) {
       for (const follower of entityFollowers) {
         follower.move(e, change, destination);
+      }
+    }
+  }
+
+  /**
+   * @param {number} e
+   * @param {number} destination
+   */
+  function onJump(e, destination) {
+    const entityFollowers = followers.get(e);
+    if (entityFollowers !== undefined) {
+      for (const follower of entityFollowers) {
+        follower.jump(e, destination);
       }
     }
   }
@@ -670,7 +701,7 @@ export function makeModel({
     ) {
       return;
     }
-    moveIntents.set(agent, direction);
+    moveIntents.add(agent);
 
     const origin = locate(agent);
     const {
@@ -709,6 +740,36 @@ export function makeModel({
           stamina,
         });
       }
+    }
+  }
+
+  /**
+   * An intent to jump can be the result of a bump, so cannot be the cause of a
+   * bump.
+   *
+   * @param {number} agent
+   * @param {number} destination
+   */
+  function jump(agent, destination) {
+    const { passable, dialog, health, stamina } = pass(agent, destination);
+    if (!passable) {
+      assertDefined(dialog);
+      // TODO shakes?
+      bounces.set(agent, 0);
+      onDialog(agent, dialog);
+    } else {
+      const origin = locate(agent);
+      assertDefined(health);
+      assertDefined(stamina);
+      bids(destination).set(agent, {
+        position: origin,
+        destination,
+        direction: undefined,
+        turn: undefined,
+        transit: false,
+        health,
+        stamina,
+      });
     }
   }
 
@@ -755,6 +816,13 @@ export function makeModel({
     bounces.delete(entity);
   }
 
+  /**
+   * @param {number} entity
+   */
+  function entityTargetLocation(entity) {
+    return entityTargetLocations.get(entity);
+  }
+
   const kit = {
     entityType,
     entityEffect,
@@ -771,6 +839,8 @@ export function makeModel({
     immersed,
     entityHealth,
     entityStamina,
+    entityTargetLocation,
+    jump,
   };
 
   /**
@@ -825,9 +895,36 @@ export function makeModel({
     // Prepare the next generation
     entitiesWriteBuffer.set(entities);
 
-    // Auction
-    // Considering every tile that an entity wishes to move into or act upon
+    // Bump.
+    // Bumps must precede the auction for moves because some bumps
+    // may result in a bid to move or teleport, the destruction of the
+    // patient (invalidating its bid to move), or the transformation
+    // of the patient (invalidating or altering some intended actions).
+    for (const { agent, patient, destination, direction } of bumps) {
+      bounces.set(agent, direction);
+      // A side-effect of bumping may include cancellation of the above
+      // bounce, in the case that the agent is destroyed by another bump.
+      const bumped = bump(kit, {
+        agent,
+        patient,
+        destination,
+        direction,
+      });
+      if (bumped !== null) {
+        const { dialog } = bumped;
+        if (dialog !== undefined) {
+          onDialog(agent, dialog);
+        }
+      } else {
+        talk(agent, patient);
+      }
+    }
+
+    // Auction for Moves.
+    // Considering every tile that an entity wishes to move into or act upon.
     for (const [destination, options] of targets.entries()) {
+      // TODO filter entities that have been scheduled for demolition from the
+      // losers.
       const losers = [...options.keys()];
       const winner = pluck(losers, Math.floor(Math.random() * losers.length));
       const change = assumeDefined(options.get(winner));
@@ -849,29 +946,11 @@ export function makeModel({
       for (const loser of losers) {
         const change = assumeDefined(options.get(loser));
         const { direction } = change;
-        macroViewModel.bounce(loser, direction * quarturnToOcturn);
-      }
-    }
-
-    // Bump.
-    for (const { agent, patient, destination, direction } of bumps) {
-      bounces.set(agent, direction);
-      if (!moves.has(patient)) {
-        // A side-effect of bumping may include cancellation of the above
-        // bounce, in the case that the agent is destroyed by another bump.
-        const bumped = bump(kit, {
-          agent,
-          patient,
-          destination,
-          direction,
-        });
-        if (bumped !== null) {
-          const { dialog } = bumped;
-          if (dialog !== undefined) {
-            onDialog(agent, dialog);
-          }
+        if (direction === undefined) {
+          // TODO
+          // macroViewModel.shake(loser);
         } else {
-          talk(agent, patient);
+          macroViewModel.bounce(loser, direction * quarturnToOcturn);
         }
       }
     }
@@ -912,24 +991,38 @@ export function makeModel({
         // Hold my beer.
         staleTileTypes.delete(entity);
       }
-      const { destination, direction, turn } = change;
-      if (newType !== undefined) {
-        macroViewModel.movingReplace(
-          entity,
-          newType,
-          destination,
-          direction * quarturnToOcturn,
-          turn,
-        );
+      const { position, destination, direction, turn, transit } = change;
+      if (direction === undefined || turn === undefined) {
+        macroViewModel.jump(entity, destination, newType || entityType(entity));
+        onJump(entity, destination);
       } else {
-        macroViewModel.move(
+        if (newType !== undefined) {
+          macroViewModel.movingReplace(
+            entity,
+            newType,
+            destination,
+            direction * quarturnToOcturn,
+            turn,
+          );
+        } else {
+          macroViewModel.move(
+            entity,
+            destination,
+            direction * quarturnToOcturn,
+            turn,
+          );
+        }
+        onMove(
           entity,
+          {
+            position,
+            direction,
+            turn,
+            transit,
+          },
           destination,
-          direction * quarturnToOcturn,
-          turn,
         );
       }
-      onMove(entity, change, destination);
       bounces.delete(entity);
     }
 
@@ -1440,6 +1533,15 @@ export function makeModel({
         stamina,
       });
     }
+    /** @type {Array<{entity: number, location: number}>} */
+    const reentityTargetLocations = [];
+    for (const [entity, location] of entityTargetLocations.entries()) {
+      const reentity = assumeDefined(renames.get(entity));
+      reentityTargetLocations.push({
+        entity: reentity,
+        location,
+      });
+    }
 
     /** @type {number | undefined} replayer */
     let replayer;
@@ -1456,6 +1558,7 @@ export function makeModel({
       terrain: [...terrain.slice()],
       healths: rehealths,
       staminas: restaminas,
+      entityTargetLocations: reentityTargetLocations,
     };
   }
 
@@ -1468,6 +1571,7 @@ export function makeModel({
    * @param {Map<number, number>} args.healths
    * @param {Map<number, number>} args.staminas
    * @param {Map<number, Array<number>>} args.inventories
+   * @param {Map<number, number>} args.entityTargetLocations
    */
   function restore({
     player: agent,
@@ -1477,12 +1581,14 @@ export function makeModel({
     healths: purportedHealths,
     staminas: purportedStaminas,
     inventories: purportedInventories,
+    entityTargetLocations: purportedEntityTargetLocations,
   }) {
     // Reset just in case there's some dangling state transition in progress.
     tock();
     mobiles.clear();
     healths.clear();
     staminas.clear();
+    entityTargetLocations.clear();
     for (let location = 0; location < size; location += 1) {
       const entity = entities[location];
       if (entity !== 0) {
@@ -1504,6 +1610,11 @@ export function makeModel({
         const actualStamina = purportedStaminas.get(purportedEntity) || 0;
         if (actualStamina !== 0) {
           staminas.set(actualEntity, actualStamina);
+        }
+        const actualTargetLocation =
+          purportedEntityTargetLocations.get(purportedEntity);
+        if (actualTargetLocation !== undefined) {
+          entityTargetLocations.set(actualEntity, actualTargetLocation);
         }
       }
     }
