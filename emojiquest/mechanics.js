@@ -792,6 +792,14 @@ export const actions = [
     items: ['clover'],
     dialog: '☘️ One leaf shy of lucky.',
   },
+
+  {
+    patient: 'northPole',
+    right: 'any',
+    verb: 'jump',
+    items: [],
+    dialog: '🎅Down you go!🤶',
+  },
 ];
 
 // TODO 🪨rock, 📄paper, ✂️scissors, 🦎lizard, 🖖spock
