@@ -73,12 +73,14 @@ export const makeWorld = (
    * @param {number} global
    */
   const locate = global => {
-    for (let i = 0; i < offsets.length; i += 1) {
-      const start = offsets[i];
-      if (global >= start) {
+    for (let index = offsets.length - 1; index >= 0; index -= 1) {
+      const offset = offsets[index];
+      if (global >= offset) {
         return {
-          level: levels[i],
-          local: global - start,
+          index,
+          offset,
+          level: levels[index],
+          local: global - offset,
         };
       }
     }
@@ -91,8 +93,8 @@ export const makeWorld = (
     direction: previousDirection,
   }) => {
     // TODO consider binary search here, if many layers.
-    for (let i = 0; i < offsets.length; i += 1) {
-      const start = offsets[i];
+    for (let index = offsets.length - 1; index >= 0; index -= 1) {
+      const start = offsets[index];
       if (previousGlobalPosition >= start) {
         const previousLocalPosition = previousGlobalPosition - start;
         const {
@@ -100,8 +102,8 @@ export const makeWorld = (
           direction: nextDirection,
           turn,
           transit,
-        } = levels[i].advance({
-          position: previousLocalPosition - start,
+        } = levels[index].advance({
+          position: previousLocalPosition,
           direction: previousDirection,
         });
         const nextGlobalPosition = nextLocalPosition + start;
