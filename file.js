@@ -74,7 +74,6 @@ export const validate = (allegedSnapshot, mechanics) => {
     player: allegedPlayer,
     levels: allegedLevels,
     locations: allegedLocations,
-    entities: allegedEntities,
     types: allegedTypes,
     inventories: allegedInventories,
     terrain: allegedTerrain,
@@ -93,11 +92,6 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['missing "levels"'] };
   } else if (!Array.isArray(allegedLevels)) {
     return { errors: ['"levels" must be an array'] };
-  }
-  if (allegedEntities === undefined) {
-    return { errors: ['missing "entities"'] };
-  } else if (!Array.isArray(allegedEntities)) {
-    return { errors: ['"entities" must be an array'] };
   }
   if (allegedTypes === undefined) {
     return { errors: ['missing "types"'] };
@@ -200,21 +194,17 @@ export const validate = (allegedSnapshot, mechanics) => {
   /** @type {Map<number, number>} */
   const allegedEntityTypes = new Map();
   const errors = [];
-  if (allegedEntities.length !== allegedTypes.length) {
-    errors.push('"entities" and "types" must be the same length');
-  }
   for (
-    let i = 0;
-    i < Math.min(allegedEntities.length, allegedTypes.length);
-    i += 1
+    let allegedEntity = 0;
+    allegedEntity < allegedTypes.length;
+    allegedEntity += 1
   ) {
-    const allegedEntity = allegedEntities[i];
-    const allegedType = allegedTypes[i];
+    const allegedType = allegedTypes[allegedEntity];
     if (typeof allegedEntity !== 'number') {
       errors.push(
         `every value in "entities" must be a number, got ${JSON.stringify(
           allegedEntity,
-        )} at ${i}`,
+        )} at ${allegedEntity}`,
       );
       continue;
     }
@@ -222,7 +212,7 @@ export const validate = (allegedSnapshot, mechanics) => {
       errors.push(
         `every value in "types" must be a number, got ${JSON.stringify(
           allegedType,
-        )} at ${i}`,
+        )} at ${allegedEntity}`,
       );
       continue;
     }

@@ -1496,13 +1496,10 @@ export function makeModel({
     }
 
     /** @type {Array<number>} */
-    const reentities = [];
-    /** @type {Array<number>} */
     const retypes = [];
     for (const [entity, type] of entityTypes.entries()) {
       const reentity = assumeDefined(renames.get(entity));
-      reentities.push(reentity);
-      retypes.push(type);
+      retypes[reentity] = type;
     }
 
     /** @type {Array<{entity: number, inventory: Array<number>}>} */
@@ -1552,7 +1549,6 @@ export function makeModel({
     return {
       player: replayer,
       locations: relocations,
-      entities: reentities,
       types: retypes,
       inventories: reinventories,
       terrain: [...terrain.slice()],
