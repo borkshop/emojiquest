@@ -3,15 +3,10 @@
 import { makeDaia } from './topology.js';
 import { makeMap } from './map.js';
 import { makeDaiaToponym } from './toponym.js';
+import { makePalette } from '../../lib/color.js';
 
 /**
- * @typedef {object} DaiaLevel
- * @prop {number} facetsPerFace
- * @prop {number} tilesPerFacet
- */
-
-/**
- * @param {DaiaLevel} level
+ * @param {import('../../file.js').DaiaLevel} level
  */
 export const sizeDaiaLevel = level => {
   const { facetsPerFace, tilesPerFacet } = level;
@@ -22,7 +17,7 @@ export const sizeDaiaLevel = level => {
 
 /**
  * @param {object} args
- * @param {DaiaLevel} args.level
+ * @param {import('../../file.js').DaiaLevel} args.level
  * @param {Node} args.parentElement
  * @param {Node} args.nextSibling
  * @param {number} args.frustumRadius
@@ -33,6 +28,8 @@ export const sizeDaiaLevel = level => {
  * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../view-model.js').EntityWatchFn} args.watchEntities
  * @param {import('../../view-model.js').EntityWatchFn} args.unwatchEntities
+ * @param {Array<import('../../file.js').ColorNamePalette>} args.colorNamePalettes
+ * @param {Map<string, string>} args.colorsByName
  */
 export const makeDaiaLevel = ({
   level,
@@ -46,11 +43,17 @@ export const makeDaiaLevel = ({
   getTerrainFlags,
   watchEntities,
   unwatchEntities,
+  colorNamePalettes,
+  colorsByName,
 }) => {
   const { facetsPerFace, tilesPerFacet } = level;
   const tilesPerFace = tilesPerFacet * facetsPerFace;
 
   const facetSizePx = tilesPerFacet * tileSizePx;
+
+  const palettesByLayer = colorNamePalettes.map(colorNamePalette =>
+    makePalette(colorsByName, colorNamePalette),
+  );
 
   // Model
 
@@ -76,6 +79,8 @@ export const makeDaiaLevel = ({
     facetSizePx,
     frustumRadius,
     createEntity,
+
+    palettesByLayer,
 
     faceSizePx: tileDaia.faceSize * tileSizePx,
     tileNumber: tileDaia.tileNumber,
@@ -115,6 +120,7 @@ export const makeDaiaLevel = ({
       topology: /** @type {'daia'} */ ('daia'),
       facetsPerFace,
       tilesPerFacet,
+      colors: colorNamePalettes,
     },
     size: tileDaia.worldArea,
     advance: tileDaia.advance,

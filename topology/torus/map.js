@@ -18,8 +18,8 @@ import {
 } from '../../lib/matrix2d.js';
 import { add as addVectors, scale as scaleVector } from '../../lib/vector2d.js';
 import { placeEntity } from '../../animation2d.js';
-import { tileColor } from '../../brand.js';
 import { dot, scale } from '../../lib/vector2d.js';
+import { tileColorForTerrainFlags } from '../../lib/color.js';
 
 /** @typedef {import('../../lib/geometry2d.js').Point} Point */
 /** @typedef {import('../../progress.js').Progress} Progress */
@@ -159,6 +159,7 @@ const makeChunkMapper = ({
  * @param {import('../../lib/vector2d.js').Point} args.chunkSizePx - the height and width of a chunk in pixels
  * @param {(location: number) => number} args.getTerrainFlags
  * @param {CreateEntityFn} args.createEntity
+ * @param {import('../../lib/color.js').Palette} args.palette
  * @param {EntityWatchFn} args.watchEntities
  * @param {EntityWatchFn} args.unwatchEntities
  */
@@ -170,6 +171,7 @@ export function makeChunkCreator({
   tilesPerChunk,
   chunkSizePx,
   createEntity,
+  palette,
   watchEntities,
   unwatchEntities,
 }) {
@@ -205,7 +207,7 @@ export function makeChunkCreator({
     for (const [location, { x, y }] of tiles.entries()) {
       const $backTile = document.createElementNS(svgNS, 'rect');
       const terrainFlags = getTerrainFlags(location);
-      const color = tileColor(5, terrainFlags); // TODO
+      const color = tileColorForTerrainFlags(palette, terrainFlags);
       $backTile.setAttributeNS(null, 'height', '1');
       $backTile.setAttributeNS(null, 'width', '1');
       $backTile.setAttributeNS(null, 'x', `${x}`);
@@ -285,7 +287,7 @@ export function makeChunkCreator({
       for (const location of marked) {
         const $backTile = backTiles.get(location);
         const terrainFlags = getTerrainFlags(location);
-        const color = tileColor(5, terrainFlags); // TODO
+        const color = tileColorForTerrainFlags(palette, terrainFlags);
         $backTile.setAttributeNS(null, 'style', `fill: ${color}`);
       }
       marked.clear();
@@ -320,6 +322,7 @@ export function makeChunkCreator({
  * @param {number} args.tileSizePx
  * @param {import('../../lib/vector2d.js').Point} args.tilesPerChunk
  * @param {CreateEntityFn} args.createEntity
+ * @param {import('../../lib/color.js').Palette} args.palette
  * @param {import('../../view-model.js').EntityWatchFn} args.watchEntities
  * @param {import('../../view-model.js').EntityWatchFn} args.unwatchEntities
  * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
@@ -335,6 +338,7 @@ export const makeTorusMap = ({
   tilesPerChunk,
   tileSizePx,
   createEntity,
+  palette,
   watchEntities,
   unwatchEntities,
   watchTerrain,
@@ -378,6 +382,7 @@ export const makeTorusMap = ({
     tilesPerChunk,
     chunkSizePx,
     createEntity,
+    palette,
     watchEntities,
     unwatchEntities,
   });

@@ -1568,6 +1568,7 @@ export function makeModel({
    * @param {Map<number, number>} args.staminas
    * @param {Map<number, Array<number>>} args.inventories
    * @param {Map<number, number>} args.entityTargetLocations
+   * @param {string} [name]
    */
   function restore({
     player: agent,
@@ -1578,7 +1579,7 @@ export function makeModel({
     staminas: purportedStaminas,
     inventories: purportedInventories,
     entityTargetLocations: purportedEntityTargetLocations,
-  }) {
+  }, name  = '<unknown>') {
     // Reset just in case there's some dangling state transition in progress.
     tock();
     mobiles.clear();
@@ -1596,7 +1597,7 @@ export function makeModel({
       if (purportedEntity !== 0) {
         const type = assumeDefined(purportedEntityTypes.get(purportedEntity));
         const actualEntity = createEntity(type);
-        assert(actualEntity === purportedEntity);
+        assert(actualEntity === purportedEntity, `Expected entities in ${name} to appear in ascending order of location, ${purportedEntity} should be ${actualEntity}`);
         entities[location] = actualEntity;
         locations.set(actualEntity, location);
         const actualHealth = purportedHealths.get(purportedEntity) || 0;

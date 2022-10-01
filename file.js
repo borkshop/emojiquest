@@ -12,6 +12,7 @@
  * @property {Map<number, Array<number>>} inventories
  * @property {Array<Level>} levels
  * @property {Map<number, number>} entityTargetLocations
+ * @property {Map<string, string>} colorsByName
  */
 
 /**
@@ -25,6 +26,16 @@
  * facets if 2.
  * @property {number} tilesPerFacet - tiles per facet along each edge, so 3x3
  * if 3, and 6x6 tiles on each face if facetsPerFace is 2.
+ * @property {Array<ColorNamePalette>} colors
+ */
+
+/**
+ * @typedef {object} ColorNamePalette
+ * @property {string} base - average color of a face (presumably one of either
+ * the earth or water color for its tiles)
+ * @property {string} earth - color of a tile when earth is on the surface
+ * @property {string} water - color of a tile when water is on the surface
+ * @property {string} lava - color of a tile when lava is on the surface
  */
 
 /**
@@ -32,6 +43,7 @@
  * @property {'torus'} topology
  * @property {Point} tilesPerChunk
  * @property {Point} chunksPerLevel
+ * @property {ColorNamePalette} colors
  */
 
 import { dot } from './lib/vector2d.js';
@@ -59,6 +71,53 @@ const validatePoint = allegedPoint => {
 };
 
 /**
+ * @param {unknown} allegedColorName
+ * @param {Map<string, string>} colorsByName
+ * @param {Array<string>} errors
+ * @param {string} path
+ */
+const validateColor = (allegedColorName, colorsByName, errors, path) => {
+  if (typeof allegedColorName !== 'string') {
+    errors.push(`${path} must be a string`);
+    return '';
+  }
+  const color = colorsByName.get(allegedColorName);
+  if (color === undefined) {
+    errors.push(`${path} must be the name of a color mentioned in .colors`);
+    return '';
+  }
+  return allegedColorName;
+};
+
+/**
+ * @param {unknown} allegedColors
+ * @param {Map<string, string>} colorsByName
+ * @param {Array<string>} errors
+ * @param {string} path
+ */
+const validateColors = (allegedColors, colorsByName, errors, path) => {
+  if (allegedColors === null || typeof allegedColors !== 'object') {
+    errors.push(
+      `${path} must be an object with {base, lava, water, earth} strings`,
+    );
+    return {
+      base: '',
+      lava: '',
+      water: '',
+      earth: '',
+    };
+  }
+  const { base, lava, water, earth } =
+    /** @type {{[name: string]: unknown}} */ (allegedColors);
+  return {
+    base: validateColor(base, colorsByName, errors, `${path}.base`),
+    lava: validateColor(lava, colorsByName, errors, `${path}.lava`),
+    water: validateColor(water, colorsByName, errors, `${path}.water`),
+    earth: validateColor(earth, colorsByName, errors, `${path}.earth`),
+  };
+};
+
+/**
  * @param {unknown} allegedSnapshot
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @returns {{snapshot: Snapshot} | {errors: Array<string>}}
@@ -80,6 +139,7 @@ export const validate = (allegedSnapshot, mechanics) => {
     healths: allegedHealths,
     staminas: allegedStaminas,
     entityTargetLocations: allegedEntityTargetLocations,
+    colors: allegedColors,
   } = presumedSnapshot;
 
   if (allegedPlayer === undefined) {
@@ -130,6 +190,28 @@ export const validate = (allegedSnapshot, mechanics) => {
     return { errors: ['"entityTargetLocations" must be an array'] };
   }
 
+  if (allegedColors === undefined) {
+    return { errors: ['missing "colors"'] };
+  } else if (
+    typeof allegedColors !== 'object' ||
+    allegedColors === null ||
+    Array.isArray(allegedColors)
+  ) {
+    return { errors: ['"colors" must be a record'] };
+  }
+
+  const errors = [];
+
+  /** @type {Map<string, string>} */
+  const colorsByName = new Map();
+  for (const [name, value] of Object.entries(allegedColors)) {
+    if (typeof value !== 'string' || !/^#[0-9A-F]{6}$/.test(value)) {
+      errors.push(`invalid color for name ${name}`);
+    } else {
+      colorsByName.set(name, value);
+    }
+  }
+
   if (allegedLevels.length < 1) {
     return { errors: ['"levels"  must contain at least 1 level'] };
   }
@@ -141,7 +223,7 @@ export const validate = (allegedSnapshot, mechanics) => {
   for (let index = 0; index < allegedLevels.length; index += 1) {
     const allegedLevel = allegedLevels[index];
     if (typeof allegedLevel !== 'object' || allegedLevel === null) {
-      return { errors: ['"levels[0]" must be an object'] };
+      return { errors: ['"levels[${index}]" must be an object'] };
     }
     const presumedLevel = /** @type {{[name: string]: unknown}} */ (
       allegedLevel
@@ -149,12 +231,47 @@ export const validate = (allegedSnapshot, mechanics) => {
 
     const { topology } = presumedLevel;
     if (topology === 'daia') {
-      const { facetsPerFace, tilesPerFacet } = presumedLevel;
+      const {
+        facetsPerFace,
+        tilesPerFacet,
+        colors: allegedColors,
+      } = presumedLevel;
       if (typeof facetsPerFace !== 'number') {
-        return { errors: ['"levels[0].facetsPerFace" must be a number'] };
+        return {
+          errors: [`"levels[${index}].facetsPerFace" must be a number`],
+        };
       }
       if (typeof tilesPerFacet !== 'number') {
-        return { errors: ['"levels[0].tilesPerFacet" must be a number'] };
+        return {
+          errors: [`"levels[${index}].tilesPerFacet" must be a number`],
+        };
+      }
+      if (!Array.isArray(allegedColors)) {
+        errors.push(`"levels[${index}].colors" must be an array`);
+        continue;
+      }
+      if (allegedColors.length !== 6) {
+        errors.push(
+          `"levels[${index}].colors" must be an array of 6 color maps`,
+        );
+        continue;
+      }
+
+      /** @type {Array<ColorNamePalette>} */
+      const purportedColors = [];
+      let faceNumber = 0;
+      for (const allegedFaceColors of allegedColors) {
+        const purportedFaceColors = validateColors(
+          allegedFaceColors,
+          colorsByName,
+          errors,
+          `levels[${index}].colors[${faceNumber}]`,
+        );
+        if (errors.length) {
+          return { errors };
+        }
+        purportedColors.push(purportedFaceColors);
+        faceNumber += 1;
       }
 
       /** @type {DaiaLevel} */
@@ -162,25 +279,46 @@ export const validate = (allegedSnapshot, mechanics) => {
         topology,
         facetsPerFace,
         tilesPerFacet,
+        colors: purportedColors,
       };
       purportedLevels.push(purportedLevel);
       // Compute size from level data.
       size += 6 * facetsPerFace ** 2 * tilesPerFacet ** 2;
     } else if (topology === 'torus') {
-      const { tilesPerChunk, chunksPerLevel } = presumedLevel;
+      const {
+        tilesPerChunk,
+        chunksPerLevel,
+        colors: allegedColors,
+      } = presumedLevel;
       const purportedTilesPerChunk = validatePoint(tilesPerChunk);
       if (purportedTilesPerChunk === undefined) {
-        return { errors: ['"levels[0].tilesPerChunk" must be a {x, y} size'] };
+        return {
+          errors: ['"levels[${index}].tilesPerChunk" must be a {x, y} size'],
+        };
       }
       const purportedChunksPerLevel = validatePoint(chunksPerLevel);
       if (purportedChunksPerLevel === undefined) {
-        return { errors: ['"levels[0].chunksPerLevel" must be a {x, y} size'] };
+        return {
+          errors: ['"levels[${index}].chunksPerLevel" must be a {x, y} size'],
+        };
       }
+
+      const purportedColors = validateColors(
+        allegedColors,
+        colorsByName,
+        errors,
+        `levels[${index}].colors`,
+      );
+      if (errors.length) {
+        return { errors };
+      }
+
       /** @type {TorusLevel} */
       const purportedLevel = {
         topology,
         tilesPerChunk: purportedTilesPerChunk,
         chunksPerLevel: purportedChunksPerLevel,
+        colors: purportedColors,
       };
       purportedLevels.push(purportedLevel);
       // Compute size from level data.
@@ -193,7 +331,6 @@ export const validate = (allegedSnapshot, mechanics) => {
 
   /** @type {Map<number, number>} */
   const allegedEntityTypes = new Map();
-  const errors = [];
   for (
     let allegedEntity = 0;
     allegedEntity < allegedTypes.length;
@@ -479,6 +616,7 @@ export const validate = (allegedSnapshot, mechanics) => {
     staminas: purportedStaminas,
     inventories: purportedInventories,
     entityTargetLocations: purportedEntityTargetLocations,
+    colorsByName,
   };
 
   return {

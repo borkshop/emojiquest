@@ -87,9 +87,9 @@ import {
   matrixStyle,
 } from '../../lib/matrix2d.js';
 import { add as addVectors, scale as scaleVector } from '../../lib/vector2d.js';
+import { tileColorForTerrainFlags } from '../../lib/color.js';
 import { placeEntity } from '../../animation2d.js';
 import { makeTileKeeper } from '../../tile-keeper.js';
-import { tileColor } from '../../brand.js';
 
 /** @typedef {import('../../lib/geometry2d.js').Point} Point */
 /** @typedef {import('../../progress.js').Progress} Progress */
@@ -230,6 +230,7 @@ const makeFacetMapper = ({
  * @param {Object} args
  * @param {number} args.tilesPerFacet - the height and width of a facet in tiles
  * @param {number} args.facetSizePx - the height and width of a facet in pixels
+ * @param {Array<import('../../lib/color.js').Palette>} args.palettesByLayer
  * @param {WatchTerrainFn} args.watchTerrain
  * @param {WatchTerrainFn} args.unwatchTerrain
  * @param {GetTerrainFlagsFn} args.getTerrainFlags
@@ -246,6 +247,7 @@ export function makeFacetCreator({
   createEntity,
   watchEntities,
   unwatchEntities,
+  palettesByLayer,
 }) {
   const animators = new Set();
 
@@ -274,7 +276,10 @@ export function makeFacetCreator({
     for (const [location, { x, y }] of tiles.entries()) {
       const $backTile = document.createElementNS(svgNS, 'rect');
       const terrainFlags = getTerrainFlags(location);
-      const color = tileColor(faceNumber, terrainFlags);
+      const color = tileColorForTerrainFlags(
+        palettesByLayer[faceNumber],
+        terrainFlags,
+      );
       $backTile.setAttributeNS(null, 'height', '1');
       $backTile.setAttributeNS(null, 'width', '1');
       $backTile.setAttributeNS(null, 'x', `${x}`);
@@ -347,7 +352,10 @@ export function makeFacetCreator({
       for (const location of marked) {
         const $backTile = backTiles.get(location);
         const terrainFlags = getTerrainFlags(location);
-        const color = tileColor(faceNumber, terrainFlags);
+        const color = tileColorForTerrainFlags(
+          palettesByLayer[faceNumber],
+          terrainFlags,
+        );
         $backTile.setAttributeNS(null, 'style', `fill: ${color}`);
       }
       marked.clear();
@@ -498,6 +506,7 @@ const makeFace = ({
  * @param {number} args.facetSizePx
  * @param {number} args.frustumRadius
  * @param {CreateEntityFn} args.createEntity
+ * @param {Array<import('../../lib/color.js').Palette>} args.palettesByLayer
  * @param {EntityWatchFn} args.watchEntities
  * @param {EntityWatchFn} args.unwatchEntities
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
@@ -518,6 +527,7 @@ export const makeMap = ({
   facetSizePx,
   frustumRadius,
   createEntity,
+  palettesByLayer,
   watchEntities,
   unwatchEntities,
   watchTerrain,
@@ -561,6 +571,7 @@ export const makeMap = ({
     createEntity,
     watchEntities,
     unwatchEntities,
+    palettesByLayer,
   });
 
   const faceControllers = new Array(6).fill(null).map((_, face) =>

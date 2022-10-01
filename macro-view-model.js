@@ -257,8 +257,6 @@ export function makeMacroViewModel(
         bump: true,
         stage: 'exit',
       });
-    }
-    if (viewModel.watched(replacement)) {
       viewModel.transition(replacement, {
         bump: true,
         stage: 'enter',

@@ -1,6 +1,7 @@
 // @ts-check
 
 import { dot } from '../../lib/vector2d.js';
+import { makePalette } from '../../lib/color.js';
 import { makeTorusTopology } from './topology.js';
 import { makeTorusMap } from './map.js';
 import { makeTorusToponym } from './toponym.js';
@@ -33,6 +34,8 @@ export const sizeTorusLevel = level => {
  * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../view-model.js').EntityWatchFn} args.watchEntities
  * @param {import('../../view-model.js').EntityWatchFn} args.unwatchEntities
+ * @param {import('../../file.js').ColorNamePalette} args.colorNamePalette
+ * @param {Map<string, string>} args.colorsByName
  */
 export const makeTorusLevel = ({
   level,
@@ -45,6 +48,8 @@ export const makeTorusLevel = ({
   getTerrainFlags,
   watchEntities,
   unwatchEntities,
+  colorNamePalette,
+  colorsByName,
 }) => {
   const { chunksPerLevel, tilesPerChunk } = level;
   const tilesPerLevel = dot(tilesPerChunk, chunksPerLevel);
@@ -53,6 +58,7 @@ export const makeTorusLevel = ({
   const chunkTopology = makeTorusTopology({ size: chunksPerLevel });
   const { tileCoordinate: chunkCoordinate, tileNumber: chunkNumber } =
     chunkTopology;
+  const palette = makePalette(colorsByName, colorNamePalette);
 
   // Model
 
@@ -66,6 +72,7 @@ export const makeTorusLevel = ({
     tilesPerChunk,
     tileSizePx,
     createEntity,
+    palette,
 
     tileNumber,
     tileCoordinate,
@@ -100,6 +107,7 @@ export const makeTorusLevel = ({
       topology: /** @type {'torus'} */ ('torus'),
       chunksPerLevel,
       tilesPerChunk,
+      colors: colorNamePalette,
     },
     size: area,
     advance,

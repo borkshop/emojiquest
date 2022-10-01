@@ -193,6 +193,8 @@ export const makeWorld = (
         getTerrainFlags,
         watchEntities,
         unwatchEntities,
+        colorNamePalettes: level.colors,
+        colorsByName: snapshot.colorsByName,
       });
     } else if (topology === 'torus') {
       return makeTorusLevel({
@@ -207,6 +209,8 @@ export const makeWorld = (
         getTerrainFlags,
         watchEntities,
         unwatchEntities,
+        colorNamePalette: level.colors,
+        colorsByName: snapshot.colorsByName,
       });
     }
     assert(false, `Unrecognized level topology ${topology}`);
@@ -217,6 +221,7 @@ export const makeWorld = (
    */
   const capture = player => {
     return {
+      colors: Object.fromEntries(snapshot.colorsByName.entries()),
       levels: levels.map(({ descriptor }) => descriptor),
       ...worldModel.capture(player),
     };
@@ -247,7 +252,6 @@ export const makeWorld = (
       if (cursorLevel !== index) {
         cursorLevel = index;
         nextLevel = index;
-        display(index);
       }
       return level.cameraController.jump(local);
     },
