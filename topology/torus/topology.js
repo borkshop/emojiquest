@@ -6,7 +6,7 @@ import { mod } from '../../lib/math.js';
 import { quarturnVectors } from '../../lib/geometry2d.js';
 
 /**
- * @typedef {Object} TorusTopology
+ * @typedef {Object} Topology
  * @prop {number} area
  * @prop {import('../../topology.js').AdvanceFn} advance
  * @prop {import('../../topology.js').TileCoordinateFn} tileCoordinate
@@ -16,9 +16,9 @@ import { quarturnVectors } from '../../lib/geometry2d.js';
 /**
  * @param {Object} options
  * @param {Point} options.size
- * @returns {TorusTopology}
+ * @returns {Topology}
  */
-export function makeTorusTopology({ size }) {
+export function makeTopology({ size }) {
   const area = size.x * size.y;
 
   /** @type {import('../../topology.js').TileCoordinateFn} */

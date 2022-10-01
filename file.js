@@ -16,17 +16,9 @@
  */
 
 /**
+ * @typedef {import('./topology/daia/file.js').Level} DaiaLevel
+ * @typedef {import('./topology/torus/file.js').Level} TorusLevel
  * @typedef {DaiaLevel | TorusLevel} Level
- */
-
-/**
- * @typedef {object} DaiaLevel
- * @property {'daia'} topology
- * @property {number} facetsPerFace - facets per face along each edge, so 2x2
- * facets if 2.
- * @property {number} tilesPerFacet - tiles per facet along each edge, so 3x3
- * if 3, and 6x6 tiles on each face if facetsPerFace is 2.
- * @property {Array<ColorNamePalette>} colors
  */
 
 /**
@@ -36,14 +28,6 @@
  * @property {string} earth - color of a tile when earth is on the surface
  * @property {string} water - color of a tile when water is on the surface
  * @property {string} lava - color of a tile when lava is on the surface
- */
-
-/**
- * @typedef {object} TorusLevel
- * @property {'torus'} topology
- * @property {Point} tilesPerChunk
- * @property {Point} chunksPerLevel
- * @property {ColorNamePalette} colors
  */
 
 import { dot } from './lib/vector2d.js';

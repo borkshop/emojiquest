@@ -2,8 +2,8 @@ import url from 'url';
 import fs from 'fs/promises';
 
 import { assertDefined } from './lib/assert.js';
-import { makeDaia } from './topology/daia/topology.js';
-import { makeDaiaToponym } from './topology/daia/toponym.js';
+import { makeTopology } from './topology/daia/topology.js';
+import { makeToponym } from './topology/daia/toponym.js';
 import {
   makeModel,
   terrainWater,
@@ -205,9 +205,9 @@ export const makeScaffold = (
 
   const size = tilesPerFacet * facetsPerFace;
 
-  const daia = makeDaia({ faceSize: size });
+  const topology = makeTopology({ faceSize: size });
 
-  const toponym = makeDaiaToponym(daia);
+  const toponym = makeToponym(topology);
 
   const worldViewModel = makeViewModel();
   const worldMacroViewModel = makeMacroViewModel(worldViewModel, {
@@ -235,7 +235,7 @@ export const makeScaffold = (
           x: 0,
           y: 0,
         },
-        daia.faceArea * face,
+        topology.faceArea * face,
       ),
       worldWatcher,
     );
@@ -292,8 +292,8 @@ export const makeScaffold = (
   }
 
   const worldModel = makeModel({
-    size: daia.worldArea,
-    advance: daia.advance,
+    size: topology.worldArea,
+    advance: topology.advance,
     macroViewModel: worldMacroViewModel,
     mechanics,
     snapshot,
@@ -307,7 +307,7 @@ export const makeScaffold = (
     tock() {},
   };
 
-  const { advance } = daia;
+  const { advance } = topology;
 
   /**
    * @param {number} _destination
@@ -413,7 +413,7 @@ export const makeScaffold = (
       let x = 0;
       for (const glyph of line) {
         if (glyph !== '.') {
-          const location = daia.tileNumber({ x, y, f });
+          const location = topology.tileNumber({ x, y, f });
           // t.log({x, y, f, location});
           const agentTypeName = agentTypesByGlyph[glyph];
           t.assert(
@@ -446,7 +446,7 @@ export const makeScaffold = (
     for (const line of table) {
       let x = 0;
       for (const glyph of line) {
-        const location = daia.tileNumber({ x, y, f });
+        const location = topology.tileNumber({ x, y, f });
         if (glyph === 'w') {
           worldModel.toggleTerrainFlags(location, terrainWater);
         } else if (glyph === 'l') {

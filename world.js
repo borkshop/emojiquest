@@ -6,8 +6,8 @@ import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
 
 // Supported level types:
-import { sizeDaiaLevel, makeDaiaLevel } from './topology/daia/level.js';
-import { sizeTorusLevel, makeTorusLevel } from './topology/torus/level.js';
+import * as daia from './topology/daia/level.js';
+import * as torus from './topology/torus/level.js';
 
 /**
  * @typedef {object} Level
@@ -48,9 +48,9 @@ export const makeWorld = (
   const levelSizes = snapshot.levels.map(level => {
     const { topology } = level;
     if (topology === 'daia') {
-      return sizeDaiaLevel(level);
+      return daia.sizeLevel(level);
     } else if (topology === 'torus') {
-      return sizeTorusLevel(level);
+      return torus.sizeLevel(level);
     }
     assert(false, `Unrecognized level topology ${topology}`);
   });
@@ -181,7 +181,7 @@ export const makeWorld = (
 
     const { topology } = level;
     if (topology === 'daia') {
-      return makeDaiaLevel({
+      return daia.makeLevel({
         level,
         frustumRadius,
         parentElement,
@@ -197,7 +197,7 @@ export const makeWorld = (
         colorsByName: snapshot.colorsByName,
       });
     } else if (topology === 'torus') {
-      return makeTorusLevel({
+      return torus.makeLevel({
         level,
         // frustumRadius,
         parentElement,

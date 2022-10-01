@@ -2,29 +2,29 @@
 
 import { dot } from '../../lib/vector2d.js';
 import { makePalette } from '../../lib/color.js';
-import { makeTorusTopology } from './topology.js';
-import { makeTorusMap } from './map.js';
-import { makeTorusToponym } from './toponym.js';
+import { makeTopology } from './topology.js';
+import { makeMap } from './map.js';
+import { makeToponym } from './toponym.js';
 
 /**
- * @typedef {object} TorusLevel
+ * @typedef {object} Level
  * @prop {import('../../lib/vector2d.js').Point} tilesPerChunk
  * @prop {import('../../lib/vector2d.js').Point} chunksPerLevel
  */
 
 /**
- * @param {TorusLevel} level
+ * @param {Level} level
  */
-export const sizeTorusLevel = level => {
+export const sizeLevel = level => {
   const { chunksPerLevel, tilesPerChunk } = level;
   const tilesPerLevel = dot(tilesPerChunk, chunksPerLevel);
-  const topology = makeTorusTopology({ size: tilesPerLevel });
+  const topology = makeTopology({ size: tilesPerLevel });
   return topology.area;
 };
 
 /**
  * @param {object} args
- * @param {TorusLevel} args.level
+ * @param {Level} args.level
  * @param {Node} args.parentElement
  * @param {Node} args.nextSibling
  * @param {number} args.tileSizePx
@@ -37,7 +37,7 @@ export const sizeTorusLevel = level => {
  * @param {import('../../file.js').ColorNamePalette} args.colorNamePalette
  * @param {Map<string, string>} args.colorsByName
  */
-export const makeTorusLevel = ({
+export const makeLevel = ({
   level,
   parentElement,
   nextSibling,
@@ -53,22 +53,22 @@ export const makeTorusLevel = ({
 }) => {
   const { chunksPerLevel, tilesPerChunk } = level;
   const tilesPerLevel = dot(tilesPerChunk, chunksPerLevel);
-  const topology = makeTorusTopology({ size: tilesPerLevel });
+  const topology = makeTopology({ size: tilesPerLevel });
   const { tileCoordinate, tileNumber, advance, area } = topology;
-  const chunkTopology = makeTorusTopology({ size: chunksPerLevel });
+  const chunkTopology = makeTopology({ size: chunksPerLevel });
   const { tileCoordinate: chunkCoordinate, tileNumber: chunkNumber } =
     chunkTopology;
   const palette = makePalette(colorsByName, colorNamePalette);
 
   // Model
 
-  const toponym = makeTorusToponym({
+  const toponym = makeToponym({
     tileCoordinate,
   });
 
   // View
 
-  const { $map, cameraController } = makeTorusMap({
+  const { $map, cameraController } = makeMap({
     tilesPerChunk,
     tileSizePx,
     createEntity,

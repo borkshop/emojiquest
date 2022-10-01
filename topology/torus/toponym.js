@@ -4,7 +4,7 @@
  * @param {object} args
  * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
  */
-export function makeTorusToponym({ tileCoordinate }) {
+export function makeToponym({ tileCoordinate }) {
   /**
    * @param {number} location
    */

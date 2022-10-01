@@ -334,7 +334,7 @@ export function makeChunkCreator({
  * @param {import('../../topology.js').AdvanceFn} args.advance
  * @param {import('../../topology.js').TileCoordinateFn} args.chunkCoordinate
  */
-export const makeTorusMap = ({
+export const makeMap = ({
   tilesPerChunk,
   tileSizePx,
   createEntity,

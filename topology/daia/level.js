@@ -1,18 +1,18 @@
 // @ts-check
 
-import { makeDaia } from './topology.js';
+import { makeTopology } from './topology.js';
 import { makeMap } from './map.js';
-import { makeDaiaToponym } from './toponym.js';
+import { makeToponym } from './toponym.js';
 import { makePalette } from '../../lib/color.js';
 
 /**
  * @param {import('../../file.js').DaiaLevel} level
  */
-export const sizeDaiaLevel = level => {
+export const sizeLevel = level => {
   const { facetsPerFace, tilesPerFacet } = level;
   const tilesPerFace = tilesPerFacet * facetsPerFace;
-  const tileDaia = makeDaia({ faceSize: tilesPerFace });
-  return tileDaia.worldArea;
+  const topology = makeTopology({ faceSize: tilesPerFace });
+  return topology.worldArea;
 };
 
 /**
@@ -31,7 +31,7 @@ export const sizeDaiaLevel = level => {
  * @param {Array<import('../../file.js').ColorNamePalette>} args.colorNamePalettes
  * @param {Map<string, string>} args.colorsByName
  */
-export const makeDaiaLevel = ({
+export const makeLevel = ({
   level,
   parentElement,
   nextSibling,
@@ -57,19 +57,19 @@ export const makeDaiaLevel = ({
 
   // Model
 
-  const faceDaia = makeDaia({
+  const faceTopology = makeTopology({
     faceSize: 1,
   });
 
-  const facetDaia = makeDaia({
+  const facetTopology = makeTopology({
     faceSize: facetsPerFace,
   });
 
-  const tileDaia = makeDaia({
+  const tileTopology = makeTopology({
     faceSize: tilesPerFace,
   });
 
-  const toponym = makeDaiaToponym(tileDaia);
+  const toponym = makeToponym(tileTopology);
 
   // View
 
@@ -82,16 +82,16 @@ export const makeDaiaLevel = ({
 
     palettesByLayer,
 
-    faceSizePx: tileDaia.faceSize * tileSizePx,
-    tileNumber: tileDaia.tileNumber,
-    tileCoordinate: tileDaia.tileCoordinate,
-    advance: tileDaia.advance,
+    faceSizePx: tileTopology.faceSize * tileSizePx,
+    tileNumber: tileTopology.tileNumber,
+    tileCoordinate: tileTopology.tileCoordinate,
+    advance: tileTopology.advance,
 
-    facetNumber: facetDaia.tileNumber,
-    facetCoordinate: facetDaia.tileCoordinate,
+    facetNumber: facetTopology.tileNumber,
+    facetCoordinate: facetTopology.tileCoordinate,
 
-    faceTileCoordinate: faceDaia.tileCoordinate,
-    faceAdvance: faceDaia.advance,
+    faceTileCoordinate: faceTopology.tileCoordinate,
+    faceAdvance: faceTopology.advance,
 
     watchTerrain,
     unwatchTerrain,
@@ -122,8 +122,8 @@ export const makeDaiaLevel = ({
       tilesPerFacet,
       colors: colorNamePalettes,
     },
-    size: tileDaia.worldArea,
-    advance: tileDaia.advance,
+    size: tileTopology.worldArea,
+    advance: tileTopology.advance,
     cameraController,
     toponym,
     show,

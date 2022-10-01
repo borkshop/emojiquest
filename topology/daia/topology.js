@@ -84,7 +84,7 @@ export const faceRotations = [
 ];
 
 /**
- * @typedef {Object} Daia
+ * @typedef {Object} Topology
  * @prop {number} faceSize
  * @prop {number} faceArea
  * @prop {number} worldArea
@@ -96,9 +96,9 @@ export const faceRotations = [
 /**
  * @param {Object} options
  * @param {number} [options.faceSize]
- * @returns {Daia}
+ * @returns {Topology}
  */
-export function makeDaia({ faceSize = 1 }) {
+export function makeTopology({ faceSize = 1 }) {
   const faceArea = faceSize * faceSize;
   const worldArea = 6 * faceArea;
 
