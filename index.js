@@ -225,7 +225,7 @@ const main = async () => {
   const saveWorld = async worldData => {
     const handle = await window.showSaveFilePicker({ types });
     const stream = await handle.createWritable();
-    const text = JSON.stringify(worldData);
+    const text = `${JSON.stringify(worldData)}\n`;
     const blob = new Blob([text]);
     await stream.write(blob);
     await stream.close();
