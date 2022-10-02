@@ -319,7 +319,6 @@ export const makeMap = ({
         chunks.set(chunkKey, dispose);
       }
     }
-    console.log('retaining', [...chunks.keys()]);
   };
 
   const releaseChunks = () => {

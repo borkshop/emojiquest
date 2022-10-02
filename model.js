@@ -40,6 +40,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @callback JumpFn
  * @param {number} entity
  * @param {number} destination
+ * @param {number} directionOcturns
  * @param {number} type
  */
 
@@ -200,8 +201,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 /**
  * @typedef {Object} Bid
  * @prop {number} position - origin
- * @prop {number | undefined} direction
- * @prop {number | undefined} turn
+ * @prop {number} direction
+ * @prop {number | undefined} turn - absence indicates a jump/teleport
  * @prop {boolean} transit
  * @prop {number} destination
  * @prop {number} health
@@ -749,8 +750,9 @@ export function makeModel({
    *
    * @param {number} agent
    * @param {number} destination
+   * @param {number} direction
    */
-  function jump(agent, destination) {
+  function jump(agent, destination, direction) {
     const { passable, dialog, health, stamina } = pass(agent, destination);
     if (!passable) {
       assertDefined(dialog);
@@ -764,7 +766,7 @@ export function makeModel({
       bids(destination).set(agent, {
         position: origin,
         destination,
-        direction: undefined,
+        direction,
         turn: undefined,
         transit: false,
         health,
@@ -992,8 +994,13 @@ export function makeModel({
         staleTileTypes.delete(entity);
       }
       const { position, destination, direction, turn, transit } = change;
-      if (direction === undefined || turn === undefined) {
-        macroViewModel.jump(entity, destination, newType || entityType(entity));
+      if (turn === undefined) {
+        macroViewModel.jump(
+          entity,
+          destination,
+          direction * quarturnToOcturn,
+          newType || entityType(entity),
+        );
         onJump(entity, destination);
       } else {
         if (newType !== undefined) {

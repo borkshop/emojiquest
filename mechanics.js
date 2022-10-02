@@ -117,7 +117,7 @@ import { heldSlot, packSlot } from './model.js';
  * @property {(entity: number) => number} entityHealth
  * @property {(entity: number) => number} entityStamina
  * @property {(entity: number) => number | undefined} entityTargetLocation
- * @property {(entity: number, location: number) => void} jump
+ * @property {(entity: number, location: number, direction: number) => void} jump
  */
 
 const specialNames = ['invalid', 'empty', 'any'];
@@ -311,10 +311,10 @@ export function makeMechanics({
 
     jump([]) {
       /** @type {Handler} */
-      const jump = (kit, { agent, patient }) => {
+      const jump = (kit, { agent, patient, direction }) => {
         const location = kit.entityTargetLocation(patient);
         if (location !== undefined) {
-          kit.jump(agent, location);
+          kit.jump(agent, location, direction);
         }
       };
       return jump;

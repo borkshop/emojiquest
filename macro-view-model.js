@@ -242,9 +242,10 @@ export function makeMacroViewModel(
   /**
    * @param {number} external
    * @param {number} destination
+   * @param {number} directionOcturns
    * @param {number} type
    */
-  function jump(external, destination, type) {
+  function jump(external, destination, directionOcturns, type) {
     assertPlanning();
     const internal = entity(external);
     locations.set(external, destination);
@@ -254,11 +255,11 @@ export function makeMacroViewModel(
     entities.set(external, replacement);
     if (viewModel.watched(internal)) {
       viewModel.transition(internal, {
-        bump: true,
+        directionOcturns,
         stage: 'exit',
       });
       viewModel.transition(replacement, {
-        bump: true,
+        directionOcturns,
         stage: 'enter',
       });
     }
