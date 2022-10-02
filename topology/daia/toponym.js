@@ -70,7 +70,9 @@ export function makeToponym({ faceSize, tileCoordinate, offset = 0 }) {
    */
   function toponym(t) {
     let { f, x, y } = tileCoordinate(t);
-    return `${faceSymbols[f]} ${ternym(faceSize, x, y, arrows).join('')} @${t + offset}`;
+    return `${faceSymbols[f]} ${ternym(faceSize, x, y, arrows).join('')} @${
+      t + offset
+    }`;
   }
 
   return toponym;

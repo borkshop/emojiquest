@@ -11,15 +11,20 @@ import * as torus from './topology/torus/level.js';
 import * as rect from './topology/rect/level.js';
 
 /**
+ * @typedef {object} LevelView
+ * @prop {import('./controller.js').CameraController} cameraController
+ * @prop {() => void} show
+ * @prop {() => void} hide
+ * @prop {() => void} dispose
+ */
+
+/**
  * @typedef {object} Level
  * @prop {import('./file.js').Level} descriptor
  * @prop {number} size
  * @prop {import('./topology.js').AdvanceFn} advance
  * @prop {import('./topology.js').ToponymFn} toponym
- * @prop {import('./controller.js').CameraController} cameraController
- * @prop {() => void} show
- * @prop {() => void} hide
- * @prop {() => void} dispose
+ * @prop {() => LevelView} makeView
  */
 
 /**
@@ -134,8 +139,8 @@ export const makeWorld = (
   });
 
   /** @type {Array<Level>} */
-  const levels = snapshot.levels.map((level, i) => {
-    const offset = offsets[i];
+  const levels = snapshot.levels.map((level, index) => {
+    const offset = offsets[index];
 
     /**
      * @param {Iterable<number>} locations
@@ -252,59 +257,94 @@ export const makeWorld = (
     };
   };
 
-  /** @type {number | undefined} */
-  let cursorLevel;
-  /** @type {number | undefined} */
-  let nextLevel;
+  /** @type {LevelView | undefined} */
+  let currentLevelView;
+  /** @type {LevelView | undefined} */
+  let nextLevelView;
 
-  /** @param {number} top */
-  const display = top => {
-    for (let index = 0; index < top; index += 1) {
-      levels[index].hide();
-    }
-    levels[top].show();
-    for (let index = top + 1; index < levels.length; index += 1) {
-      levels[index].hide();
+  let currentLevelIndex = -1;
+  let nextLevelIndex = -1;
+
+  // /** @param {number} top */
+  // const display = top => {
+  //   for (let index = 0; index < top; index += 1) {
+  //     levels[index].hide();
+  //   }
+  //   levels[top].show();
+  //   for (let index = top + 1; index < levels.length; index += 1) {
+  //     levels[index].hide();
+  //   }
+  // };
+
+  const squash = () => {
+    if (nextLevelView !== undefined) {
+      if (currentLevelView !== undefined) {
+        currentLevelView.dispose();
+      }
+      currentLevelView = nextLevelView;
+      currentLevelIndex = nextLevelIndex;
+      currentLevelView.show(); // XXX may not be necessary anymore
+      nextLevelView = undefined;
+      nextLevelIndex = -1;
     }
   };
 
   /** @type {import('./controller.js').CameraController} */
   const cameraController = {
     jump(global) {
-      // TODO detect level change, hide map, show map,
-      // convert jump to enter and exit if necessary.
       const { level, local, index } = locate(global);
-      if (cursorLevel !== index) {
-        cursorLevel = index;
-        nextLevel = index;
+      console.log('jump', index, currentLevelView);
+      if (currentLevelView === undefined) {
+        currentLevelView = level.makeView();
+        currentLevelIndex = index;
+        console.log('made currentLevelView', currentLevelIndex);
+        currentLevelView.cameraController.jump(local);
+      } else {
+        squash();
+        if (currentLevelIndex === index) {
+          currentLevelView.cameraController.jump(local);
+        }
+        nextLevelView = level.makeView();
+        nextLevelIndex = index;
+        nextLevelView.cameraController.jump(local);
+        nextLevelView.hide();
       }
-      return level.cameraController.jump(local);
     },
     move(global, change) {
-      const { level, local } = locate(global);
-      return level.cameraController.move(local, change);
+      const { index, local } = locate(global);
+      if (currentLevelView !== undefined && currentLevelIndex === index) {
+        currentLevelView.cameraController.move(local, change);
+      }
+      if (nextLevelView !== undefined && nextLevelIndex === index) {
+        nextLevelView.cameraController.move(local, change);
+      }
     },
     animate(progress) {
-      if (nextLevel !== undefined && progress.linear >= 0.5) {
-        display(nextLevel);
-        nextLevel = undefined;
+      if (nextLevelView !== undefined) {
+        if (progress.linear >= 0.5) {
+          if (currentLevelView !== undefined) {
+            currentLevelView.hide();
+          }
+          nextLevelView.show();
+        }
+        nextLevelView.cameraController.animate(progress);
       }
-      for (const { cameraController } of levels) {
-        cameraController.animate(progress);
+      if (currentLevelView !== undefined) {
+        currentLevelView.cameraController.animate(progress);
       }
     },
     tick() {
-      for (const { cameraController } of levels) {
-        cameraController.tick();
+      if (nextLevelView !== undefined) {
+        nextLevelView.cameraController.tick();
+      }
+      if (currentLevelView !== undefined) {
+        currentLevelView.cameraController.tick();
       }
     },
     tock() {
-      if (nextLevel !== undefined) {
-        display(nextLevel);
-        nextLevel = undefined;
-      }
-      for (const { cameraController } of levels) {
-        cameraController.tock();
+      squash();
+      if (currentLevelView !== undefined) {
+        currentLevelView.cameraController.tock();
       }
     },
   };
@@ -316,8 +356,13 @@ export const makeWorld = (
   };
 
   const dispose = () => {
-    for (const { dispose } of levels) {
-      dispose();
+    if (currentLevelView !== undefined) {
+      currentLevelView.dispose();
+      currentLevelView = undefined;
+    }
+    if (nextLevelView !== undefined) {
+      nextLevelView.dispose();
+      nextLevelView = undefined;
     }
   };
 

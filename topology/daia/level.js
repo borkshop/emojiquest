@@ -75,46 +75,55 @@ export const makeLevel = ({
 
   // View
 
-  const { $map, cameraController } = makeMap({
-    tilesPerFacet,
-    tileSizePx,
-    facetSizePx,
-    frustumRadius,
-    createEntity,
+  const makeView = () => {
+    const { $map, cameraController } = makeMap({
+      tilesPerFacet,
+      tileSizePx,
+      facetSizePx,
+      frustumRadius,
+      createEntity,
 
-    palettesByLayer,
+      palettesByLayer,
 
-    faceSizePx: tileTopology.faceSize * tileSizePx,
-    tileNumber: tileTopology.tileNumber,
-    tileCoordinate: tileTopology.tileCoordinate,
-    advance: tileTopology.advance,
+      faceSizePx: tileTopology.faceSize * tileSizePx,
+      tileNumber: tileTopology.tileNumber,
+      tileCoordinate: tileTopology.tileCoordinate,
+      advance: tileTopology.advance,
 
-    facetNumber: facetTopology.tileNumber,
-    facetCoordinate: facetTopology.tileCoordinate,
+      facetNumber: facetTopology.tileNumber,
+      facetCoordinate: facetTopology.tileCoordinate,
 
-    faceTileCoordinate: faceTopology.tileCoordinate,
-    faceAdvance: faceTopology.advance,
+      faceTileCoordinate: faceTopology.tileCoordinate,
+      faceAdvance: faceTopology.advance,
 
-    watchTerrain,
-    unwatchTerrain,
-    getTerrainFlags,
+      watchTerrain,
+      unwatchTerrain,
+      getTerrainFlags,
 
-    watchEntities,
-    unwatchEntities,
-  });
+      watchEntities,
+      unwatchEntities,
+    });
 
-  parentElement.insertBefore($map, nextSibling);
+    parentElement.insertBefore($map, nextSibling);
 
-  const show = () => {
-    $map.style.display = 'block';
-  };
+    const show = () => {
+      $map.style.display = 'block';
+    };
 
-  const hide = () => {
-    $map.style.display = 'none';
-  };
+    const hide = () => {
+      $map.style.display = 'none';
+    };
 
-  const dispose = () => {
-    $map.remove();
+    const dispose = () => {
+      $map.remove();
+    };
+
+    return {
+      cameraController,
+      show,
+      hide,
+      dispose,
+    };
   };
 
   return {
@@ -126,10 +135,7 @@ export const makeLevel = ({
     },
     size: tileTopology.worldArea,
     advance: tileTopology.advance,
-    cameraController,
     toponym,
-    show,
-    hide,
-    dispose,
+    makeView,
   };
 };

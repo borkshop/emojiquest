@@ -95,35 +95,44 @@ export const makeLevel = ({
     return tileMap;
   };
 
-  const { $map, cameraController } = makeMap({
-    tilesForChunk,
-    tilesPerChunk,
+  const makeView = () => {
+    const { $map, cameraController } = makeMap({
+      tilesForChunk,
+      tilesPerChunk,
 
-    tileSizePx,
-    createEntity,
-    palette,
+      tileSizePx,
+      createEntity,
+      palette,
 
-    tileCoordinate,
+      tileCoordinate,
 
-    watchTerrain,
-    unwatchTerrain,
-    getTerrainFlags,
-    watchEntities,
-    unwatchEntities,
-  });
+      watchTerrain,
+      unwatchTerrain,
+      getTerrainFlags,
+      watchEntities,
+      unwatchEntities,
+    });
 
-  parentElement.insertBefore($map, nextSibling);
+    parentElement.insertBefore($map, nextSibling);
 
-  const show = () => {
-    $map.style.display = 'block';
-  };
+    const show = () => {
+      $map.style.display = 'block';
+    };
 
-  const hide = () => {
-    $map.style.display = 'none';
-  };
+    const hide = () => {
+      $map.style.display = 'none';
+    };
 
-  const dispose = () => {
-    $map.remove();
+    const dispose = () => {
+      $map.remove();
+    };
+
+    return {
+      cameraController,
+      show,
+      hide,
+      dispose,
+    };
   };
 
   return {
@@ -134,10 +143,7 @@ export const makeLevel = ({
     },
     size: area,
     advance,
-    cameraController,
     toponym,
-    show,
-    hide,
-    dispose,
+    makeView,
   };
 };
