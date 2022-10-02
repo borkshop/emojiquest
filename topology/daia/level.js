@@ -17,6 +17,7 @@ export const sizeLevel = level => {
 
 /**
  * @param {object} args
+ * @param {number} args.offset
  * @param {import('../../file.js').DaiaLevel} args.level
  * @param {Node} args.parentElement
  * @param {Node} args.nextSibling
@@ -32,6 +33,7 @@ export const sizeLevel = level => {
  * @param {Map<string, string>} args.colorsByName
  */
 export const makeLevel = ({
+  offset,
   level,
   parentElement,
   nextSibling,
@@ -69,7 +71,7 @@ export const makeLevel = ({
     faceSize: tilesPerFace,
   });
 
-  const toponym = makeToponym(tileTopology);
+  const toponym = makeToponym({ ...tileTopology, offset });
 
   // View
 

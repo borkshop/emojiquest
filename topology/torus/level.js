@@ -24,6 +24,7 @@ export const sizeLevel = level => {
 
 /**
  * @param {object} args
+ * @param {number} args.offset
  * @param {Level} args.level
  * @param {Node} args.parentElement
  * @param {Node} args.nextSibling
@@ -38,6 +39,7 @@ export const sizeLevel = level => {
  * @param {Map<string, string>} args.colorsByName
  */
 export const makeLevel = ({
+  offset,
   level,
   parentElement,
   nextSibling,
@@ -64,6 +66,7 @@ export const makeLevel = ({
 
   const toponym = makeToponym({
     tileCoordinate,
+    offset,
   });
 
   // View

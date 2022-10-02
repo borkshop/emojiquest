@@ -62,14 +62,15 @@ export function ternym(scale, x, y, arrows) {
  * @param {object} args
  * @param {number} args.faceSize
  * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {number} [args.offset]
  */
-export function makeToponym({ faceSize, tileCoordinate }) {
+export function makeToponym({ faceSize, tileCoordinate, offset = 0 }) {
   /**
    * @param {number} t
    */
   function toponym(t) {
     let { f, x, y } = tileCoordinate(t);
-    return `${faceSymbols[f]} ${ternym(faceSize, x, y, arrows).join('')} @${t}`;
+    return `${faceSymbols[f]} ${ternym(faceSize, x, y, arrows).join('')} @${t + offset}`;
   }
 
   return toponym;

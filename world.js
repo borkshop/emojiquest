@@ -189,6 +189,7 @@ export const makeWorld = (
     const { topology } = level;
     if (topology === 'daia') {
       return daia.makeLevel({
+        offset,
         level,
         frustumRadius,
         parentElement,
@@ -205,6 +206,7 @@ export const makeWorld = (
       });
     } else if (topology === 'torus') {
       return torus.makeLevel({
+        offset,
         level,
         // frustumRadius,
         parentElement,
@@ -221,6 +223,7 @@ export const makeWorld = (
       });
     } else if (topology === 'rect') {
       return rect.makeLevel({
+        offset,
         level,
         parentElement,
         nextSibling,
