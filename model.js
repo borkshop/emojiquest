@@ -708,11 +708,7 @@ export function makeModel({
     if (cursorChange === undefined) {
       return;
     }
-    const {
-      position: destination,
-      turn,
-      transit,
-    } = cursorChange;
+    const { position: destination, turn, transit } = cursorChange;
 
     const patient = entities[destination];
     if (patient !== 0) {
@@ -1574,16 +1570,19 @@ export function makeModel({
    * @param {Map<number, number>} args.entityTargetLocations
    * @param {string} [name]
    */
-  function restore({
-    player: agent,
-    entities: purportedEntities,
-    terrain: purportedTerrain,
-    entityTypes: purportedEntityTypes,
-    healths: purportedHealths,
-    staminas: purportedStaminas,
-    inventories: purportedInventories,
-    entityTargetLocations: purportedEntityTargetLocations,
-  }, name  = '<unknown>') {
+  function restore(
+    {
+      player: agent,
+      entities: purportedEntities,
+      terrain: purportedTerrain,
+      entityTypes: purportedEntityTypes,
+      healths: purportedHealths,
+      staminas: purportedStaminas,
+      inventories: purportedInventories,
+      entityTargetLocations: purportedEntityTargetLocations,
+    },
+    name = '<unknown>',
+  ) {
     // Reset just in case there's some dangling state transition in progress.
     tock();
     mobiles.clear();
@@ -1601,7 +1600,10 @@ export function makeModel({
       if (purportedEntity !== 0) {
         const type = assumeDefined(purportedEntityTypes.get(purportedEntity));
         const actualEntity = createEntity(type);
-        assert(actualEntity === purportedEntity, `Expected entities in ${name} to appear in ascending order of location, ${purportedEntity} should be ${actualEntity}`);
+        assert(
+          actualEntity === purportedEntity,
+          `Expected entities in ${name} to appear in ascending order of location, ${purportedEntity} should be ${actualEntity}`,
+        );
         entities[location] = actualEntity;
         locations.set(actualEntity, location);
         const actualHealth = purportedHealths.get(purportedEntity) || 0;

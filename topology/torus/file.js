@@ -1,4 +1,3 @@
-
 // No ambient types in this JSDoc:
 export {};
 
@@ -9,4 +8,3 @@ export {};
  * @property {import('../../lib/geometry2d.js').Point} chunksPerLevel
  * @property {import('../../file.js').ColorNamePalette} colors
  */
-

@@ -8,6 +8,7 @@ import { makeModel } from './model.js';
 // Supported level types:
 import * as daia from './topology/daia/level.js';
 import * as torus from './topology/torus/level.js';
+import * as rect from './topology/rect/level.js';
 
 /**
  * @typedef {object} Level
@@ -51,6 +52,8 @@ export const makeWorld = (
       return daia.sizeLevel(level);
     } else if (topology === 'torus') {
       return torus.sizeLevel(level);
+    } else if (topology === 'rect') {
+      return rect.sizeLevel(level);
     }
     assert(false, `Unrecognized level topology ${topology}`);
   });
@@ -204,6 +207,21 @@ export const makeWorld = (
       return torus.makeLevel({
         level,
         // frustumRadius,
+        parentElement,
+        nextSibling,
+        tileSizePx,
+        createEntity,
+        watchTerrain,
+        unwatchTerrain,
+        getTerrainFlags,
+        watchEntities,
+        unwatchEntities,
+        colorNamePalette: level.colors,
+        colorsByName: snapshot.colorsByName,
+      });
+    } else if (topology === 'rect') {
+      return rect.makeLevel({
+        level,
         parentElement,
         nextSibling,
         tileSizePx,

@@ -18,7 +18,8 @@
 /**
  * @typedef {import('./topology/daia/file.js').Level} DaiaLevel
  * @typedef {import('./topology/torus/file.js').Level} TorusLevel
- * @typedef {DaiaLevel | TorusLevel} Level
+ * @typedef {import('./topology/rect/file.js').Level} RectLevel
+ * @typedef {DaiaLevel | TorusLevel | RectLevel} Level
  */
 
 /**
@@ -308,8 +309,39 @@ export const validate = (allegedSnapshot, mechanics) => {
       // Compute size from level data.
       const { x, y } = dot(purportedTilesPerChunk, purportedChunksPerLevel);
       size += x * y;
+    } else if (topology === 'rect') {
+      const { size: allegedSize, colors: allegedColors } = presumedLevel;
+      const purportedSize = validatePoint(allegedSize);
+      if (purportedSize === undefined) {
+        return {
+          errors: ['"levels[${index}].size" must be a {x, y} size'],
+        };
+      }
+
+      const purportedColors = validateColors(
+        allegedColors,
+        colorsByName,
+        errors,
+        `levels[${index}].colors`,
+      );
+      if (errors.length) {
+        return { errors };
+      }
+
+      /** @type {RectLevel} */
+      const purportedLevel = {
+        topology,
+        size: purportedSize,
+        colors: purportedColors,
+      };
+      purportedLevels.push(purportedLevel);
+      // Compute size from level data.
+      const { x, y } = purportedSize;
+      size += x * y;
     } else {
-      return { errors: ['"levels[0].topology" must be "daia" or "torus"'] };
+      return {
+        errors: ['"levels[0].topology" must be "daia", "torus", or "rect"'],
+      };
     }
   }
 

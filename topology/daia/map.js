@@ -675,7 +675,9 @@ export const makeMap = ({
     faceControllers[face].relocate({ x: 0, y: 0, a: 0 });
 
     const [northerly] = [0, 1, 2, 3].map(direction => {
-      const { position, turn } = assumeDefined(faceAdvance({ position: face, direction }));
+      const { position, turn } = assumeDefined(
+        faceAdvance({ position: face, direction }),
+      );
       faceControllers[position].relocate({
         ...quarturnVectors[direction],
         a: (4 - turn) % 4,
@@ -683,10 +685,12 @@ export const makeMap = ({
       return { position, turn };
     });
     // Position the opposite face north of north, accumulating rotations if needed.
-    const neighbor = assumeDefined(faceAdvance({
-      position: northerly.position,
-      direction: (4 - northerly.turn) % 4,
-    }));
+    const neighbor = assumeDefined(
+      faceAdvance({
+        position: northerly.position,
+        direction: (4 - northerly.turn) % 4,
+      }),
+    );
     const vector = { x: 0, y: -2 }; // north, then north again
     faceControllers[5 - face].relocate({
       ...vector,
@@ -759,23 +763,32 @@ export const makeMap = ({
 
       const originCoordinate = tileCoordinate(origin);
       const { f: originFace } = originCoordinate;
-      const { position: leftFace, turn: leftTurn } = assumeDefined(faceAdvance({
-        position: originFace,
-        direction: originalLocalLeftDirection,
-      }));
-      const { position: rightFace, turn: rightTurn } = assumeDefined(faceAdvance({
-        position: originFace,
-        direction: originalLocalRightDirection,
-      }));
-      const { position: destinationFace, turn: destinationTurn } = assumeDefined(faceAdvance({
-        position: originFace,
-        direction: originalLocalDirection,
-      }));
+      const { position: leftFace, turn: leftTurn } = assumeDefined(
+        faceAdvance({
+          position: originFace,
+          direction: originalLocalLeftDirection,
+        }),
+      );
+      const { position: rightFace, turn: rightTurn } = assumeDefined(
+        faceAdvance({
+          position: originFace,
+          direction: originalLocalRightDirection,
+        }),
+      );
+      const { position: destinationFace, turn: destinationTurn } =
+        assumeDefined(
+          faceAdvance({
+            position: originFace,
+            direction: originalLocalDirection,
+          }),
+        );
       // console.log({destinationFace, originalLocalDirection, destinationTurn});
-      const { position: nextFace, turn: nextTurn } = assumeDefined(faceAdvance({
-        position: destinationFace,
-        direction: (originalLocalDirection + 4 + destinationTurn) % 4,
-      }));
+      const { position: nextFace, turn: nextTurn } = assumeDefined(
+        faceAdvance({
+          position: destinationFace,
+          direction: (originalLocalDirection + 4 + destinationTurn) % 4,
+        }),
+      );
 
       const originalLocalLeftAngle = 4 - leftTurn;
       const originalGlobalLeftAngle =
