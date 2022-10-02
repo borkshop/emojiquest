@@ -704,11 +704,15 @@ export function makeModel({
     moveIntents.add(agent);
 
     const origin = locate(agent);
+    const cursorChange = advance({ position: origin, direction });
+    if (cursorChange === undefined) {
+      return;
+    }
     const {
       position: destination,
       turn,
       transit,
-    } = advance({ position: origin, direction });
+    } = cursorChange;
 
     const patient = entities[destination];
     if (patient !== 0) {

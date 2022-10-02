@@ -55,7 +55,7 @@ export {};
 /**
  * @callback AdvanceFn
  * @param {Cursor} cursor
- * @returns {CursorChange}
+ * @returns {CursorChange | undefined}
  */
 
 /**

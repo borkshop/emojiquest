@@ -37,9 +37,13 @@ function turn(direction, angle) {
  */
 function* arc(position, advance, direction, r) {
   let major = advance({ position, direction: turn(direction, 1) });
+  if (major === undefined) {
+    return;
+  }
   const r2 = r * r;
   for (let x = 0; x < r; x++) {
     const x2 = (x + 1) * (x + 1);
+    /** @type {import('./topology.js').Cursor | undefined} */
     let minor = {
       position: major.position,
       direction: turn(major.direction, -1),
@@ -47,8 +51,14 @@ function* arc(position, advance, direction, r) {
     for (let y = 0; x2 + y * y < r2; y++) {
       yield minor.position;
       minor = advance(minor);
+      if (minor === undefined) {
+        break;
+      }
     }
     major = advance(major);
+    if (major === undefined) {
+      break;
+    }
   }
 }
 

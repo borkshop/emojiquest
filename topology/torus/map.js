@@ -91,7 +91,7 @@ const makeChunkMapper = ({
         x: origin.x,
         y: origin.y + y,
       });
-      const flap = advance({ position, direction: west });
+      const flap = assumeDefined(advance({ position, direction: west }));
       tileMap.set(flap.position, {
         x: -1,
         y,
@@ -106,7 +106,7 @@ const makeChunkMapper = ({
         x: origin.x + tilesPerChunk.x - 1,
         y: origin.y + y,
       });
-      const flap = advance({ position, direction: east });
+      const flap = assumeDefined(advance({ position, direction: east }));
       tileMap.set(flap.position, {
         x: tilesPerChunk.x,
         y,
@@ -121,7 +121,7 @@ const makeChunkMapper = ({
         x: origin.x + x,
         y: origin.y,
       });
-      const flap = advance({ position, direction: north });
+      const flap = assumeDefined(advance({ position, direction: north }));
       tileMap.set(flap.position, {
         x,
         y: -1,
@@ -136,7 +136,7 @@ const makeChunkMapper = ({
         x: origin.x + x,
         y: origin.y + tilesPerChunk.y - 1,
       });
-      const flap = advance({ position, direction: south });
+      const flap = assumeDefined(advance({ position, direction: south }));
       tileMap.set(flap.position, {
         x,
         y: tilesPerChunk.y,

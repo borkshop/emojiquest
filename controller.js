@@ -1236,6 +1236,9 @@ export const makeController = ({
           if (direction !== undefined) {
             const { position: origin } = cursor;
             const nextCursor = advance({ position: origin, direction });
+            if (nextCursor === undefined) {
+              return editMode;
+            }
             const { position: destination, turn, transit } = nextCursor;
             const change = {
               position: origin,

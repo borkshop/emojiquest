@@ -167,7 +167,7 @@ const makeFacetMapper = ({
         x: origin.x,
         y: origin.y + y,
       });
-      const flap = advance({ position, direction: west });
+      const flap = assumeDefined(advance({ position, direction: west }));
       tileMap.set(flap.position, {
         x: -1,
         y,
@@ -182,7 +182,7 @@ const makeFacetMapper = ({
         x: origin.x + tilesPerFacet - 1,
         y: origin.y + y,
       });
-      const flap = advance({ position, direction: east });
+      const flap = assumeDefined(advance({ position, direction: east }));
       tileMap.set(flap.position, {
         x: tilesPerFacet,
         y,
@@ -197,7 +197,7 @@ const makeFacetMapper = ({
         x: origin.x + x,
         y: origin.y,
       });
-      const flap = advance({ position, direction: north });
+      const flap = assumeDefined(advance({ position, direction: north }));
       tileMap.set(flap.position, {
         x,
         y: -1,
@@ -212,7 +212,7 @@ const makeFacetMapper = ({
         x: origin.x + x,
         y: origin.y + tilesPerFacet - 1,
       });
-      const flap = advance({ position, direction: south });
+      const flap = assumeDefined(advance({ position, direction: south }));
       tileMap.set(flap.position, {
         x,
         y: tilesPerFacet,
@@ -675,7 +675,7 @@ export const makeMap = ({
     faceControllers[face].relocate({ x: 0, y: 0, a: 0 });
 
     const [northerly] = [0, 1, 2, 3].map(direction => {
-      const { position, turn } = faceAdvance({ position: face, direction });
+      const { position, turn } = assumeDefined(faceAdvance({ position: face, direction }));
       faceControllers[position].relocate({
         ...quarturnVectors[direction],
         a: (4 - turn) % 4,
@@ -683,10 +683,10 @@ export const makeMap = ({
       return { position, turn };
     });
     // Position the opposite face north of north, accumulating rotations if needed.
-    const neighbor = faceAdvance({
+    const neighbor = assumeDefined(faceAdvance({
       position: northerly.position,
       direction: (4 - northerly.turn) % 4,
-    });
+    }));
     const vector = { x: 0, y: -2 }; // north, then north again
     faceControllers[5 - face].relocate({
       ...vector,
@@ -759,23 +759,23 @@ export const makeMap = ({
 
       const originCoordinate = tileCoordinate(origin);
       const { f: originFace } = originCoordinate;
-      const { position: leftFace, turn: leftTurn } = faceAdvance({
+      const { position: leftFace, turn: leftTurn } = assumeDefined(faceAdvance({
         position: originFace,
         direction: originalLocalLeftDirection,
-      });
-      const { position: rightFace, turn: rightTurn } = faceAdvance({
+      }));
+      const { position: rightFace, turn: rightTurn } = assumeDefined(faceAdvance({
         position: originFace,
         direction: originalLocalRightDirection,
-      });
-      const { position: destinationFace, turn: destinationTurn } = faceAdvance({
+      }));
+      const { position: destinationFace, turn: destinationTurn } = assumeDefined(faceAdvance({
         position: originFace,
         direction: originalLocalDirection,
-      });
+      }));
       // console.log({destinationFace, originalLocalDirection, destinationTurn});
-      const { position: nextFace, turn: nextTurn } = faceAdvance({
+      const { position: nextFace, turn: nextTurn } = assumeDefined(faceAdvance({
         position: destinationFace,
         direction: (originalLocalDirection + 4 + destinationTurn) % 4,
-      });
+      }));
 
       const originalLocalLeftAngle = 4 - leftTurn;
       const originalGlobalLeftAngle =

@@ -97,15 +97,19 @@ export const makeWorld = (
       const start = offsets[index];
       if (previousGlobalPosition >= start) {
         const previousLocalPosition = previousGlobalPosition - start;
+        const advanced = levels[index].advance({
+          position: previousLocalPosition,
+          direction: previousDirection,
+        });
+        if (advanced === undefined) {
+          return undefined;
+        }
         const {
           position: nextLocalPosition,
           direction: nextDirection,
           turn,
           transit,
-        } = levels[index].advance({
-          position: previousLocalPosition,
-          direction: previousDirection,
-        });
+        } = advanced;
         const nextGlobalPosition = nextLocalPosition + start;
         return {
           position: nextGlobalPosition,
