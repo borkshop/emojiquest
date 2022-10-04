@@ -13,7 +13,12 @@
 
 // @ts-check
 
-import { assert, assertDefined, assertNonZero } from './lib/assert.js';
+import {
+  assert,
+  assertDefined,
+  assertNonZero,
+  assumeDefined,
+} from './lib/assert.js';
 import {
   north,
   west,
@@ -40,19 +45,20 @@ import { makeBoxTileMap } from './tile-map-box.js';
  * @param {Object} object
  * @param {string | number | symbol} key
  */
-const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+const hasOwn = (object, key) =>
+  Object.prototype.hasOwnProperty.call(object, key);
 
-/** @type {Record<number, number>} */
-export const commandDirection = {
-  8: north,
-  4: west,
-  6: east,
-  2: south,
-};
+/** @type {Map<number, number>} */
+export const commandDirection = new Map([
+  [8, north],
+  [4, west],
+  [6, east],
+  [2, south],
+]);
 
-/** @type {Record<number, number>} */
-export const directionCommand = Object.fromEntries(
-  Object.entries(commandDirection).map(([command, direction]) => [
+/** @type {Map<number, number>} */
+export const directionCommand = new Map(
+  [...commandDirection.entries()].map(([command, direction]) => [
     +direction,
     +command,
   ]),
@@ -537,7 +543,7 @@ export const makeController = ({
         },
         handleCommand(command, repeat) {
           repeat = repeat && worldModel.entityHealth(player) === 5;
-          const direction = commandDirection[command];
+          const direction = commandDirection.get(command);
           if (direction !== undefined) {
             worldModel.intendToMove(player, direction, repeat);
             worldModel.tick();
@@ -1238,7 +1244,7 @@ export const makeController = ({
           z: 3, // erase delete
         },
         handleCommand(command, repeat) {
-          const direction = commandDirection[command];
+          const direction = commandDirection.get(command);
           if (direction !== undefined) {
             const { position: origin } = cursor;
             const nextCursor = advance({ position: origin, direction });
@@ -1775,23 +1781,24 @@ export const makeController = ({
    * @param {number} direction
    */
   const commandForDirection = direction => {
-    assert(hasOwn(directionCommand, direction));
-    return directionCommand[direction];
+    return assumeDefined(directionCommand.get(direction));
   };
 
   /**
    * @param {number} command
    */
   const directionForCommand = command => {
-    assert(hasOwn(commandDirection, command));
-    return commandDirection[command];
+    return commandDirection.get(command);
   };
 
   /**
    * @param {string} key
    */
   const commandForKey = key => {
-    assert(hasOwn(mode.commandKeys, key));
+    // Ignore the prototype, as a precaution.
+    if (key in mode.commandKeys && !hasOwn(mode.commandKeys, key)) {
+      return undefined;
+    }
     return mode.commandKeys[key];
   };
 

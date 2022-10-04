@@ -57,7 +57,7 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
  * @property {(direction: number) => number} commandForDirection
- * @property {(command: number) => number} directionForCommand
+ * @property {(command: number) => number | undefined} directionForCommand
  */
 
 /**
