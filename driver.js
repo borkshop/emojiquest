@@ -35,14 +35,15 @@ import { fullQuarturn } from './lib/geometry2d.js';
  */
 
 /**
- * @callback CommandFn
+ * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
  */
 
 /**
- * @callback KeysFn
- * @returns {{[key: string]: number}}
+ * @callback CommandForKeyFn
+ * @param {string} key
+ * @returns {number | undefined}
  */
 
 /**
@@ -50,9 +51,9 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * reset, and command key up and down events.
  *
  * @typedef {object} Controller
- * @property {CommandFn} command
- * @property {KeysFn} keys
- * @property {(key: string) => boolean} press
+ * @property {HandleCommandFn} handleCommand
+ * @property {CommandForKeyFn} commandForKey
+ * @property {(key: string) => boolean} handleMiscKeyPress
  * @property {(command: number) => () => void} down
  * @property {(progress: Progress) => void} animate
  * @property {(direction: number) => number} commandForDirection
@@ -98,7 +99,7 @@ export const makeDriver = (controller, options) => {
     // Pre-animated transition reset.
     timeSinceTransitionStart = 0;
 
-    controller.command(command, repeat);
+    controller.handleCommand(command, repeat);
 
     await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
 
@@ -173,9 +174,9 @@ export const makeDriver = (controller, options) => {
   function down(holder, command) {
     if (command === undefined) {
       // The command for each key is mode-dependent.
-      command = commandForKey(holder);
+      command = controller.commandForKey(holder);
       if (command === undefined) {
-        return controller.press(holder);
+        return controller.handleMiscKeyPress(holder);
       }
       lastCommandForKey.set(holder, command);
     }
@@ -258,14 +259,6 @@ export const makeDriver = (controller, options) => {
       }
     }
   };
-
-  /**
-   * @param {string} key
-   * @returns {number | undefined} command
-   */
-  function commandForKey(key) {
-    return controller.keys()[key];
-  }
 
   run();
   animate();

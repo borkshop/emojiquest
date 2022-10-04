@@ -476,7 +476,7 @@ export const makeScaffold = (
   const command = (digit, repeat = false) => {
     // t.log('---');
     // t.log('command', digit, repeat);
-    controller.command(digit, repeat);
+    controller.handleCommand(digit, repeat);
     controller.tock();
   };
 

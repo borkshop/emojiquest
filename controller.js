@@ -36,6 +36,12 @@ import { makeMacroViewModel } from './macro-view-model.js';
 import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 
+/**
+ * @param {Object} object
+ * @param {string | number | symbol} key
+ */
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
 /** @type {Record<number, number>} */
 export const commandDirection = {
   8: north,
@@ -113,7 +119,7 @@ const noop = () => {};
  */
 
 /**
- * @callback CommandFn
+ * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
  * @returns {void}
@@ -127,7 +133,7 @@ const noop = () => {};
  */
 
 /**
- * @callback EtcPressFn - a hopefully temporary hack that allows me to feed
+ * @callback HandleMiscKeyPress - a hopefully temporary hack that allows me to feed
  * arbitrary keypresses to some modes in order to defer the problem of creating
  * a coherent user interface for these experimental bindings.
  * @param {string} key
@@ -166,9 +172,9 @@ const noop = () => {};
 /**
  * @typedef {object} Mode
  * @prop {string} name
- * @prop {PressFn} press
- * @prop {{[key: string]: number}} keys - accelerator table
- * @prop {EtcPressFn} [etcPress]
+ * @prop {PressFn} handleCommand
+ * @prop {{[key: string]: number}} commandKeys - accelerator table
+ * @prop {HandleMiscKeyPress} [handleMiscKeyPress]
  * @prop {MoveFn} [move]
  * @prop {JumpFn} [jump]
  * @prop {CraftFn} [craft]
@@ -523,13 +529,13 @@ export const makeController = ({
       /** @type {Mode} */
       const playMode = {
         name: 'play',
-        keys: {
+        commandKeys: {
           ...numberKeys,
           ...arrowKeys,
           ...handKeys,
           Escape: 0,
         },
-        press(command, repeat) {
+        handleCommand(command, repeat) {
           repeat = repeat && worldModel.entityHealth(player) === 5;
           const direction = commandDirection[command];
           if (direction !== undefined) {
@@ -613,14 +619,14 @@ export const makeController = ({
         /** @type {Mode} */
         const itemMode = {
           name: 'item',
-          keys: {
+          commandKeys: {
             ...numberKeys,
             ...handKeys,
             Backspace: 9,
             Escape: 1,
             // ' ': 5,
           },
-          press(command, repeat) {
+          handleCommand(command, repeat) {
             if (repeat) return itemMode;
             if (command === 9) {
               // trash / consume
@@ -722,11 +728,11 @@ export const makeController = ({
         /** @type {Mode} */
         const packMode = {
           name: 'pack',
-          keys: {
+          commandKeys: {
             ...numberKeys,
             Escape: 5,
           },
-          press(command, repeat) {
+          handleCommand(command, repeat) {
             if (repeat) return packMode;
             if (command === 5) {
               // keep
@@ -1075,13 +1081,13 @@ export const makeController = ({
       /** @type {Mode} */
       const menuMode = {
         name: 'menu',
-        keys: {
+        commandKeys: {
           ...numberKeys,
           ...arrowKeys,
           Enter: 0,
           Escape: 5,
         },
-        press(command, repeat) {
+        handleCommand(command, repeat) {
           if (repeat) return mode;
           if (command === 8) {
             menuController.goNorth();
@@ -1222,7 +1228,7 @@ export const makeController = ({
       /** @type {Mode} */
       const editMode = {
         name: 'edit',
-        keys: {
+        commandKeys: {
           ...numberKeys,
           ...arrowKeys,
           x: 9, // cut
@@ -1231,7 +1237,7 @@ export const makeController = ({
           f: 1, // fill
           z: 3, // erase delete
         },
-        press(command, repeat) {
+        handleCommand(command, repeat) {
           const direction = commandDirection[command];
           if (direction !== undefined) {
             const { position: origin } = cursor;
@@ -1277,7 +1283,7 @@ export const makeController = ({
             return editMode;
           }
         },
-        etcPress(key) {
+        handleMiscKeyPress(key) {
           // TODO deepen the menu system so there is a dedicated mode for
           // drawing water and lava flags that can be used on mobile.
           if (key === 'r') {
@@ -1314,13 +1320,13 @@ export const makeController = ({
         /** @type {Mode} */
         const chooseAgentMode = {
           name: 'chooseAgent',
-          keys: {
+          commandKeys: {
             ...numberKeys,
             ...arrowKeys,
             Escape: 5,
             Enter: 5,
           },
-          press(command, repeat) {
+          handleCommand(command, repeat) {
             if (repeat) return mode;
             if (command === 8) {
               assertNonZero(editType);
@@ -1594,8 +1600,8 @@ export const makeController = ({
   /** @type {Mode} */
   const limboMode = {
     name: 'limbo',
-    keys: {},
-    press(_command, _repeat) {
+    commandKeys: {},
+    handleCommand(_command, _repeat) {
       return limboMode;
     },
     play(world, player) {
@@ -1733,22 +1739,18 @@ export const makeController = ({
 
   let mode = limboMode;
 
-  /** @type {CommandFn} */
-  const command = (command, repeat) => {
+  /** @type {HandleCommandFn} */
+  const handleCommand = (command, repeat) => {
     tock();
-    mode = mode.press(command, repeat);
+    mode = mode.handleCommand(command, repeat);
     tick();
   };
 
-  const keys = () => {
-    return mode.keys || {};
-  };
-
   /** @param {string} key */
-  const press = key => {
+  const handleMiscKeyPress = key => {
     let used = false;
-    if (mode.etcPress) {
-      used = mode.etcPress(key);
+    if (mode.handleMiscKeyPress) {
+      used = mode.handleMiscKeyPress(key);
     }
     return used;
   };
@@ -1773,6 +1775,7 @@ export const makeController = ({
    * @param {number} direction
    */
   const commandForDirection = direction => {
+    assert(hasOwn(directionCommand, direction));
     return directionCommand[direction];
   };
 
@@ -1780,18 +1783,27 @@ export const makeController = ({
    * @param {number} command
    */
   const directionForCommand = command => {
+    assert(hasOwn(commandDirection, command));
     return commandDirection[command];
+  };
+
+  /**
+   * @param {string} key
+   */
+  const commandForKey = key => {
+    assert(hasOwn(mode.commandKeys, key));
+    return mode.commandKeys[key];
   };
 
   return {
     tock,
     animate,
     down,
-    press,
-    command,
+    handleMiscKeyPress,
+    handleCommand,
     commandForDirection,
     directionForCommand,
-    keys,
+    commandForKey,
     play,
     modeName,
   };
