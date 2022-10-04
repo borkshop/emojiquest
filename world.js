@@ -293,11 +293,9 @@ export const makeWorld = (
   const cameraController = {
     jump(global) {
       const { level, local, index } = locate(global);
-      console.log('jump', index, currentLevelView);
       if (currentLevelView === undefined) {
         currentLevelView = level.makeView();
         currentLevelIndex = index;
-        console.log('made currentLevelView', currentLevelIndex);
         currentLevelView.cameraController.jump(local);
       } else {
         squash();
