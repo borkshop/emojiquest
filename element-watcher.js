@@ -20,13 +20,21 @@ import { placeEntity } from './animation2d.js';
  * @param {number} tile
  */
 
+/**
+ * @template {Element} ChildElement
+ * @callback ResetFn
+ * @param {(tile: number, type: number) => ChildElement} createElement
+ */
+
 /** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
 
 /**
- * @typedef {Object} ElementWatcher
+ * @template {Element} ChildElement
+ * @typedef {object} ElementWatcher
  * @prop {EnterFn} enter
  * @prop {ExitFn} exit
  * @prop {PlaceFn} place
+ * @prop {ResetFn<ChildElement>} reset
  */
 
 const noop = () => {};
@@ -57,7 +65,7 @@ const noop = () => {};
  * @param {ChildElement?} $nextSibling
  * @param {(tile: number, type: number) => ChildElement} createElement
  * @param {(tile: number) => void} [collectElement]
- * @return {ElementWatcher}
+ * @return {ElementWatcher<ChildElement>}
  */
 export function makeElementWatcher(
   $parent,
@@ -95,5 +103,13 @@ export function makeElementWatcher(
     placeEntity(element, coord, pressure, progress, transition);
   }
 
-  return { enter, exit, place };
+  /** @type {ResetFn<ChildElement>} */
+  function reset(newCreateElement) {
+    // TODO If it transpires that the behavior is ever necessary, track all
+    // current elements that might have invalidated representations and replace
+    // them.
+    createElement = newCreateElement;
+  }
+
+  return { enter, exit, place, reset };
 }

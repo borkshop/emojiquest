@@ -385,7 +385,6 @@ export const makeScaffold = (
     healthController,
     staminaController,
     followCursor,
-    mechanics,
     async loadWorld() {},
     async saveWorld() {},
   });
@@ -457,7 +456,7 @@ export const makeScaffold = (
   };
 
   const play = () => {
-    controller.play(world, player);
+    controller.play(world, mechanics, player);
     controller.tock();
   };
 

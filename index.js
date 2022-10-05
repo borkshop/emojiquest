@@ -24,9 +24,13 @@ const svgNS = 'http://www.w3.org/2000/svg';
 /** @typedef {import('./animation2d.js').Coord} Coord */
 
 /**
- * @param {import('./mechanics.js').Mechanics} mechanics
+ * @callback MakeEntityCreatorFn
+ * @param {Array<string>} viewText
+ * @returns {import('./world.js').CreateEntityFn}
  */
-export const makeEntityCreator = mechanics => {
+
+/** @type {MakeEntityCreatorFn} */
+export const makeEntityCreator = viewText => {
   /** @type {import('./world.js').CreateEntityFn} */
   const createEntity = (_entity, type) => {
     if (type === -1) {
@@ -40,7 +44,7 @@ export const makeEntityCreator = mechanics => {
       $text.setAttributeNS(null, 'class', 'moji');
       $text.appendChild(
         document.createTextNode(
-          type < -1 ? builtinTileText[-type - 2] : mechanics.viewText[type],
+          (type < -1 ? builtinTileText[-type - 2] : viewText[type]) || '�',
         ),
       );
       $entity.appendChild($text);
@@ -80,16 +84,7 @@ const main = async () => {
   const tileSizePx = 130; // the height and width of a tile in pixels
   const animatedTransitionDuration = 300;
 
-  const mechanics = makeMechanics({
-    recipes,
-    actions,
-    tileTypes,
-    agentTypes,
-    itemTypes,
-    effectTypes,
-  });
-
-  const createEntity = makeEntityCreator(mechanics);
+  const createEntity = makeEntityCreator([]);
 
   const documentElement = document.documentElement;
   const parentElement = document.body;
@@ -166,6 +161,9 @@ const main = async () => {
   const playWorld = worldData => {
     const mechanics = makeMechanics(emojiquestMechanics);
     const result = validate(worldData, mechanics);
+    const createElement = makeEntityCreator(mechanics.viewText);
+    nineKeyWatcher.reset(createElement);
+    oneKeyWatcher.reset(createElement);
     if ('errors' in result) {
       let message = '';
       for (const error of result.errors) {
@@ -179,6 +177,8 @@ const main = async () => {
     // Dispose of prior world.
     dispose();
 
+    const createEntity = makeEntityCreator(mechanics.viewText);
+
     const { snapshot } = result;
     const world = makeWorld(snapshot, parentElement, $mapAnchor, {
       tileSizePx,
@@ -189,7 +189,7 @@ const main = async () => {
     dispose = world.dispose;
 
     const { player } = snapshot;
-    controller.play(world, player);
+    controller.play(world, mechanics, player);
   };
 
   const types = [
@@ -235,7 +235,6 @@ const main = async () => {
     healthController,
     staminaController,
     followCursor,
-    mechanics,
     loadWorld,
     saveWorld,
   });

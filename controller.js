@@ -160,6 +160,7 @@ const noop = () => {};
 /**
  * @callback PlayFn
  * @param {World} world
+ * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
  * @returns {Mode}
  */
@@ -261,6 +262,26 @@ const builtinTileTextByName = {
   stamina: '💛  ',
 };
 
+const invalidItem = 0;
+const emptyItem = 1;
+// const anyItem = 2;
+
+/**
+ * @param {number} itemType
+ */
+const isEmptyItem = itemType => {
+  assert(itemType !== invalidItem, `Invalid item type ${itemType}`);
+  return itemType === emptyItem;
+};
+
+/**
+ * @param {number} itemType
+ */
+const isNotEmptyItem = itemType => {
+  assert(itemType !== invalidItem, `Invalid item type ${itemType}`);
+  return itemType !== emptyItem;
+};
+
 export const builtinTileTypesByName = Object.fromEntries(
   Object.keys(builtinTileTextByName).map((name, index) => [name, -index - 2]),
 );
@@ -271,7 +292,6 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
 
 /**
  * @param {Object} args
- * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {import('./view-model.js').Watcher} args.nineKeyWatcher
  * @param {import('./view-model.js').Watcher} args.oneKeyWatcher
  * @param {import('./menu.js').MenuController} args.menuController
@@ -290,45 +310,9 @@ export const makeController = ({
   healthController,
   staminaController,
   followCursor,
-  mechanics,
   loadWorld,
   saveWorld,
 }) => {
-  const {
-    agentTypes,
-    itemTypes,
-    tileTypes,
-    // effectTypes,
-    tileTypesByName,
-    agentTypesByName,
-    itemTypesByName,
-    // effectTypesByName,
-    defaultTileTypeForAgentType,
-    tileTypeForItemType,
-    describeSlot,
-    // tileTypeForEffectType,
-    // craft,
-    // bump,
-  } = mechanics;
-
-  // const emptyTile = tileTypesByName.empty;
-  const emptyItem = itemTypesByName.empty;
-
-  /**
-   * @param {number} itemType
-   */
-  const isEmptyItem = itemType => {
-    assert(itemType !== 0, `Invalid item type ${itemType}`);
-    return itemType === emptyItem;
-  };
-
-  /**
-   * @param {number} itemType
-   */
-  const isNotEmptyItem = itemType => {
-    assert(itemType !== 0, `Invalid item type ${itemType}`);
-    return itemType !== emptyItem;
-  };
 
   // State:
 
@@ -398,8 +382,9 @@ export const makeController = ({
 
   /**
    * @param {World} world
+   * @param {import('./mechanics.js').Mechanics} mechanics
    */
-  const makeWorldModes = world => {
+  const makeWorldModes = (world, mechanics) => {
     const {
       worldModel,
       worldMacroViewModel,
@@ -408,6 +393,22 @@ export const makeController = ({
       advance,
       capture,
     } = world;
+    const {
+      agentTypes,
+      itemTypes,
+      tileTypes,
+      // effectTypes,
+      tileTypesByName,
+      agentTypesByName,
+      // itemTypesByName,
+      // effectTypesByName,
+      defaultTileTypeForAgentType,
+      tileTypeForItemType,
+      describeSlot,
+      // tileTypeForEffectType,
+      // craft,
+      // bump,
+    } = mechanics;
 
     /**
      * @param {number} player
@@ -1642,9 +1643,9 @@ export const makeController = ({
     handleCommand(_command, _repeat) {
       return limboMode;
     },
-    play(world, player) {
+    play(world, mechanics, player) {
       const { limboToPlayMode, limboToEditMode, ...clock } =
-        makeWorldModes(world);
+        makeWorldModes(world, mechanics);
       worldClock = clock;
       if (player !== undefined) {
         return limboToPlayMode(player);
@@ -1795,12 +1796,13 @@ export const makeController = ({
 
   /**
    * @param {World} world
+   * @param {import('./mechanics.js').Mechanics} mechanics
    * @param {number | undefined} player
    */
-  const play = (world, player) => {
+  const play = (world, mechanics, player) => {
     if (mode.play) {
       tock();
-      mode = mode.play(world, player);
+      mode = mode.play(world, mechanics, player);
       tick();
     }
   };
