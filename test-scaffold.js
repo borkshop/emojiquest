@@ -12,7 +12,7 @@ import {
   terrainHot,
 } from './model.js';
 import { makeMechanics } from './mechanics.js';
-import { makeController } from './controller.js';
+import { makeController, builtinTileNames } from './controller.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeBoxTileMap } from './tile-map-box.js';
@@ -96,9 +96,15 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
           entityType => entityType !== -1,
         );
         const entityGlyphs = nonReticleEntityTypes.map(entityType => {
-          const tile = tileTypes[entityType];
-          t.assert(tile !== undefined);
-          const name = tile.name;
+          let name = '';
+          if (entityType >= 0) {
+            const tile = tileTypes[entityType];
+            t.assert(tile !== undefined);
+            ({ name } = tile);
+          } else if (entityType < -1) {
+            name = builtinTileNames[-entityType - 2];
+            t.assert(name !== undefined, `${entityType}`);
+          }
           return glyphsByTileName[name] || name.slice(0, 1);
         });
         t.assert(

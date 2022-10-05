@@ -2,7 +2,7 @@
 
 import { fullQuarturn } from './lib/geometry2d.js';
 import { cell } from './lib/cell.js';
-import { makeController } from './controller.js';
+import { makeController, builtinTileText, builtinTileTypesByName } from './controller.js';
 import {
   makeControllerElementWatchers,
   watchControllerCommands,
@@ -45,7 +45,11 @@ export const makeEntityCreator = mechanics => {
       const $entity = document.createElementNS(svgNS, 'g');
       const $text = document.createElementNS(svgNS, 'text');
       $text.setAttributeNS(null, 'class', 'moji');
-      $text.appendChild(document.createTextNode(mechanics.viewText[type]));
+      $text.appendChild(
+        document.createTextNode(
+          type < -1 ? builtinTileText[-type - 2] : mechanics.viewText[type],
+        ),
+      );
       $entity.appendChild($text);
       return $entity;
     }
@@ -110,21 +114,21 @@ const main = async () => {
   const { element: $staminaBar, controller: staminaController } =
     writeStaminaBar({
       tileSizePx,
-      staminaTileType: mechanics.tileTypesByName.stamina,
+      staminaTileType: builtinTileTypesByName.stamina,
       createElement: createEntity,
     });
   parentElement.insertBefore($staminaBar, nextSibling);
 
   const { element: $healthBar, controller: healthController } = writeHealthBar({
     tileSizePx,
-    healthTileType: mechanics.tileTypesByName.health,
+    healthTileType: builtinTileTypesByName.health,
     createElement: createEntity,
   });
   parentElement.insertBefore($healthBar, nextSibling);
 
   const { $menuBlade, menuController } = createMenuBlade({
     tileSizePx,
-    pointerTileType: mechanics.tileTypesByName.east,
+    pointerTileType: builtinTileTypesByName.east,
     createElement: createEntity,
   });
   parentElement.appendChild($menuBlade);
@@ -155,12 +159,10 @@ const main = async () => {
     moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);
   };
 
-  const { viewText } = mechanics;
-
   const { nineKeyWatcher, oneKeyWatcher } = makeControllerElementWatchers(
     $controls,
     $hamburger,
-    { viewText },
+    { createEntity },
   );
 
   let dispose = Function.prototype;

@@ -9,6 +9,13 @@
 import { assertDefined, assumeDefined } from './lib/assert.js';
 import { heldSlot, packSlot } from './model.js';
 
+/** @type {{[name: string]: number}} */
+const builtinTileTypesByName = Object.assign(Object.create(null), {
+  invalid: -2,
+  empty: -3,
+  any: -4,
+});
+
 /**
  * @typedef {{
  *   name: string,
@@ -402,6 +409,8 @@ export function makeMechanics({
     Object.fromEntries(array.map(({ name }, i) => [name, i]));
 
   const tileTypesByName = indexByName(tileTypes);
+  Object.assign(tileTypesByName, builtinTileTypesByName);
+
   const agentTypesByName = indexByName(agentTypes);
   const itemTypesByName = indexByName(itemTypes);
   const effectTypesByName = indexByName(effectTypes);
@@ -410,7 +419,10 @@ export function makeMechanics({
    * @param {Array<{name: string, tile?: string}>} array
    */
   const indexTileType = array =>
-    array.map(({ name, tile }) => tileTypesByName[tile || name]);
+    array.map(
+      ({ name, tile }) =>
+        builtinTileTypesByName[name] || tileTypesByName[tile || name],
+    );
 
   const defaultTileTypeForAgentType = indexTileType(agentTypes);
   const tileTypeForItemType = indexTileType(itemTypes);
@@ -473,7 +485,7 @@ export function makeMechanics({
         ({ tile, has, holds, hot, cold, sick, immersed, health, stamina }) => {
           const tileType = assumeDefined(
             tileTypesByName[tile],
-            `No  tile type for name ${tile} for agent ${agentDesc.name}`,
+            `No tile type for name ${tile} for agent ${agentDesc.name}`,
           );
           /** @type {Array<Condition>}} */
           const conditions = [];

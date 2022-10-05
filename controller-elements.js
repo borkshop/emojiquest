@@ -1,42 +1,20 @@
 import { makeElementWatcher } from './element-watcher.js';
 
-const svgNS = 'http://www.w3.org/2000/svg';
 const commandCount = 10;
 
 /**
  * @param {SVGElement} $controls
  * @param {SVGElement} $hamburger
  * @param {Object} args
- * @param {Array<string>} args.viewText
+ * @param {import('./world.js').CreateEntityFn} args.createEntity
  */
 export const makeControllerElementWatchers = (
   $controls,
   $hamburger,
-  { viewText },
+  { createEntity },
 ) => {
-  /**
-   * @param {number} _entity
-   * @param {number} type
-   */
-  const createElement = (_entity, type) => {
-    if (type === -1) {
-      const element = document.createElementNS(svgNS, 'circle');
-      element.setAttributeNS(null, 'class', 'reticle');
-      element.setAttributeNS(null, 'r', '0.75');
-      return element;
-    } else {
-      const text = viewText[type];
-      const $element = document.createElementNS(svgNS, 'g');
-      const $text = document.createElementNS(svgNS, 'text');
-      $text.setAttributeNS(null, 'class', 'moji');
-      $text.appendChild(document.createTextNode(text));
-      $element.appendChild($text);
-      return $element;
-    }
-  };
-
-  const nineKeyWatcher = makeElementWatcher($controls, null, createElement);
-  const oneKeyWatcher = makeElementWatcher($hamburger, null, createElement);
+  const nineKeyWatcher = makeElementWatcher($controls, null, createEntity);
+  const oneKeyWatcher = makeElementWatcher($hamburger, null, createEntity);
 
   return {
     nineKeyWatcher,

@@ -237,6 +237,38 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @prop {CameraController} cameraController
  */
 
+const builtinTileTextByName = {
+  invalid: '�', // iota + 2
+  empty: '',
+  any: '*',
+  hamburger: '🍔',
+  backpack: '🎒',
+  watch: '⏱',
+  left: '🫲',
+  right: '🫱',
+  trash: '🗑',
+  mouth: '👄',
+  thumbUp: '👍',
+  north: '👆',
+  east: '👉',
+  south: '👇',
+  west: '👈',
+  cut: '✂️',
+  copy: '📸',
+  draw: '✏️',
+  erase: '🗑',
+  health: '❤️',
+  stamina: '💛  ',
+};
+
+export const builtinTileTypesByName = Object.fromEntries(
+  Object.keys(builtinTileTextByName).map((name, index) => [name, -index - 2]),
+);
+
+export const builtinTileText = Object.values(builtinTileTextByName);
+
+export const builtinTileNames = Object.keys(builtinTileTypesByName);
+
 /**
  * @param {Object} args
  * @param {import('./mechanics.js').Mechanics} args.mechanics
@@ -306,7 +338,7 @@ export const makeController = ({
   const oneKeyView = makeMacroViewModel(oneKeyViewModel, {
     name: 'hamburger',
   });
-  oneKeyView.put(0, 0, tileTypesByName.hamburger);
+  oneKeyView.put(0, 0, builtinTileTypesByName.hamburger);
 
   const nineKeyViewModel = makeViewModel();
   const nineKeyMacroViewModel = makeMacroViewModel(nineKeyViewModel, {
@@ -354,7 +386,7 @@ export const makeController = ({
   let packVisible = false;
 
   /** @type {number} */
-  let packTileType = tileTypesByName.backpack;
+  let packTileType = builtinTileTypesByName.backpack;
 
   /** @type {number} */
   let reticleEntity = 0;
@@ -401,15 +433,15 @@ export const makeController = ({
       // Entity management:
 
       const restoreWatch = () => {
-        nineKeyView.spawn(4, tileTypesByName.watch);
+        nineKeyView.spawn(4, builtinTileTypesByName.watch);
       };
 
       const openLeftHand = () => {
-        nineKeyView.spawn(0, tileTypesByName.left);
+        nineKeyView.spawn(0, builtinTileTypesByName.left);
       };
 
       const openRightHand = () => {
-        nineKeyView.spawn(2, tileTypesByName.right);
+        nineKeyView.spawn(2, builtinTileTypesByName.right);
       };
 
       const closeLeftHand = () => {
@@ -437,11 +469,11 @@ export const makeController = ({
       };
 
       const restoreLeftHand = () => {
-        nineKeyView.spawnInward(tileTypesByName.left, sw);
+        nineKeyView.spawnInward(builtinTileTypesByName.left, sw);
       };
 
       const restoreRightHand = () => {
-        nineKeyView.spawnInward(tileTypesByName.right, se);
+        nineKeyView.spawnInward(builtinTileTypesByName.right, se);
       };
 
       const restoreLeftItem = () => {
@@ -457,9 +489,9 @@ export const makeController = ({
        */
       const recepticleTileType = itemType => {
         const { comestible = false } = itemTypes[itemType];
-        let recepticleTileType = tileTypesByName.trash;
+        let recepticleTileType = builtinTileTypesByName.trash;
         if (comestible) {
-          recepticleTileType = tileTypesByName.mouth;
+          recepticleTileType = builtinTileTypesByName.mouth;
         }
         return recepticleTileType;
       };
@@ -587,7 +619,7 @@ export const makeController = ({
         inventory(slot, itemType) {
           if (slot === 0) {
             const gridIndex = 0;
-            const handTileType = tileTypesByName.left;
+            const handTileType = builtinTileTypesByName.left;
             if (isEmptyItem(itemType)) {
               nineKeyView.replace(gridIndex, handTileType);
             } else {
@@ -597,7 +629,7 @@ export const makeController = ({
           }
           if (slot === 1) {
             const gridIndex = 2;
-            const handTileType = tileTypesByName.right;
+            const handTileType = builtinTileTypesByName.right;
             if (isEmptyItem(itemType)) {
               nineKeyView.replace(gridIndex, handTileType);
             } else {
@@ -1055,7 +1087,7 @@ export const makeController = ({
           south: true,
         };
         exitPlayMode(player, handoff);
-        oneKeyView.replace(0, tileTypesByName.thumbUp);
+        oneKeyView.replace(0, builtinTileTypesByName.thumbUp);
         return enterMenuMode(position, player, handoff);
       };
 
@@ -1524,7 +1556,7 @@ export const makeController = ({
         south: true,
       };
       exitMenuMode(handoff);
-      oneKeyView.replace(0, tileTypesByName.hamburger);
+      oneKeyView.replace(0, builtinTileTypesByName.hamburger);
       return enterEditMode(position, player, handoff);
     };
 
@@ -1537,7 +1569,7 @@ export const makeController = ({
         south: true,
       };
       exitMenuMode(handoff);
-      oneKeyView.replace(0, tileTypesByName.hamburger);
+      oneKeyView.replace(0, builtinTileTypesByName.hamburger);
       return enterPlayMode(player, handoff);
     };
 
@@ -1559,7 +1591,7 @@ export const makeController = ({
         south: true,
       };
       exitEditMode(handoff);
-      oneKeyView.replace(0, tileTypesByName.thumbUp);
+      oneKeyView.replace(0, builtinTileTypesByName.thumbUp);
       return enterMenuMode(position, player, handoff);
     };
 
@@ -1631,16 +1663,16 @@ export const makeController = ({
    */
   const restoreDpad = handoff => {
     if (!handoff.north) {
-      nineKeyView.spawnInward(tileTypesByName.north, nn);
+      nineKeyView.spawnInward(builtinTileTypesByName.north, nn);
     }
     if (!handoff.east) {
-      nineKeyView.spawnInward(tileTypesByName.east, ee);
+      nineKeyView.spawnInward(builtinTileTypesByName.east, ee);
     }
     if (!handoff.south) {
-      nineKeyView.spawnInward(tileTypesByName.south, ss);
+      nineKeyView.spawnInward(builtinTileTypesByName.south, ss);
     }
     if (!handoff.west) {
-      nineKeyView.spawnInward(tileTypesByName.west, ww);
+      nineKeyView.spawnInward(builtinTileTypesByName.west, ww);
     }
   };
 
@@ -1667,10 +1699,10 @@ export const makeController = ({
   };
 
   const restoreEditorBezel = () => {
-    nineKeyView.spawnInward(tileTypesByName.scissors, ne);
-    nineKeyView.spawnInward(tileTypesByName.twin, nw);
-    nineKeyView.spawnInward(tileTypesByName.paint, sw);
-    nineKeyView.spawnInward(tileTypesByName.spoon, se);
+    nineKeyView.spawnInward(builtinTileTypesByName.cut, ne);
+    nineKeyView.spawnInward(builtinTileTypesByName.copy, nw);
+    nineKeyView.spawnInward(builtinTileTypesByName.draw, sw);
+    nineKeyView.spawnInward(builtinTileTypesByName.erase, se);
   };
 
   const dismissEditorBezel = () => {

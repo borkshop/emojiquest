@@ -9,6 +9,9 @@
 // @ts-check
 
 /**
+ * Agent types are captured by index in game state and are not safe to reorder
+ * or delete.
+ *
  * @type {Array<import('../mechanics.js').AgentType>}
  */
 export const validAgentTypes = [
@@ -281,6 +284,9 @@ export const validAgentTypes = [
 ];
 
 /**
+ * Item types are captured by index in game state and are not safe to reorder
+ * or delete.
+ *
  * @type {Array<import('../mechanics.js').ItemType>}
  */
 export const validItemTypes = [
@@ -388,12 +394,12 @@ export const validItemTypes = [
 ];
 
 /**
+ * Tile types are not captured numerically in game state so these are safe to
+ * reorder.
+ *
  * @type {Array<import('../mechanics.js').TileType>}
  */
 export const tileTypes = [
-  { name: 'invalid', text: '�' },
-  { name: 'empty', text: '' },
-  { name: 'any', text: '*' },
   { name: 'happy', text: '🙂' },
   { name: 'backpack', text: '🎒    ' },
   { name: 'back', text: '🔙' },
@@ -510,6 +516,13 @@ export const tileTypes = [
 ];
 
 /**
+ * Recipes are not _yet_ captured by index in game state, but probably
+ * will need to be for tracking achievements.
+ *
+ * The Mechanics type assigns bumpKeys to each recipe at runtime, but the bump
+ * keys are also not guaranteed to be consistent between versions of the
+ * mechanics as the game grows and will not be captured in game state.
+ *
  * @type {Array<import('../mechanics.js').Recipe>}
  */
 export const recipes = [
@@ -570,6 +583,9 @@ export const recipes = [
 ];
 
 /**
+ * Actions are not _yet_ captured by index in game state, but may need to be
+ * for journaling or achievements.
+ *
  * @type {Array<import('../mechanics.js').Action>}
  */
 export const actions = [
