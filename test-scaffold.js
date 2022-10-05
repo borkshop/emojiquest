@@ -16,14 +16,7 @@ import { makeController, builtinTileNames } from './controller.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeBoxTileMap } from './tile-map-box.js';
-import {
-  recipes,
-  actions,
-  tileTypes,
-  validAgentTypes,
-  validItemTypes,
-  validEffectTypes,
-} from './emojiquest/mechanics.js';
+import * as emojiquestMechanics from './emojiquest/mechanics.js';
 import { validate } from './file.js';
 
 /**
@@ -200,14 +193,7 @@ export const makeScaffold = (
     ...legend,
   };
 
-  const mechanics = makeMechanics({
-    recipes,
-    actions,
-    tileTypes,
-    validAgentTypes,
-    validItemTypes,
-    validEffectTypes,
-  });
+  const mechanics = makeMechanics(emojiquestMechanics);
 
   const size = tilesPerFacet * facetsPerFace;
 

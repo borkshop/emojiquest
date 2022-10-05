@@ -9,14 +9,7 @@ import {
 } from './controller-elements.js';
 import { makeDriver } from './driver.js';
 import { makeMechanics } from './mechanics.js';
-import {
-  recipes,
-  actions,
-  tileTypes,
-  validAgentTypes,
-  validItemTypes,
-  validEffectTypes,
-} from './emojiquest/mechanics.js';
+import * as emojiquestMechanics from './emojiquest/mechanics.js';
 
 import { createDialogBox } from './dialog.js';
 import { createMenuBlade } from './menu.js';
@@ -91,9 +84,9 @@ const main = async () => {
     recipes,
     actions,
     tileTypes,
-    validAgentTypes,
-    validItemTypes,
-    validEffectTypes,
+    agentTypes,
+    itemTypes,
+    effectTypes,
   });
 
   const createEntity = makeEntityCreator(mechanics);
@@ -171,6 +164,7 @@ const main = async () => {
    * @param {unknown} worldData
    */
   const playWorld = worldData => {
+    const mechanics = makeMechanics(emojiquestMechanics);
     const result = validate(worldData, mechanics);
     if ('errors' in result) {
       let message = '';

@@ -138,34 +138,34 @@ const specialDescriptions = specialNames.map(name => ({ name }));
  * @param {Array<Recipe>} [args.recipes]
  * @param {Array<Action>} [args.actions]
  * @param {Array<TileType>} [args.tileTypes]
- * @param {Array<AgentType>} [args.validAgentTypes]
- * @param {Array<ItemType>} [args.validItemTypes]
- * @param {Array<EffectType>} [args.validEffectTypes]
+ * @param {Array<AgentType>} [args.agentTypes]
+ * @param {Array<ItemType>} [args.itemTypes]
+ * @param {Array<EffectType>} [args.effectTypes]
  */
 export function makeMechanics({
   recipes = [],
   actions = [],
   tileTypes = [],
-  validAgentTypes = [],
-  validItemTypes = [],
-  validEffectTypes = [],
+  agentTypes: worldAgentTypes = [],
+  itemTypes: worldItemTypes = [],
+  effectTypes: worldEffectTypes = [],
 } = {}) {
   /** @type {Array<AgentType>} */
   const agentTypes = [
     ...specialDescriptions,
-    ...validAgentTypes.filter(desc => !specialNames.includes(desc.name)),
+    ...worldAgentTypes.filter(desc => !specialNames.includes(desc.name)),
   ];
 
   /** @type {Array<ItemType>} */
   const itemTypes = [
     ...specialDescriptions,
-    ...validItemTypes.filter(desc => !specialNames.includes(desc.name)),
+    ...worldItemTypes.filter(desc => !specialNames.includes(desc.name)),
   ];
 
   /** @type {Array<EffectType>} */
   const effectTypes = [
     ...specialDescriptions,
-    ...validEffectTypes.filter(desc => !specialNames.includes(desc.name)),
+    ...worldEffectTypes.filter(desc => !specialNames.includes(desc.name)),
   ];
 
   /**

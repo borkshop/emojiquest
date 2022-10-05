@@ -14,7 +14,7 @@
  *
  * @type {Array<import('../mechanics.js').AgentType>}
  */
-export const validAgentTypes = [
+export const agentTypes = [
   {
     name: 'player',
     tile: 'happy',
@@ -289,7 +289,7 @@ export const validAgentTypes = [
  *
  * @type {Array<import('../mechanics.js').ItemType>}
  */
-export const validItemTypes = [
+export const itemTypes = [
   {
     name: 'axe',
     tip: '🪓 Did you know that <b>axe</b>, <b>acid</b>, and <b>oxygen</b> are all related words?',
@@ -821,4 +821,4 @@ export const actions = [
 // TODO 🪨rock, 📄paper, ✂️scissors, 🦎lizard, 🖖spock
 
 /** @type {Array<import('../mechanics.js').EffectType>} */
-export const validEffectTypes = [];
+export const effectTypes = [];
