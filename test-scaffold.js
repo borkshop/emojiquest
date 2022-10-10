@@ -273,7 +273,7 @@ export const makeScaffold = (
   /** @type {import('./model.js').Snapshot | undefined} */
   let snapshot = undefined;
   if (worldData !== undefined) {
-    const result = validate(worldData, mechanics);
+    const result = validate(worldData);
     if ('errors' in result) {
       t.fail(result.errors.join(', '));
     }

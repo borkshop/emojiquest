@@ -40,6 +40,7 @@
       "**/build/**/*",
       "**/test/**/*",
       "**/scratch/**/*",
+      "**/scripts/**/*",
       "**/node_modules/**/*",
       "**/test-*.js",
       "**/*.test.js",

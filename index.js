@@ -2,14 +2,16 @@
 
 import { fullQuarturn } from './lib/geometry2d.js';
 import { cell } from './lib/cell.js';
-import { makeController, builtinTileText, builtinTileTypesByName } from './controller.js';
+import {
+  makeController,
+  builtinTileText,
+  builtinTileTypesByName,
+} from './controller.js';
 import {
   makeControllerElementWatchers,
   watchControllerCommands,
 } from './controller-elements.js';
 import { makeDriver } from './driver.js';
-import { makeMechanics } from './mechanics.js';
-import * as emojiquestMechanics from './emojiquest/mechanics.js';
 
 import { createDialogBox } from './dialog.js';
 import { createMenuBlade } from './menu.js';
@@ -156,14 +158,11 @@ const main = async () => {
   let dispose = Function.prototype;
 
   /**
-   * @param {unknown} worldData
+   * @param {unknown} wholeWorldData
    */
-  const playWorld = worldData => {
-    const mechanics = makeMechanics(emojiquestMechanics);
-    const result = validate(worldData, mechanics);
-    const createElement = makeEntityCreator(mechanics.viewText);
-    nineKeyWatcher.reset(createElement);
-    oneKeyWatcher.reset(createElement);
+  const playWorld = wholeWorldData => {
+    // const mechanics = makeMechanics(emojiquestMechanics);
+    const result = validate(wholeWorldData);
     if ('errors' in result) {
       let message = '';
       for (const error of result.errors) {
@@ -173,13 +172,17 @@ const main = async () => {
       dialogController.logHTML(message);
       return;
     }
+    const { snapshot, mechanics } = result;
+
+    const createElement = makeEntityCreator(mechanics.viewText);
+    nineKeyWatcher.reset(createElement);
+    oneKeyWatcher.reset(createElement);
 
     // Dispose of prior world.
     dispose();
 
     const createEntity = makeEntityCreator(mechanics.viewText);
 
-    const { snapshot } = result;
     const world = makeWorld(snapshot, parentElement, $mapAnchor, {
       tileSizePx,
       createEntity,
@@ -216,12 +219,12 @@ const main = async () => {
   };
 
   /**
-   * @param {unknown} worldData
+   * @param {unknown} wholeWorldData
    */
-  const saveWorld = async worldData => {
+  const saveWorld = async wholeWorldData => {
     const handle = await window.showSaveFilePicker({ types });
     const stream = await handle.createWritable();
-    const text = `${JSON.stringify(worldData)}\n`;
+    const text = `${JSON.stringify(wholeWorldData)}\n`;
     const blob = new Blob([text]);
     await stream.write(blob);
     await stream.close();
@@ -251,8 +254,8 @@ const main = async () => {
   const response = await fetch(
     new URL('emojiquest/emojiquest.json', import.meta.url).href,
   );
-  const worldData = await response.json();
-  playWorld(worldData);
+  const wholeWorldData = await response.json();
+  playWorld(wholeWorldData);
 };
 
 main();

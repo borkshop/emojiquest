@@ -313,7 +313,6 @@ export const makeController = ({
   loadWorld,
   saveWorld,
 }) => {
-
   // State:
 
   const oneKeyViewModel = makeViewModel();
@@ -1644,8 +1643,10 @@ export const makeController = ({
       return limboMode;
     },
     play(world, mechanics, player) {
-      const { limboToPlayMode, limboToEditMode, ...clock } =
-        makeWorldModes(world, mechanics);
+      const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
+        world,
+        mechanics,
+      );
       worldClock = clock;
       if (player !== undefined) {
         return limboToPlayMode(player);

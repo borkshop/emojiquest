@@ -28,22 +28,21 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *     tile: string,
  *     holds?: string,
  *     has?: string,
- *     hot?: true,
- *     cold?: true,
- *     sick?: true,
+ *     hot?: boolean,
+ *     cold?: boolean,
+ *     sick?: boolean,
  *     health?: number,
  *     stamina?: number,
- *     immersed?: true,
+ *     immersed?: boolean,
  *   }>,
  *   slots?: Array<{
  *     tile: string,
- *     held?: true,
- *     pack?: true,
+ *     held?: boolean,
+ *     pack?: boolean,
  *   }>,
  * }} AgentType
- */
-
-/** @typedef {{has: true, item: number} |
+ *
+ * @typedef {{has: true, item: number} |
  *   {holds: true, item: number} |
  *   {hot: true} |
  *   {cold: true} |
@@ -51,9 +50,8 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *   {immersed: true} |
  *   {health: number} |
  *   {stamina: number}
- * } Condition */
-
-/**
+ * } Condition
+ *
  * @typedef {{
  *   name: string,
  *   tile?: string,
@@ -66,17 +64,13 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *   tip?: string,
  *   slot?: string,
  * }} ItemType
- */
-
-/**
+ *
  * @typedef {{
  *   name: string,
  *   text: string,
  *   turn?: number,
  * }} TileType
- */
-
-/**
+ *
  * @typedef {{
  *   agent: string,
  *   reagent: string,
@@ -85,9 +79,7 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *   price?: number,
  *   dialog?: string,
  * }} Recipe
- */
-
-/**
+ *
  * @typedef {{
  *   agent?: string,
  *   patient: string,
@@ -98,16 +90,20 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *   items: Array<string>,
  *   dialog?: string,
  * }} Action
- */
-
-/**
+ *
  * @typedef {{
  *   name: string,
  *   tile?: string,
  * }} EffectType
- */
-
-/**
+ *
+ * @typedef {object} MechanicsDescription
+ * @prop {Array<Recipe>} [args.recipes]
+ * @prop {Array<Action>} [args.actions]
+ * @prop {Array<TileType>} [args.tileTypes]
+ * @prop {Array<AgentType>} [args.agentTypes]
+ * @prop {Array<ItemType>} [args.itemTypes]
+ * @prop {Array<EffectType>} [args.effectTypes]
+ *
  * @typedef {Object} Kit
  * @property {(entity: number) => number} entityType
  * @property {(entity: number) => number} entityEffect
@@ -127,20 +123,15 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  * @property {(entity: number, location: number, direction: number) => void} jump
  */
 
+/**
+ * @typedef {ReturnType<makeMechanics>} Mechanics
+ */
+
 const specialNames = ['invalid', 'empty', 'any'];
 const specialDescriptions = specialNames.map(name => ({ name }));
 
 /**
- * @typedef {ReturnType<makeMechanics>} Mechanics
- */
-/**
- * @param {Object} args
- * @param {Array<Recipe>} [args.recipes]
- * @param {Array<Action>} [args.actions]
- * @param {Array<TileType>} [args.tileTypes]
- * @param {Array<AgentType>} [args.agentTypes]
- * @param {Array<ItemType>} [args.itemTypes]
- * @param {Array<EffectType>} [args.effectTypes]
+ * @param {MechanicsDescription} mechanicsDescription
  */
 export function makeMechanics({
   recipes = [],
