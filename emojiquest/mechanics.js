@@ -469,7 +469,6 @@ export const tileTypes = [
   { name: 'wind', text: '💨' },
   { name: 'waterDroplet', text: '💧 ' },
   { name: 'fire', text: '🔥' },
-  { name: 'rainbow', text: '🌈 ' },
   { name: 'ewe', text: '🐑 ' },
   { name: 'ram', text: '🐏 ' },
   { name: 'meat', text: '🥩' },
