@@ -2,7 +2,7 @@ import { colorsSchema } from '../../schema.js';
 
 /**
  * @template T
- * @param {import('../../lib/schema.js').Schema<T>} $
+ * @param {import('../../lib/schema.js').SchemaTo<T>} $
  */
 export const daia = $ => ({
   facetsPerFace: $.number(),

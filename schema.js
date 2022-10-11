@@ -1,25 +1,20 @@
-/** @template T
- * @typedef {import('./lib/schema.js').Schema<T>} Schema
+/**
+ * @template T
+ * @typedef {import('./lib/schema.js').SchemaTo<T>} SchemaTo
  */
 
 import { rect } from './topology/rect/schema.js';
 import { torus } from './topology/torus/schema.js';
 import { daia } from './topology/daia/schema.js';
 
-/**
- * @template T
- * @param {Schema<T>} $
- */
+/** @type {<T>(t: SchemaTo<T>) => T} */
 export const pointSchema = $ =>
   $.struct({
     x: $.number(),
     y: $.number(),
   });
 
-/**
- * @template T
- * @param {Schema<T>} $
- */
+/** @type {<T>(t: SchemaTo<T>) => T} */
 export const colorsSchema = $ =>
   $.struct({
     base: $.string(),
@@ -28,10 +23,7 @@ export const colorsSchema = $ =>
     earth: $.string(),
   });
 
-/**
- * @template T
- * @param {Schema<T>} $
- */
+/** @type {<T>(t: SchemaTo<T>) => T} */
 export const mechanicsSchema = $ =>
   $.struct({
     agentTypes: $.list(
@@ -121,7 +113,7 @@ export const mechanicsSchema = $ =>
 
 /**
  * @template T
- * @param {Schema<T>} $
+ * @param {SchemaTo<T>} $
  */
 const worldFields = $ => ({
   colors: $.dict($.string()),
@@ -162,17 +154,10 @@ const worldFields = $ => ({
   ),
 });
 
-/**
- * @template T
- * @param {Schema<T>} $
- */
+/** @type {<T>(t: SchemaTo<T>) => T} */
 export const worldSchema = $ => $.struct(worldFields($));
 
-/**
- * @template T
- * @param {Schema<T>} $
- */
-
+/** @type {<T>(t: SchemaTo<T>) => T} */
 export const wholeWorldSchema = $ =>
   $.struct({
     ...worldFields($),
