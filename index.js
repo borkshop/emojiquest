@@ -161,7 +161,6 @@ const main = async () => {
    * @param {unknown} wholeWorldData
    */
   const playWorld = wholeWorldData => {
-    // const mechanics = makeMechanics(emojiquestMechanics);
     const result = validate(wholeWorldData);
     if ('errors' in result) {
       let message = '';
@@ -170,6 +169,7 @@ const main = async () => {
         console.error(error);
       }
       dialogController.logHTML(message);
+      // TODO abort load and return to previous world
       return;
     }
     const { snapshot, mechanics } = result;

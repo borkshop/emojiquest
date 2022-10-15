@@ -317,6 +317,8 @@ export function makeMechanics({
       };
       return jump;
     },
+
+    // XXX Coordinate new verbs with validator in file.js.
   };
 
   /**

@@ -32,6 +32,7 @@
  */
 
 import { dot } from './lib/vector2d.js';
+import { enumerate } from './lib/iterate.js';
 import { makeMechanics } from './mechanics.js';
 import { toValidator, toEnricher } from './lib/schema-validator.js';
 import { wholeWorldSchema } from './schema.js';
@@ -65,6 +66,172 @@ const validateColors = (colors, colorsByName, errors, path) => {
   validateColor(colors.earth, colorsByName, errors, [...path, 'earth']);
   validateColor(colors.lava, colorsByName, errors, [...path, 'lava']);
   validateColor(colors.water, colorsByName, errors, [...path, 'water']);
+};
+
+/**
+ * @param {import('./mechanics.js').MechanicsDescription} mechanics
+ * @param {Array<string>} errors
+ */
+const validateMechanics = (mechanics, errors) => {
+  const {
+    recipes = [],
+    actions = [],
+    tileTypes = [],
+    agentTypes = [],
+    itemTypes = [],
+    effectTypes = [],
+  } = mechanics;
+
+  // Index and validate uniqueness of tile type names.
+  const tileTypeNames = new Map();
+  for (const [index, tileType] of enumerate(tileTypes)) {
+    if (['invalid', 'empty', 'any'].includes(tileType.name)) {
+      errors.push(`Tile type with name ${tileType.name} at index ${index} of "mechanics.tiles" is reserved.`);
+    } else {
+      const otherIndex = tileTypeNames.get(tileType.name);
+      if (otherIndex !== undefined) {
+        errors.push(`Tile type with name ${tileType.name} at index ${index} of "mechanics.tiles" duplicates the name of tile at index ${otherIndex}` ); // XXX
+      } else {
+        tileTypeNames.set(tileType.name, index);
+      }
+    }
+  }
+
+  // Index and validate uniqueness of item type names.
+  const itemTypeNames = new Map();
+  for (const [index, itemType] of enumerate(itemTypes)) {
+    if (['invalid', 'empty', 'any'].includes(itemType.name)) {
+      errors.push(`Tile type with name ${itemType.name} at index ${index} of "mechanics.itemTypes" is reserved.`);
+    } else {
+      const otherIndex = itemTypeNames.get(itemType.name);
+      if (otherIndex !== undefined) {
+        errors.push(`Item type with name ${itemType.name} at index ${index} of "mechanics.itemTypes" duplicates the name of item at index ${otherIndex}` ); // XXX
+      } else {
+        itemTypeNames.set(itemType.name, index);
+      }
+    }
+  }
+
+  // Index and validate uniqueness of agent type names.
+  const agentTypeNames = new Map();
+  for (const [index, agentType] of enumerate(agentTypes)) {
+    if (['invalid', 'empty', 'any'].includes(agentType.name)) {
+      errors.push(`Tile type with name ${agentType.name} at index ${index} of "mechanics.agentTypes" is reserved.`);
+    } else {
+      const otherIndex = agentTypeNames.get(agentType.name);
+      if (otherIndex !== undefined) {
+        errors.push(`Entity type with name ${agentType.name} at index ${index} of "mechanics.agents" duplicates the name of entity at index ${otherIndex}` ); // XXX
+      } else {
+        agentTypeNames.set(agentType.name, index);
+      }
+    }
+  }
+
+  // Index and validate uniqueness of effect type names.
+  const effectTypeNames = new Map();
+  for (const [index, effectType] of enumerate(effectTypes)) {
+    if (['invalid', 'empty', 'any'].includes(effectType.name)) {
+      errors.push(`Tile type with name ${effectType.name} at index ${index} of "mechanics.effectTypes" is reserved.`);
+    } else {
+      const otherIndex = effectTypeNames.has(effectType.name);
+      if (otherIndex !== undefined) {
+        errors.push(`Effect type with name ${effectType.name} at index ${index} of "mechanics.effectTypes" duplicates the name of effect at index ${otherIndex}` ); // XXX
+      } else {
+        effectTypeNames.set(effectType.name, index);
+      }
+    }
+  }
+
+  // ---
+
+  for (const [index, effectType] of enumerate(effectTypes)) {
+    const { name, tile = name } = effectType;
+    if (!tileTypeNames.has(tile)) {
+      errors.push(`No corresponding tile with name ${tile} for effect type with name ${name} at index ${index} of "mechanics.effectTypes".`);
+    }
+  }
+
+  // Cross-reference item type.
+  for (const [index, itemType] of enumerate(itemTypes)) {
+    const { name, tile = name } = itemType;
+    if (!tileTypeNames.has(tile)) {
+      errors.push(`No corresponding tile with name ${tile} for item type with name ${name} at index ${index} of "mechanics.itemTypes".`);
+    }
+  }
+
+  // Cross-reference agent type.
+  for (const [agentIndex, agentType] of enumerate(agentTypes)) {
+    const { name, tile = name, wanders, modes = [] } = agentType;
+    if (!tileTypeNames.has(tile)) {
+      errors.push(`No corresponding tile with name ${tile} for entity type with name ${name} at index ${agentIndex} of "mechanics.agentTypes".`);
+    }
+    if (wanders !== undefined && wanders !== 'land') {
+      errors.push(`No corresponding wandering rule ${wanders} for entity type with name ${name} at index ${agentIndex} of "mechanics.agentTypes".`);
+    }
+    for (const [ modeIndex, mode ] of enumerate(modes)) {
+      const { tile, holds, has } = mode;
+      if (!tileTypeNames.has(tile)) {
+        errors.push(`No tile type ${tile} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].tile".`);
+      }
+      if (holds !== undefined && !itemTypeNames.has(holds)) {
+        errors.push(`No item type ${holds} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].holds".`);
+      }
+      if (has !== undefined && !itemTypeNames.has(has)) {
+        errors.push(`No item type ${has} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].has".`);
+      }
+    }
+  }
+
+  for (const [index, recipe] of enumerate(recipes)) {
+    const { agent, reagent, product, byproduct } = recipe;
+    if (!itemTypeNames.has(agent)) {
+      errors.push(`No corresponding item type with name ${agent} for "mechanics.recipes[${index}].agent".`);
+    }
+    if (!itemTypeNames.has(reagent)) {
+      errors.push(`No corresponding item type with name ${reagent} for "mechanics.recipes[${index}].reagent".`);
+    }
+    if (!itemTypeNames.has(product)) {
+      errors.push(`No corresponding item type with name ${product} for "mechanics.recipes[${index}].product".`);
+    }
+    if (byproduct !== undefined && !itemTypeNames.has(byproduct)) {
+      errors.push(`No corresponding item type with name ${byproduct} for "mechanics.recipes[${index}].byproduct".`);
+    }
+  }
+
+  for (const [actionIndex, action] of enumerate(actions)) {
+    const {
+      agent = 'player',
+      patient,
+      left = 'empty',
+      right = 'empty',
+      effect = 'any',
+      verb,
+      items = [],
+    } = action;
+    if (!['take', 'reap', 'cut', 'pick', 'split', 'merge', 'replace', 'jump'].includes(verb)) {
+      errors.push(`No corresponding verb ${verb} for "mechanics.acctions[${actionIndex}].verb".`);
+    }
+    if (!agentTypeNames.has(agent)) {
+      errors.push(`No corresponding entity type named ${agent} for "mechanics.actions[${actionIndex}].agent".`);
+    }
+    if (!agentTypeNames.has(patient)) {
+      errors.push(`No corresponding entity type named ${patient} for "mechanics.actions[${actionIndex}].patient".`);
+    }
+    if (left !== 'any' && left !== 'empty' && !itemTypeNames.has(left)) {
+      errors.push(`No corresponding item type named ${left} for "mechanics.actions[${actionIndex}].left".`);
+    }
+    if (right !== 'any' && right !== 'empty' && !itemTypeNames.has(right)) {
+      errors.push(`No corresponding item type named ${right} for "mechanics.actions[${actionIndex}].right".`);
+    }
+    if (effect !== 'any' && effect !== 'empty' && !effectTypeNames.has(effect)) {
+      errors.push(`No corresponding effect type named ${right} for "mechanics.actions[${actionIndex}].effect".`);
+    }
+    for (const [itemIndex, item] of enumerate(items)) {
+      if (!itemTypeNames.has(item)) {
+        errors.push(`No corresponding item type named ${item} for "mechanics.actions[${actionIndex}].items[${itemIndex}]".`);
+      }
+    }
+  }
 };
 
 /** Generated by scripts/gen/whole-world-ts.js:
@@ -141,6 +308,11 @@ export const validate = allegedWholeWorldDescription => {
 
   if (levels.length < 1) {
     return { errors: ['"levels"  must contain at least 1 level'] };
+  }
+
+  validateMechanics(mechanicsDescription, errors);
+  if (errors.length > 0) {
+    return { errors };
   }
 
   const mechanics = makeMechanics(mechanicsDescription);
@@ -316,13 +488,13 @@ export const validate = allegedWholeWorldDescription => {
   if (describedPlayer !== undefined) {
     player = describedEntityToEntity.get(describedPlayer);
     if (player === undefined) {
-      errors.push(`Missing entity for described player ${describedPlayer}`);
+      errors.push(`Missing entity for described player ${describedPlayer}.`);
       return { errors };
     }
   }
 
   if (terrain.length !== size) {
-    errors.push(`"terrain" must be exactly ${size} long`);
+    errors.push(`"terrain" must be exactly ${size} long.`);
     return { errors };
   }
 
