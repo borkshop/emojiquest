@@ -2,6 +2,7 @@
 
 import { fullQuarturn } from './lib/geometry2d.js';
 import { cell } from './lib/cell.js';
+import { parseJson } from './lib/json.js';
 import {
   makeController,
   builtinTileText,
@@ -212,8 +213,13 @@ const main = async () => {
     if (handle !== undefined) {
       const file = await handle.getFile();
       const text = await file.text();
-      const data = JSON.parse(text);
-      playWorld(data);
+      const result = parseJson(text);
+      if ('error' in result) {
+        dialogController.log(`${result.error}`);
+        console.error(result.error);
+        return;
+      }
+      playWorld(result.value);
     }
     return;
   };
