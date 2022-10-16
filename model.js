@@ -999,7 +999,7 @@ export function makeModel({
           entity,
           destination,
           direction * quarturnToOcturn,
-          newType || entityType(entity),
+          newType || tileTypeForAgent(entity, kit),
         );
         onJump(entity, destination);
       } else {
