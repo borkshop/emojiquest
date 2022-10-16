@@ -9,6 +9,10 @@
 import { assertDefined, assumeDefined } from './lib/assert.js';
 import { heldSlot, packSlot } from './model.js';
 
+/**
+ * @typedef {import('./topology.js').AdvanceFn} AdvanceFn
+ */
+
 /** @type {{[name: string]: number}} */
 const builtinTileTypesByName = Object.assign(Object.create(null), {
   invalid: -2,
@@ -87,7 +91,7 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *   right?: string,
  *   effect?: string,
  *   verb: string,
- *   items: Array<string>,
+ *   items?: Array<string>,
  *   dialog?: string,
  * }} Action
  *
@@ -107,6 +111,7 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  * @typedef {Object} Kit
  * @property {(entity: number) => number} entityType
  * @property {(entity: number) => number} entityEffect
+ * @property {(entity: number) => number} locate
  * @property {(entity: number, direction: number, location: number) => void} take
  * @property {(entity: number, location: number) => void} fell
  * @property {(entity: number, slot: number) => number} inventory
@@ -120,7 +125,9 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  * @property {(entity: number) => number} entityHealth
  * @property {(entity: number) => number} entityStamina
  * @property {(entity: number) => number | undefined} entityTargetLocation
+ * @property {(entity: number) => number | undefined} entityTargetEntity
  * @property {(entity: number, location: number, direction: number) => void} jump
+ * @property {AdvanceFn} advance
  */
 
 /**
@@ -310,9 +317,24 @@ export function makeMechanics({
     jump([]) {
       /** @type {Handler} */
       const jump = (kit, { agent, patient, direction }) => {
+        // Jump target can be anchored either on a location or another entity.
         const location = kit.entityTargetLocation(patient);
         if (location !== undefined) {
           kit.jump(agent, location, direction);
+        } else {
+          const target = kit.entityTargetEntity(patient);
+          if (target !== undefined) {
+            const targetLocation = kit.locate(target);
+            if (targetLocation > 0) {
+              const adjacentCursor = kit.advance({
+                position: targetLocation,
+                direction,
+              });
+              if (adjacentCursor !== undefined) {
+                kit.jump(agent, adjacentCursor.position, direction);
+              }
+            }
+          }
         }
       };
       return jump;

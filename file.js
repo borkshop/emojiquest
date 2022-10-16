@@ -5,13 +5,14 @@
  * @property {number | undefined} player
  * @property {number} size
  * @property {Uint16Array} entities
- * @property {Array<number>} terrain
+ * @property {Uint8Array} terrain
  * @property {Map<number, number>} entityTypes
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
  * @property {Array<Level>} levels
  * @property {Map<number, number>} entityTargetLocations
+ * @property {Map<number, number>} entityTargetEntities
  * @property {Map<string, string>} colorsByName
  */
 
@@ -87,11 +88,15 @@ const validateMechanics = (mechanics, errors) => {
   const tileTypeNames = new Map();
   for (const [index, tileType] of enumerate(tileTypes)) {
     if (['invalid', 'empty', 'any'].includes(tileType.name)) {
-      errors.push(`Tile type with name ${tileType.name} at index ${index} of "mechanics.tiles" is reserved.`);
+      errors.push(
+        `Tile type with name ${tileType.name} at index ${index} of "mechanics.tiles" is reserved.`,
+      );
     } else {
       const otherIndex = tileTypeNames.get(tileType.name);
       if (otherIndex !== undefined) {
-        errors.push(`Tile type with name ${tileType.name} at index ${index} of "mechanics.tiles" duplicates the name of tile at index ${otherIndex}` ); // XXX
+        errors.push(
+          `Tile type with name ${tileType.name} at index ${index} of "mechanics.tiles" duplicates the name of tile at index ${otherIndex}`,
+        ); // XXX
       } else {
         tileTypeNames.set(tileType.name, index);
       }
@@ -102,11 +107,15 @@ const validateMechanics = (mechanics, errors) => {
   const itemTypeNames = new Map();
   for (const [index, itemType] of enumerate(itemTypes)) {
     if (['invalid', 'empty', 'any'].includes(itemType.name)) {
-      errors.push(`Tile type with name ${itemType.name} at index ${index} of "mechanics.itemTypes" is reserved.`);
+      errors.push(
+        `Tile type with name ${itemType.name} at index ${index} of "mechanics.itemTypes" is reserved.`,
+      );
     } else {
       const otherIndex = itemTypeNames.get(itemType.name);
       if (otherIndex !== undefined) {
-        errors.push(`Item type with name ${itemType.name} at index ${index} of "mechanics.itemTypes" duplicates the name of item at index ${otherIndex}` ); // XXX
+        errors.push(
+          `Item type with name ${itemType.name} at index ${index} of "mechanics.itemTypes" duplicates the name of item at index ${otherIndex}`,
+        ); // XXX
       } else {
         itemTypeNames.set(itemType.name, index);
       }
@@ -117,11 +126,15 @@ const validateMechanics = (mechanics, errors) => {
   const agentTypeNames = new Map();
   for (const [index, agentType] of enumerate(agentTypes)) {
     if (['invalid', 'empty', 'any'].includes(agentType.name)) {
-      errors.push(`Tile type with name ${agentType.name} at index ${index} of "mechanics.agentTypes" is reserved.`);
+      errors.push(
+        `Tile type with name ${agentType.name} at index ${index} of "mechanics.agentTypes" is reserved.`,
+      );
     } else {
       const otherIndex = agentTypeNames.get(agentType.name);
       if (otherIndex !== undefined) {
-        errors.push(`Entity type with name ${agentType.name} at index ${index} of "mechanics.agents" duplicates the name of entity at index ${otherIndex}` ); // XXX
+        errors.push(
+          `Entity type with name ${agentType.name} at index ${index} of "mechanics.agents" duplicates the name of entity at index ${otherIndex}`,
+        ); // XXX
       } else {
         agentTypeNames.set(agentType.name, index);
       }
@@ -132,11 +145,15 @@ const validateMechanics = (mechanics, errors) => {
   const effectTypeNames = new Map();
   for (const [index, effectType] of enumerate(effectTypes)) {
     if (['invalid', 'empty', 'any'].includes(effectType.name)) {
-      errors.push(`Tile type with name ${effectType.name} at index ${index} of "mechanics.effectTypes" is reserved.`);
+      errors.push(
+        `Tile type with name ${effectType.name} at index ${index} of "mechanics.effectTypes" is reserved.`,
+      );
     } else {
       const otherIndex = effectTypeNames.has(effectType.name);
       if (otherIndex !== undefined) {
-        errors.push(`Effect type with name ${effectType.name} at index ${index} of "mechanics.effectTypes" duplicates the name of effect at index ${otherIndex}` ); // XXX
+        errors.push(
+          `Effect type with name ${effectType.name} at index ${index} of "mechanics.effectTypes" duplicates the name of effect at index ${otherIndex}`,
+        ); // XXX
       } else {
         effectTypeNames.set(effectType.name, index);
       }
@@ -148,7 +165,9 @@ const validateMechanics = (mechanics, errors) => {
   for (const [index, effectType] of enumerate(effectTypes)) {
     const { name, tile = name } = effectType;
     if (!tileTypeNames.has(tile)) {
-      errors.push(`No corresponding tile with name ${tile} for effect type with name ${name} at index ${index} of "mechanics.effectTypes".`);
+      errors.push(
+        `No corresponding tile with name ${tile} for effect type with name ${name} at index ${index} of "mechanics.effectTypes".`,
+      );
     }
   }
 
@@ -156,7 +175,9 @@ const validateMechanics = (mechanics, errors) => {
   for (const [index, itemType] of enumerate(itemTypes)) {
     const { name, tile = name } = itemType;
     if (!tileTypeNames.has(tile)) {
-      errors.push(`No corresponding tile with name ${tile} for item type with name ${name} at index ${index} of "mechanics.itemTypes".`);
+      errors.push(
+        `No corresponding tile with name ${tile} for item type with name ${name} at index ${index} of "mechanics.itemTypes".`,
+      );
     }
   }
 
@@ -164,21 +185,31 @@ const validateMechanics = (mechanics, errors) => {
   for (const [agentIndex, agentType] of enumerate(agentTypes)) {
     const { name, tile = name, wanders, modes = [] } = agentType;
     if (!tileTypeNames.has(tile)) {
-      errors.push(`No corresponding tile with name ${tile} for entity type with name ${name} at index ${agentIndex} of "mechanics.agentTypes".`);
+      errors.push(
+        `No corresponding tile with name ${tile} for entity type with name ${name} at index ${agentIndex} of "mechanics.agentTypes".`,
+      );
     }
     if (wanders !== undefined && wanders !== 'land') {
-      errors.push(`No corresponding wandering rule ${wanders} for entity type with name ${name} at index ${agentIndex} of "mechanics.agentTypes".`);
+      errors.push(
+        `No corresponding wandering rule ${wanders} for entity type with name ${name} at index ${agentIndex} of "mechanics.agentTypes".`,
+      );
     }
-    for (const [ modeIndex, mode ] of enumerate(modes)) {
+    for (const [modeIndex, mode] of enumerate(modes)) {
       const { tile, holds, has } = mode;
       if (!tileTypeNames.has(tile)) {
-        errors.push(`No tile type ${tile} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].tile".`);
+        errors.push(
+          `No tile type ${tile} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].tile".`,
+        );
       }
       if (holds !== undefined && !itemTypeNames.has(holds)) {
-        errors.push(`No item type ${holds} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].holds".`);
+        errors.push(
+          `No item type ${holds} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].holds".`,
+        );
       }
       if (has !== undefined && !itemTypeNames.has(has)) {
-        errors.push(`No item type ${has} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].has".`);
+        errors.push(
+          `No item type ${has} for entity mode for entity with name ${name} at "mechanics.agentTypes[${agentIndex}].modes[${modeIndex}].has".`,
+        );
       }
     }
   }
@@ -186,16 +217,24 @@ const validateMechanics = (mechanics, errors) => {
   for (const [index, recipe] of enumerate(recipes)) {
     const { agent, reagent, product, byproduct } = recipe;
     if (!itemTypeNames.has(agent)) {
-      errors.push(`No corresponding item type with name ${agent} for "mechanics.recipes[${index}].agent".`);
+      errors.push(
+        `No corresponding item type with name ${agent} for "mechanics.recipes[${index}].agent".`,
+      );
     }
     if (!itemTypeNames.has(reagent)) {
-      errors.push(`No corresponding item type with name ${reagent} for "mechanics.recipes[${index}].reagent".`);
+      errors.push(
+        `No corresponding item type with name ${reagent} for "mechanics.recipes[${index}].reagent".`,
+      );
     }
     if (!itemTypeNames.has(product)) {
-      errors.push(`No corresponding item type with name ${product} for "mechanics.recipes[${index}].product".`);
+      errors.push(
+        `No corresponding item type with name ${product} for "mechanics.recipes[${index}].product".`,
+      );
     }
     if (byproduct !== undefined && !itemTypeNames.has(byproduct)) {
-      errors.push(`No corresponding item type with name ${byproduct} for "mechanics.recipes[${index}].byproduct".`);
+      errors.push(
+        `No corresponding item type with name ${byproduct} for "mechanics.recipes[${index}].byproduct".`,
+      );
     }
   }
 
@@ -209,33 +248,63 @@ const validateMechanics = (mechanics, errors) => {
       verb,
       items = [],
     } = action;
-    if (!['take', 'reap', 'cut', 'pick', 'split', 'merge', 'replace', 'jump'].includes(verb)) {
-      errors.push(`No corresponding verb ${verb} for "mechanics.acctions[${actionIndex}].verb".`);
+    if (
+      ![
+        'take',
+        'reap',
+        'cut',
+        'pick',
+        'split',
+        'merge',
+        'replace',
+        'jump',
+      ].includes(verb)
+    ) {
+      errors.push(
+        `No corresponding verb ${verb} for "mechanics.acctions[${actionIndex}].verb".`,
+      );
     }
     if (!agentTypeNames.has(agent)) {
-      errors.push(`No corresponding entity type named ${agent} for "mechanics.actions[${actionIndex}].agent".`);
+      errors.push(
+        `No corresponding entity type named ${agent} for "mechanics.actions[${actionIndex}].agent".`,
+      );
     }
     if (!agentTypeNames.has(patient)) {
-      errors.push(`No corresponding entity type named ${patient} for "mechanics.actions[${actionIndex}].patient".`);
+      errors.push(
+        `No corresponding entity type named ${patient} for "mechanics.actions[${actionIndex}].patient".`,
+      );
     }
     if (left !== 'any' && left !== 'empty' && !itemTypeNames.has(left)) {
-      errors.push(`No corresponding item type named ${left} for "mechanics.actions[${actionIndex}].left".`);
+      errors.push(
+        `No corresponding item type named ${left} for "mechanics.actions[${actionIndex}].left".`,
+      );
     }
     if (right !== 'any' && right !== 'empty' && !itemTypeNames.has(right)) {
-      errors.push(`No corresponding item type named ${right} for "mechanics.actions[${actionIndex}].right".`);
+      errors.push(
+        `No corresponding item type named ${right} for "mechanics.actions[${actionIndex}].right".`,
+      );
     }
-    if (effect !== 'any' && effect !== 'empty' && !effectTypeNames.has(effect)) {
-      errors.push(`No corresponding effect type named ${right} for "mechanics.actions[${actionIndex}].effect".`);
+    if (
+      effect !== 'any' &&
+      effect !== 'empty' &&
+      !effectTypeNames.has(effect)
+    ) {
+      errors.push(
+        `No corresponding effect type named ${right} for "mechanics.actions[${actionIndex}].effect".`,
+      );
     }
     for (const [itemIndex, item] of enumerate(items)) {
       if (!itemTypeNames.has(item)) {
-        errors.push(`No corresponding item type named ${item} for "mechanics.actions[${actionIndex}].items[${itemIndex}]".`);
+        errors.push(
+          `No corresponding item type named ${item} for "mechanics.actions[${actionIndex}].items[${itemIndex}]".`,
+        );
       }
     }
   }
 };
 
-/** Generated by scripts/gen/whole-world-ts.js:
+/**
+ * Generated by scripts/gen/whole-world-ts.js:
  * @typedef {{colors: Map<string, string>, levels: Array<{topology: "rect",
  * size: {x: number, y: number}, colors: {base: string, lava: string, water:
  * string, earth: string}} | {topology: "torus", tilesPerChunk: {x: number, y:
@@ -244,10 +313,12 @@ const validateMechanics = (mechanics, errors) => {
  * facetsPerFace: number, tilesPerFacet: number, colors: Array<{base: string,
  * lava: string, water: string, earth: string}>}>, player: number | undefined,
  * locations: Array<number>, types: Array<number>, inventories: Array<{entity:
- * number, inventory: Array<number>}>, terrain: Array<number>, healths:
- * Array<{entity: number, health: number}>, staminas: Array<{entity: number,
- * stamina: number}>, entityTargetLocations: Array<{entity: number, location:
- * number}>, mechanics: {agentTypes: Array<{name: string, tile: string |
+ * number, inventory: Array<number>}> | undefined, terrain: Array<number> |
+ * undefined, healths: Array<{entity: number, health: number}> | undefined,
+ * staminas: Array<{entity: number, stamina: number}> | undefined,
+ * entityTargetLocations: Array<{entity: number, location: number}> |
+ * undefined, entityTargetEntities: Array<{from: number, to: number}> |
+ * undefined, mechanics: {agentTypes: Array<{name: string, tile: string |
  * undefined, wanders: string | undefined, dialog: Array<string> | undefined,
  * health: number | undefined, stamina: number | undefined, modes: Array<{tile:
  * string, holds: string | undefined, has: string | undefined, hot: boolean |
@@ -256,16 +327,17 @@ const validateMechanics = (mechanics, errors) => {
  * undefined}> | undefined, slots: Array<{tile: string, held: boolean |
  * undefined, pack: boolean | undefined}> | undefined}>, recipes: Array<{agent:
  * string, reagent: string, product: string, byproduct: string | undefined,
- * price: number | undefined, dialog: string | undefined}>, actions:
- * Array<{agent: string | undefined, patient: string, left: string | undefined,
- * right: string | undefined, effect: string | undefined, verb: string, items:
- * Array<string>, dialog: string | undefined}>, tileTypes: Array<{name: string,
- * text: string, turn: number | undefined}>, itemTypes: Array<{name: string,
- * tile: string | undefined, comestible: boolean | undefined, health: number |
- * undefined, stamina: number | undefined, heat: number | undefined, boat:
- * boolean | undefined, swimGear: boolean | undefined, tip: string | undefined,
- * slot: string | undefined}>, effectTypes: Array<{name: string, tile: string |
- * undefined}>}}} WholeWorldDescription
+ * price: number | undefined, dialog: string | undefined}> | undefined,
+ * actions: Array<{agent: string | undefined, patient: string, left: string |
+ * undefined, right: string | undefined, effect: string | undefined, verb:
+ * string, items: Array<string> | undefined, dialog: string | undefined}> |
+ * undefined, tileTypes: Array<{name: string, text: string, turn: number |
+ * undefined}>, itemTypes: Array<{name: string, tile: string | undefined,
+ * comestible: boolean | undefined, health: number | undefined, stamina: number
+ * | undefined, heat: number | undefined, boat: boolean | undefined, swimGear:
+ * boolean | undefined, tip: string | undefined, slot: string | undefined}> |
+ * undefined, effectTypes: Array<{name: string, tile: string | undefined}> |
+ * undefined}}} WholeWorldDescription
  */
 
 /**
@@ -303,6 +375,7 @@ export const validate = allegedWholeWorldDescription => {
     healths: describedHealths = [],
     staminas: describedStaminas = [],
     entityTargetLocations: describedEntityTargetLocations = [],
+    entityTargetEntities: describedEntityTargetEntities = [],
     colors: colorsByName,
     mechanics: mechanicsDescription,
   } = wholeWorldDescription;
@@ -484,6 +557,27 @@ export const validate = allegedWholeWorldDescription => {
     entityTargetLocations.set(entity, describedLocation);
   }
 
+  /** @type {Map<number, number>} */
+  const entityTargetEntities = new Map();
+  for (const entry of describedEntityTargetEntities) {
+    const { from: describedEntityFrom, to: describedEntityTo } = entry;
+    const entityFrom = describedEntityToEntity.get(describedEntityFrom);
+    if (entityFrom === undefined) {
+      errors.push(
+        `No corresponding "from" entity defined for entry in "entityTargetEntities" for entity ${describedEntityFrom} to ${describedEntityTo}`,
+      );
+      continue;
+    }
+    const entityTo = describedEntityToEntity.get(describedEntityTo);
+    if (entityTo === undefined) {
+      errors.push(
+        `No corresponding "to" entity defined for entry in "entityTargetEntities" for entity ${describedEntityFrom} to ${describedEntityTo}`,
+      );
+      continue;
+    }
+    entityTargetEntities.set(entityFrom, entityTo);
+  }
+
   /** @type {number | undefined } */
   let player;
   if (describedPlayer !== undefined) {
@@ -496,12 +590,18 @@ export const validate = allegedWholeWorldDescription => {
 
   const terrain = new Uint8Array(size);
   if (describedTerrain.length > size) {
-    errors.push(`Described terrain length (${describedTerrain.length}) is longer than the world's actual length (${size})`);
+    errors.push(
+      `Described terrain length (${describedTerrain.length}) is longer than the world's actual length (${size})`,
+    );
   } else {
     for (let index = 0; index < describedTerrain.length; index += 1) {
       const terrainFlags = describedTerrain[index];
       if ((terrainFlags | terrainMask) !== terrainMask) {
-        errors.push(`Terrain flags at location ${index} include unsupported flags: 0b${(terrainFlags & ~terrainMask).toString(2)}`);
+        errors.push(
+          `Terrain flags at location ${index} include unsupported flags: 0b${(
+            terrainFlags & ~terrainMask
+          ).toString(2)}`,
+        );
       }
     }
     terrain.set(describedTerrain, 0);
@@ -523,6 +623,7 @@ export const validate = allegedWholeWorldDescription => {
     staminas,
     inventories,
     entityTargetLocations,
+    entityTargetEntities,
     colorsByName,
   };
 

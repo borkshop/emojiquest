@@ -232,12 +232,13 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @property {number | undefined} player
  * @property {number} size
  * @property {Uint16Array} entities
- * @property {Array<number>} terrain
+ * @property {Uint8Array} terrain
  * @property {Map<number, number>} entityTypes
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
  * @property {Map<number, number>} entityTargetLocations
+ * @property {Map<number, number>} entityTargetEntities
  */
 
 const makeFlags = function* () {
@@ -246,7 +247,8 @@ const makeFlags = function* () {
   }
 };
 
-export const [terrainWater, terrainLava, terrainCold, terrainHot, terrainNext] = makeFlags();
+export const [terrainWater, terrainLava, terrainCold, terrainHot, terrainNext] =
+  makeFlags();
 export const terrainMask = terrainNext - 1;
 
 export const [heldSlot, packSlot] = makeFlags();
@@ -455,6 +457,8 @@ export function makeModel({
 
   /** @type {Map<number, number>} for teleport/warp/jump */
   const entityTargetLocations = new Map();
+  /** @type {Map<number, number>} for teleport/warp/jump */
+  const entityTargetEntities = new Map();
 
   /**
    * Note that entity numbers are not reused and this could lead to problems if
@@ -826,7 +830,15 @@ export function makeModel({
     return entityTargetLocations.get(entity);
   }
 
+  /**
+   * @param {number} entity
+   */
+  function entityTargetEntity(entity) {
+    return entityTargetEntities.get(entity);
+  }
+
   const kit = {
+    locate,
     entityType,
     entityEffect,
     take,
@@ -843,7 +855,9 @@ export function makeModel({
     entityHealth,
     entityStamina,
     entityTargetLocation,
+    entityTargetEntity,
     jump,
+    advance,
   };
 
   /**
@@ -1571,12 +1585,13 @@ export function makeModel({
    * @param {object} args
    * @param {number | undefined} args.player
    * @param {Uint16Array} args.entities
-   * @param {Array<number>} args.terrain
+   * @param {Uint8Array} args.terrain
    * @param {Map<number, number>} args.entityTypes
    * @param {Map<number, number>} args.healths
    * @param {Map<number, number>} args.staminas
    * @param {Map<number, Array<number>>} args.inventories
    * @param {Map<number, number>} args.entityTargetLocations
+   * @param {Map<number, number>} args.entityTargetEntities
    * @param {string} [name]
    */
   function restore(
@@ -1589,6 +1604,7 @@ export function makeModel({
       staminas: purportedStaminas,
       inventories: purportedInventories,
       entityTargetLocations: purportedEntityTargetLocations,
+      entityTargetEntities: purportedEntityTargetEntities,
     },
     name = '<unknown>',
   ) {
@@ -1598,6 +1614,7 @@ export function makeModel({
     healths.clear();
     staminas.clear();
     entityTargetLocations.clear();
+    entityTargetEntities.clear();
     for (let location = 0; location < size; location += 1) {
       const entity = entities[location];
       if (entity !== 0) {
@@ -1627,6 +1644,11 @@ export function makeModel({
           purportedEntityTargetLocations.get(purportedEntity);
         if (actualTargetLocation !== undefined) {
           entityTargetLocations.set(actualEntity, actualTargetLocation);
+        }
+        const actualTargetEntity =
+          purportedEntityTargetEntities.get(purportedEntity);
+        if (actualTargetEntity !== undefined) {
+          entityTargetEntities.set(actualEntity, actualTargetEntity);
         }
       }
     }

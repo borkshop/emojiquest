@@ -60,28 +60,32 @@ export const mechanicsSchema = $ =>
         ),
       }),
     ),
-    recipes: $.optional($.list(
-      $.struct({
-        agent: $.string(),
-        reagent: $.string(),
-        product: $.string(),
-        byproduct: $.optional($.string()),
-        price: $.optional($.number()),
-        dialog: $.optional($.string()),
-      }),
-    )),
-    actions: $.optional($.list(
-      $.struct({
-        agent: $.optional($.string()),
-        patient: $.string(),
-        left: $.optional($.string()),
-        right: $.optional($.string()),
-        effect: $.optional($.string()),
-        verb: $.string(),
-        items: $.optional($.list($.string())),
-        dialog: $.optional($.string()),
-      }),
-    )),
+    recipes: $.optional(
+      $.list(
+        $.struct({
+          agent: $.string(),
+          reagent: $.string(),
+          product: $.string(),
+          byproduct: $.optional($.string()),
+          price: $.optional($.number()),
+          dialog: $.optional($.string()),
+        }),
+      ),
+    ),
+    actions: $.optional(
+      $.list(
+        $.struct({
+          agent: $.optional($.string()),
+          patient: $.string(),
+          left: $.optional($.string()),
+          right: $.optional($.string()),
+          effect: $.optional($.string()),
+          verb: $.string(),
+          items: $.optional($.list($.string())),
+          dialog: $.optional($.string()),
+        }),
+      ),
+    ),
     tileTypes: $.list(
       $.struct({
         name: $.string(),
@@ -89,26 +93,30 @@ export const mechanicsSchema = $ =>
         turn: $.optional($.number()),
       }),
     ),
-    itemTypes: $.optional($.list(
-      $.struct({
-        name: $.string(),
-        tile: $.optional($.string()),
-        comestible: $.optional($.boolean()),
-        health: $.optional($.number()),
-        stamina: $.optional($.number()),
-        heat: $.optional($.number()),
-        boat: $.optional($.boolean()),
-        swimGear: $.optional($.boolean()),
-        tip: $.optional($.string()),
-        slot: $.optional($.string()),
-      }),
-    )),
-    effectTypes: $.optional($.list(
-      $.struct({
-        name: $.string(),
-        tile: $.optional($.string()),
-      }),
-    )),
+    itemTypes: $.optional(
+      $.list(
+        $.struct({
+          name: $.string(),
+          tile: $.optional($.string()),
+          comestible: $.optional($.boolean()),
+          health: $.optional($.number()),
+          stamina: $.optional($.number()),
+          heat: $.optional($.number()),
+          boat: $.optional($.boolean()),
+          swimGear: $.optional($.boolean()),
+          tip: $.optional($.string()),
+          slot: $.optional($.string()),
+        }),
+      ),
+    ),
+    effectTypes: $.optional(
+      $.list(
+        $.struct({
+          name: $.string(),
+          tile: $.optional($.string()),
+        }),
+      ),
+    ),
   });
 
 /**
@@ -127,31 +135,47 @@ const worldFields = $ => ({
   player: $.optional($.number()),
   locations: $.list($.number()),
   types: $.list($.number()),
-  inventories: $.optional($.list(
-    $.struct({
-      entity: $.number(),
-      inventory: $.list($.number()),
-    }),
-  )),
+  inventories: $.optional(
+    $.list(
+      $.struct({
+        entity: $.number(),
+        inventory: $.list($.number()),
+      }),
+    ),
+  ),
   terrain: $.optional($.list($.number())),
-  healths: $.optional($.list(
-    $.struct({
-      entity: $.number(),
-      health: $.number(),
-    }),
-  )),
-  staminas: $.optional($.list(
-    $.struct({
-      entity: $.number(),
-      stamina: $.number(),
-    }),
-  )),
-  entityTargetLocations: $.optional($.list(
-    $.struct({
-      entity: $.number(),
-      location: $.number(),
-    }),
-  )),
+  healths: $.optional(
+    $.list(
+      $.struct({
+        entity: $.number(),
+        health: $.number(),
+      }),
+    ),
+  ),
+  staminas: $.optional(
+    $.list(
+      $.struct({
+        entity: $.number(),
+        stamina: $.number(),
+      }),
+    ),
+  ),
+  entityTargetLocations: $.optional(
+    $.list(
+      $.struct({
+        entity: $.number(),
+        location: $.number(),
+      }),
+    ),
+  ),
+  entityTargetEntities: $.optional(
+    $.list(
+      $.struct({
+        from: $.number(),
+        to: $.number(),
+      }),
+    ),
+  ),
 });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
