@@ -36,6 +36,7 @@ import { enumerate } from './lib/iterate.js';
 import { makeMechanics } from './mechanics.js';
 import { toValidator, toEnricher } from './lib/schema-validator.js';
 import { wholeWorldSchema } from './schema.js';
+import { terrainMask } from './model.js';
 
 const validator = wholeWorldSchema(toValidator);
 const enricher = wholeWorldSchema(toEnricher);
@@ -297,11 +298,11 @@ export const validate = allegedWholeWorldDescription => {
     levels,
     types: describedEntityTypes,
     locations: describedLocations,
-    terrain,
-    inventories: describedInventories,
-    healths: describedHealths,
-    staminas: describedStaminas,
-    entityTargetLocations: describedEntityTargetLocations,
+    terrain: describedTerrain = [],
+    inventories: describedInventories = [],
+    healths: describedHealths = [],
+    staminas: describedStaminas = [],
+    entityTargetLocations: describedEntityTargetLocations = [],
     colors: colorsByName,
     mechanics: mechanicsDescription,
   } = wholeWorldDescription;
@@ -493,9 +494,17 @@ export const validate = allegedWholeWorldDescription => {
     }
   }
 
-  if (terrain.length !== size) {
-    errors.push(`"terrain" must be exactly ${size} long.`);
-    return { errors };
+  const terrain = new Uint8Array(size);
+  if (describedTerrain.length > size) {
+    errors.push(`Described terrain length (${describedTerrain.length}) is longer than the world's actual length (${size})`);
+  } else {
+    for (let index = 0; index < describedTerrain.length; index += 1) {
+      const terrainFlags = describedTerrain[index];
+      if ((terrainFlags | terrainMask) !== terrainMask) {
+        errors.push(`Terrain flags at location ${index} include unsupported flags: 0b${(terrainFlags & ~terrainMask).toString(2)}`);
+      }
+    }
+    terrain.set(describedTerrain, 0);
   }
 
   if (errors.length > 0) {

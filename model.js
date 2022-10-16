@@ -246,7 +246,8 @@ const makeFlags = function* () {
   }
 };
 
-export const [terrainWater, terrainLava, terrainCold, terrainHot] = makeFlags();
+export const [terrainWater, terrainLava, terrainCold, terrainHot, terrainNext] = makeFlags();
+export const terrainMask = terrainNext - 1;
 
 export const [heldSlot, packSlot] = makeFlags();
 
@@ -1096,6 +1097,7 @@ export function makeModel({
 
   /**
    * @param {number} location
+   * @returns {number} entity number or zero if no entity is present
    */
   function entityAt(location) {
     return assumeDefined(entities[location]);

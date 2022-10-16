@@ -60,7 +60,7 @@ export const mechanicsSchema = $ =>
         ),
       }),
     ),
-    recipes: $.list(
+    recipes: $.optional($.list(
       $.struct({
         agent: $.string(),
         reagent: $.string(),
@@ -69,8 +69,8 @@ export const mechanicsSchema = $ =>
         price: $.optional($.number()),
         dialog: $.optional($.string()),
       }),
-    ),
-    actions: $.list(
+    )),
+    actions: $.optional($.list(
       $.struct({
         agent: $.optional($.string()),
         patient: $.string(),
@@ -78,10 +78,10 @@ export const mechanicsSchema = $ =>
         right: $.optional($.string()),
         effect: $.optional($.string()),
         verb: $.string(),
-        items: $.list($.string()),
+        items: $.optional($.list($.string())),
         dialog: $.optional($.string()),
       }),
-    ),
+    )),
     tileTypes: $.list(
       $.struct({
         name: $.string(),
@@ -89,7 +89,7 @@ export const mechanicsSchema = $ =>
         turn: $.optional($.number()),
       }),
     ),
-    itemTypes: $.list(
+    itemTypes: $.optional($.list(
       $.struct({
         name: $.string(),
         tile: $.optional($.string()),
@@ -102,13 +102,13 @@ export const mechanicsSchema = $ =>
         tip: $.optional($.string()),
         slot: $.optional($.string()),
       }),
-    ),
-    effectTypes: $.list(
+    )),
+    effectTypes: $.optional($.list(
       $.struct({
         name: $.string(),
         tile: $.optional($.string()),
       }),
-    ),
+    )),
   });
 
 /**
@@ -127,31 +127,31 @@ const worldFields = $ => ({
   player: $.optional($.number()),
   locations: $.list($.number()),
   types: $.list($.number()),
-  inventories: $.list(
+  inventories: $.optional($.list(
     $.struct({
       entity: $.number(),
       inventory: $.list($.number()),
     }),
-  ),
-  terrain: $.list($.number()),
-  healths: $.list(
+  )),
+  terrain: $.optional($.list($.number())),
+  healths: $.optional($.list(
     $.struct({
       entity: $.number(),
       health: $.number(),
     }),
-  ),
-  staminas: $.list(
+  )),
+  staminas: $.optional($.list(
     $.struct({
       entity: $.number(),
       stamina: $.number(),
     }),
-  ),
-  entityTargetLocations: $.list(
+  )),
+  entityTargetLocations: $.optional($.list(
     $.struct({
       entity: $.number(),
       location: $.number(),
     }),
-  ),
+  )),
 });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
