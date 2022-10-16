@@ -1216,7 +1216,9 @@ export const makeController = ({
         const dialogTerms = [toponym(cursor.position)];
         const agentType = worldModel.entityTypeAt(cursor.position);
         if (agentType > 0) {
+          const agentNumber = worldModel.entityAt(cursor.position);
           const agentName = agentTypes[agentType].name;
+          dialogTerms.push(`#${agentNumber}`);
           dialogTerms.push(agentName);
         }
         const terrainFlags = worldModel.getTerrainFlags(cursor.position);
