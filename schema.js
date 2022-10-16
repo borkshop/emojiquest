@@ -83,6 +83,7 @@ export const mechanicsSchema = $ =>
           verb: $.string(),
           items: $.optional($.list($.string())),
           dialog: $.optional($.string()),
+          jump: $.optional($.string()),
         }),
       ),
     ),

@@ -811,9 +811,10 @@ export const actions = [
   {
     patient: 'northPole',
     right: 'any',
-    verb: 'jump',
+    verb: 'touch',
     items: [],
     dialog: '🎅Down you go!🤶',
+    jump: 'entity',
   },
 ];
 

@@ -207,6 +207,9 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @prop {number} destination
  * @prop {number} health
  * @prop {number} stamina
+ * @prop {import('./mechanics.js').Handler} [handler]
+ * @prop {import('./mechanics.js').HandlerParameters} [parameters]
+ * @prop {string} [dialog]
  */
 
 /**
@@ -459,6 +462,8 @@ export function makeModel({
   const entityTargetLocations = new Map();
   /** @type {Map<number, number>} for teleport/warp/jump */
   const entityTargetEntities = new Map();
+  /** @type {Map<number, Set<number>>} cograph of entityTargetEntities */
+  const entitySourceEntities = new Map();
 
   /**
    * Note that entity numbers are not reused and this could lead to problems if
@@ -494,6 +499,27 @@ export function makeModel({
     staleHealths.delete(entity);
     staleHealthTrajectories.delete(entity);
     entitiesWriteBuffer[location] = 0;
+
+    // Update entityTargetEntities graph, including
+    // backward facing edges.
+    const targetEntity = entityTargetEntities.get(entity);
+    if (targetEntity !== undefined) {
+      entityTargetEntities.delete(entity);
+      const sourceEntities = assumeDefined(
+        entitySourceEntities.get(targetEntity),
+      );
+      sourceEntities.delete(entity);
+      if (sourceEntities.size === 0) {
+        entitySourceEntities.delete(targetEntity);
+      }
+    }
+    const sourceEntities = entitySourceEntities.get(entity);
+    if (sourceEntities !== undefined) {
+      for (const sourceEntity of sourceEntities) {
+        entityTargetEntities.delete(sourceEntity);
+      }
+    }
+    entitySourceEntities.delete(entity);
   }
 
   /** @type {TypeFn} */
@@ -750,37 +776,6 @@ export function makeModel({
   }
 
   /**
-   * An intent to jump can be the result of a bump, so cannot be the cause of a
-   * bump.
-   *
-   * @param {number} agent
-   * @param {number} destination
-   * @param {number} direction
-   */
-  function jump(agent, destination, direction) {
-    const { passable, dialog, health, stamina } = pass(agent, destination);
-    if (!passable) {
-      assertDefined(dialog);
-      // TODO shakes?
-      bounces.set(agent, 0);
-      onDialog(agent, dialog);
-    } else {
-      const origin = locate(agent);
-      assertDefined(health);
-      assertDefined(stamina);
-      bids(destination).set(agent, {
-        position: origin,
-        destination,
-        direction,
-        turn: undefined,
-        transit: false,
-        health,
-        stamina,
-      });
-    }
-  }
-
-  /**
    * @param {number} entity
    */
   function intendToCraft(entity) {
@@ -838,7 +833,6 @@ export function makeModel({
   }
 
   const kit = {
-    locate,
     entityType,
     entityEffect,
     take,
@@ -854,9 +848,6 @@ export function makeModel({
     immersed,
     entityHealth,
     entityStamina,
-    entityTargetLocation,
-    entityTargetEntity,
-    jump,
     advance,
   };
 
@@ -929,10 +920,66 @@ export function makeModel({
       };
       const bumped = bump(kit, parameters);
       if (bumped !== undefined) {
-        const { handler, dialog } = bumped;
-        handler(kit, parameters);
-        if (dialog !== undefined) {
-          onDialog(agent, dialog);
+        const { handler, dialog, jump } = bumped;
+        if (jump !== undefined) {
+          let jumpTargetLocation;
+          if (jump === 'location') {
+            jumpTargetLocation = entityTargetLocation(patient);
+          } else if (jump === 'entity') {
+            const jumpTargetEntity = entityTargetEntity(patient);
+            if (jumpTargetEntity !== undefined) {
+              const jumpTargetEntityLocation = locate(jumpTargetEntity);
+              if (jumpTargetEntityLocation > 0) {
+                const adjacentCursor = advance({
+                  position: jumpTargetEntityLocation,
+                  direction,
+                });
+                if (adjacentCursor !== undefined) {
+                  jumpTargetLocation = adjacentCursor.position;
+                }
+              }
+            }
+          } else {
+            throw new Error(
+              `Program invariant failed: jump property of actions should be validated to one of "location" or "entity"`,
+            );
+          }
+
+          if (jumpTargetLocation !== undefined) {
+            const { passable, dialog, health, stamina } = pass(
+              agent,
+              jumpTargetLocation,
+            );
+            if (!passable) {
+              assertDefined(dialog);
+              onDialog(agent, dialog);
+            } else {
+              const origin = locate(agent);
+              assertDefined(health);
+              assertDefined(stamina);
+              bids(jumpTargetLocation).set(agent, {
+                position: origin,
+                destination: jumpTargetLocation,
+                direction,
+                turn: undefined,
+                transit: false,
+                health,
+                stamina,
+                handler,
+                parameters,
+                dialog,
+              });
+            }
+          } else {
+            // The jump target does not exist because of the direction and
+            // topology.
+          }
+        } else {
+          // Effective immediately.
+          handler(kit, parameters);
+          if (dialog !== undefined) {
+            onDialog(agent, dialog);
+          }
         }
       } else {
         talk(agent, patient);
@@ -947,8 +994,23 @@ export function makeModel({
       const losers = [...options.keys()];
       const winner = pluck(losers, Math.floor(Math.random() * losers.length));
       const change = assumeDefined(options.get(winner));
-      const { position: origin, health, stamina } = change;
+      const {
+        position: origin,
+        health,
+        stamina,
+        handler,
+        parameters,
+        dialog,
+      } = change;
       assert(entities[destination] === 0);
+
+      if (dialog !== undefined) {
+        onDialog(winner, dialog);
+      }
+
+      if (handler !== undefined && parameters !== undefined) {
+        handler(kit, parameters);
+      }
 
       // Move
       locations.set(winner, destination);
@@ -1617,6 +1679,7 @@ export function makeModel({
     staminas.clear();
     entityTargetLocations.clear();
     entityTargetEntities.clear();
+    entitySourceEntities.clear();
     for (let location = 0; location < size; location += 1) {
       const entity = entities[location];
       if (entity !== 0) {
@@ -1651,6 +1714,12 @@ export function makeModel({
           purportedEntityTargetEntities.get(purportedEntity);
         if (actualTargetEntity !== undefined) {
           entityTargetEntities.set(actualEntity, actualTargetEntity);
+          let sourceEntities = entitySourceEntities.get(actualTargetEntity);
+          if (sourceEntities === undefined) {
+            sourceEntities = new Set();
+            entitySourceEntities.set(actualTargetEntity, sourceEntities);
+          }
+          sourceEntities.add(actualEntity);
         }
       }
     }

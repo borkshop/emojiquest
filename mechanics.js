@@ -93,6 +93,7 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  *   verb: string,
  *   items?: Array<string>,
  *   dialog?: string,
+ *   jump?: string,
  * }} Action
  *
  * @typedef {{
@@ -111,7 +112,6 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  * @typedef {Object} Kit
  * @property {(entity: number) => number} entityType
  * @property {(entity: number) => number} entityEffect
- * @property {(entity: number) => number} locate
  * @property {(entity: number, direction: number, location: number) => void} take
  * @property {(entity: number, location: number) => void} fell
  * @property {(entity: number, slot: number) => number} inventory
@@ -124,10 +124,36 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  * @property {(entity: number) => boolean} immersed
  * @property {(entity: number) => number} entityHealth
  * @property {(entity: number) => number} entityStamina
- * @property {(entity: number) => number | undefined} entityTargetLocation
- * @property {(entity: number) => number | undefined} entityTargetEntity
- * @property {(entity: number, location: number, direction: number) => void} jump
  * @property {AdvanceFn} advance
+ */
+
+/**
+ * @typedef {Object} BumpKeyParameters
+ * @property {number} agentType
+ * @property {number} patientType
+ * @property {number} leftType
+ * @property {number} rightType,
+ * @property {number} effectType,
+ */
+
+/**
+ * @typedef {Object} HandlerParameters
+ * @property {number} agent
+ * @property {number} patient
+ * @property {number} direction
+ * @property {number} destination
+ */
+
+/**
+ * @callback Handler
+ * @param {Kit} kit
+ * @param {HandlerParameters} params
+ */
+
+/**
+ * @callback Verb
+ * @param {[number, number?]} itemTypeNames
+ * @returns {Handler}
  */
 
 /**
@@ -220,39 +246,16 @@ export function makeMechanics({
     return undefined;
   }
 
-  /**
-   * @typedef {Object} BumpKeyParameters
-   * @property {number} agentType
-   * @property {number} patientType
-   * @property {number} leftType
-   * @property {number} rightType,
-   * @property {number} effectType,
-   */
-
-  /**
-   * @typedef {Object} HandlerParameters
-   * @property {number} agent
-   * @property {number} patient
-   * @property {number} direction
-   * @property {number} destination
-   */
-
-  /**
-   * @callback Handler
-   * @param {Kit} kit
-   * @param {HandlerParameters} params
-   */
-
-  /**
-   * @callback Verb
-   * @param {[number, number?]} itemTypeNames
-   * @returns {Handler}
-   */
-
   // TODO each verb should assert that it receives defined item types for
   // however many items it needs.
   /** @type {Record<string, Verb>} */
   const verbs = {
+    touch([]) {
+      /** @type {Handler} */
+      function touchHandler() {}
+      return touchHandler;
+    },
+
     take([yieldType]) {
       /** @type {Handler} */
       function takeHandler(kit, { agent, patient, direction, destination }) {
@@ -312,32 +315,6 @@ export function makeMechanics({
         kit.put(agent, 0, yieldType);
       }
       return replaceHandler;
-    },
-
-    jump([]) {
-      /** @type {Handler} */
-      const jump = (kit, { agent, patient, direction }) => {
-        // Jump target can be anchored either on a location or another entity.
-        const location = kit.entityTargetLocation(patient);
-        if (location !== undefined) {
-          kit.jump(agent, location, direction);
-        } else {
-          const target = kit.entityTargetEntity(patient);
-          if (target !== undefined) {
-            const targetLocation = kit.locate(target);
-            if (targetLocation > 0) {
-              const adjacentCursor = kit.advance({
-                position: targetLocation,
-                direction,
-              });
-              if (adjacentCursor !== undefined) {
-                kit.jump(agent, adjacentCursor.position, direction);
-              }
-            }
-          }
-        }
-      };
-      return jump;
     },
 
     // XXX Coordinate new verbs with validator in file.js.
@@ -455,6 +432,7 @@ export function makeMechanics({
       verb,
       items = [],
       dialog,
+      jump,
     } = action;
 
     const productType = itemTypesByName[items[0]];
@@ -482,7 +460,7 @@ export function makeMechanics({
       effectType,
     });
 
-    bumpingFormulae.set(key, { handler, dialog });
+    bumpingFormulae.set(key, { handler, dialog, jump });
   }
 
   // Cross-reference agent modes.

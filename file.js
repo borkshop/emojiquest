@@ -247,9 +247,11 @@ const validateMechanics = (mechanics, errors) => {
       effect = 'any',
       verb,
       items = [],
+      jump,
     } = action;
     if (
       ![
+        'touch',
         'take',
         'reap',
         'cut',
@@ -257,7 +259,6 @@ const validateMechanics = (mechanics, errors) => {
         'split',
         'merge',
         'replace',
-        'jump',
       ].includes(verb)
     ) {
       errors.push(
@@ -300,6 +301,11 @@ const validateMechanics = (mechanics, errors) => {
         );
       }
     }
+    if (jump !== undefined && jump !== 'entity' && jump !== 'location') {
+      errors.push(
+        `Jump property must be to "entity" or "location" for "mechanics.actions[${actionIndex}].jump".`,
+      );
+    }
   }
 };
 
@@ -330,14 +336,14 @@ const validateMechanics = (mechanics, errors) => {
  * price: number | undefined, dialog: string | undefined}> | undefined,
  * actions: Array<{agent: string | undefined, patient: string, left: string |
  * undefined, right: string | undefined, effect: string | undefined, verb:
- * string, items: Array<string> | undefined, dialog: string | undefined}> |
- * undefined, tileTypes: Array<{name: string, text: string, turn: number |
- * undefined}>, itemTypes: Array<{name: string, tile: string | undefined,
- * comestible: boolean | undefined, health: number | undefined, stamina: number
- * | undefined, heat: number | undefined, boat: boolean | undefined, swimGear:
- * boolean | undefined, tip: string | undefined, slot: string | undefined}> |
- * undefined, effectTypes: Array<{name: string, tile: string | undefined}> |
- * undefined}}} WholeWorldDescription
+ * string, items: Array<string> | undefined, dialog: string | undefined, jump:
+ * string | undefined}> | undefined, tileTypes: Array<{name: string, text:
+ * string, turn: number | undefined}>, itemTypes: Array<{name: string, tile:
+ * string | undefined, comestible: boolean | undefined, health: number |
+ * undefined, stamina: number | undefined, heat: number | undefined, boat:
+ * boolean | undefined, swimGear: boolean | undefined, tip: string | undefined,
+ * slot: string | undefined}> | undefined, effectTypes: Array<{name: string,
+ * tile: string | undefined}> | undefined}}} WholeWorldDescription
  */
 
 /**
