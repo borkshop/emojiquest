@@ -921,14 +921,16 @@ export function makeModel({
       bounces.set(agent, direction);
       // A side-effect of bumping may include cancellation of the above
       // bounce, in the case that the agent is destroyed by another bump.
-      const bumped = bump(kit, {
+      const parameters = {
         agent,
         patient,
         destination,
         direction,
-      });
-      if (bumped !== null) {
-        const { dialog } = bumped;
+      };
+      const bumped = bump(kit, parameters);
+      if (bumped !== undefined) {
+        const { handler, dialog } = bumped;
+        handler(kit, parameters);
         if (dialog !== undefined) {
           onDialog(agent, dialog);
         }

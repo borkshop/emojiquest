@@ -373,18 +373,11 @@ export function makeMechanics({
   }
 
   /**
-   * @param {Kit} kit
    * @param {BumpKeyParameters & HandlerParameters} parameters
    */
-  function bumpCombination(kit, parameters) {
+  function bumpCombination(parameters) {
     const key = bumpKey(parameters);
-    const match = bumpingFormulae.get(key);
-    if (match !== undefined) {
-      const { handler } = match;
-      handler(kit, parameters);
-      return match;
-    }
-    return null;
+    return bumpingFormulae.get(key);
   }
 
   /**
@@ -400,7 +393,7 @@ export function makeMechanics({
     for (const effectType of [agentEffectType, effectTypesByName.any]) {
       for (const rightType of [right, itemTypesByName.any]) {
         for (const leftType of [left, itemTypesByName.any]) {
-          const match = bumpCombination(kit, {
+          const match = bumpCombination({
             ...parameters,
             agentType,
             patientType,
@@ -408,13 +401,13 @@ export function makeMechanics({
             rightType,
             effectType,
           });
-          if (match !== null) {
+          if (match !== undefined) {
             return match;
           }
         }
       }
     }
-    return null;
+    return undefined;
   }
 
   /**
