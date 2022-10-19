@@ -162,6 +162,7 @@ const noop = () => {};
  * @param {World} world
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
+ * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
  * @returns {Mode}
  */
 
@@ -234,7 +235,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @prop {import('./topology.js').AdvanceFn} advance,
  * @prop {import('./topology.js').ToponymFn} toponym
  * @prop {import('./macro-view-model.js').MacroViewModel} worldMacroViewModel
- * @prop {(player: number | undefined) => unknown} capture
+ * @prop {import('./model.js').CaptureFn} capture
  * @prop {CameraController} cameraController
  */
 
@@ -299,7 +300,7 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {() => Promise<void>} args.loadWorld
- * @param {(worldData: unknown) => Promise<void>} args.saveWorld
+ * @param {(worldData: import('./file.js').WholeWorldDescription) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
  */
 export const makeController = ({
@@ -382,8 +383,9 @@ export const makeController = ({
   /**
    * @param {World} world
    * @param {import('./mechanics.js').Mechanics} mechanics
+   * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
    */
-  const makeWorldModes = (world, mechanics) => {
+  const makeWorldModes = (world, mechanics, wholeWorldDescription) => {
     const {
       worldModel,
       worldMacroViewModel,
@@ -1159,7 +1161,10 @@ export const makeController = ({
               exitMenuMode({});
               return limboMode;
             } else if (state === 'save') {
-              saveWorld(capture(player)).finally(() => {
+              saveWorld({
+                ...wholeWorldDescription,
+                ...capture(player),
+              }).finally(() => {
                 mode = menuMode;
               });
               return limboMode;
@@ -1644,10 +1649,11 @@ export const makeController = ({
     handleCommand(_command, _repeat) {
       return limboMode;
     },
-    play(world, mechanics, player) {
+    play(world, mechanics, player, wholeWorldDescription) {
       const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
         world,
         mechanics,
+        wholeWorldDescription,
       );
       worldClock = clock;
       if (player !== undefined) {
@@ -1801,11 +1807,12 @@ export const makeController = ({
    * @param {World} world
    * @param {import('./mechanics.js').Mechanics} mechanics
    * @param {number | undefined} player
+   * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
    */
-  const play = (world, mechanics, player) => {
+  const play = (world, mechanics, player, wholeWorldDescription) => {
     if (mode.play) {
       tock();
-      mode = mode.play(world, mechanics, player);
+      mode = mode.play(world, mechanics, player, wholeWorldDescription);
       tick();
     }
   };

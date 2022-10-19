@@ -456,7 +456,12 @@ export const makeScaffold = (
   };
 
   const play = () => {
-    controller.play(world, mechanics, player);
+    controller.play(
+      world,
+      mechanics,
+      player,
+      /** @type {import('./file.js').WholeWorldDescription} */ ({}),
+    );
     controller.tock();
   };
 

@@ -159,10 +159,10 @@ const main = async () => {
   let dispose = Function.prototype;
 
   /**
-   * @param {unknown} wholeWorldData
+   * @param {unknown} allegedWholeWorldDescription
    */
-  const playWorld = wholeWorldData => {
-    const result = validate(wholeWorldData);
+  const playWorld = allegedWholeWorldDescription => {
+    const result = validate(allegedWholeWorldDescription);
     if ('errors' in result) {
       let message = '';
       for (const error of result.errors) {
@@ -173,7 +173,7 @@ const main = async () => {
       // TODO abort load and return to previous world
       return;
     }
-    const { snapshot, mechanics } = result;
+    const { snapshot, mechanics, wholeWorldDescription } = result;
 
     const createElement = makeEntityCreator(mechanics.viewText);
     nineKeyWatcher.reset(createElement);
@@ -193,7 +193,7 @@ const main = async () => {
     dispose = world.dispose;
 
     const { player } = snapshot;
-    controller.play(world, mechanics, player);
+    controller.play(world, mechanics, player, wholeWorldDescription);
   };
 
   const types = [
@@ -225,12 +225,12 @@ const main = async () => {
   };
 
   /**
-   * @param {unknown} wholeWorldData
+   * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
    */
-  const saveWorld = async wholeWorldData => {
+  const saveWorld = async wholeWorldDescription => {
     const handle = await window.showSaveFilePicker({ types });
     const stream = await handle.createWritable();
-    const text = `${JSON.stringify(wholeWorldData)}\n`;
+    const text = `${JSON.stringify(wholeWorldDescription)}\n`;
     const blob = new Blob([text]);
     await stream.write(blob);
     await stream.close();
@@ -260,8 +260,8 @@ const main = async () => {
   const response = await fetch(
     new URL('emojiquest/emojiquest.json', import.meta.url).href,
   );
-  const wholeWorldData = await response.json();
-  playWorld(wholeWorldData);
+  const allegedWholeWorldDescription = await response.json();
+  playWorld(allegedWholeWorldDescription);
 };
 
 main();

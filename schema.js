@@ -125,14 +125,6 @@ export const mechanicsSchema = $ =>
  * @param {SchemaTo<T>} $
  */
 const worldFields = $ => ({
-  colors: $.dict($.string()),
-  levels: $.list(
-    $.choice('topology', {
-      rect: rect($),
-      torus: torus($),
-      daia: daia($),
-    }),
-  ),
   player: $.optional($.number()),
   locations: $.list($.number()),
   types: $.list($.number()),
@@ -185,6 +177,14 @@ export const worldSchema = $ => $.struct(worldFields($));
 /** @type {<T>(t: SchemaTo<T>) => T} */
 export const wholeWorldSchema = $ =>
   $.struct({
+    colors: $.dict($.string()),
+    levels: $.list(
+      $.choice('topology', {
+        rect: rect($),
+        torus: torus($),
+        daia: daia($),
+      }),
+    ),
     ...worldFields($),
     mechanics: mechanicsSchema($),
   });

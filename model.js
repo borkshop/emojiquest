@@ -216,8 +216,6 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @typedef {ReturnType<makeModel>} Model
  */
 
-/** @typedef {Model['capture']} CaptureFn */
-
 /**
  * @callback WatchTerrainFn
  * @param {Iterable<number>} locations
@@ -242,6 +240,12 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @property {Map<number, Array<number>>} inventories
  * @property {Map<number, number>} entityTargetLocations
  * @property {Map<number, number>} entityTargetEntities
+ */
+
+/**
+ * @callback CaptureFn
+ * @param {number | undefined} player
+ * @returns {import('./file.js').WorldDescription}
  */
 
 const makeFlags = function* () {
@@ -1567,7 +1571,7 @@ export function makeModel({
 
   // TODO allow for absence of player in model file
   /**
-   * @param {number | undefined} player
+   * @type {CaptureFn}
    */
   function capture(player) {
     const renames = new Map();
@@ -1626,6 +1630,16 @@ export function makeModel({
         location,
       });
     }
+    /** @type {Array<{from: number, to: number}>} */
+    const reentityTargetEntities = [];
+    for (const [from, to] of entityTargetEntities.entries()) {
+      const refrom = assumeDefined(renames.get(from));
+      const reto = assumeDefined(renames.get(to));
+      reentityTargetEntities.push({
+        from: refrom,
+        to: reto,
+      });
+    }
 
     /** @type {number | undefined} replayer */
     let replayer;
@@ -1642,6 +1656,7 @@ export function makeModel({
       healths: rehealths,
       staminas: restaminas,
       entityTargetLocations: reentityTargetLocations,
+      entityTargetEntities: reentityTargetEntities,
     };
   }
 
