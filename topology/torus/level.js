@@ -26,8 +26,6 @@ export const sizeLevel = level => {
  * @param {object} args
  * @param {number} args.offset
  * @param {Level} args.level
- * @param {Node} args.parentElement
- * @param {Node} args.nextSibling
  * @param {number} args.tileSizePx
  * @param {import('../../world.js').CreateEntityFn} args.createEntity
  * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
@@ -41,8 +39,6 @@ export const sizeLevel = level => {
 export const makeLevel = ({
   offset,
   level,
-  parentElement,
-  nextSibling,
   tileSizePx,
   createEntity,
   watchTerrain,
@@ -71,7 +67,12 @@ export const makeLevel = ({
 
   // View
 
-  const makeView = () => {
+  /**
+   * @param {object} args
+   * @param {Node} args.parentElement
+   * @param {Node} args.nextSibling
+   */
+  const makeView = ({ parentElement, nextSibling }) => {
     const { $map, cameraController } = makeMap({
       tilesPerChunk,
       tileSizePx,

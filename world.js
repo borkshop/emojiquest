@@ -24,7 +24,7 @@ import * as rect from './topology/rect/level.js';
  * @prop {number} size
  * @prop {import('./topology.js').AdvanceFn} advance
  * @prop {import('./topology.js').ToponymFn} toponym
- * @prop {() => LevelView} makeView
+ * @prop {(args: { parentElement: Node, nextSibling: Node }) => LevelView} makeView
  */
 
 /**
@@ -197,8 +197,6 @@ export const makeWorld = (
         offset,
         level,
         frustumRadius,
-        parentElement,
-        nextSibling,
         tileSizePx,
         createEntity,
         watchTerrain,
@@ -214,8 +212,6 @@ export const makeWorld = (
         offset,
         level,
         // frustumRadius,
-        parentElement,
-        nextSibling,
         tileSizePx,
         createEntity,
         watchTerrain,
@@ -230,8 +226,6 @@ export const makeWorld = (
       return rect.makeLevel({
         offset,
         level,
-        parentElement,
-        nextSibling,
         tileSizePx,
         createEntity,
         watchTerrain,
@@ -294,7 +288,10 @@ export const makeWorld = (
     jump(global) {
       const { level, local, index } = locate(global);
       if (currentLevelView === undefined) {
-        currentLevelView = level.makeView();
+        currentLevelView = level.makeView({
+          parentElement,
+          nextSibling,
+        });
         currentLevelIndex = index;
         currentLevelView.cameraController.jump(local);
       } else {
@@ -302,7 +299,10 @@ export const makeWorld = (
         if (currentLevelIndex === index) {
           currentLevelView.cameraController.jump(local);
         }
-        nextLevelView = level.makeView();
+        nextLevelView = level.makeView({
+          parentElement,
+          nextSibling,
+        });
         nextLevelIndex = index;
         nextLevelView.cameraController.jump(local);
         nextLevelView.hide();
