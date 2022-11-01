@@ -281,6 +281,15 @@ export const agentTypes = [
       '🦈 MARIA DIEI:<br> Seas the day! 🔚',
     ],
   },
+  {
+    name: 'southPole',
+    dialog: [
+      '🧙‍♀️ I am the <b>Sand Witch</b>…',
+      '🧙‍♂️ And I am the <b>Cheese Wizard</b>…',
+      '🧙‍♀️ We just live here, but don’t tell the <b>🐧 penguins</b>…',
+      '🧙‍♂️ Definitely do not <i>approach</i> the <b>🐧 penguins</b>. 🔚',
+    ],
+  },
 ];
 
 /**
@@ -490,6 +499,7 @@ export const tileTypes = [
   { name: 'owl', text: '🦉   ' },
   { name: 'log', text: '🪵 ' },
   { name: 'northPole', text: '💈    ' },
+  { name: 'southPole', text: '🗼    ' },
   { name: 'clover', text: '☘️    ' },
   { name: 'fleurDeLis', text: '⚜️   ' },
   { name: 'trident', text: '🔱     ' },
@@ -814,6 +824,14 @@ export const actions = [
     verb: 'touch',
     items: [],
     dialog: '🎅Down you go!🤶',
+    jump: 'entity',
+  },
+  {
+    patient: 'southPole',
+    right: 'any',
+    verb: 'touch',
+    items: [],
+    dialog: '🧙‍♂️ Up you go! 🧙‍♀️',
     jump: 'entity',
   },
 ];
