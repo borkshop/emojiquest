@@ -38,10 +38,6 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  */
 
 /**
- * @typedef {ReturnType<makeModel>} Model
- */
-
-/**
  * @callback WatchTerrainFn
  * @param {Iterable<number>} locations
  * @param {(location: number) => void} watcher

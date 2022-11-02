@@ -1,9 +1,14 @@
 import type { Coord, Transition } from './animation2d.js';
 import type { Progress, AnimateFn } from './progress.js';
 
+// Informs the view that the animation turn has begun.
+export type TickFn = () => void;
+// Informs the view that the animation turn has ended.
+export type TockFn = () => void;
+
 export type Clock = {
-  tick: () => void;
-  tock: () => void;
+  tick: TickFn;
+  tock: TockFn;
   animate: AnimateFn;
 };
 
@@ -57,6 +62,37 @@ export type AdvanceFn = (cursor: Cursor) => CursorChange | undefined;
 export type ToponymFn = (
   t: number, // tile number
 ) => string;
+
+export type ModelReadFacet = {
+  locate: (entity: number) => number;
+  inventory: (entity: number, slot: number) => number;
+  allPacked: (entity: number, start?: number) => boolean;
+  anyPacked: (entity: number, start?: number) => boolean;
+  entityAt: (location: number) => number;
+  entityTypeAt: (location: number) => number;
+  getTerrainFlags: (location: number) => number;
+  entityType: (entity: number) => number;
+  entityHealth: (entity: number) => number;
+  entityStamina: (entity: number) => number;
+  intendToMove: (entity: number, direction: number, repeat?: boolean) => void;
+  intendToCraft: (entity: number) => void;
+  swap: (entity: number, i: number, j: number) => void;
+  use: (entity: number, slot: number) => void;
+  follow: (entity: number, follower: ModelFollower) => void;
+  unfollow: (entity: number, follower: ModelFollower) => void;
+};
+
+export type ModelWriteFacet = {
+  remove: (location: number) => void;
+  set: (location: number, entityType: number) => number;
+  toggleTerrainFlags: (location: number, terrainFlags: number) => void;
+};
+
+export type ModelControllerFacet = ModelReadFacet &
+  ModelWriteFacet & {
+    tick: TickFn;
+    tock: TockFn;
+  };
 
 export type MacroViewModelFacetForModel = {
   put: (entity: number, location: number, tileType: number) => void;
@@ -196,11 +232,6 @@ export type ActionParameters = {
 };
 
 export type ActionHandler = (kit: ModelKit, params: ActionParameters) => void;
-
-// Informs the view that the animation turn has begun.
-export type TickFn = () => void;
-// Informs the view that the animation turn has ended.
-export type TockFn = () => void;
 
 export type AgentDescription = {
   name: string;

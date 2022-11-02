@@ -231,7 +231,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
 
 /**
  * @typedef {object} World
- * @prop {import('./model.js').Model} worldModel
+ * @prop {import('./types.js').ModelControllerFacet} worldModel
  * @prop {import('./types.js').AdvanceFn} advance,
  * @prop {import('./types.js').ToponymFn} toponym
  * @prop {import('./types.js').MacroViewModelFacetForController} worldMacroViewModel
