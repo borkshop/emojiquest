@@ -88,9 +88,9 @@ export const faceRotations = [
  * @prop {number} faceSize
  * @prop {number} faceArea
  * @prop {number} worldArea
- * @prop {import('../../topology.js').AdvanceFn} advance
- * @prop {import('../../topology.js').TileCoordinateFn} tileCoordinate
- * @prop {import('../../topology.js').TileNumberFn} tileNumber
+ * @prop {import('../../types.js').AdvanceFn} advance
+ * @prop {import('../../types.js').TileCoordinateFn} tileCoordinate
+ * @prop {import('../../types.js').TileNumberFn} tileNumber
  */
 
 /**
@@ -176,7 +176,7 @@ export function makeTopology({ faceSize = 1 }) {
     (/** @type {number} */ t) => t - 1, // east
   ];
 
-  /** @type {import('../../topology.js').TileCoordinateFn} */
+  /** @type {import('../../types.js').TileCoordinateFn} */
   function tileCoordinate(t) {
     const f = Math.floor(t / faceArea);
     assert(f < 6);
@@ -186,12 +186,12 @@ export function makeTopology({ faceSize = 1 }) {
     return { t, f, n, x, y };
   }
 
-  /** @type {import('../../topology.js').TileNumberFn} */
+  /** @type {import('../../types.js').TileNumberFn} */
   function tileNumber({ x, y, f }) {
     return f * faceArea + y * faceSize + x;
   }
 
-  /** @type {import('../../topology.js').AdvanceFn} */
+  /** @type {import('../../types.js').AdvanceFn} */
   function advance({ position, direction }) {
     const coord = tileCoordinate(position);
     const { f } = coord;

@@ -16,7 +16,7 @@
 import { north, south, east, west } from './lib/geometry2d.js';
 
 /**
- * @typedef {import('./topology.js').AdvanceFn} AdvanceFn
+ * @typedef {import('./types.js').AdvanceFn} AdvanceFn
  */
 
 /**
@@ -43,7 +43,7 @@ function* arc(position, advance, direction, r) {
   const r2 = r * r;
   for (let x = 0; x < r; x++) {
     const x2 = (x + 1) * (x + 1);
-    /** @type {import('./topology.js').Cursor | undefined} */
+    /** @type {import('./types.js').Cursor | undefined} */
     let minor = {
       position: major.position,
       direction: turn(major.direction, -1),

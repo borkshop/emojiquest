@@ -303,7 +303,7 @@ export const makeScaffold = (
 
   /**
    * @param {number} _destination
-   * @param {import('./topology.js').CursorChange} _change
+   * @param {import('./types.js').CursorChange} _change
    */
   const followCursor = (_destination, _change) => {};
 

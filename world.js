@@ -22,8 +22,8 @@ import * as rect from './topology/rect/level.js';
  * @typedef {object} Level
  * @prop {import('./file.js').Level} descriptor
  * @prop {number} size
- * @prop {import('./topology.js').AdvanceFn} advance
- * @prop {import('./topology.js').ToponymFn} toponym
+ * @prop {import('./types.js').AdvanceFn} advance
+ * @prop {import('./types.js').ToponymFn} toponym
  * @prop {(args: { parentElement: Node, nextSibling: Node }) => LevelView} makeView
  */
 
@@ -95,7 +95,7 @@ export const makeWorld = (
     assert(false);
   };
 
-  /** @type {import('./topology.js').AdvanceFn} */
+  /** @type {import('./types.js').AdvanceFn} */
   const advance = ({
     position: previousGlobalPosition,
     direction: previousDirection,

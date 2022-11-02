@@ -18,8 +18,8 @@ import { tileColorForTerrainFlags } from '../../lib/color.js';
 /** @typedef {import('../../lib/geometry2d.js').Point} Point */
 /** @typedef {import('../../progress.js').Progress} Progress */
 /** @typedef {import('../../animation2d.js').Coord} Coord */
-/** @typedef {import('../../topology.js').Cursor} Cursor */
-/** @typedef {import('../../topology.js').CursorChange} CursorChange */
+/** @typedef {import('../../types.js').Cursor} Cursor */
+/** @typedef {import('../../types.js').CursorChange} CursorChange */
 /** @typedef {import('../../view-model.js').Watcher} Watcher */
 /** @typedef {import('../../view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('../../view-model.js').EntityWatchFn} EntityWatchFn */
@@ -225,7 +225,7 @@ export function makeChunkCreator({
  * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
  * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
  * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
- * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../../types.js').TileCoordinateFn} args.tileCoordinate
  */
 export const makeMap = ({
   tilesForChunk,

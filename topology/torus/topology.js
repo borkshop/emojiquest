@@ -8,9 +8,9 @@ import { quarturnVectors } from '../../lib/geometry2d.js';
 /**
  * @typedef {Object} Topology
  * @prop {number} area
- * @prop {import('../../topology.js').AdvanceFn} advance
- * @prop {import('../../topology.js').TileCoordinateFn} tileCoordinate
- * @prop {import('../../topology.js').TileNumberFn} tileNumber
+ * @prop {import('../../types.js').AdvanceFn} advance
+ * @prop {import('../../types.js').TileCoordinateFn} tileCoordinate
+ * @prop {import('../../types.js').TileNumberFn} tileNumber
  */
 
 /**
@@ -21,7 +21,7 @@ import { quarturnVectors } from '../../lib/geometry2d.js';
 export function makeTopology({ size }) {
   const area = size.x * size.y;
 
-  /** @type {import('../../topology.js').TileCoordinateFn} */
+  /** @type {import('../../types.js').TileCoordinateFn} */
   function tileCoordinate(t) {
     const f = 0;
     const n = 0;
@@ -30,12 +30,12 @@ export function makeTopology({ size }) {
     return { t, f, n, x, y };
   }
 
-  /** @type {import('../../topology.js').TileNumberFn} */
+  /** @type {import('../../types.js').TileNumberFn} */
   function tileNumber({ x, y }) {
     return mod(y, size.y) * size.x + mod(x, size.x);
   }
 
-  /** @type {import('../../topology.js').AdvanceFn} */
+  /** @type {import('../../types.js').AdvanceFn} */
   function advance({ position: sourcePosition, direction }) {
     const { x, y, f } = tileCoordinate(sourcePosition);
     const { x: dx, y: dy } = quarturnVectors[direction];

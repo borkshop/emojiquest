@@ -94,8 +94,8 @@ import { makeTileKeeper } from '../../tile-keeper.js';
 /** @typedef {import('../../lib/geometry2d.js').Point} Point */
 /** @typedef {import('../../progress.js').Progress} Progress */
 /** @typedef {import('../../animation2d.js').Coord} Coord */
-/** @typedef {import('../../topology.js').Cursor} Cursor */
-/** @typedef {import('../../topology.js').CursorChange} CursorChange */
+/** @typedef {import('../../types.js').Cursor} Cursor */
+/** @typedef {import('../../types.js').CursorChange} CursorChange */
 /** @typedef {import('../../view-model.js').Watcher} Watcher */
 /** @typedef {import('../../view-model.js').PlaceFn} PlaceFn */
 /** @typedef {import('../../view-model.js').EntityWatchFn} EntityWatchFn */
@@ -123,9 +123,9 @@ const centerVector = { x: 0.5, y: 0.5 };
 /**
  * @param {Object} options
  * @param {number} options.tilesPerFacet
- * @param {import('../../topology.js').TileNumberFn} options.tileNumber
- * @param {import('../../topology.js').TileCoordinateFn} options.facetCoordinate
- * @param {import('../../topology.js').AdvanceFn} options.advance
+ * @param {import('../../types.js').TileNumberFn} options.tileNumber
+ * @param {import('../../types.js').TileCoordinateFn} options.facetCoordinate
+ * @param {import('../../types.js').AdvanceFn} options.advance
  */
 const makeFacetMapper = ({
   tilesPerFacet,
@@ -512,13 +512,13 @@ const makeFace = ({
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags
- * @param {import('../../topology.js').TileNumberFn} args.tileNumber
- * @param {import('../../topology.js').TileNumberFn} args.facetNumber
- * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
- * @param {import('../../topology.js').TileCoordinateFn} args.facetCoordinate
- * @param {import('../../topology.js').AdvanceFn} args.advance
- * @param {import('../../topology.js').TileCoordinateFn} args.faceTileCoordinate
- * @param {import('../../topology.js').AdvanceFn} args.faceAdvance
+ * @param {import('../../types.js').TileNumberFn} args.tileNumber
+ * @param {import('../../types.js').TileNumberFn} args.facetNumber
+ * @param {import('../../types.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../../types.js').TileCoordinateFn} args.facetCoordinate
+ * @param {import('../../types.js').AdvanceFn} args.advance
+ * @param {import('../../types.js').TileCoordinateFn} args.faceTileCoordinate
+ * @param {import('../../types.js').AdvanceFn} args.faceAdvance
  */
 export const makeMap = ({
   tilesPerFacet,

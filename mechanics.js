@@ -10,7 +10,7 @@ import { assertDefined, assumeDefined } from './lib/assert.js';
 import { heldSlot, packSlot } from './model.js';
 
 /**
- * @typedef {import('./topology.js').AdvanceFn} AdvanceFn
+ * @typedef {import('./types.js').AdvanceFn} AdvanceFn
  */
 
 /** @type {{[name: string]: number}} */

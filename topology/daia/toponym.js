@@ -61,7 +61,7 @@ export function ternym(scale, x, y, arrows) {
 /**
  * @param {object} args
  * @param {number} args.faceSize
- * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../../types.js').TileCoordinateFn} args.tileCoordinate
  * @param {number} [args.offset]
  */
 export function makeToponym({ faceSize, tileCoordinate, offset = 0 }) {

@@ -144,7 +144,7 @@ const main = async () => {
 
   /**
    * @param {number} _destination
-   * @param {import('./topology.js').CursorChange} change
+   * @param {import('./types.js').CursorChange} change
    */
   const followCursor = (_destination, change) => {
     moment.set((moment.get() + change.turn + fullQuarturn) % fullQuarturn);

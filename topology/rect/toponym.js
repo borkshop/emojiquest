@@ -2,7 +2,7 @@
 
 /**
  * @param {object} args
- * @param {import('../../topology.js').TileCoordinateFn} args.tileCoordinate
+ * @param {import('../../types.js').TileCoordinateFn} args.tileCoordinate
  * @param {number} [args.offset]
  */
 export function makeToponym({ tileCoordinate, offset = 0 }) {
