@@ -12,7 +12,7 @@
  * Agent types are captured by index in game state and are not safe to reorder
  * or delete.
  *
- * @type {Array<import('../mechanics.js').AgentType>}
+ * @type {Array<import('../mechanics.js').AgentDescription>}
  */
 export const agentTypes = [
   {
@@ -296,7 +296,7 @@ export const agentTypes = [
  * Item types are captured by index in game state and are not safe to reorder
  * or delete.
  *
- * @type {Array<import('../mechanics.js').ItemType>}
+ * @type {Array<import('../mechanics.js').ItemDescription>}
  */
 export const itemTypes = [
   {
@@ -406,7 +406,7 @@ export const itemTypes = [
  * Tile types are not captured numerically in game state so these are safe to
  * reorder.
  *
- * @type {Array<import('../mechanics.js').TileType>}
+ * @type {Array<import('../mechanics.js').TileDescription>}
  */
 export const tileTypes = [
   { name: 'happy', text: '🙂' },
@@ -532,7 +532,7 @@ export const tileTypes = [
  * keys are also not guaranteed to be consistent between versions of the
  * mechanics as the game grows and will not be captured in game state.
  *
- * @type {Array<import('../mechanics.js').Recipe>}
+ * @type {Array<import('../mechanics.js').RecipeDescription>}
  */
 export const recipes = [
   // metallurgy 1
@@ -595,7 +595,7 @@ export const recipes = [
  * Actions are not _yet_ captured by index in game state, but may need to be
  * for journaling or achievements.
  *
- * @type {Array<import('../mechanics.js').Action>}
+ * @type {Array<import('../mechanics.js').ActionDescription>}
  */
 export const actions = [
   // raw material
@@ -838,5 +838,5 @@ export const actions = [
 
 // TODO 🪨rock, 📄paper, ✂️scissors, 🦎lizard, 🖖spock
 
-/** @type {Array<import('../mechanics.js').EffectType>} */
+/** @type {Array<import('../mechanics.js').EffectDescription>} */
 export const effectTypes = [];

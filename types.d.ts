@@ -99,7 +99,131 @@ export type Follower = {
   stamina: (entity: number, stamina: number) => void;
 };
 
+export type Kit = {
+  entityType: (entity: number) => number;
+  entityEffect: (entity: number) => number;
+  take: (entity: number, direction: number, location: number) => void;
+  fell: (entity: number, location: number) => void;
+  inventory: (entity: number, slot: number) => number;
+  put: (entity: number, slot: number, itemType: number) => void;
+  has: (entity: number, itemType: number) => boolean;
+  holds: (entity: number, itemType: number) => boolean;
+  cold: (entity: number) => boolean;
+  hot: (entity: number) => boolean;
+  sick: (entity: number) => boolean;
+  immersed: (entity: number) => boolean;
+  entityHealth: (entity: number) => number;
+  entityStamina: (entity: number) => number;
+  advance: AdvanceFn;
+};
+
+export type BumpKeyParameters = {
+  agentType: number; // an agent type
+  patientType: number; // an agent type
+  leftType: number; // an item type
+  rightType: number; // an item type
+  effectType: number;
+};
+
+export type HandlerParameters = {
+  agent: number;
+  patient: number;
+  direction: number;
+  destination: number;
+};
+
+export type Handler = (kit: Kit, params: HandlerParameters) => void;
+
 // Informs the view that the animation turn has begun.
 export type TickFn = () => void;
 // Informs the view that the animation turn has ended.
 export type TockFn = () => void;
+
+export type AgentDescription = {
+  name: string;
+  tile?: string;
+  wanders?: string;
+  dialog?: Array<string>;
+  health?: number;
+  stamina?: number;
+  modes?: Array<{
+    tile: string;
+    holds?: string;
+    has?: string;
+    hot?: boolean;
+    cold?: boolean;
+    sick?: boolean;
+    health?: number;
+    stamina?: number;
+    immersed?: boolean;
+  }>;
+  slots?: Array<{
+    tile: string;
+    held?: boolean;
+    pack?: boolean;
+  }>;
+};
+
+export type ConditionDescription =
+  | { has: true; item: number }
+  | { holds: true; item: number }
+  | { hot: true }
+  | { cold: true }
+  | { sick: true }
+  | { immersed: true }
+  | { health: number }
+  | { stamina: number };
+
+export type ItemDescription = {
+  name: string;
+  tile?: string;
+  comestible?: boolean;
+  health?: number;
+  stamina?: number;
+  heat?: number;
+  boat?: boolean;
+  swimGear?: boolean;
+  tip?: string;
+  slot?: string;
+};
+
+export type TileDescription = {
+  name: string;
+  text: string;
+  turn?: number;
+};
+
+export type RecipeDescription = {
+  agent: string;
+  reagent: string;
+  product: string;
+  byproduct?: string;
+  price?: number;
+  dialog?: string;
+};
+
+export type ActionDescription = {
+  agent?: string;
+  patient: string;
+  left?: string;
+  right?: string;
+  effect?: string;
+  verb: string;
+  items?: Array<string>;
+  dialog?: string;
+  jump?: string;
+};
+
+export type EffectDescription = {
+  name: string;
+  tile?: string;
+};
+
+export type MechanicsDescription = {
+  recipes?: Array<RecipeDescription>;
+  actions?: Array<ActionDescription>;
+  tileTypes?: Array<TileDescription>;
+  agentTypes?: Array<AgentDescription>;
+  itemTypes?: Array<ItemDescription>;
+  effectTypes?: Array<EffectDescription>;
+};
