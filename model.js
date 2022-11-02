@@ -106,7 +106,7 @@ const pluck = (candidates, index) => {
  * @param {Object} args
  * @param {number} args.size
  * @param {AdvanceFn} args.advance
- * @param {import('./types.js').MacroViewModel} args.macroViewModel
+ * @param {import('./types.js').MacroViewModelFacetForModel} args.macroViewModel
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {Snapshot} [args.snapshot]
  */

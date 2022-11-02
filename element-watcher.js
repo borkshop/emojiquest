@@ -26,7 +26,7 @@ import { placeEntity } from './animation2d.js';
  * @param {(tile: number, type: number) => ChildElement} createElement
  */
 
-/** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
+/** @typedef {import('./types.js').PlaceFn} PlaceFn */
 
 /**
  * @template {Element} ChildElement

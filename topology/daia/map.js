@@ -96,9 +96,9 @@ import { makeTileKeeper } from '../../tile-keeper.js';
 /** @typedef {import('../../animation2d.js').Coord} Coord */
 /** @typedef {import('../../types.js').Cursor} Cursor */
 /** @typedef {import('../../types.js').CursorChange} CursorChange */
-/** @typedef {import('../../view-model.js').Watcher} Watcher */
-/** @typedef {import('../../view-model.js').PlaceFn} PlaceFn */
-/** @typedef {import('../../view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('../../types.js').Watcher} Watcher */
+/** @typedef {import('../../types.js').PlaceFn} PlaceFn */
+/** @typedef {import('../../types.js').WatchEntitiesFn} WatchEntitiesFn */
 /** @typedef {import('../../model.js').WatchTerrainFn} WatchTerrainFn */
 /** @typedef {import('../../model.js').GetTerrainFlagsFn} GetTerrainFlagsFn */
 
@@ -235,8 +235,8 @@ const makeFacetMapper = ({
  * @param {WatchTerrainFn} args.unwatchTerrain
  * @param {GetTerrainFlagsFn} args.getTerrainFlags
  * @param {CreateEntityFn} args.createEntity
- * @param {EntityWatchFn} args.watchEntities
- * @param {EntityWatchFn} args.unwatchEntities
+ * @param {WatchEntitiesFn} args.watchEntities
+ * @param {WatchEntitiesFn} args.unwatchEntities
  */
 export function makeFacetCreator({
   watchTerrain,
@@ -390,8 +390,8 @@ export function makeFacetCreator({
  * @param {number} args.tileSizePx
  * @param {number} args.faceSizePx
  * @param {number} args.facetSizePx
- * @param {EntityWatchFn} args.watchEntities
- * @param {EntityWatchFn} args.unwatchEntities
+ * @param {WatchEntitiesFn} args.watchEntities
+ * @param {WatchEntitiesFn} args.unwatchEntities
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags
@@ -507,8 +507,8 @@ const makeFace = ({
  * @param {number} args.frustumRadius
  * @param {CreateEntityFn} args.createEntity
  * @param {Array<import('../../lib/color.js').Palette>} args.palettesByLayer
- * @param {EntityWatchFn} args.watchEntities
- * @param {EntityWatchFn} args.unwatchEntities
+ * @param {WatchEntitiesFn} args.watchEntities
+ * @param {WatchEntitiesFn} args.unwatchEntities
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.watchTerrain
  * @param {(locations: Iterable<number>, mark: (location: number) => void) => void} args.unwatchTerrain
  * @param {(location: number) => number} args.getTerrainFlags

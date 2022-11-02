@@ -49,7 +49,7 @@ const makeTestWatcher = (t, { size, tileTypes, glyphsByTileName }) => {
     return cell;
   };
 
-  /** @type {import('./view-model.js').Watcher} */
+  /** @type {import('./types.js').Watcher} */
   const watcher = {
     enter(entity, type) {
       // t.log('9x9 enter', { entity, type });

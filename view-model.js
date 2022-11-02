@@ -19,16 +19,8 @@ import { setDifference } from './lib/set.js';
 /** @typedef {import('./progress.js').Progress} Progress */
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./animation2d.js').Transition} Transition */
-
-/** @typedef {ReturnType<makeViewModel>} ViewModel */
-
-// TODO remove
-/**
- * @callback EntityWatchFn
- * @param {Map<number, Coord>} tiles - tile number to coordinate
- * @param {Watcher} watcher - notified when a tile enters, exits, or moves
- * within a region
- */
+/** @typedef {import('./types.js').Watcher} Watcher */
+/** @typedef {import('./types.js').WatchEntitiesFn} WatchEntitiesFn */
 
 /**
  * @callback WatchFn
@@ -36,49 +28,6 @@ import { setDifference } from './lib/set.js';
  * within a region
  * @param {number} tile - tile number
  * @param {Coord} coordinate - coordinate of tile in watcher space
- */
-
-/**
- * @callback PlaceFn
- * @param {number} entity
- * @param {Coord} coord - position in the origin coordinate plane, including
- * any inherent rotation angle relative to that plane due to transition over
- * the edge of the world to another face.
- * @param {number} pressure - button pressure on entity.
- * @param {Progress=} progress - precomputed progress parameters.
- * @param {Transition=} transition - animated transition parameters.
- */
-
-/**
- * @typedef {Object} Watcher
- * @prop {(entity: number, type: number) => void} enter
- * @prop {(entity: number) => void} exit
- * @prop {PlaceFn} place
- */
-
-/**
- * @callback PutFn
- * @param {number} entity - entity number
- * @param {number} location - tile number
- * @param {number} type - tile type
- */
-
-/**
- * @callback MoveFn
- * @param {number} entity - entity number
- * @param {number} to - tile number
- */
-
-/**
- * @callback RemoveFn
- * @param {number} entity - entity number
- */
-
-/**
- * @callback TransitionFn
- * @param {number} entity - entity number
- * @param {Transition} transition - how to animate the entity's transition into
- * the next turn.
  */
 
 export function makeViewModel() {
@@ -134,7 +83,11 @@ export function makeViewModel() {
     return tileWatchers !== undefined;
   }
 
-  /** @type {PutFn} */
+  /**
+   * @param {number} entity - entity number
+   * @param {number} location - tile number
+   * @param {number} type - tile type
+   */
   function put(entity, location, type) {
     tiles.set(entity, { location, type });
     let entities = colocated.get(location);
@@ -155,7 +108,9 @@ export function makeViewModel() {
     }
   }
 
-  /** @type {RemoveFn} */
+  /**
+   * @param {number} entity - entity number
+   */
   function remove(entity) {
     pressures.delete(entity);
     animating.delete(entity);
@@ -173,7 +128,10 @@ export function makeViewModel() {
     }
   }
 
-  /** @type {MoveFn} */
+  /**
+   * @param {number} entity - entity number
+   * @param {number} to - tile number
+   */
   function move(entity, to) {
     const tile = assumeDefined(
       tiles.get(entity),
@@ -210,14 +168,14 @@ export function makeViewModel() {
     }
   }
 
-  /** @type {EntityWatchFn} */
+  /** @type {WatchEntitiesFn} */
   function watchEntities(tiles, watcher) {
     for (const [location, coord] of tiles.entries()) {
       watcherEntersTile(watcher, location, coord);
     }
   }
 
-  /** @type {EntityWatchFn} */
+  /** @type {WatchEntitiesFn} */
   function unwatchEntities(tiles, watcher) {
     for (const location of tiles.keys()) {
       watcherExitsTile(watcher, location);
@@ -294,14 +252,10 @@ export function makeViewModel() {
   }
 
   /**
-   * @param {number} location - tile number
-   * @returns {Map<number, number>=}
+   * @param {number} entity - entity number
+   * @param {Transition} transition - how to animate the entity's transition into
+   * the next turn.
    */
-  function entitiesAtTile(location) {
-    return colocated.get(location);
-  }
-
-  /** @type {TransitionFn} */
   function transition(entity, transition) {
     assertDefined(
       tiles.get(entity),
@@ -405,17 +359,16 @@ export function makeViewModel() {
     return pressures.get(command) || 0;
   }
 
+  /** @type {import('./types.js').ViewModelFacetForMacroViewModel &
+   * import('./types.js').ViewModelFacetForView} */
   return {
     move,
     put,
     remove,
     down,
     up,
-    entitiesAtTile,
     watched,
     watchEntities,
-    watcherEntersTile,
-    watcherExitsTile,
     unwatchEntities,
     animate,
     transition,

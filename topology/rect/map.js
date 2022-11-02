@@ -20,9 +20,9 @@ import { tileColorForTerrainFlags } from '../../lib/color.js';
 /** @typedef {import('../../animation2d.js').Coord} Coord */
 /** @typedef {import('../../types.js').Cursor} Cursor */
 /** @typedef {import('../../types.js').CursorChange} CursorChange */
-/** @typedef {import('../../view-model.js').Watcher} Watcher */
-/** @typedef {import('../../view-model.js').PlaceFn} PlaceFn */
-/** @typedef {import('../../view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('../../types.js').Watcher} Watcher */
+/** @typedef {import('../../types.js').PlaceFn} PlaceFn */
+/** @typedef {import('../../types.js').WatchEntitiesFn} WatchEntitiesFn */
 
 /**
  * @callback TilesForChunkFn
@@ -56,8 +56,8 @@ const svgNS = 'http://www.w3.org/2000/svg';
  * @param {(location: number) => number} args.getTerrainFlags
  * @param {CreateEntityFn} args.createEntity
  * @param {import('../../lib/color.js').Palette} args.palette
- * @param {EntityWatchFn} args.watchEntities
- * @param {EntityWatchFn} args.unwatchEntities
+ * @param {WatchEntitiesFn} args.watchEntities
+ * @param {WatchEntitiesFn} args.unwatchEntities
  */
 export function makeChunkCreator({
   $viewport,
@@ -220,8 +220,8 @@ export function makeChunkCreator({
  * @param {TilesForChunkFn} args.tilesForChunk
  * @param {CreateEntityFn} args.createEntity
  * @param {import('../../lib/color.js').Palette} args.palette
- * @param {import('../../view-model.js').EntityWatchFn} args.watchEntities
- * @param {import('../../view-model.js').EntityWatchFn} args.unwatchEntities
+ * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
+ * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
  * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
  * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
  * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags

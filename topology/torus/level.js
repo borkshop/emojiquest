@@ -31,8 +31,8 @@ export const sizeLevel = level => {
  * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
  * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
  * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
- * @param {import('../../view-model.js').EntityWatchFn} args.watchEntities
- * @param {import('../../view-model.js').EntityWatchFn} args.unwatchEntities
+ * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
+ * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
  * @param {import('../../file.js').ColorNamePalette} args.colorNamePalette
  * @param {Map<string, string>} args.colorsByName
  */

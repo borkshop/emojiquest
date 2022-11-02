@@ -4,6 +4,8 @@ import { assert, assertNonZero } from './lib/assert.js';
 import { halfOcturn, fullOcturn, octurnVectors } from './lib/geometry2d.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 
+const noop = () => {};
+
 /**
  * @typedef {[number, number, number, number, number, number, number, number, number]} NineNumbers
  */
@@ -35,7 +37,7 @@ const gridLocations = gridCoordinates.map(({ x, y }) => locate(x, y));
 const octurnGridIndexes = [7, 8, 5, 2, 1, 0, 3, 6];
 
 /**
- * @param {import('./macro-view-model.js').MacroViewModel} macroViewModel
+ * @param {import('./types.js').MacroViewModelFacetForAdapter} macroViewModel
  */
 export function makeNineKeyView(macroViewModel) {
   let next = 1; // 0 is a sentinel for absence.
@@ -185,24 +187,12 @@ export function makeNineKeyView(macroViewModel) {
   /**
    * @param {number} slot
    */
-  function up(slot) {
-    const entity = entities[slot];
-    if (entity !== 0) {
-      macroViewModel.up(entity);
-    }
-  }
-
-  /**
-   * @param {number} slot
-   */
   function down(slot) {
     const entity = entities[slot];
     if (entity !== 0) {
-      macroViewModel.down(entity);
+      return macroViewModel.down(entity);
     }
-    return () => {
-      macroViewModel.up(entity);
-    };
+    return noop;
   }
 
   return {
@@ -216,7 +206,6 @@ export function makeNineKeyView(macroViewModel) {
     replace,
     bounce,
     give,
-    up,
     down,
   };
 }

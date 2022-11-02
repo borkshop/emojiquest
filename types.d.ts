@@ -1,3 +1,12 @@
+import type { Coord, Transition } from './animation2d.js';
+import type { Progress, AnimateFn } from './progress.js';
+
+export type Clock = {
+  tick: () => void;
+  tock: () => void;
+  animate: AnimateFn;
+};
+
 // A TileCoordinate fully qualifies a coordinate on a possibly multi-faceted
 // level.
 export type TileCoordinate = {
@@ -49,7 +58,7 @@ export type ToponymFn = (
   t: number, // tile number
 ) => string;
 
-export type MacroViewModel = {
+export type MacroViewModelFacetForModel = {
   put: (entity: number, location: number, tileType: number) => void;
   move: (
     entity: number,
@@ -57,6 +66,7 @@ export type MacroViewModel = {
     directionQuarturns: number,
     turnQuarturns: number,
   ) => void;
+  remove: (entity: number) => void;
   jump: (
     entity: number,
     destination: number,
@@ -72,10 +82,62 @@ export type MacroViewModel = {
     turnQuarturns: number,
   ) => void;
   take: (entity: number, direction: number) => void;
+  give: (
+    entity: number,
+    origin: number,
+    destination: number,
+    type: number,
+    directionOcturns: number,
+  ) => void;
   fell: (entity: number) => void;
   enter: (entity: number) => void;
   exit: (entity: number) => void;
   bounce: (entity: number, directionQuarturns: number) => void;
+};
+
+export type MacroViewModelFacetForAdapter = MacroViewModelFacetForModel & {
+  down: (entity: number) => () => void;
+};
+
+export type MacroViewModelFacetForController = MacroViewModelFacetForModel &
+  Clock;
+
+export type ViewModelFacetForMacroViewModel = {
+  put: (entity: number, location: number, type: number) => void;
+  move: (entity: number, destination: number) => void;
+  remove: (entity: number) => void;
+  transition: (entity: number, transition: Transition) => void;
+  watched: (entity: number) => boolean;
+  down: (command: number) => void;
+  up: (command: number) => void;
+  tock: () => void;
+  animate: AnimateFn;
+};
+
+export type PlaceFn = (
+  entity: number,
+  coord: Coord,
+  pressure: number,
+  progress?: Progress,
+  transition?: Transition,
+) => void;
+
+// Watcher receives notifications when a tile enters, exits, or moves within a
+// view.
+export type Watcher = {
+  enter: (entity: number, type: number) => void;
+  exit: (entity: number) => void;
+  place: PlaceFn;
+};
+
+export type WatchEntitiesFn = (
+  tiles: Map<number, Coord>, // from tile number to coordinate
+  watcher: Watcher,
+) => void;
+
+export type ViewModelFacetForView = {
+  watchEntities: WatchEntitiesFn;
+  unwatchEntities: WatchEntitiesFn;
 };
 
 export type Recipe = {

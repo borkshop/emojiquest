@@ -171,7 +171,7 @@ export const makeWorld = (
       return worldModel.getTerrainFlags(location + offset);
     };
 
-    /** @type {import('./view-model.js').EntityWatchFn} */
+    /** @type {import('./types.js').WatchEntitiesFn} */
     const watchEntities = (tiles, watcher) => {
       return worldViewModel.watchEntities(
         new Map(
@@ -181,7 +181,7 @@ export const makeWorld = (
       );
     };
 
-    /** @type {import('./view-model.js').EntityWatchFn} */
+    /** @type {import('./types.js').WatchEntitiesFn} */
     const unwatchEntities = (tiles, watcher) => {
       return worldViewModel.unwatchEntities(
         new Map(

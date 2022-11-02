@@ -15,12 +15,7 @@
 import { assert, assumeDefined } from './lib/assert.js';
 
 /**
- * @typedef {import('./view-model.js').ViewModel} ViewModel
- * @typedef {ReturnType<makeMacroViewModel>} MacroViewModel
- */
-
-/**
- * @param {ViewModel} viewModel
+ * @param {import('./types.js').ViewModelFacetForMacroViewModel} viewModel
  * @param {Object} [options]
  * @param {string} [options.name]
  * @param {number} [options.start]
@@ -314,16 +309,6 @@ export function makeMacroViewModel(
   /**
    * @param {number} external
    */
-  function up(external) {
-    const internal = entities.get(external);
-    if (internal !== undefined) {
-      viewModel.up(internal);
-    }
-  }
-
-  /**
-   * @param {number} external
-   */
   function down(external) {
     const internal = entity(external);
     viewModel.down(internal);
@@ -370,7 +355,6 @@ export function makeMacroViewModel(
 
     // Animation functions
     animate,
-    up,
     down,
 
     // Planning functions

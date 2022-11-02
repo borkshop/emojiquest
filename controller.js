@@ -112,9 +112,9 @@ const numberKeys = {
 /** @typedef {import('./progress.js').Progress} Progress */
 /** @typedef {import('./animation2d.js').Coord} Coord */
 /** @typedef {import('./animation2d.js').Transition} Transition */
-/** @typedef {import('./view-model.js').Watcher} Watcher */
-/** @typedef {import('./view-model.js').PlaceFn} PlaceFn */
-/** @typedef {import('./view-model.js').EntityWatchFn} EntityWatchFn */
+/** @typedef {import('./types.js').Watcher} Watcher */
+/** @typedef {import('./types.js').PlaceFn} PlaceFn */
+/** @typedef {import('./types.js').WatchEntitiesFn} WatchEntitiesFn */
 
 const noop = () => {};
 
@@ -234,7 +234,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @prop {import('./model.js').Model} worldModel
  * @prop {import('./types.js').AdvanceFn} advance,
  * @prop {import('./types.js').ToponymFn} toponym
- * @prop {import('./macro-view-model.js').MacroViewModel} worldMacroViewModel
+ * @prop {import('./types.js').MacroViewModelFacetForController} worldMacroViewModel
  * @prop {import('./model.js').CaptureFn} capture
  * @prop {CameraController} cameraController
  */
