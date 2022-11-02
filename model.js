@@ -20,7 +20,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 /** @typedef {import('./types.js').AdvanceFn} AdvanceFn */
 /** @typedef {import('./types.js').CursorChange} CursorChange */
 /** @typedef {import('./types.js').Recipe} Recipe */
-/** @typedef {import('./types.js').Follower} Follower */
+/** @typedef {import('./types.js').ModelFollower} ModelFollower */
+/** @typedef {import('./types.js').ModelKit} ModelKit */
 
 /**
  * @callback TypeFn
@@ -37,8 +38,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @prop {number} destination
  * @prop {number} health
  * @prop {number} stamina
- * @prop {import('./mechanics.js').Handler} [handler]
- * @prop {import('./mechanics.js').HandlerParameters} [parameters]
+ * @prop {import('./types.js').ActionHandler} [handler]
+ * @prop {import('./types.js').ActionParameters} [parameters]
  * @prop {string} [dialog]
  */
 
@@ -252,7 +253,7 @@ export function makeModel({
    * distinguish an accidental call from a deliberate call by balancing follow
    * and unfollow calls.
    *
-   * @type {Map<number, Set<Follower>>}
+   * @type {Map<number, Set<ModelFollower>>}
    */
   const followers = new Map();
 
@@ -378,12 +379,12 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {Follower} follower
+   * @param {ModelFollower} follower
    */
   function follow(e, follower) {
     let entityFollowers = followers.get(e);
     if (entityFollowers === undefined) {
-      /** @type {Set<Follower>} */
+      /** @type {Set<ModelFollower>} */
       entityFollowers = new Set();
       followers.set(e, entityFollowers);
     }
@@ -410,7 +411,7 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {Follower} follower
+   * @param {ModelFollower} follower
    */
   function unfollow(e, follower) {
     const entityFollowers = followers.get(e);
@@ -666,6 +667,7 @@ export function makeModel({
     return entityTargetEntities.get(entity);
   }
 
+  /** @type {ModelKit} */
   const kit = {
     entityType,
     entityEffect,

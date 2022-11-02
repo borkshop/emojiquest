@@ -27,28 +27,16 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
  * @typedef {import('./types.js').ActionDescription} ActionDescription
  * @typedef {import('./types.js').EffectDescription} EffectDescription
  * @typedef {import('./types.js').MechanicsDescription} MechanicsDescription
- * @typedef {import('./types.js').Kit} Kit
- * @typedef {import('./types.js').BumpKeyParameters} BumpKeyParameters
- */
-
-/**
- * @typedef {import('./types.js').HandlerParameters} HandlerParameters
- * @property {number} agent
- * @property {number} patient
- * @property {number} direction
- * @property {number} destination
- */
-
-/**
- * @callback Handler
- * @param {Kit} kit
- * @param {HandlerParameters} params
+ * @typedef {import('./types.js').ModelKit} ModelKit
+ * @typedef {import('./types.js').ActionTypeParameters} ActionTypeParameters
+ * @typedef {import('./types.js').ActionHandler} ActionHandler
+ * @typedef {import('./types.js').ActionParameters} ActionParameters
  */
 
 /**
  * @callback Verb
  * @param {[number, number?]} itemTypeNames
- * @returns {Handler}
+ * @returns {ActionHandler}
  */
 
 /**
@@ -146,13 +134,13 @@ export function makeMechanics({
   /** @type {Record<string, Verb>} */
   const verbs = {
     touch([]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function touchHandler() {}
       return touchHandler;
     },
 
     take([yieldType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function takeHandler(kit, { agent, patient, direction, destination }) {
         kit.put(agent, 0, yieldType);
         kit.take(patient, direction, destination);
@@ -161,7 +149,7 @@ export function makeMechanics({
     },
 
     reap([yieldType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function reapHandler(kit, { agent, patient, destination }) {
         kit.put(agent, 1, yieldType);
         kit.fell(patient, destination);
@@ -170,7 +158,7 @@ export function makeMechanics({
     },
 
     cut([yieldType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function cutHandler(kit, { agent }) {
         kit.put(agent, 1, yieldType);
       }
@@ -178,7 +166,7 @@ export function makeMechanics({
     },
 
     pick([yieldType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function cutHandler(kit, { agent }) {
         kit.put(agent, 0, yieldType);
       }
@@ -186,7 +174,7 @@ export function makeMechanics({
     },
 
     split([leftType, rightType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function splitHandler(kit, { agent }) {
         assertDefined(rightType);
         kit.put(agent, 0, leftType);
@@ -196,7 +184,7 @@ export function makeMechanics({
     },
 
     merge([changeType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function mergeHandler(kit, { agent }) {
         kit.put(agent, 0, changeType);
         kit.put(agent, 1, itemTypesByName.empty);
@@ -205,7 +193,7 @@ export function makeMechanics({
     },
 
     replace([yieldType]) {
-      /** @type {Handler} */
+      /** @type {ActionHandler} */
       function replaceHandler(kit, { agent }) {
         kit.put(agent, 0, yieldType);
       }
@@ -216,7 +204,7 @@ export function makeMechanics({
   };
 
   /**
-   * @param {BumpKeyParameters} parameters
+   * @param {ActionTypeParameters} parameters
    */
   function bumpKey({
     agentType,
@@ -245,7 +233,7 @@ export function makeMechanics({
   }
 
   /**
-   * @param {BumpKeyParameters & HandlerParameters} parameters
+   * @param {ActionTypeParameters} parameters
    */
   function bumpCombination(parameters) {
     const key = bumpKey(parameters);
@@ -253,8 +241,8 @@ export function makeMechanics({
   }
 
   /**
-   * @param {Kit} kit
-   * @param {HandlerParameters} parameters
+   * @param {ModelKit} kit
+   * @param {ActionParameters} parameters
    */
   function bump(kit, parameters) {
     const agentType = kit.entityType(parameters.agent);
@@ -266,7 +254,6 @@ export function makeMechanics({
       for (const rightType of [right, itemTypesByName.any]) {
         for (const leftType of [left, itemTypesByName.any]) {
           const match = bumpCombination({
-            ...parameters,
             agentType,
             patientType,
             leftType,
@@ -418,7 +405,7 @@ export function makeMechanics({
 
   /**
    * @param {number} agent
-   * @param {Kit} kit
+   * @param {ModelKit} kit
    */
   function tileTypeForAgent(agent, kit) {
     const agentType = kit.entityType(agent);

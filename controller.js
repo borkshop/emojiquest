@@ -332,7 +332,7 @@ export const makeController = ({
 
   nineKeyViewModel.watchEntities(tileMap, nineKeyWatcher);
 
-  /** @type {import('./model.js').Follower} */
+  /** @type {import('./model.js').ModelFollower} */
   const playerFollower = {
     move(_entity, change, destination) {
       if (mode.move !== undefined) {

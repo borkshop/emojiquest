@@ -147,7 +147,7 @@ export type Recipe = {
   byproduct: number; // an item type (produced)
 };
 
-export type Follower = {
+export type ModelFollower = {
   move: (
     entity: number,
     cursorChange: CursorChange,
@@ -161,7 +161,7 @@ export type Follower = {
   stamina: (entity: number, stamina: number) => void;
 };
 
-export type Kit = {
+export type ModelKit = {
   entityType: (entity: number) => number;
   entityEffect: (entity: number) => number;
   take: (entity: number, direction: number, location: number) => void;
@@ -174,12 +174,13 @@ export type Kit = {
   hot: (entity: number) => boolean;
   sick: (entity: number) => boolean;
   immersed: (entity: number) => boolean;
+  afloat: (entity: number) => boolean;
   entityHealth: (entity: number) => number;
   entityStamina: (entity: number) => number;
   advance: AdvanceFn;
 };
 
-export type BumpKeyParameters = {
+export type ActionTypeParameters = {
   agentType: number; // an agent type
   patientType: number; // an agent type
   leftType: number; // an item type
@@ -187,14 +188,14 @@ export type BumpKeyParameters = {
   effectType: number;
 };
 
-export type HandlerParameters = {
+export type ActionParameters = {
   agent: number;
   patient: number;
   direction: number;
   destination: number;
 };
 
-export type Handler = (kit: Kit, params: HandlerParameters) => void;
+export type ActionHandler = (kit: ModelKit, params: ActionParameters) => void;
 
 // Informs the view that the animation turn has begun.
 export type TickFn = () => void;
