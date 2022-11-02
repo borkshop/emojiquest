@@ -17,12 +17,6 @@
 import { assert, assertDefined, assumeDefined } from './lib/assert.js';
 import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 
-/** @typedef {import('./types.js').AdvanceFn} AdvanceFn */
-/** @typedef {import('./types.js').CursorChange} CursorChange */
-/** @typedef {import('./types.js').Recipe} Recipe */
-/** @typedef {import('./types.js').ModelFollower} ModelFollower */
-/** @typedef {import('./types.js').ModelKit} ModelKit */
-
 /**
  * @callback TypeFn
  * @param {number} entity
@@ -106,7 +100,7 @@ const pluck = (candidates, index) => {
 /**
  * @param {Object} args
  * @param {number} args.size
- * @param {AdvanceFn} args.advance
+ * @param {import('./types.js').AdvanceFn} args.advance
  * @param {import('./types.js').MacroViewModelFacetForModel} args.macroViewModel
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  * @param {Snapshot} [args.snapshot]
@@ -253,7 +247,7 @@ export function makeModel({
    * distinguish an accidental call from a deliberate call by balancing follow
    * and unfollow calls.
    *
-   * @type {Map<number, Set<ModelFollower>>}
+   * @type {Map<number, Set<import('./types.js').ModelFollower>>}
    */
   const followers = new Map();
 
@@ -379,12 +373,12 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {ModelFollower} follower
+   * @param {import('./types.js').ModelFollower} follower
    */
   function follow(e, follower) {
     let entityFollowers = followers.get(e);
     if (entityFollowers === undefined) {
-      /** @type {Set<ModelFollower>} */
+      /** @type {Set<import('./types.js').ModelFollower>} */
       entityFollowers = new Set();
       followers.set(e, entityFollowers);
     }
@@ -411,7 +405,7 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {ModelFollower} follower
+   * @param {import('./types.js').ModelFollower} follower
    */
   function unfollow(e, follower) {
     const entityFollowers = followers.get(e);
@@ -422,7 +416,7 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {CursorChange} change
+   * @param {import('./types.js').CursorChange} change
    * @param {number} destination
    */
   function onMove(e, change, destination) {
@@ -476,7 +470,7 @@ export function makeModel({
 
   /**
    * @param {number} e
-   * @param {Recipe} recipe
+   * @param {import('./types.js').Recipe} recipe
    */
   function onCraft(e, recipe) {
     const entityFollowers = followers.get(e);
@@ -667,7 +661,7 @@ export function makeModel({
     return entityTargetEntities.get(entity);
   }
 
-  /** @type {ModelKit} */
+  /** @type {import('./types.js').ModelKit} */
   const kit = {
     entityType,
     entityEffect,

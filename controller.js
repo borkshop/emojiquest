@@ -154,7 +154,7 @@ const noop = () => {};
 
 /**
  * @callback CraftFn
- * @param {import('./model.js').Recipe} recipe
+ * @param {import('./types.js').Recipe} recipe
  */
 
 /**
@@ -332,7 +332,7 @@ export const makeController = ({
 
   nineKeyViewModel.watchEntities(tileMap, nineKeyWatcher);
 
-  /** @type {import('./model.js').ModelFollower} */
+  /** @type {import('./types.js').ModelFollower} */
   const playerFollower = {
     move(_entity, change, destination) {
       if (mode.move !== undefined) {
