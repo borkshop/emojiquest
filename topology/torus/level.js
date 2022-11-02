@@ -28,9 +28,9 @@ export const sizeLevel = level => {
  * @param {Level} args.level
  * @param {number} args.tileSizePx
  * @param {import('../../world.js').CreateEntityFn} args.createEntity
- * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
- * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
- * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
+ * @param {import('../../types.js').WatchTerrainFn} args.watchTerrain
+ * @param {import('../../types.js').WatchTerrainFn} args.unwatchTerrain
+ * @param {import('../../types.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
  * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
  * @param {import('../../file.js').ColorNamePalette} args.colorNamePalette

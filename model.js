@@ -44,12 +44,6 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  */
 
 /**
- * @callback GetTerrainFlagsFn
- * @param {number} location
- * @returns {number}
- */
-
-/**
  * @typedef {object} Snapshot
  * @property {number | undefined} player
  * @property {number} size
@@ -164,7 +158,9 @@ export function makeModel({
     }
   };
 
-  /** @type {GetTerrainFlagsFn} */
+  /**
+   * @param {number} location
+   */
   const getTerrainFlags = location => {
     return terrain[location];
   };

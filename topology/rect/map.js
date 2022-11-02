@@ -222,9 +222,9 @@ export function makeChunkCreator({
  * @param {import('../../lib/color.js').Palette} args.palette
  * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
  * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
- * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
- * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
- * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
+ * @param {import('../../types.js').WatchTerrainFn} args.watchTerrain
+ * @param {import('../../types.js').WatchTerrainFn} args.unwatchTerrain
+ * @param {import('../../types.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../types.js').TileCoordinateFn} args.tileCoordinate
  */
 export const makeMap = ({

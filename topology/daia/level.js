@@ -22,9 +22,9 @@ export const sizeLevel = level => {
  * @param {number} args.frustumRadius
  * @param {number} args.tileSizePx
  * @param {import('../../world.js').CreateEntityFn} args.createEntity
- * @param {import('../../model.js').WatchTerrainFn} args.watchTerrain
- * @param {import('../../model.js').WatchTerrainFn} args.unwatchTerrain
- * @param {import('../../model.js').GetTerrainFlagsFn} args.getTerrainFlags
+ * @param {import('../../types.js').WatchTerrainFn} args.watchTerrain
+ * @param {import('../../types.js').WatchTerrainFn} args.unwatchTerrain
+ * @param {import('../../types.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
  * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
  * @param {Array<import('../../file.js').ColorNamePalette>} args.colorNamePalettes

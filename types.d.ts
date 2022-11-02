@@ -94,6 +94,27 @@ export type ModelControllerFacet = ModelReadFacet &
     tock: TockFn;
   };
 
+// Simply marks a location as dirty, having changed terrain.
+// Watchers are expected to aggregate notifications and read back current flags
+// with model getTerrainFlags.
+export type TerrainWatcher = (location: number) => void;
+
+export type WatchTerrainFn = (locations: Iterable<number>, watcher: TerrainWatcher) => void;
+
+export type GetTerrainFlagsFn = (location: number) => number;
+
+export type ModelViewFacet = {
+  watchTerrain: WatchTerrainFn;
+  unwatchTerrain: WatchTerrainFn;
+  getTerrainFlags: GetTerrainFlagsFn;
+};
+
+export type ModelTestFacet = {
+  put: (entity: number, slot: number, itemType: number) => void;
+  setHealth: (entity: number, health: number) => void;
+  setStamina: (entity: number, stamina: number) => void;
+};
+
 export type MacroViewModelFacetForModel = {
   put: (entity: number, location: number, tileType: number) => void;
   move: (

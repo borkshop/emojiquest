@@ -99,8 +99,8 @@ import { makeTileKeeper } from '../../tile-keeper.js';
 /** @typedef {import('../../types.js').Watcher} Watcher */
 /** @typedef {import('../../types.js').PlaceFn} PlaceFn */
 /** @typedef {import('../../types.js').WatchEntitiesFn} WatchEntitiesFn */
-/** @typedef {import('../../model.js').WatchTerrainFn} WatchTerrainFn */
-/** @typedef {import('../../model.js').GetTerrainFlagsFn} GetTerrainFlagsFn */
+/** @typedef {import('../../types.js').WatchTerrainFn} WatchTerrainFn */
+/** @typedef {import('../../types.js').GetTerrainFlagsFn} GetTerrainFlagsFn */
 
 /**
  * @callback CreateEntityFn
