@@ -1599,7 +1599,6 @@ export function makeModel({
     swap,
     put, // for tests only
     use,
-    craft,
     locate,
     entityAt,
     entityType,
