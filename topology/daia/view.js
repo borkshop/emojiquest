@@ -520,7 +520,7 @@ const makeFace = ({
  * @param {import('../../types.js').TileCoordinateFn} args.faceTileCoordinate
  * @param {import('../../types.js').AdvanceFn} args.faceAdvance
  */
-export const makeMap = ({
+export const makeTileView = ({
   tilesPerFacet,
   tileSizePx,
   faceSizePx,

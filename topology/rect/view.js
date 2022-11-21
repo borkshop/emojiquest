@@ -227,7 +227,7 @@ export function makeChunkCreator({
  * @param {import('../../types.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../types.js').TileCoordinateFn} args.tileCoordinate
  */
-export const makeMap = ({
+export const makeTileView = ({
   tilesForChunk,
   tilesPerChunk,
   tileSizePx,

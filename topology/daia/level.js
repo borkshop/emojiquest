@@ -1,7 +1,7 @@
 // @ts-check
 
 import { makeTopology } from './topology.js';
-import { makeMap } from './map.js';
+import { makeTileView } from './view.js';
 import { makeToponym } from './toponym.js';
 import { makePalette } from '../../lib/color.js';
 
@@ -77,7 +77,7 @@ export const makeLevel = ({
    * @param {Node} args.nextSibling
    */
   const makeView = ({ parentElement, nextSibling }) => {
-    const { $map, cameraController } = makeMap({
+    const { $map, cameraController } = makeTileView({
       tilesPerFacet,
       tileSizePx,
       facetSizePx,

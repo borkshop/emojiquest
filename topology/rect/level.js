@@ -2,7 +2,7 @@
 
 import { makePalette } from '../../lib/color.js';
 import { makeTopology } from './topology.js';
-import { makeMap } from './map.js';
+import { makeTileView } from './view.js';
 import { makeToponym } from './toponym.js';
 
 /**
@@ -97,7 +97,7 @@ export const makeLevel = ({
    * @param {Node} args.nextSibling
    */
   const makeView = ({ parentElement, nextSibling }) => {
-    const { $map, cameraController } = makeMap({
+    const { $map, cameraController } = makeTileView({
       tilesForChunk,
       tilesPerChunk,
 

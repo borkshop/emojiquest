@@ -334,7 +334,7 @@ export function makeChunkCreator({
  * @param {import('../../types.js').AdvanceFn} args.advance
  * @param {import('../../types.js').TileCoordinateFn} args.chunkCoordinate
  */
-export const makeMap = ({
+export const makeTileView = ({
   tilesPerChunk,
   tileSizePx,
   createEntity,
