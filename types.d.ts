@@ -88,7 +88,7 @@ export type ModelWriteFacet = {
   toggleTerrainFlags: (location: number, terrainFlags: number) => void;
 };
 
-export type ModelControllerFacet = ModelReadFacet &
+export type ModelFacetForController = ModelReadFacet &
   ModelWriteFacet & {
     tick: TickFn;
     tock: TockFn;
@@ -99,11 +99,14 @@ export type ModelControllerFacet = ModelReadFacet &
 // with model getTerrainFlags.
 export type TerrainWatcher = (location: number) => void;
 
-export type WatchTerrainFn = (locations: Iterable<number>, watcher: TerrainWatcher) => void;
+export type WatchTerrainFn = (
+  locations: Iterable<number>,
+  watcher: TerrainWatcher,
+) => void;
 
 export type GetTerrainFlagsFn = (location: number) => number;
 
-export type ModelViewFacet = {
+export type ModelFacetForView = {
   watchTerrain: WatchTerrainFn;
   unwatchTerrain: WatchTerrainFn;
   getTerrainFlags: GetTerrainFlagsFn;
