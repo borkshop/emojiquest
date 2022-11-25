@@ -236,6 +236,22 @@ const main = async () => {
     await stream.close();
   };
 
+  /** @type {import('./types.js').Clock}  */
+  const supplementaryAnimation = {
+    tick() {
+      healthController.tick();
+      staminaController.tick();
+    },
+    tock() {
+      healthController.tock();
+      staminaController.tock();
+    },
+    animate(progress) {
+      healthController.animate(progress);
+      staminaController.animate(progress);
+    },
+  };
+
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
@@ -246,6 +262,7 @@ const main = async () => {
     followCursor,
     loadWorld,
     saveWorld,
+    supplementaryAnimation,
   });
 
   const driver = makeDriver(controller, {

@@ -304,6 +304,7 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {() => Promise<void>} args.loadWorld
  * @param {(worldData: import('./file.js').WholeWorldDescription) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
+ * @param {import('./types.js').Clock} args.supplementaryAnimation
  */
 export const makeController = ({
   nineKeyWatcher,
@@ -315,6 +316,7 @@ export const makeController = ({
   followCursor,
   loadWorld,
   saveWorld,
+  supplementaryAnimation,
 }) => {
   // State:
 
@@ -1765,8 +1767,7 @@ export const makeController = ({
     dialogController.close();
     nineKeyMacroViewModel.tick();
     oneKeyView.tick();
-    healthController.tick();
-    staminaController.tick();
+    supplementaryAnimation.tick();
   };
 
   /**
@@ -1780,8 +1781,7 @@ export const makeController = ({
     oneKeyViewModel.animate(progress);
     menuController.animate(progress);
     dialogController.animate(progress);
-    healthController.animate(progress);
-    staminaController.animate(progress);
+    supplementaryAnimation.animate(progress);
   };
 
   const tock = () => {
