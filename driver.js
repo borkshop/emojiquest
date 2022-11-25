@@ -38,6 +38,7 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
+ * @returns {void | Promise<void>}
  */
 
 /**
@@ -99,7 +100,7 @@ export const makeDriver = (controller, options) => {
     // Pre-animated transition reset.
     timeSinceTransitionStart = 0;
 
-    controller.handleCommand(command, repeat);
+    const commandCompleted = controller.handleCommand(command, repeat);
 
     await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
 
@@ -107,6 +108,8 @@ export const makeDriver = (controller, options) => {
     // animation frame timing.
     const progress = makeProgress(animatedTransitionDuration, 1.0);
     controller.animate(progress);
+
+    await commandCompleted;
   }
 
   /**

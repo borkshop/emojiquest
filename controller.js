@@ -128,14 +128,16 @@ const noop = () => {};
  * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
+ * @param {() => void} reset
  * @returns {void}
  */
 
 /**
- * @callback PressFn
+ * @callback HandleModeCommandFn
  * @param {number} command
  * @param {boolean} repeat
- * @returns {Mode}
+ * @param {() => void} reset
+ * @returns {Mode | Promise<Mode>}
  */
 
 /**
@@ -180,7 +182,7 @@ const noop = () => {};
 /**
  * @typedef {object} Mode
  * @prop {string} name
- * @prop {PressFn} handleCommand
+ * @prop {HandleModeCommandFn} handleCommand
  * @prop {{[key: string]: number}} commandKeys - accelerator table
  * @prop {HandleMiscKeyPress} [handleMiscKeyPress]
  * @prop {MoveFn} [move]
@@ -1643,6 +1645,15 @@ export const makeController = ({
   let worldClock = undefined;
 
   /** @type {Mode} */
+  const suspenseMode = {
+    name: 'suspense',
+    commandKeys: {},
+    handleCommand(_command, _repeat) {
+      return suspenseMode;
+    },
+  };
+
+  /** @type {Mode} */
   const limboMode = {
     name: 'limbo',
     commandKeys: {},
@@ -1788,10 +1799,12 @@ export const makeController = ({
   let mode = limboMode;
 
   /** @type {HandleCommandFn} */
-  const handleCommand = (command, repeat) => {
+  const handleCommand = async (command, repeat) => {
     tock();
-    mode = mode.handleCommand(command, repeat);
+    const nextModeP = mode.handleCommand(command, repeat);
+    mode = suspenseMode;
     tick();
+    mode = await nextModeP;
   };
 
   /** @param {string} key */
