@@ -23,39 +23,10 @@ export const makeControllerElementWatchers = (
 };
 
 /**
- * Indicates that a key or gesture has been pressed down or up.
- * @callback HolderFn
- * @param {string} holder - the holder vocabulary is specific to the input
- * modality, but in a web page, holders are either the names of keys in keyup
- * and keydown events, or the holder may be specifically 'Mouse' or 'Touch'.
- * @param {number} [command] - some commands are implied by the holder in the
- * context of the controller's mode, but gestures are bound more specifically
- * to command numbers.
- * @returns {boolean}
- */
-
-/**
- * Indicates that the user has navigated away and that all held commands are
- * implicitly lifted, bearing in mind they may be actually lifted when the user
- * returns.
- * @callback CancelFn
- */
-
-/**
- * @typedef {object} Driver
- * @prop {HolderFn} up - indicates that a key or gesture has begun indicating a
- * command.
- * @prop {HolderFn} down - indicates that a key or gesture has stopped
- * indicating a command.
- * @prop {CancelFn} cancel - invalidates all held commands, as occurs when the
- * user navigates away from the game.
- */
-
-/**
  * @param {typeof window} $window
  * @param {Element} $controls
  * @param {Element} $hamburger
- * @param {Driver} driver
+ * @param {import('./types.js').Driver} driver
  * @param {Object} args
  * @param {number} args.tileSizePx
  */

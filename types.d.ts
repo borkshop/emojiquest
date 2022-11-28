@@ -345,3 +345,20 @@ export type MechanicsDescription = {
   itemTypes?: Array<ItemDescription>;
   effectTypes?: Array<EffectDescription>;
 };
+
+// DriverHolderFn Indicates that a key or gesture has been pressed down or up.
+// The holder vocabulary is specific to the input modality, but in a web page,
+// holders are either the names of keys in keyup and keydown events, or the
+// holder may be specifically 'Mouse' or 'Touch'.
+// Some commands are implied by the holder in the context of the controller's
+// mode, but gestures are bound more specifically to command numbers.
+export type DriverHolderFn = (holder: string, command?: number) => boolean;
+
+// Cancel ndicates that the user has navigated away and that all held commands
+// are implicitly lifted, bearing in mind they may be actually lifted when the
+// user returns.
+export type Driver = {
+  down: DriverHolderFn;
+  up: DriverHolderFn;
+  cancel: () => void;
+};
