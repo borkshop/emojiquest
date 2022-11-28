@@ -1,7 +1,7 @@
 import test from 'ava';
 import { makeScaffold } from '../test-scaffold.js';
 
-test('equatorial eastward walk', t => {
+test('equatorial eastward walk', async t => {
   const s = makeScaffold(t, {
     legend: {
       M: 'mountain',
@@ -54,7 +54,7 @@ test('equatorial eastward walk', t => {
     5,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     M M M
@@ -64,7 +64,7 @@ test('equatorial eastward walk', t => {
     5,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     M M M
@@ -82,7 +82,7 @@ test('equatorial eastward walk', t => {
     4,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     I . I
@@ -92,7 +92,7 @@ test('equatorial eastward walk', t => {
     4,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     I . I
@@ -102,7 +102,7 @@ test('equatorial eastward walk', t => {
     4,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     I . I
@@ -120,7 +120,7 @@ test('equatorial eastward walk', t => {
     0,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     . B .
@@ -130,7 +130,7 @@ test('equatorial eastward walk', t => {
     0,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     . B .
@@ -140,7 +140,7 @@ test('equatorial eastward walk', t => {
     0,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     . B .
@@ -158,7 +158,7 @@ test('equatorial eastward walk', t => {
     1,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     . . M
@@ -168,7 +168,7 @@ test('equatorial eastward walk', t => {
     1,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     . . M
@@ -178,7 +178,7 @@ test('equatorial eastward walk', t => {
     1,
   );
 
-  s.command(6);
+  await s.command(6);
   s.expectScene(
     `
     . . M
@@ -197,7 +197,7 @@ test('equatorial eastward walk', t => {
   );
 });
 
-test('equatorial westward walk', t => {
+test('equatorial westward walk', async t => {
   const s = makeScaffold(t, {
     legend: {
       M: 'mountain',
@@ -250,7 +250,7 @@ test('equatorial westward walk', t => {
     5,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     M M M
@@ -260,7 +260,7 @@ test('equatorial westward walk', t => {
     5,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . . M
@@ -270,7 +270,7 @@ test('equatorial westward walk', t => {
     1,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . . M
@@ -280,7 +280,7 @@ test('equatorial westward walk', t => {
     1,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . . M
@@ -290,7 +290,7 @@ test('equatorial westward walk', t => {
     1,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . B .
@@ -300,7 +300,7 @@ test('equatorial westward walk', t => {
     0,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . B .
@@ -310,7 +310,7 @@ test('equatorial westward walk', t => {
     0,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . B .
@@ -320,7 +320,7 @@ test('equatorial westward walk', t => {
     0,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     I . I
@@ -330,7 +330,7 @@ test('equatorial westward walk', t => {
     4,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     I . I
@@ -340,7 +340,7 @@ test('equatorial westward walk', t => {
     4,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     I . I
@@ -350,7 +350,7 @@ test('equatorial westward walk', t => {
     4,
   );
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     M M M
@@ -361,7 +361,7 @@ test('equatorial westward walk', t => {
   );
 });
 
-test('boreal polar walks', t => {
+test('boreal polar walks', async t => {
   const s = makeScaffold(t, {
     legend: {
       M: 'mountain',
@@ -429,7 +429,7 @@ test('boreal polar walks', t => {
     3,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     M e M
@@ -439,7 +439,7 @@ test('boreal polar walks', t => {
     3,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     . e M
@@ -449,7 +449,7 @@ test('boreal polar walks', t => {
     1,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     M e M
@@ -459,9 +459,9 @@ test('boreal polar walks', t => {
     3,
   );
 
-  s.command(2); // south
-  s.command(6); // east
-  s.command(6); // east
+  await s.command(2); // south
+  await s.command(6); // east
+  await s.command(6); // east
   s.expectScene(
     `
     . e . <- enter at top
@@ -471,7 +471,7 @@ test('boreal polar walks', t => {
     0,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     M . M
@@ -481,9 +481,9 @@ test('boreal polar walks', t => {
     3,
   );
 
-  s.command(4); // west
-  s.command(2); // south
-  s.command(2); // south
+  await s.command(4); // west
+  await s.command(2); // south
+  await s.command(2); // south
   s.expectScene(
     `
     I e I <- enter top
@@ -493,7 +493,7 @@ test('boreal polar walks', t => {
     4,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     M . M
@@ -503,9 +503,9 @@ test('boreal polar walks', t => {
     3,
   );
 
-  s.command(8); // north
-  s.command(4); // west
-  s.command(4); // west
+  await s.command(8); // north
+  await s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     M e M <- enter top
@@ -515,7 +515,7 @@ test('boreal polar walks', t => {
     5,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     M . M
@@ -526,7 +526,7 @@ test('boreal polar walks', t => {
   );
 });
 
-test('infernal polar walks', t => {
+test('infernal polar walks', async t => {
   const s = makeScaffold(t, {
     legend: {
       M: 'mountain',
@@ -594,7 +594,7 @@ test('infernal polar walks', t => {
     2,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     . e M
@@ -604,7 +604,7 @@ test('infernal polar walks', t => {
     2,
   );
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(
     `
     . . M
@@ -614,7 +614,7 @@ test('infernal polar walks', t => {
     1,
   );
 
-  s.command(2); // south
+  await s.command(2); // south
   s.expectScene(
     `
     . e M
@@ -624,9 +624,9 @@ test('infernal polar walks', t => {
     2,
   );
 
-  s.command(2); // south
-  s.command(6); // east
-  s.command(6); // east
+  await s.command(2); // south
+  await s.command(6); // east
+  await s.command(6); // east
   s.expectScene(
     `
     M . M
@@ -636,7 +636,7 @@ test('infernal polar walks', t => {
     5,
   );
 
-  s.command(2); // south
+  await s.command(2); // south
   s.expectScene(
     `
     . . M
@@ -646,9 +646,9 @@ test('infernal polar walks', t => {
     2,
   );
 
-  s.command(4); // west
-  s.command(2); // south
-  s.command(2); // south
+  await s.command(4); // west
+  await s.command(2); // south
+  await s.command(2); // south
   s.expectScene(
     `
     I . I
@@ -658,7 +658,7 @@ test('infernal polar walks', t => {
     4,
   );
 
-  s.command(2); // south
+  await s.command(2); // south
   s.expectScene(
     `
     . . M
@@ -668,9 +668,9 @@ test('infernal polar walks', t => {
     2,
   );
 
-  s.command(8); // north
-  s.command(4); // west
-  s.command(4); // west
+  await s.command(8); // north
+  await s.command(4); // west
+  await s.command(4); // west
   s.expectScene(
     `
     . . .
@@ -680,7 +680,7 @@ test('infernal polar walks', t => {
     0,
   );
 
-  s.command(2); // south
+  await s.command(2); // south
   s.expectScene(
     `
     . . M

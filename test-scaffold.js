@@ -307,19 +307,6 @@ export const makeScaffold = (
    */
   const followCursor = (_destination, _change) => {};
 
-  const menuController = {
-    goNorth() {},
-    goSouth() {},
-    getState() {
-      return 'play';
-    },
-    show() {},
-    hide() {},
-    animate() {},
-    tick() {},
-    tock() {},
-  };
-
   const dialogController = {
     /** @param {string} _message */
     log(_message) {
@@ -377,16 +364,26 @@ export const makeScaffold = (
     capture,
   };
 
+  const supplementaryAnimation = {
+    tick() {},
+    tock() {},
+    animate() {},
+  };
+
+  const choose = async () => undefined;
+
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
-    menuController,
     dialogController,
     healthController,
     staminaController,
     followCursor,
+    // @ts-expect-error This stub is not used in tests.
     async loadWorld() {},
     async saveWorld() {},
+    choose,
+    supplementaryAnimation,
   });
 
   /**
@@ -465,14 +462,16 @@ export const makeScaffold = (
     controller.tock();
   };
 
+  const reset = () => {};
+
   /**
    * @param {number} digit
    * @param {boolean} [repeat]
    */
-  const command = (digit, repeat = false) => {
+  const command = async (digit, repeat = false) => {
     // t.log('---');
     // t.log('command', digit, repeat);
-    controller.handleCommand(digit, repeat);
+    await controller.handleCommand(digit, repeat, reset);
     controller.tock();
   };
 

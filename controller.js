@@ -41,6 +41,33 @@ import { makeMacroViewModel } from './macro-view-model.js';
 import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
 import { makeBoxTileMap } from './tile-map-box.js';
 
+/** @typedef {import('./progress.js').AnimateFn} AnimateFn */
+/** @typedef {import('./progress.js').Progress} Progress */
+/** @typedef {import('./animation2d.js').Coord} Coord */
+/** @typedef {import('./animation2d.js').Transition} Transition */
+/** @typedef {import('./types.js').Watcher} Watcher */
+/** @typedef {import('./types.js').PlaceFn} PlaceFn */
+/** @typedef {import('./types.js').WatchEntitiesFn} WatchEntitiesFn */
+
+/**
+ * @callback ChooseFn
+ * @param {Record<string, string>} options
+ * @returns {Promise<string | undefined>}
+ */
+
+/**
+ * @typedef {object} LoadedWorld
+ * @property {number | undefined} player
+ * @property {ReturnType<import('./world.js').makeWorld>} world
+ * @property {import('./mechanics.js').Mechanics} mechanics
+ * @property {import('./file.js').WholeWorldDescription} wholeWorldDescription
+ */
+
+/**
+ * @callback LoadWorldFn
+ * @returns {Promise<undefined | LoadedWorld>}
+ */
+
 /**
  * @param {Object} object
  * @param {string | number | symbol} key
@@ -108,14 +135,6 @@ const numberKeys = {
   9: 9,
 };
 
-/** @typedef {import('./progress.js').AnimateFn} AnimateFn */
-/** @typedef {import('./progress.js').Progress} Progress */
-/** @typedef {import('./animation2d.js').Coord} Coord */
-/** @typedef {import('./animation2d.js').Transition} Transition */
-/** @typedef {import('./types.js').Watcher} Watcher */
-/** @typedef {import('./types.js').PlaceFn} PlaceFn */
-/** @typedef {import('./types.js').WatchEntitiesFn} WatchEntitiesFn */
-
 const noop = () => {};
 
 /**
@@ -129,7 +148,7 @@ const noop = () => {};
  * @param {number} command
  * @param {boolean} repeat
  * @param {() => void} reset
- * @returns {void}
+ * @returns {Promise<void>}
  */
 
 /**
@@ -197,12 +216,6 @@ const rightHandInventoryIndex = 1;
 const inventoryIndexForCommand = [-1, 2, 3, 4, 5, -1, 6, 7, 8, 9];
 const entityIndexForInventoryIndex = [-1, -1, 0, 1, 2, 3, 5, 6, 7, 8];
 
-const itemGridIndexes = [0, 1, 2, 3, 5, 6, 7, 8];
-
-const agentOffsets = [-4, -1, 2, -3, 3, -2, 1, 4];
-
-const agentOffsetForGridIndex = [-4, -1, 2, -3, 0, 3, -2, 1, 4];
-
 // itemIndex to vector to or from that item index
 const directionToForPackIndex = [sw, ss, se, ww, ee, nw, nn, ne];
 const directionFromForPackIndex = directionToForPackIndex.map(
@@ -241,7 +254,7 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  * @prop {CameraController} cameraController
  */
 
-const builtinTileTextByName = {
+export const builtinTileTextByName = {
   invalid: '�', // iota + 2
   empty: '',
   any: '*',
@@ -297,25 +310,25 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {Object} args
  * @param {import('./view-model.js').Watcher} args.nineKeyWatcher
  * @param {import('./view-model.js').Watcher} args.oneKeyWatcher
- * @param {import('./menu.js').MenuController} args.menuController
  * @param {import('./dialog.js').DialogController} args.dialogController
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
- * @param {() => Promise<void>} args.loadWorld
+ * @param {LoadWorldFn} args.loadWorld
  * @param {(worldData: import('./file.js').WholeWorldDescription) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
+ * @param {ChooseFn} args.choose
  * @param {import('./types.js').Clock} args.supplementaryAnimation
  */
 export const makeController = ({
   nineKeyWatcher,
   oneKeyWatcher,
-  menuController,
   dialogController,
   healthController,
   staminaController,
   followCursor,
   loadWorld,
   saveWorld,
+  choose,
   supplementaryAnimation,
 }) => {
   // State:
@@ -403,7 +416,7 @@ export const makeController = ({
       itemTypes,
       tileTypes,
       // effectTypes,
-      tileTypesByName,
+      // tileTypesByName,
       agentTypesByName,
       // itemTypesByName,
       // effectTypesByName,
@@ -413,6 +426,7 @@ export const makeController = ({
       // tileTypeForEffectType,
       // craft,
       // bump,
+      // viewText,
     } = mechanics;
 
     /**
@@ -579,7 +593,7 @@ export const makeController = ({
           ...handKeys,
           Escape: 0,
         },
-        handleCommand(command, repeat) {
+        handleCommand(command, repeat, reset) {
           repeat = repeat && worldModel.entityHealth(player) === 5;
           const direction = commandDirection.get(command);
           if (direction !== undefined) {
@@ -606,7 +620,7 @@ export const makeController = ({
             // stash
             return openStash();
           } else if (command === 0 && !repeat) {
-            return playToMenuMode(cursor.position, player);
+            return playToMenuMode(cursor.position, player, reset);
           } else {
             return playMode;
           }
@@ -1086,15 +1100,14 @@ export const makeController = ({
       /**
        * @param {number} position
        * @param {number} player
+       * @param {() => void} reset
        */
-      const playToMenuMode = (position, player) => {
-        const handoff = {
-          north: true,
-          south: true,
-        };
+      const playToMenuMode = async (position, player, reset) => {
+        const handoff = {};
         exitPlayMode(player, handoff);
-        oneKeyView.replace(0, builtinTileTypesByName.thumbUp);
-        return enterMenuMode(position, player, handoff);
+        oneKeyView.exit(0);
+
+        return playMenu(position, player, reset);
       };
 
       restoreDpad(handoff);
@@ -1109,102 +1122,6 @@ export const makeController = ({
       cameraController.jump(position);
 
       return playMode;
-    };
-
-    /**
-     * @param {number} position - position of edit or play mode before menu, to
-     * which we may return.
-     * @param {number | undefined} player - entity of the player from play mode, to which
-     * we may return if we do nothing in the menu or edit modes before returning.
-     * Without a defined player, we cannot go to play mode.
-     * @param {Object} handoff
-     * @param {boolean} [handoff.north]
-     * @param {boolean} [handoff.south]
-     */
-    const enterMenuMode = (position, player, handoff) => {
-      /** @type {Mode} */
-      const menuMode = {
-        name: 'menu',
-        commandKeys: {
-          ...numberKeys,
-          ...arrowKeys,
-          Enter: 0,
-          Escape: 5,
-        },
-        handleCommand(command, repeat) {
-          if (repeat) return mode;
-          if (command === 8) {
-            menuController.goNorth();
-          } else if (command === 2) {
-            menuController.goSouth();
-          } else if (command === 5) {
-            if (player === undefined) {
-              return menuToEditMode(position, player);
-            } else {
-              return menuToPlayMode(player);
-            }
-          } else if (command === 0) {
-            const state = menuController.getState();
-            if (state === 'play') {
-              if (player !== undefined) {
-                return menuToPlayMode(player);
-              } else {
-                // TODO nineKeyView.shake(5);
-                dialogController.logHTML(
-                  'Add a <b>😊player</b> to the world with the editor.',
-                );
-                return menuMode;
-              }
-            } else if (state === 'edit') {
-              return menuToEditMode(position, player);
-            } else if (state === 'load') {
-              // TODO this call to tock() bypasses the driver.
-              // Perhaps this should be appealing to the driver instead.
-              tock();
-              loadWorld();
-              exitMenuMode({});
-              return limboMode;
-            } else if (state === 'save') {
-              saveWorld({
-                ...wholeWorldDescription,
-                ...capture(player),
-              }).finally(() => {
-                mode = menuMode;
-              });
-              return limboMode;
-            }
-          }
-          return menuMode;
-        },
-      };
-
-      restoreDpad({
-        ...handoff,
-        east: true,
-        west: true,
-      });
-
-      menuController.show();
-      dialogController.logHTML('🍔  <b>Hamburger Menu</b>');
-
-      return menuMode;
-    };
-
-    /**
-     * @param {Object} handoff
-     * @param {boolean} [handoff.north]
-     * @param {boolean} [handoff.south]
-     */
-    const exitMenuMode = handoff => {
-      if (!handoff.north) {
-        nineKeyView.despawnOutward(nn);
-      }
-      if (!handoff.south) {
-        nineKeyView.despawnOutward(ss);
-      }
-
-      dialogController.close();
-      menuController.hide();
     };
 
     /**
@@ -1286,7 +1203,7 @@ export const makeController = ({
           f: 1, // fill
           z: 3, // erase delete
         },
-        handleCommand(command, repeat) {
+        handleCommand(command, repeat, reset) {
           const direction = commandDirection.get(command);
           if (direction !== undefined) {
             const { position: origin } = cursor;
@@ -1325,9 +1242,9 @@ export const makeController = ({
             copy();
             return editMode;
           } else if (command === 5) {
-            return enterChooseAgentMode(position);
+            return chooseAgent(reset);
           } else if (command === 0 && !repeat) {
-            return editToMenuMode(position, player);
+            return editToMenuMode(position, player, reset);
           } else {
             return editMode;
           }
@@ -1347,172 +1264,36 @@ export const makeController = ({
         },
       };
 
-      const firstEligibleEntityType = 3;
-      const eligibleEntityCount = agentTypes.length - firstEligibleEntityType;
-
-      /**
-       * @param {number} offset
-       */
-      const agentTypeForOffset = offset => {
-        assertNonZero(editType);
-        return (
-          ((eligibleEntityCount + editType - firstEligibleEntityType + offset) %
-            eligibleEntityCount) +
-          firstEligibleEntityType
-        );
-      };
-
-      /**
-       * @param {number} position
-       */
-      const enterChooseAgentMode = position => {
-        /** @type {Mode} */
-        const chooseAgentMode = {
-          name: 'chooseAgent',
-          commandKeys: {
-            ...numberKeys,
-            ...arrowKeys,
-            Escape: 5,
-            Enter: 5,
-          },
-          handleCommand(command, repeat) {
-            if (repeat) return mode;
-            if (command === 8) {
-              assertNonZero(editType);
-              editType = agentTypeForOffset(1);
-              logAgentChoice();
-              shiftAgentsSouth();
-            } else if (command === 2) {
-              assertNonZero(editType);
-              editType = agentTypeForOffset(-1);
-              logAgentChoice();
-              shiftAgentsNorth();
-            } else if (command === 6) {
-              assertNonZero(editType);
-              editType = agentTypeForOffset(3);
-              logAgentChoice();
-              shiftAgentsWest();
-            } else if (command === 4) {
-              assertNonZero(editType);
-              editType = agentTypeForOffset(-3);
-              logAgentChoice();
-              shiftAgentsEast();
-            } else if (command === 5) {
-              return exitChooseAgentMode(position);
-            }
-            return chooseAgentMode;
-          },
-        };
-
-        dismissEditorReticle();
-        dismissEditorBezel();
-        dismissDpad({});
-
-        if (editType === 0) {
-          editType = 4;
-          nineKeyView.spawn(4, defaultTileTypeForAgentType[editType]);
-        }
-
-        // Initialize board with agent type neighborhood around current edit type.
-        for (let index = 0; index < agentOffsets.length; index += 1) {
-          const offset = agentOffsets[index];
-          const gridIndex = itemGridIndexes[index];
-          const agentType = agentTypeForOffset(offset);
+      /** @param {() => void} reset */
+      const chooseAgent = async reset => {
+        /** @type {Record<string, string>} */
+        const options = Object.create(null);
+        for (let agentType = 3; agentType < agentTypes.length; agentType += 1) {
+          const { name } = agentTypes[agentType];
           const tileType = defaultTileTypeForAgentType[agentType];
-          nineKeyView.spawn(gridIndex, tileType);
+          const { text } = tileTypes[tileType];
+          options[name] = `${text} ${name}`;
         }
+        const agentTypeName = await choose(options);
+        outerTock();
+        reset();
 
-        logAgentChoice();
+        if (agentTypeName !== undefined) {
+          const agentType = assumeDefined(agentTypesByName[agentTypeName]);
+          const tileType = defaultTileTypeForAgentType[agentType];
 
-        restoreControllerReticle();
-        return chooseAgentMode;
-      };
+          if (editType !== 0) {
+            nineKeyView.replace(4, tileType);
+          } else {
+            nineKeyView.spawn(4, tileType);
+          }
+          editType = agentType;
 
-      /**
-       * @param {number} position
-       */
-      const exitChooseAgentMode = position => {
-        dismissControllerReticle();
-
-        for (let direction = 0; direction < fullOcturn; direction += 1) {
-          nineKeyView.despawnOutward(direction);
+          const { text } = tileTypes[tileType];
+          dialogController.close();
+          dialogController.log(`${text} ${agentTypeName}`);
         }
-
-        restoreEditorReticle(position);
-        restoreEditorBezel();
-        restoreDpad({});
-
         return editMode;
-      };
-
-      const logAgentChoice = () => {
-        const { name, tile } = agentTypes[editType];
-        const tileType = tile ? tileTypesByName[tile] : tileTypesByName[name];
-        const { text } = tileTypes[tileType];
-        dialogController.close();
-        dialogController.log(`${text} ${name}`);
-      };
-
-      /**
-       * @param {number} gridIndex
-       * @param {number} directionOcturns
-       */
-      const enterAgent = (gridIndex, directionOcturns) => {
-        const agentOffset = agentOffsetForGridIndex[gridIndex];
-        const agentType = agentTypeForOffset(agentOffset);
-        const tileType = defaultTileTypeForAgentType[agentType];
-        nineKeyView.give(gridIndex, tileType, directionOcturns);
-      };
-
-      const shiftAgentsWest = () => {
-        for (let start = 0; start < 3; start += 1) {
-          nineKeyView.take(start * 3, ww);
-        }
-        for (let index = 0; index < 9; index += 3) {
-          nineKeyView.move(1 + index, 0 + index, ww, 0);
-          nineKeyView.move(2 + index, 1 + index, ww, 0);
-        }
-        for (let index = 0; index < 9; index += 3) {
-          enterAgent(2 + index, ww);
-        }
-      };
-
-      const shiftAgentsEast = () => {
-        for (let index = 2; index < 9; index += 3) {
-          nineKeyView.take(index, ee);
-        }
-        for (let index = 0; index < 9; index += 3) {
-          nineKeyView.move(1 + index, 2 + index, ee, 0);
-          nineKeyView.move(0 + index, 1 + index, ee, 0);
-        }
-        for (let index = 0; index < 9; index += 3) {
-          enterAgent(index, ee);
-        }
-      };
-
-      const shiftAgentsNorth = () => {
-        for (let start = 0; start < 3; start += 1) {
-          nineKeyView.take(start + 6, ne);
-        }
-        for (let start = 0; start < 3; start += 1) {
-          nineKeyView.move(start + 3, start + 6, nn, 0);
-          nineKeyView.move(start + 0, start + 3, nn, 0);
-        }
-        for (let start = 0; start < 3; start += 1) {
-          enterAgent(start, ne);
-        }
-      };
-
-      const shiftAgentsSouth = () => {
-        for (let start = 0; start < 3; start += 1) {
-          nineKeyView.take(start, sw);
-        }
-        for (let start = 0; start < 6; start += 1) {
-          nineKeyView.move(start + 3, start, ss, 0);
-        }
-        for (let start = 0; start < 3; start += 1) {
-          enterAgent(start + 6, sw);
-        }
       };
 
       restoreDpad(handoff);
@@ -1528,6 +1309,56 @@ export const makeController = ({
       restoreEditorReticle(position);
 
       return editMode;
+    };
+
+    /**
+     * @param {number} position
+     * @param {number | undefined} player
+     * @param {() => void} reset
+     */
+    const playMenu = async (position, player, reset) => {
+      /** @type {Record<string, string>} */
+      const options = Object.create(null);
+      if (player !== undefined) {
+        options.play = '🎭 Play   '; // 🪁 ▶️
+      }
+      options.edit = '✏️  Edit'; // 🚧
+      if (window.showSaveFilePicker !== undefined) {
+        options.save = '🛟  Save  '; //  🏦
+      }
+      if (window.showOpenFilePicker !== undefined) {
+        options.load = '🛻  Load'; // 🚜 🏗
+      }
+
+      const choice = await choose(options);
+
+      reset();
+      outerTock();
+      oneKeyView.put(0, 0, builtinTileTypesByName.hamburger);
+      oneKeyView.enter(0);
+
+      if (choice === 'edit') {
+        return enterEditMode(position, player, {});
+      } else if (choice === 'load') {
+        const result = await loadWorld();
+        if (result === undefined) {
+          assertDefined(player);
+          return enterPlayMode(player, {});
+        } else {
+          const { world, mechanics, player, wholeWorldDescription } = result;
+          return limboModePlay(world, mechanics, player, wholeWorldDescription);
+        }
+      } else if (choice === 'save') {
+        await saveWorld({
+          ...wholeWorldDescription,
+          ...capture(player),
+        });
+        assertDefined(player);
+        return enterPlayMode(player, {});
+      } else {
+        assertDefined(player);
+        return enterPlayMode(player, {});
+      }
     };
 
     /**
@@ -1547,41 +1378,12 @@ export const makeController = ({
 
       dismissEditorReticle();
 
-      menuController.show();
-
       dialogController.close();
     };
 
     /** @param {number} position */
     const limboToEditMode = position => {
       return enterEditMode(position, undefined, {});
-    };
-
-    /**
-     * @param {number} position
-     * @param {number | undefined} player
-     */
-    const menuToEditMode = (position, player) => {
-      const handoff = {
-        north: true,
-        south: true,
-      };
-      exitMenuMode(handoff);
-      oneKeyView.replace(0, builtinTileTypesByName.hamburger);
-      return enterEditMode(position, player, handoff);
-    };
-
-    /**
-     * @param {number} player
-     */
-    const menuToPlayMode = player => {
-      const handoff = {
-        north: true,
-        south: true,
-      };
-      exitMenuMode(handoff);
-      oneKeyView.replace(0, builtinTileTypesByName.hamburger);
-      return enterPlayMode(player, handoff);
     };
 
     /**
@@ -1595,15 +1397,13 @@ export const makeController = ({
     /**
      * @param {number} position
      * @param {number | undefined} player
+     * @param {() => void} reset
      */
-    const editToMenuMode = (position, player) => {
-      const handoff = {
-        north: true,
-        south: true,
-      };
+    const editToMenuMode = (position, player, reset) => {
+      const handoff = {};
       exitEditMode(handoff);
-      oneKeyView.replace(0, builtinTileTypesByName.thumbUp);
-      return enterMenuMode(position, player, handoff);
+      oneKeyView.exit(0);
+      return playMenu(position, player, reset);
     };
 
     const tick = () => {
@@ -1655,6 +1455,21 @@ export const makeController = ({
     },
   };
 
+  /** @type {PlayFn} */
+  const limboModePlay = (world, mechanics, player, wholeWorldDescription) => {
+    const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
+      world,
+      mechanics,
+      wholeWorldDescription,
+    );
+    worldClock = clock;
+    if (player !== undefined) {
+      return limboToPlayMode(player);
+    } else {
+      return limboToEditMode(0);
+    }
+  };
+
   /** @type {Mode} */
   const limboMode = {
     name: 'limbo',
@@ -1662,19 +1477,7 @@ export const makeController = ({
     handleCommand(_command, _repeat) {
       return limboMode;
     },
-    play(world, mechanics, player, wholeWorldDescription) {
-      const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
-        world,
-        mechanics,
-        wholeWorldDescription,
-      );
-      worldClock = clock;
-      if (player !== undefined) {
-        return limboToPlayMode(player);
-      } else {
-        return limboToEditMode(0);
-      }
-    },
+    play: limboModePlay,
   };
 
   /**
@@ -1763,7 +1566,6 @@ export const makeController = ({
     if (worldClock) {
       worldClock.tick();
     }
-    menuController.tick();
     dialogController.close();
     nineKeyMacroViewModel.tick();
     oneKeyView.tick();
@@ -1779,7 +1581,6 @@ export const makeController = ({
     }
     nineKeyMacroViewModel.animate(progress);
     oneKeyViewModel.animate(progress);
-    menuController.animate(progress);
     dialogController.animate(progress);
     supplementaryAnimation.animate(progress);
   };
@@ -1788,20 +1589,22 @@ export const makeController = ({
     if (worldClock) {
       worldClock.tock();
     }
-    menuController.tock();
     dialogController.tock();
     nineKeyMacroViewModel.tock();
     oneKeyView.tock();
     healthController.tock();
     staminaController.tock();
+    supplementaryAnimation.tock();
   };
+
+  const outerTock = tock;
 
   let mode = limboMode;
 
   /** @type {HandleCommandFn} */
-  const handleCommand = async (command, repeat) => {
+  const handleCommand = async (command, repeat, reset) => {
     tock();
-    const nextModeP = mode.handleCommand(command, repeat);
+    const nextModeP = mode.handleCommand(command, repeat, reset);
     mode = suspenseMode;
     tick();
     mode = await nextModeP;

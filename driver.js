@@ -38,6 +38,7 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
+ * @param {() => void} reset
  * @returns {void | Promise<void>}
  */
 
@@ -92,15 +93,19 @@ export const makeDriver = (controller, options) => {
   // Time elapsed since tick.
   let timeSinceTransitionStart = animatedTransitionDuration;
 
+  function reset() {
+    // Pre-animated transition reset.
+    timeSinceTransitionStart = 0;
+  }
+
   /**
    * @param {number} command
    * @param {boolean} repeat
    */
   async function tickTock(command, repeat) {
-    // Pre-animated transition reset.
-    timeSinceTransitionStart = 0;
+    reset();
 
-    const commandCompleted = controller.handleCommand(command, repeat);
+    const commandCompleted = controller.handleCommand(command, repeat, reset);
 
     await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
 
@@ -266,7 +271,5 @@ export const makeDriver = (controller, options) => {
   run();
   animate();
 
-  return { down, up, cancel };
+  return { down, up, cancel, reset };
 };
-
-/** @typedef {ReturnType<makeDriver>} Driver */

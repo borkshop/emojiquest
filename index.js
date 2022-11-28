@@ -1,11 +1,13 @@
 // @ts-check
 
+import { assumeDefined } from './lib/assert.js';
 import { fullQuarturn } from './lib/geometry2d.js';
 import { cell } from './lib/cell.js';
 import { parseJson } from './lib/json.js';
 import {
   makeController,
   builtinTileText,
+  builtinTileTextByName,
   builtinTileTypesByName,
 } from './controller.js';
 import {
@@ -15,9 +17,10 @@ import {
 import { makeDriver } from './driver.js';
 
 import { createDialogBox } from './dialog.js';
-import { createMenuBlade } from './menu.js';
 import { writeHealthBar } from './health.js';
 import { writeStaminaBar } from './stamina.js';
+
+import { makeRotatingElementController } from './rotator.js';
 
 import { makeWorld } from './world.js';
 import { validate } from './file.js';
@@ -62,12 +65,13 @@ export const makeEntityCreator = viewText => {
  * @param {number} args.tileSizePx
  */
 const createControls = ({ tileSizePx }) => {
-  const $controls = document.createElementNS(svgNS, 'svg');
-  $controls.setAttributeNS(null, 'viewBox', `0 0 3 3`);
-  $controls.setAttributeNS(null, 'height', `${3 * tileSizePx}`);
-  $controls.setAttributeNS(null, 'width', `${3 * tileSizePx}`);
-  $controls.setAttributeNS(null, 'class', 'panel controlPanel');
-  return $controls;
+  const $element = document.createElementNS(svgNS, 'svg');
+  $element.setAttributeNS(null, 'viewBox', `0 0 3 3`);
+  $element.setAttributeNS(null, 'height', `${3 * tileSizePx}`);
+  $element.setAttributeNS(null, 'width', `${3 * tileSizePx}`);
+  $element.setAttributeNS(null, 'class', 'panel controlPanel');
+  const controller = makeRotatingElementController($element, 1);
+  return { $element, controller };
 };
 
 /**
@@ -75,12 +79,13 @@ const createControls = ({ tileSizePx }) => {
  * @param {number} args.tileSizePx
  */
 const createHamburger = ({ tileSizePx }) => {
-  const $hamburger = document.createElementNS(svgNS, 'svg');
-  $hamburger.setAttributeNS(null, 'viewBox', `0 0 1 1`);
-  $hamburger.setAttributeNS(null, 'height', `${1 * tileSizePx}`);
-  $hamburger.setAttributeNS(null, 'width', `${1 * tileSizePx}`);
-  $hamburger.setAttributeNS(null, 'class', 'panel hamburgerPanel');
-  return $hamburger;
+  const $element = document.createElementNS(svgNS, 'svg');
+  $element.setAttributeNS(null, 'viewBox', `0 0 1 1`);
+  $element.setAttributeNS(null, 'height', `${1 * tileSizePx}`);
+  $element.setAttributeNS(null, 'width', `${1 * tileSizePx}`);
+  $element.setAttributeNS(null, 'class', 'panel hamburgerPanel');
+  const controller = makeRotatingElementController($element, -1);
+  return { $element, controller };
 };
 
 const main = async () => {
@@ -90,17 +95,26 @@ const main = async () => {
   const createEntity = makeEntityCreator([]);
 
   const documentElement = document.documentElement;
-  const parentElement = document.body;
-  const nextSibling = null;
+  const bodyElement = document.body;
+
+  const playElement = document.createElement('div');
+  playElement.className = 'play';
+  bodyElement.insertBefore(playElement, null);
+  const lastPlayChild = null;
+
+  const scrimElement = document.createElement('div');
+  scrimElement.className = 'scrim';
+  scrimElement.style.display = 'none';
+  bodyElement.appendChild(scrimElement);
 
   documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
 
   const $mapAnchor = document.createTextNode('');
-  parentElement.insertBefore($mapAnchor, nextSibling);
+  playElement.insertBefore($mapAnchor, lastPlayChild);
 
   const { element: $dialogBox, controller: dialogController } =
     createDialogBox();
-  parentElement.insertBefore($dialogBox, nextSibling);
+  playElement.insertBefore($dialogBox, lastPlayChild);
 
   const { element: $staminaBar, controller: staminaController } =
     writeStaminaBar({
@@ -108,27 +122,22 @@ const main = async () => {
       staminaTileType: builtinTileTypesByName.stamina,
       createElement: createEntity,
     });
-  parentElement.insertBefore($staminaBar, nextSibling);
+  playElement.insertBefore($staminaBar, lastPlayChild);
 
   const { element: $healthBar, controller: healthController } = writeHealthBar({
     tileSizePx,
     healthTileType: builtinTileTypesByName.health,
     createElement: createEntity,
   });
-  parentElement.insertBefore($healthBar, nextSibling);
+  playElement.insertBefore($healthBar, lastPlayChild);
 
-  const { $menuBlade, menuController } = createMenuBlade({
-    tileSizePx,
-    pointerTileType: builtinTileTypesByName.east,
-    createElement: createEntity,
-  });
-  parentElement.appendChild($menuBlade);
+  const { $element: $controls, controller: controlsController } =
+    createControls({ tileSizePx });
+  playElement.insertBefore($controls, lastPlayChild);
 
-  const $controls = createControls({ tileSizePx });
-  parentElement.insertBefore($controls, nextSibling);
-
-  const $hamburger = createHamburger({ tileSizePx });
-  parentElement.insertBefore($hamburger, nextSibling);
+  const { $element: $hamburger, controller: hamburgerController } =
+    createHamburger({ tileSizePx });
+  playElement.insertBefore($hamburger, lastPlayChild);
 
   /**
    * The moment preserves the intended heading of the player agent if they
@@ -170,7 +179,6 @@ const main = async () => {
         console.error(error);
       }
       dialogController.logHTML(message);
-      // TODO abort load and return to previous world
       return;
     }
     const { snapshot, mechanics, wholeWorldDescription } = result;
@@ -184,7 +192,7 @@ const main = async () => {
 
     const createEntity = makeEntityCreator(mechanics.viewText);
 
-    const world = makeWorld(snapshot, parentElement, $mapAnchor, {
+    const world = makeWorld(snapshot, playElement, $mapAnchor, {
       tileSizePx,
       createEntity,
       mechanics,
@@ -193,7 +201,12 @@ const main = async () => {
     dispose = world.dispose;
 
     const { player } = snapshot;
-    controller.play(world, mechanics, player, wholeWorldDescription);
+    return {
+      world,
+      mechanics,
+      player,
+      wholeWorldDescription,
+    };
   };
 
   const types = [
@@ -206,47 +219,189 @@ const main = async () => {
   ];
 
   const loadWorld = async () => {
-    const [handle] = await window.showOpenFilePicker({
-      types,
-      multiple: false,
-    });
-    if (handle !== undefined) {
-      const file = await handle.getFile();
-      const text = await file.text();
-      const result = parseJson(text);
-      if ('error' in result) {
-        dialogController.log(`${result.error}`);
-        console.error(result.error);
+    scrimElement.style.display = 'block';
+    try {
+      let handle;
+      try {
+        [handle] = await window.showOpenFilePicker({
+          types,
+          multiple: false,
+        });
+      } catch (error) {
+        driver.reset();
+        dialogController.log(`⚠️ No new world selected.`);
+        console.error(error);
         return;
       }
-      playWorld(result.value);
+      if (handle !== undefined) {
+        const file = await handle.getFile();
+        const text = await file.text();
+        const result = parseJson(text);
+        if ('error' in result) {
+          dialogController.log(`${result.error}`);
+          console.error(result.error);
+          return;
+        }
+        return playWorld(result.value);
+      }
+      return;
+    } finally {
+      scrimElement.style.display = 'none';
     }
-    return;
   };
 
   /**
    * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
    */
   const saveWorld = async wholeWorldDescription => {
-    const handle = await window.showSaveFilePicker({ types });
-    const stream = await handle.createWritable();
-    const text = `${JSON.stringify(wholeWorldDescription)}\n`;
-    const blob = new Blob([text]);
-    await stream.write(blob);
-    await stream.close();
+    scrimElement.style.display = 'block';
+    try {
+      let handle;
+      try {
+        handle = await window.showSaveFilePicker({ types });
+      } catch (error) {
+        return;
+      }
+      const stream = await handle.createWritable();
+      const text = `${JSON.stringify(wholeWorldDescription)}\n`;
+      const blob = new Blob([text]);
+      await stream.write(blob);
+      await stream.close();
+    } finally {
+      scrimElement.style.display = 'none';
+    }
+  };
+
+  /** @param {Record<string, string>} options */
+  const choose = async options => {
+    const values = Object.keys(options);
+    if (values.length === 0) {
+      return undefined;
+    }
+
+    controlsController.hide();
+    hamburgerController.hide();
+    scrimElement.style.display = 'block';
+
+    const menuElement = document.createElement('div');
+    menuElement.className = 'menu';
+    document.body.appendChild(menuElement);
+
+    const choiceElement = document.createElement('div');
+    choiceElement.className = 'choice';
+    menuElement.appendChild(choiceElement);
+
+    let index = 0;
+    let match = '';
+    /** @type {Array<string>} */
+    const search = [];
+    /** @type {Array<Element>} */
+    const optionElements = [];
+    for (const [value, label] of Object.entries(options)) {
+      const optionElement = document.createElement('div');
+      optionElement.className = 'option';
+      optionElement.innerText = label;
+      optionElement.dataset.value = value;
+      optionElement.style.setProperty('--index', `${index}`);
+      choiceElement.appendChild(optionElement);
+      optionElements.push(optionElement);
+      index += 1;
+      search.push(value.replace(/\W/g, '').toLowerCase());
+    }
+
+    let cursor = 0;
+    const cursorElement = document.createElement('div');
+    cursorElement.innerText = builtinTileTextByName.east;
+    cursorElement.className = 'cursor';
+    cursorElement.style.setProperty('--index', `${cursor}`);
+    choiceElement.appendChild(cursorElement);
+
+    /** @type {(value: string | undefined) => void} */
+    let resolve;
+    /** @type {Promise<string | undefined>} */
+    const promise = new Promise(res => (resolve = res));
+
+    /** @param {Event} event */
+    const onClick = event => {
+      const value = /** @type {HTMLElement} */ (event?.target)?.dataset?.value;
+      if (typeof value === 'string') {
+        resolve(value);
+      }
+    };
+
+    /** @param {number} index */
+    const scrollTo = index => {
+      cursor = index;
+      cursorElement.style.setProperty('--index', `${cursor}`);
+      optionElements[cursor].scrollIntoView({
+        behavior: 'auto',
+        block: 'center',
+        inline: 'nearest',
+      });
+    };
+
+    /** @param {KeyboardEvent} event */
+    const onKeyDown = event => {
+      const { key } = event;
+      if (key === 'Escape') {
+        resolve(undefined);
+      } else if (key === 'Enter') {
+        resolve(values[cursor]);
+      } else if (key === 'ArrowUp') {
+        scrollTo((values.length + cursor - 1) % values.length);
+      } else if (key === 'ArrowDown') {
+        scrollTo((cursor + 1) % values.length);
+      } else if (key.length === 1) {
+        match = match + key;
+        SEARCH: while (match.length > 0) {
+          for (let index = 0; index < values.length; index += 1) {
+            if (search[index].slice(0, match.length) === match) {
+              scrollTo(index);
+              break SEARCH;
+            }
+          }
+          match = match.slice(1);
+        }
+      } else {
+        return;
+      }
+      event.stopPropagation();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    choiceElement.addEventListener('click', onClick);
+
+    const choice = await promise;
+
+    window.removeEventListener('keydown', onKeyDown);
+    choiceElement.removeEventListener('click', onClick);
+
+    menuElement.remove();
+    scrimElement.style.display = 'none';
+    controlsController.show();
+    hamburgerController.show();
+    driver.reset();
+
+    return choice;
   };
 
   /** @type {import('./types.js').Clock}  */
   const supplementaryAnimation = {
     tick() {
+      controlsController.tick();
+      hamburgerController.tick();
       healthController.tick();
       staminaController.tick();
     },
     tock() {
+      controlsController.tock();
+      hamburgerController.tock();
       healthController.tock();
       staminaController.tock();
     },
     animate(progress) {
+      controlsController.animate(progress);
+      hamburgerController.animate(progress);
       healthController.animate(progress);
       staminaController.animate(progress);
     },
@@ -255,13 +410,13 @@ const main = async () => {
   const controller = makeController({
     nineKeyWatcher,
     oneKeyWatcher,
-    menuController,
     dialogController,
     healthController,
     staminaController,
     followCursor,
     loadWorld,
     saveWorld,
+    choose,
     supplementaryAnimation,
   });
 
@@ -278,7 +433,10 @@ const main = async () => {
     new URL('emojiquest/emojiquest.json', import.meta.url).href,
   );
   const allegedWholeWorldDescription = await response.json();
-  playWorld(allegedWholeWorldDescription);
+  const { world, mechanics, player, wholeWorldDescription } = assumeDefined(
+    playWorld(allegedWholeWorldDescription),
+  );
+  controller.play(world, mechanics, player, wholeWorldDescription);
 };
 
 main();

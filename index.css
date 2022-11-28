@@ -10,8 +10,6 @@ html {
 
   height: 100vh;
   width: 100vw;
-
-  overflow: hidden;
 }
 
 *,
@@ -27,17 +25,18 @@ body {
   height: 100vh;
   width: 100vw;
   margin: 0;
-  overflow: hidden;
+
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-aside.menu {
-  overflow: auto;
-  max-height: 100%;
-  position: absolute;
-  z-index: 1000;
-  top: 0;
-  right: 0;
-  width: 40%;
+.play {
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
 }
 
 .healthBar,
@@ -50,19 +49,21 @@ aside.menu {
 
 .staminaBar {
   right: 0;
+  transform-origin: calc(100% + 10px) -10px;
 }
 
 .healthBar {
   left: 0;
+  transform-origin: -10px -10px;
 }
 
 #context {
+  position: absolute;
   top: 50%;
   left: 50%;
   width: 0px;
   height: 0px;
   transform-style: preserve-3d;
-  position: absolute;
 }
 
 .foundation {
@@ -197,12 +198,16 @@ rect.backTile {
   position: absolute;
   bottom: 0;
   right: 0;
+
+  transform-origin: calc(100% + 10px) calc(100% + 10px);
 }
 
 .hamburgerPanel {
   position: absolute;
   bottom: 0;
   left: 0;
+
+  transform-origin: -10px calc(100% + 10px);
 }
 
 .dialog {
@@ -214,32 +219,6 @@ rect.backTile {
   text-align: left;
   padding-left: 1.6em;
   text-indent: -1.4em;
-}
-
-.menu {
-  position: relative;
-
-  color: black;
-  padding: 10px;
-}
-
-.menuCurb {
-  position: absolute;
-  /* position to compensate for padding */
-  top: 10px;
-  left: 10px;
-}
-
-.menuLabel {
-  padding-left: calc(var(--tileSizePx) * 1px);
-  padding-right: calc(var(--tileSizePx) * 0.5px);
-  height: calc(var(--tileSizePx) * 1px);
-  line-height: calc(var(--tileSizePx) * 1px);
-  /* https://css-tricks.com/snippets/css/font-stacks/ */
-  font-family: 'Segoe UI', Candara, 'Bitstream Vera Sans', 'DejaVu Sans',
-    'Bitstream Vera Sans', 'Trebuchet MS', Verdana, 'Verdana Ref', sans-serif;
-  font-size: calc(var(--tileSizePx) * 0.7px);
-  margin: 0;
 }
 
 .blade {
@@ -259,4 +238,66 @@ rect.backTile {
 
 b {
   white-space: nowrap;
+}
+
+.options {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  font-family: 'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD',
+    Georgia, serif;
+  font-size: calc(var(--tileSizePx) * 0.4px);
+  border-radius: calc(var(--tileSizePx) * 0.4px);
+  border: solid 4px rgba(0, 0, 0, 25%);
+  background: transparent;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.scrim {
+  position: fixed;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.menu {
+  position: absolute;
+  min-height: 100%;
+  width: 100%;
+  padding: calc(var(--tileSizePx) * 0.25px);
+  margin: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.choice {
+  position: relative;
+  display: block;
+}
+
+.option {
+  font-size: calc(var(--tileSizePx) * 0.8px);
+  height: calc(var(--tileSizePx) * 1px);
+  top: calc(var(--tileSizePx) * var(--index) * 1px);
+  padding-left: calc(var(--tileSizePx) * 1px);
+  white-space: nowrap;
+}
+
+.cursor {
+  position: absolute;
+  font-size: calc(var(--tileSizePx) * 0.8px);
+  top: calc(var(--tileSizePx) * var(--index) * 1px);
+  height: calc(var(--tileSizePx) * 1px);
 }

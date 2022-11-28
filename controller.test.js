@@ -3,7 +3,7 @@ import url from 'url';
 import fs from 'fs/promises';
 import { makeScaffold } from './test-scaffold.js';
 
-test('limbo', t => {
+test('limbo', async t => {
   const s = makeScaffold(t);
   s.expectControls(`
     . . .
@@ -17,7 +17,7 @@ test('limbo', t => {
   `);
 });
 
-test('play', t => {
+test('play', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.play();
@@ -33,7 +33,7 @@ test('play', t => {
   `);
 });
 
-test('rest', t => {
+test('rest', async t => {
   const s = makeScaffold(t);
   s.scene(`
     . . .
@@ -41,7 +41,7 @@ test('rest', t => {
     . . .
   `);
   s.play();
-  s.command(5); // rest
+  await s.command(5); // rest
   s.expectControls(`
     . ^ .
     < z >
@@ -54,7 +54,7 @@ test('rest', t => {
   `);
 });
 
-test('move', t => {
+test('move', async t => {
   const s = makeScaffold(t);
   s.scene(`
     @ . .
@@ -69,28 +69,28 @@ test('move', t => {
     . . .
   `);
 
-  s.command(6); // east
+  await s.command(6); // east
   s.expectScene(`
     . @ .
     . . .
     . . .
   `);
 
-  s.command(2); // south
+  await s.command(2); // south
   s.expectScene(`
     . . .
     . @ .
     . . .
   `);
 
-  s.command(4); // west
+  await s.command(4); // west
   s.expectScene(`
     . . .
     @ . .
     . . .
   `);
 
-  s.command(8); // north
+  await s.command(8); // north
   s.expectScene(`
     @ . .
     . . .
@@ -98,7 +98,7 @@ test('move', t => {
   `);
 });
 
-test('the apple tree', t => {
+test('the apple tree', async t => {
   const s = makeScaffold(t);
   s.scene('@ A');
   s.health = 3;
@@ -108,20 +108,20 @@ test('the apple tree', t => {
     < z >
     [ v ]
   `);
-  s.command(6); // bump tree to the east
+  await s.command(6); // bump tree to the east
   s.expectControls(`
     . ^ .
     < z >
     a v ]
   `);
-  s.command(1); // select apple from left hand
+  await s.command(1); // select apple from left hand
   s.expectControls(`
     b . m  <- backpack and mouth show
     .(a).  <- reticle around apple
     [ . ]  <- empty hands, no D-pad
   `);
   t.is(s.health, 3);
-  s.command(9); // eat the apple (move to mouth)
+  await s.command(9); // eat the apple (move to mouth)
   s.expectControls(`
     . ^ .
     < z >
@@ -130,7 +130,7 @@ test('the apple tree', t => {
   t.is(s.health, 4);
 });
 
-test('the pear tree', t => {
+test('the pear tree', async t => {
   const s = makeScaffold(t);
   s.scene(`
     . . .
@@ -151,20 +151,20 @@ test('the pear tree', t => {
     < z >
     [ v ]
   `);
-  s.command(6); // bump tree to the east
+  await s.command(6); // bump tree to the east
   s.expectControls(`
     . ^ .
     < z >
     p v ]
   `);
-  s.command(1); // select pear from left hand
+  await s.command(1); // select pear from left hand
   s.expectControls(`
     b . m  <- backpack and mouth show
     .(p).  <- reticle around pear
     [ . ]  <- empty hands, no D-pad
   `);
   t.is(s.stamina, 3);
-  s.command(9); // eat the pear (move to mouth)
+  await s.command(9); // eat the pear (move to mouth)
   s.expectControls(`
     . ^ .
     < z >
@@ -173,7 +173,7 @@ test('the pear tree', t => {
   t.is(s.stamina, 4);
 });
 
-test('trash inventory', t => {
+test('trash inventory', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'silver');
@@ -184,14 +184,14 @@ test('trash inventory', t => {
     s v ] <- have silver medal
   `);
 
-  s.command(1); // select medal
+  await s.command(1); // select medal
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(s).  <- reticle around apple
     [ . ]  <- empty hands, no D-pad
   `);
 
-  s.command(9); // throw medal away
+  await s.command(9); // throw medal away
   s.expectControls(`
     . ^ .
     < z >
@@ -199,7 +199,7 @@ test('trash inventory', t => {
   `);
 });
 
-test('chop down a tree', t => {
+test('chop down a tree', async t => {
   const s = makeScaffold(t);
   s.scene(`
     . . .
@@ -209,7 +209,7 @@ test('chop down a tree', t => {
   s.inventory(0, 'axe');
   s.play();
 
-  s.command(6); // chop down tree
+  await s.command(6); // chop down tree
   s.expectScene(`
     . . .
     . @ .  <- no tree
@@ -219,7 +219,7 @@ test('chop down a tree', t => {
   s.expectInventory(1, 'hardwood');
 });
 
-test('craft softwood over axe', t => {
+test('craft softwood over axe', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'axe');
@@ -231,14 +231,14 @@ test('craft softwood over axe', t => {
     a v l <- axe and softwood (as lumber tile)
   `);
 
-  s.command(3); // select softwood
+  await s.command(3); // select softwood
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(l).  <- lumber (agent) over
     [ a ]  <- axe (reagent)
   `);
 
-  s.command(2); // craft
+  await s.command(2); // craft
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(n).  <- knitting needles (product) over
@@ -248,7 +248,7 @@ test('craft softwood over axe', t => {
   s.expectInventory(1, 'axe');
 });
 
-test('craft axe from knife and hammer', t => {
+test('craft axe from knife and hammer', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'knife');
@@ -260,14 +260,14 @@ test('craft axe from knife and hammer', t => {
     k v h
   `);
 
-  s.command(1); // select knife
+  await s.command(1); // select knife
   s.expectControls(`
     b . t
     .(k).  <- knife (agent) over
     [ h ]  <- hammer (reagent)
   `);
 
-  s.command(2); // craft
+  await s.command(2); // craft
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(a).  <- axe
@@ -277,7 +277,7 @@ test('craft axe from knife and hammer', t => {
   s.expectInventory(1, 'empty');
 });
 
-test('craft axe over softwood', t => {
+test('craft axe over softwood', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'axe');
@@ -289,14 +289,14 @@ test('craft axe over softwood', t => {
     a v l <- axe and softwood (as lumber tile)
   `);
 
-  s.command(1); // select axe
+  await s.command(1); // select axe
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(a).  <- axe (agent) over
     [ l ]  <- softwood with lumber tile (reagent)
   `);
 
-  s.command(2); // craft
+  await s.command(2); // craft
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(n).  <- knitting needles (product) over
@@ -306,15 +306,15 @@ test('craft axe over softwood', t => {
   s.expectInventory(1, 'axe');
 });
 
-test('craft canoe', t => {
+test('craft canoe', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'spoon');
   s.inventory(1, 'softwood');
   s.play();
 
-  s.command(1); // select spoon
-  s.command(2); // apply to softwood
+  await s.command(1); // select spoon
+  await s.command(2); // apply to softwood
   s.expectInventory(0, 'canoe');
   s.expectInventory(1, 'spoon');
   s.expectControls(`
@@ -324,7 +324,7 @@ test('craft canoe', t => {
   `);
 });
 
-test('craft apple over apple', t => {
+test('craft apple over apple', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'apple');
@@ -336,14 +336,14 @@ test('craft apple over apple', t => {
     a v a
   `);
 
-  s.command(3); // select apple
+  await s.command(3); // select apple
   s.expectControls(`
     b . m
     .(a).  <- apple (agent) over
     [ a ]  <- apple (reagent)
   `);
 
-  s.command(2); // craft
+  await s.command(2); // craft
   s.expectControls(`
     b . m
     .(p).  <- pear
@@ -353,7 +353,7 @@ test('craft apple over apple', t => {
   s.expectInventory(1, 'empty');
 });
 
-test('craft pineapple over pineapple fails', t => {
+test('craft pineapple over pineapple fails', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'pineApple');
@@ -365,14 +365,14 @@ test('craft pineapple over pineapple fails', t => {
     p v p
   `);
 
-  s.command(3); // select pineApple
+  await s.command(3); // select pineApple
   s.expectControls(`
     b . m
     .(p).  <- pineApple (agent) over
     [ p ]  <- pineApple (reagent)
   `);
 
-  s.command(2); // craft
+  await s.command(2); // craft
   // CRAFT FAILS
   s.expectControls(`
     b . m
@@ -383,7 +383,7 @@ test('craft pineapple over pineapple fails', t => {
   s.expectInventory(1, 'pineApple');
 });
 
-test('fill inventory', t => {
+test('fill inventory', async t => {
   const s = makeScaffold(t);
   s.scene('@ A');
   s.play();
@@ -392,92 +392,92 @@ test('fill inventory', t => {
     < z >
     [ v ]
   `);
-  s.command(6); // bump tree to the east
+  await s.command(6); // bump tree to the east
   s.expectControls(`
     . ^ . <- nothing in the pack
     < z >
     a v ] <- got an apple
   `);
-  s.command(1); // select apple
+  await s.command(1); // select apple
   s.expectControls(`
     b . m  <- backpack and mouth show
     .(a).  <- reticle around apple
     [ . ]  <- empty hands, no D-pad
   `);
-  s.command(7); // select pack
+  await s.command(7); // select pack
   s.expectControls(`
     7 8 9
     4 a 6 <- empty inventory
     1 2 3
   `);
-  s.command(1); // move apple to pack
+  await s.command(1); // move apple to pack
   for (const slot of [2, 3, 4, /* 5 is center */ 6, 7, 8, 9]) {
     s.expectControls(`
       b ^ . <- backpack no longer empty
       < z >
       [ v ]
     `);
-    s.command(6); // bump tree to the east
+    await s.command(6); // bump tree to the east
     s.expectControls(`
       b ^ . <- pack is not empty
       < z >
       a v ] <- got an apple
     `);
-    s.command(1); // select apple
+    await s.command(1); // select apple
     s.expectControls(`
       b . m  <- backpack and mouth show
       .(a).  <- reticle around apple
       [ . ]  <- empty hands, no D-pad
     `);
-    s.command(7); // select pack
+    await s.command(7); // select pack
     // pack is not empty
-    s.command(slot); // move apple to pack
+    await s.command(slot); // move apple to pack
   }
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectControls(`
     a a a
     a . a <- lots of apples
     a a a
   `);
-  s.command(5); // go back
+  await s.command(5); // go back
 
-  s.command(6); // get an apple
+  await s.command(6); // get an apple
   s.expectControls(`
     b ^ . <- full pack
     < z >
     a v ] <- got an apple
   `);
 
-  s.command(1); // select apple
+  await s.command(1); // select apple
   s.expectControls(`
     b . m
     .(a).
     [ . ]
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectControls(`
     a a a
     a a a <- more apples
     a a a
   `);
 
-  s.command(5); // go back
+  await s.command(5); // go back
   s.expectControls(`
     b . m  <- backpack and mouth show
     .(a).  <- reticle around apple
     [ . ]  <- empty hands, no D-pad
   `);
 
-  s.command(3); // put apple in right hand
+  await s.command(3); // put apple in right hand
   s.expectControls(`
     b ^ . <- full pack
     < z >
     [ v a <- apple in right hand
   `);
 
-  s.command(6); // one last apple
+  await s.command(6); // one last apple
   s.expectControls(`
     b ^ . <- full pack of apples
     < z >
@@ -485,47 +485,47 @@ test('fill inventory', t => {
   `);
 });
 
-test('juggling clockwise', t => {
+test('juggling clockwise', async t => {
   const s = makeScaffold(t);
   s.scene('@ A');
   s.play();
 
-  s.command(6); // bump the tree to get apple
+  await s.command(6); // bump the tree to get apple
   s.expectControls(`
     . ^ .
     < z >
     a v ]  <- apple in left hand
   `);
 
-  s.command(1); // select apple from left hand
+  await s.command(1); // select apple from left hand
   s.expectControls(`
     b . m
     .(a).
     [ . ]
   `);
 
-  s.command(3); // move apple to right hand
+  await s.command(3); // move apple to right hand
   s.expectControls(`
     . ^ .
     < z >
     [ v a  <- apple in right hand
   `);
 
-  s.command(6); // bump tree to get apple
+  await s.command(6); // bump tree to get apple
   s.expectControls(`
     . ^ .
     < z >
     a v a  <-  apples in both hands
   `);
 
-  s.command(1); // select apple in left hand
+  await s.command(1); // select apple in left hand
   s.expectControls(`
     b . m
     .(a).
     [ a ]
   `);
 
-  s.command(9); // eat the apple, returns other applee to right hand
+  await s.command(9); // eat the apple, returns other applee to right hand
   s.expectControls(`
     . ^ .
     < z >
@@ -533,7 +533,7 @@ test('juggling clockwise', t => {
   `);
 });
 
-test('hot hands', t => {
+test('hot hands', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(1, 'apple');
@@ -545,14 +545,14 @@ test('hot hands', t => {
     [ v a  <- apple in right hand
   `);
 
-  s.command(3); // select apple from right hand
+  await s.command(3); // select apple from right hand
   s.expectControls(`
     b . m
     .(a).
     [ . ]
   `);
 
-  s.command(1); // move apple to left hand
+  await s.command(1); // move apple to left hand
   s.expectControls(`
     . ^ .
     < z >
@@ -567,28 +567,28 @@ test('hot hands', t => {
     a v p  <-
   `);
 
-  s.command(1); // select apple from left hand
+  await s.command(1); // select apple from left hand
   s.expectControls(`
     b . m
     .(a).
     [ p ]
   `);
 
-  s.command(1); // put apple back in the left
+  await s.command(1); // put apple back in the left
   s.expectControls(`
     . ^ .
     < z >
     a v p  <-
   `);
 
-  s.command(1); // select apple from left hand, again
+  await s.command(1); // select apple from left hand, again
   s.expectControls(`
     b . m
     .(a).
     [ p ]
   `);
 
-  s.command(3); // switch apple to right hand, pineapple to left
+  await s.command(3); // switch apple to right hand, pineapple to left
   s.expectControls(`
     . ^ .
     < z >
@@ -596,12 +596,12 @@ test('hot hands', t => {
   `);
 });
 
-test('to and from pack with apple in left hand', t => {
+test('to and from pack with apple in left hand', async t => {
   const s = makeScaffold(t);
   s.scene('@ A');
   s.play();
 
-  s.command(6); // get apple
+  await s.command(6); // get apple
   s.expectMode('play');
   s.expectControls(`
     . ^ .  <- pack is empty
@@ -609,29 +609,29 @@ test('to and from pack with apple in left hand', t => {
     a v ]  <- apple in left hand
   `);
 
-  s.command(1); // select apple
+  await s.command(1); // select apple
   s.expectMode('item');
-  s.command(7); // move to pack
+  await s.command(7); // move to pack
   s.expectMode('pack');
-  s.command(1); // put in slot 1
+  await s.command(1); // put in slot 1
   s.expectControls(`
     b ^ .  <- apple is in backpack
     < z >
     [ v ]
   `);
 
-  s.command(6); // get another apple
+  await s.command(6); // get another apple
   s.expectControls(`
     b ^ .  <- other apple in pack
     < z >
     a v ]  <- apple in left hand
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectMode('pack');
-  s.command(1); // choose apple
+  await s.command(1); // choose apple
   s.expectMode('item');
-  s.command(9); // eat apple
+  await s.command(9); // eat apple
   s.expectMode('play');
   s.expectControls(`
     . ^ .
@@ -642,12 +642,12 @@ test('to and from pack with apple in left hand', t => {
   s.expectInventory(1, 'empty');
 });
 
-test('to and from pack with apple in right hand', t => {
+test('to and from pack with apple in right hand', async t => {
   const s = makeScaffold(t);
   s.scene('@ A');
   s.play();
 
-  s.command(6); // get apple
+  await s.command(6); // get apple
   s.expectMode('play');
   s.expectControls(`
     . ^ .  <- pack is empty
@@ -655,38 +655,38 @@ test('to and from pack with apple in right hand', t => {
     a v ]  <- apple in left hand
   `);
 
-  s.command(1); // select apple
+  await s.command(1); // select apple
   s.expectMode('item');
-  s.command(7); // move to pack
+  await s.command(7); // move to pack
   s.expectMode('pack');
-  s.command(1); // put in slot 1
+  await s.command(1); // put in slot 1
   s.expectControls(`
     b ^ .  <- apple is in backpack
     < z >
     [ v ]
   `);
 
-  s.command(6); // get another apple
+  await s.command(6); // get another apple
   s.expectControls(`
     b ^ .  <- other apple in pack
     < z >
     a v ]  <- apple in left hand
   `);
 
-  s.command(1); // get apple
+  await s.command(1); // get apple
   s.expectMode('item');
-  s.command(3); // place aple in right hand
+  await s.command(3); // place aple in right hand
   s.expectControls(`
     b ^ .  <- other apple in pack
     < z >
     [ v a  <- apple in right hand
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectMode('pack');
-  s.command(1); // choose apple
+  await s.command(1); // choose apple
   s.expectMode('item');
-  s.command(9); // eat apple
+  await s.command(9); // eat apple
   s.expectMode('play');
   s.expectControls(`
     . ^ .  <- pack should be empty
@@ -697,7 +697,7 @@ test('to and from pack with apple in right hand', t => {
   s.expectInventory(1, 'apple');
 });
 
-test('from pack with empty hands', t => {
+test('from pack with empty hands', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(2, 'apple');
@@ -709,21 +709,21 @@ test('from pack with empty hands', t => {
     [ v ]
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectControls(`
     7 8 9
     4 . 6
     a 2 3
   `);
 
-  s.command(1); // choose apple
+  await s.command(1); // choose apple
   s.expectControls(`
     b . m  <- mouth, backpack is empty, but a valid stash target
     .(a).
     [ . ]
   `);
 
-  s.command(9); // eat the apple
+  await s.command(9); // eat the apple
   s.expectControls(`
     . ^ .  <- pack is empty again
     < z >
@@ -731,7 +731,7 @@ test('from pack with empty hands', t => {
   `);
 });
 
-test('from pack with empty hands, selecting empty pack position is no-op', t => {
+test('from pack with empty hands, selecting empty pack position is no-op', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(2, 'apple');
@@ -743,7 +743,7 @@ test('from pack with empty hands, selecting empty pack position is no-op', t => 
     [ v ]
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectControls(`
     7 8 9
     4 . 6
@@ -751,7 +751,7 @@ test('from pack with empty hands, selecting empty pack position is no-op', t => 
   `);
 
   s.expectMode('pack');
-  s.command(2); // no-op for empty slot if no item in hand
+  await s.command(2); // no-op for empty slot if no item in hand
   s.expectControls(`
     7 8 9
     4 . 6
@@ -759,7 +759,7 @@ test('from pack with empty hands, selecting empty pack position is no-op', t => 
   `);
 });
 
-test('to pack mode with an empty right hand', t => {
+test('to pack mode with an empty right hand', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'apple');
@@ -772,7 +772,7 @@ test('to pack mode with an empty right hand', t => {
     a v ]
   `);
 
-  s.command(7); // open the backpack
+  await s.command(7); // open the backpack
   // with both hands full, the controls arbitrarily
   // select to promote the left hand to the center
   s.expectControls(`
@@ -781,7 +781,7 @@ test('to pack mode with an empty right hand', t => {
     b 2 3  <- bolt
   `);
 
-  s.command(1); // select bolt
+  await s.command(1); // select bolt
   s.expectControls(`
     b . t  <- pack and trash are valid targets
     .(b).  <- bolt held
@@ -789,7 +789,7 @@ test('to pack mode with an empty right hand', t => {
   `);
 });
 
-test('to pack mode with full hands', t => {
+test('to pack mode with full hands', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'apple');
@@ -803,7 +803,7 @@ test('to pack mode with full hands', t => {
     a v p
   `);
 
-  s.command(7); // open the backpack
+  await s.command(7); // open the backpack
   // with both hands full, the controls arbitrarily
   // select to promote the left hand to the center
   s.expectControls(`
@@ -813,7 +813,7 @@ test('to pack mode with full hands', t => {
   `);
 });
 
-test('to and from pack with full hands, left bias', t => {
+test('to and from pack with full hands, left bias', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.play();
@@ -840,35 +840,35 @@ test('to and from pack with full hands, left bias', t => {
     a v p
   `);
 
-  s.command(1); // take apple from left hand
+  await s.command(1); // take apple from left hand
   s.expectControls(`
     b . m  <- backpack shows
     .(a).  <- reticle around apple
     [ p ]  <- empty hands, pineapple in limbo
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectControls(`
     7 8 9
     4 a 6
     1 2 3
   `);
 
-  s.command(5); // close pack
+  await s.command(5); // close pack
   s.expectControls(`
     b . m
     .(a).
     [ p ]  <- pineapple in limbo, but originally from right
   `);
 
-  s.command(7); // reopen pack
+  await s.command(7); // reopen pack
   s.expectControls(`
     7 8 9
     4 a 6
     1 2 3
   `);
 
-  s.command(7); // stow in slot 7
+  await s.command(7); // stow in slot 7
   s.expectControls(`
     b ^ .
     < z >
@@ -876,16 +876,16 @@ test('to and from pack with full hands, left bias', t => {
   `);
 });
 
-test('fail to open empty pack', t => {
+test('fail to open empty pack', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.play();
 
-  s.command(7);
+  await s.command(7);
   s.expectMode('play');
 });
 
-test('to and from pack with full hands, right bias', t => {
+test('to and from pack with full hands, right bias', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.play();
@@ -912,35 +912,35 @@ test('to and from pack with full hands, right bias', t => {
     a v p
   `);
 
-  s.command(3); // take pineapple from right hand
+  await s.command(3); // take pineapple from right hand
   s.expectControls(`
     b . m  <- backpack shows
     .(p).  <- reticle around pineapple
     [ a ]  <- empty hands, apple in limbo
   `);
 
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectControls(`
     7 8 9
     4 p 6
     1 2 3
   `);
 
-  s.command(5); // close pack
+  await s.command(5); // close pack
   s.expectControls(`
     b . m  <- backpack shows
     .(p).  <- reticle around pineapple
     [ a ]  <- empty hands, apple in limbo
   `);
 
-  s.command(7); // reopen pack
+  await s.command(7); // reopen pack
   s.expectControls(`
     7 8 9
     4 p 6
     1 2 3
   `);
 
-  s.command(9); // stow in slot 9
+  await s.command(9); // stow in slot 9
   s.expectControls(`
     b ^ .
     < z >
@@ -948,82 +948,7 @@ test('to and from pack with full hands, right bias', t => {
   `);
 });
 
-test('menu', t => {
-  const s = makeScaffold(t);
-  s.scene('@');
-  s.play();
-
-  s.expectButton('h'); // hamburger
-
-  s.command(0); // menu
-  s.expectButton('t'); // thumb's up
-  s.expectControls(`
-    . ^ .
-    . . .
-    . v .
-  `);
-
-  s.command(0); // return to play
-  s.expectButton('h'); // thumb's up
-  s.expectScene(`
-    @ . .
-    . . .
-    . . .
-  `);
-  s.expectControls(`
-    . ^ .
-    < z >
-    [ v ]
-  `);
-});
-
-test('start in edit mode', t => {
-  const s = makeScaffold(t);
-  s.play();
-
-  s.expectMode('edit');
-  s.expectScene(`
-   (.). .
-    . . .
-    . . .
-  `);
-  s.command(6); // go east
-  s.expectScene(`
-    .(.).
-    . . .
-    . . .
-  `);
-  s.command(2); // go south
-  s.expectScene(`
-    . . .
-    .(.).
-    . . .
-  `);
-  s.command(5); // enter agent chooser
-  s.expectMode('chooseAgent');
-  s.command(2); // next entity
-  s.command(5); // choose player
-  s.expectMode('edit');
-  s.command(1); // draw player
-  // TODO fix
-  // t.log(s.drawScene());
-  // s.expectScene(`
-  //   . . .
-  //   .(@).
-  //   . . .
-  // `);
-  s.command(0); // menu
-  s.command(2); // down (loop up to play)
-  s.command(0); // select play
-  s.expectMode('play');
-  s.expectScene(`
-    . . .
-    . @ .
-    . . .
-  `);
-});
-
-test('medal shop', t => {
+test('medal shop', async t => {
   const s = makeScaffold(t);
   s.scene(`
     . . .
@@ -1037,19 +962,19 @@ test('medal shop', t => {
   for (const slot of [1, 2, 3, 4, 6, 7, 8, 9]) {
     s.expectMode('play');
 
-    s.command(2); // get copper
+    await s.command(2); // get copper
     s.expectMode('play');
     s.expectInventory(1, 'copper');
 
-    s.command(3); // select copper
+    await s.command(3); // select copper
     s.expectMode('item');
-    s.command(7);
+    await s.command(7);
     s.expectMode('pack');
-    s.command(slot); // store
+    await s.command(slot); // store
   }
 
   s.expectMode('play');
-  s.command(7); // open pack
+  await s.command(7); // open pack
   s.expectMode('pack');
   s.expectControls(`
     c c c
@@ -1057,93 +982,72 @@ test('medal shop', t => {
     c c c
   `);
 
-  s.command(5); // dismiss pack
-  s.command(1); // hold pick from left hand
-  s.command(9); // discard
+  await s.command(5); // dismiss pack
+  await s.command(1); // hold pick from left hand
+  await s.command(9); // discard
 
-  s.command(7); // open pack
-  s.command(1); // take copper 1
-  s.command(1); // into left hand
-  s.command(7); // open pack
-  s.command(2); // take copper 2
-  s.command(3); // into right hand
-  s.command(4); // bump bank
+  await s.command(7); // open pack
+  await s.command(1); // take copper 1
+  await s.command(1); // into left hand
+  await s.command(7); // open pack
+  await s.command(2); // take copper 2
+  await s.command(3); // into right hand
+  await s.command(4); // bump bank
   s.expectInventory(0, 'silver');
   s.expectInventory(1, 'empty');
 
-  s.command(6); // bump factory with silver medal
+  await s.command(6); // bump factory with silver medal
   s.expectInventory(0, 'bolt');
   s.expectInventory(1, 'empty');
 
-  s.command(1); // hold bolt
-  s.command(7); // in pack
-  s.command(1); // stash bolt in slot 1
+  await s.command(1); // hold bolt
+  await s.command(7); // in pack
+  await s.command(1); // stash bolt in slot 1
   s.expectInventory(0, 'empty');
   s.expectInventory(1, 'empty');
   s.expectInventory(2, 'bolt');
 
-  s.command(7); // open stash
-  s.command(3); // get copper from slot 3
-  s.command(1); // in left hand.
-  s.command(7); // open stash
-  s.command(4); // get copper from slot 4
-  s.command(3); // in right hand.
-  s.command(4); // bump bank to get silver.
+  await s.command(7); // open stash
+  await s.command(3); // get copper from slot 3
+  await s.command(1); // in left hand.
+  await s.command(7); // open stash
+  await s.command(4); // get copper from slot 4
+  await s.command(3); // in right hand.
+  await s.command(4); // bump bank to get silver.
   s.expectInventory(0, 'silver');
   s.expectInventory(1, 'empty');
   s.expectInventory(2, 'bolt');
 
-  s.command(7); // open stash
-  s.command(6); // get copper from slot 6
-  s.command(3); // in right hand
+  await s.command(7); // open stash
+  await s.command(6); // get copper from slot 6
+  await s.command(3); // in right hand
   s.expectInventory(0, 'silver');
   s.expectInventory(1, 'copper');
   s.expectInventory(2, 'bolt');
 
-  s.command(4); // bump bank to exchange silver and copper for gold
+  await s.command(4); // bump bank to exchange silver and copper for gold
   s.expectInventory(0, 'gold');
   s.expectInventory(1, 'empty');
   s.expectInventory(2, 'bolt');
 
-  s.command(6); // bump factory to change gold to gear
+  await s.command(6); // bump factory to change gold to gear
   s.expectInventory(0, 'gear');
   s.expectInventory(1, 'empty');
   s.expectInventory(2, 'bolt');
 
-  s.command(7); // open pack
-  s.command(1); // get bolt
+  await s.command(7); // open pack
+  await s.command(1); // get bolt
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(b).  <- bolt (agent) over
     [ g ]  <- gear (reagent)
   `);
 
-  s.command(2); // construct shovel from bolt over gear
+  await s.command(2); // construct shovel from bolt over gear
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(s).  <- shovel
     [ . ]
-  `);
-});
-
-test('exit play mode with a non-empty pack', t => {
-  const s = makeScaffold(t);
-  s.scene('@');
-  s.inventory(2, 'apple');
-  s.play();
-
-  s.expectControls(`
-    b ^ .
-    < z >
-    [ v ]
-  `);
-
-  s.command(0); // open menu
-  s.expectMode('menu');
-  s.expectControls(`
-    . ^ .
-    . . .
-    . v .
   `);
 });
 

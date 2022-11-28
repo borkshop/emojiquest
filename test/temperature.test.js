@@ -1,7 +1,7 @@
 import test from 'ava';
 import { makeScaffold } from '../test-scaffold.js';
 
-test('freeze to death', t => {
+test('freeze to death', async t => {
   const s = makeScaffold(t);
   s.terrain(`
     c c c
@@ -23,7 +23,7 @@ test('freeze to death', t => {
   `);
   t.is(s.health, 5);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   s.expectScene(`
     . . .
     . c . <- cold!
@@ -31,7 +31,7 @@ test('freeze to death', t => {
   `);
   t.is(s.health, 4);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   s.expectScene(`
     . . .
     . s . <- sad!
@@ -39,7 +39,7 @@ test('freeze to death', t => {
   `);
   t.is(s.health, 3);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   s.expectScene(`
     . . .
     . b . <- bad!
@@ -47,7 +47,7 @@ test('freeze to death', t => {
   `);
   t.is(s.health, 2);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   s.expectScene(`
     . . .
     . g . <- grimmacing, near death.
@@ -55,7 +55,7 @@ test('freeze to death', t => {
   `);
   t.is(s.health, 1);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   t.is(s.health, 0);
   s.expectScene(`
     . . .
@@ -64,7 +64,7 @@ test('freeze to death', t => {
   `);
 });
 
-test('freeze til don a coat', t => {
+test('freeze til don a coat', async t => {
   const s = makeScaffold(t, {
     legend: {
       C: 'coat',
@@ -90,10 +90,10 @@ test('freeze til don a coat', t => {
   `);
   t.is(s.health, 5);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   t.is(s.health, 4);
 
-  s.command(6); // get coat
+  await s.command(6); // get coat
   t.is(s.health, 3);
   s.expectScene(`
     . . .
@@ -101,9 +101,9 @@ test('freeze til don a coat', t => {
     . . .
   `);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   t.is(s.health, 3);
 
-  s.command(5); // rest
+  await s.command(5); // rest
   t.is(s.health, 3);
 });
