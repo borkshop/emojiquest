@@ -64,6 +64,7 @@ export type ToponymFn = (
 ) => string;
 
 export type ModelReadFacet = {
+  size: number;
   locate: (entity: number) => number;
   inventory: (entity: number, slot: number) => number;
   allPacked: (entity: number, start?: number) => boolean;

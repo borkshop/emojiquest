@@ -1245,7 +1245,7 @@ export const makeController = ({
           } else if (command === 5) {
             return chooseAgent(reset);
           } else if (command === 0 && !repeat) {
-            return editToMenuMode(position, player, reset);
+            return editMenu(player, reset);
           } else {
             return editMode;
           }
@@ -1265,6 +1265,81 @@ export const makeController = ({
         },
       };
 
+      /**
+       * @param {number | undefined} player
+       * @param {() => void} reset
+       */
+      const editMenu = async (player, reset) => {
+        /** @type {Record<string, string>} */
+        const options = Object.create(null);
+        options.edit = '✏️  Edit'; // 🚧
+        if (player !== undefined) {
+          options.play = '🎭 Play   '; // 🪁 ▶️
+        }
+        if (window.showSaveFilePicker !== undefined) {
+          options.save = '🛟  Save  '; //  🏦
+        }
+        if (window.showOpenFilePicker !== undefined) {
+          options.load = '🛻  Load'; // 🚜 🏗
+        }
+        // options.entities = '🙂 Entities';
+        // options.addEntity = '👶 Add Entity';
+        options.choose = '🎰 Choose Entity';
+        // options.waypoints = '🗺 Waypoints';
+        // options.mark = '📍 Mark Waypoint';
+        options.teleport = '🛸 Teleport to Waypoint';
+        // options.levels = '🪜 Levels';
+        // options.addLevel = '🏗 Add Level';
+        // options.items = '🎒 Items';
+        // options.addItem = '🔨 Add Item';
+        // options.recipes = '🧑‍🍳 Recipes';
+        // options.addRecipe = '📝 Add Recipe';
+
+        const choice = await choose(options);
+        // TODO move these into driver
+        reset();
+        outerTock();
+
+        if (choice === 'play') {
+          const handoff = {};
+          exitEditMode(handoff);
+
+          assertDefined(player);
+          return enterPlayMode(player, {});
+        } else if (choice === 'load') {
+          const handoff = {};
+          exitEditMode(handoff);
+          // TODO yield to driver instead
+
+          const result = await loadWorld();
+          if (result === undefined) {
+            return editMode;
+          } else {
+            const { world, mechanics, player, wholeWorldDescription } = result;
+            return enterWorld(world, mechanics, player, wholeWorldDescription);
+          }
+        } else if (choice === 'save') {
+          await saveWorld({
+            ...wholeWorldDescription,
+            ...capture(player),
+          });
+          return editMode;
+        } else if (choice === 'choose') {
+          return chooseAgent(reset);
+        } else if (choice === 'teleport') {
+          // TODO destination selection menu tree
+          const destination = Math.floor(worldModel.size * Math.random());
+          cameraController.jump(destination);
+          worldMacroViewModel.jump(-1, destination, 0, -1);
+          cursor = { position: destination, direction: north };
+          updateEditorDialog();
+
+          return editMode;
+        } else {
+          return editMode;
+        }
+      };
+
       /** @param {() => void} reset */
       const chooseAgent = async reset => {
         /** @type {Record<string, string>} */
@@ -1276,8 +1351,9 @@ export const makeController = ({
           options[name] = `${text} ${name}`;
         }
         const agentTypeName = await choose(options);
-        outerTock();
+        // TODO move these to driver
         reset();
+        outerTock();
 
         if (agentTypeName !== undefined) {
           const agentType = assumeDefined(agentTypesByName[agentTypeName]);
@@ -1347,7 +1423,7 @@ export const makeController = ({
           return enterPlayMode(player, {});
         } else {
           const { world, mechanics, player, wholeWorldDescription } = result;
-          return limboModePlay(world, mechanics, player, wholeWorldDescription);
+          return enterWorld(world, mechanics, player, wholeWorldDescription);
         }
       } else if (choice === 'save') {
         await saveWorld({
@@ -1393,18 +1469,6 @@ export const makeController = ({
     const limboToPlayMode = player => {
       const handoff = {};
       return enterPlayMode(player, handoff);
-    };
-
-    /**
-     * @param {number} position
-     * @param {number | undefined} player
-     * @param {() => void} reset
-     */
-    const editToMenuMode = (position, player, reset) => {
-      const handoff = {};
-      exitEditMode(handoff);
-      oneKeyView.exit(0);
-      return playMenu(position, player, reset);
     };
 
     const tick = () => {
@@ -1457,7 +1521,7 @@ export const makeController = ({
   };
 
   /** @type {PlayFn} */
-  const limboModePlay = (world, mechanics, player, wholeWorldDescription) => {
+  const enterWorld = (world, mechanics, player, wholeWorldDescription) => {
     const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
       world,
       mechanics,
@@ -1478,7 +1542,7 @@ export const makeController = ({
     handleCommand(_command, _repeat) {
       return limboMode;
     },
-    play: limboModePlay,
+    play: enterWorld,
   };
 
   /**

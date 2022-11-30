@@ -1585,6 +1585,7 @@ export function makeModel({
 
   // TODO: decompose into facets: watcher, controller, test
   return {
+    size,
     set,
     remove,
     intendToMove,
