@@ -1202,6 +1202,7 @@ export const makeController = ({
           p: 1, // paste
           f: 1, // fill
           z: 3, // erase delete
+          Escape: 0,
         },
         handleCommand(command, repeat, reset) {
           const direction = commandDirection.get(command);
