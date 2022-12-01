@@ -38,8 +38,7 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
- * @param {() => void} reset
- * @returns {void | Promise<void>}
+ * @returns {AsyncIterator<void, void>}
  */
 
 /**
@@ -57,6 +56,8 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * @property {CommandForKeyFn} commandForKey
  * @property {(key: string) => boolean} handleMiscKeyPress
  * @property {(command: number) => () => void} down
+ * @property {() => void} tick
+ * @property {() => void} tock
  * @property {(progress: Progress) => void} animate
  * @property {(direction: number) => number} commandForDirection
  * @property {(command: number) => number | undefined} directionForCommand
@@ -93,28 +94,31 @@ export const makeDriver = (controller, options) => {
   // Time elapsed since tick.
   let timeSinceTransitionStart = animatedTransitionDuration;
 
-  function reset() {
-    // Pre-animated transition reset.
-    timeSinceTransitionStart = 0;
-  }
-
   /**
    * @param {number} command
    * @param {boolean} repeat
    */
   async function tickTock(command, repeat) {
-    reset();
+    const turnGenerator = controller.handleCommand(command, repeat);
 
-    const commandCompleted = controller.handleCommand(command, repeat, reset);
+    for (;;) {
+      timeSinceTransitionStart = 0;
+      controller.tock();
+      const turnCompleted = turnGenerator.next();
+      controller.tick();
 
-    await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
+      await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
 
-    // Ensure that the animation gets all the way to 100%, regardless of
-    // animation frame timing.
-    const progress = makeProgress(animatedTransitionDuration, 1.0);
-    controller.animate(progress);
+      // Ensure that the animation gets all the way to 100%, regardless of
+      // animation frame timing.
+      const progress = makeProgress(animatedTransitionDuration, 1.0);
+      controller.animate(progress);
 
-    await commandCompleted;
+      const { done } = await turnCompleted;
+      if (done) {
+        return;
+      }
+    }
   }
 
   /**
@@ -271,5 +275,5 @@ export const makeDriver = (controller, options) => {
   run();
   animate();
 
-  return { down, up, cancel, reset };
+  return { down, up, cancel };
 };

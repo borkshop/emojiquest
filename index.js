@@ -228,7 +228,6 @@ const main = async () => {
           multiple: false,
         });
       } catch (error) {
-        driver.reset();
         dialogController.log(`⚠️ No new world selected.`);
         console.error(error);
         return;
@@ -380,7 +379,6 @@ const main = async () => {
     scrimElement.style.display = 'none';
     controlsController.show();
     hamburgerController.show();
-    driver.reset();
 
     return choice;
   };

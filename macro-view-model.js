@@ -45,7 +45,7 @@ export function makeMacroViewModel(
   function assertPlanning() {
     assert(
       planning,
-      `Cannot send animation commands in macro view model planning phase`,
+      `Animation commands must be invoked between tock and tick, not between tick and tock`,
     );
   }
 

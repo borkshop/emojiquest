@@ -144,19 +144,23 @@ const noop = () => {};
  */
 
 /**
+ * @template T
+ * @template U
+ * @typedef {AsyncIterator<T, U> & {[Symbol.asyncIterator]: () => AsyncIterator<T, U>}} AsyncIteration
+ */
+
+/**
  * @callback HandleCommandFn
  * @param {number} command
  * @param {boolean} repeat
- * @param {() => void} reset
- * @returns {Promise<void>}
+ * @returns {AsyncIteration<void, void>}
  */
 
 /**
  * @callback HandleModeCommandFn
  * @param {number} command
  * @param {boolean} repeat
- * @param {() => void} reset
- * @returns {Mode | Promise<Mode>}
+ * @returns {AsyncIteration<void, Mode>}
  */
 
 /**
@@ -593,7 +597,7 @@ export const makeController = ({
           ...handKeys,
           Escape: 0,
         },
-        handleCommand(command, repeat, reset) {
+        handleCommand: async function* (command, repeat) {
           repeat = repeat && worldModel.entityHealth(player) === 5;
           const direction = commandDirection.get(command);
           if (direction !== undefined) {
@@ -620,7 +624,7 @@ export const makeController = ({
             // stash
             return openStash();
           } else if (command === 0 && !repeat) {
-            return playToMenuMode(cursor.position, player, reset);
+            return yield* playToMenuMode(cursor.position, player);
           } else {
             return playMode;
           }
@@ -684,7 +688,7 @@ export const makeController = ({
             Escape: 1,
             // ' ': 5,
           },
-          handleCommand(command, repeat) {
+          handleCommand: async function* (command, repeat) {
             if (repeat) return itemMode;
             if (command === 9) {
               // trash / consume
@@ -790,7 +794,7 @@ export const makeController = ({
             ...numberKeys,
             Escape: 5,
           },
-          handleCommand(command, repeat) {
+          handleCommand: async function* (command, repeat) {
             if (repeat) return packMode;
             if (command === 5) {
               // keep
@@ -1100,14 +1104,13 @@ export const makeController = ({
       /**
        * @param {number} position
        * @param {number} player
-       * @param {() => void} reset
        */
-      const playToMenuMode = async (position, player, reset) => {
+      const playToMenuMode = async function* (position, player) {
         const handoff = {};
         exitPlayMode(player, handoff);
         oneKeyView.exit(0);
 
-        return playMenu(position, player, reset);
+        return yield* playMenu(position, player);
       };
 
       restoreDpad(handoff);
@@ -1204,7 +1207,7 @@ export const makeController = ({
           z: 3, // erase delete
           Escape: 0,
         },
-        handleCommand(command, repeat, reset) {
+        handleCommand: async function* (command, repeat) {
           const direction = commandDirection.get(command);
           if (direction !== undefined) {
             const { position: origin } = cursor;
@@ -1243,9 +1246,9 @@ export const makeController = ({
             copy();
             return editMode;
           } else if (command === 5) {
-            return chooseAgent(reset);
+            return yield* chooseAgent();
           } else if (command === 0 && !repeat) {
-            return editMenu(player, reset);
+            return yield* editMenu(player);
           } else {
             return editMode;
           }
@@ -1267,9 +1270,8 @@ export const makeController = ({
 
       /**
        * @param {number | undefined} player
-       * @param {() => void} reset
        */
-      const editMenu = async (player, reset) => {
+      const editMenu = async function* (player) {
         /** @type {Record<string, string>} */
         const options = Object.create(null);
         options.edit = '✏️  Edit'; // 🚧
@@ -1296,9 +1298,9 @@ export const makeController = ({
         // options.addRecipe = '📝 Add Recipe';
 
         const choice = await choose(options);
-        // TODO move these into driver
-        reset();
-        outerTock();
+
+        // Plan new animation turn
+        yield undefined;
 
         if (choice === 'play') {
           const handoff = {};
@@ -1309,11 +1311,14 @@ export const makeController = ({
         } else if (choice === 'load') {
           const handoff = {};
           exitEditMode(handoff);
-          // TODO yield to driver instead
 
           const result = await loadWorld();
+
+          // Plan new animation turn
+          yield undefined;
+
           if (result === undefined) {
-            return editMode;
+            return enterEditMode(position, player, handoff);
           } else {
             const { world, mechanics, player, wholeWorldDescription } = result;
             return enterWorld(world, mechanics, player, wholeWorldDescription);
@@ -1325,7 +1330,7 @@ export const makeController = ({
           });
           return editMode;
         } else if (choice === 'choose') {
-          return chooseAgent(reset);
+          return yield* chooseAgent();
         } else if (choice === 'teleport') {
           // TODO destination selection menu tree
           const destination = Math.floor(worldModel.size * Math.random());
@@ -1340,8 +1345,7 @@ export const makeController = ({
         }
       };
 
-      /** @param {() => void} reset */
-      const chooseAgent = async reset => {
+      const chooseAgent = async function* () {
         /** @type {Record<string, string>} */
         const options = Object.create(null);
         for (let agentType = 3; agentType < agentTypes.length; agentType += 1) {
@@ -1350,10 +1354,11 @@ export const makeController = ({
           const { text } = tileTypes[tileType];
           options[name] = `${text} ${name}`;
         }
+
         const agentTypeName = await choose(options);
-        // TODO move these to driver
-        reset();
-        outerTock();
+
+        // Plan new animation turn
+        yield undefined;
 
         if (agentTypeName !== undefined) {
           const agentType = assumeDefined(agentTypesByName[agentTypeName]);
@@ -1391,9 +1396,8 @@ export const makeController = ({
     /**
      * @param {number} position
      * @param {number | undefined} player
-     * @param {() => void} reset
      */
-    const playMenu = async (position, player, reset) => {
+    const playMenu = async function* (position, player) {
       /** @type {Record<string, string>} */
       const options = Object.create(null);
       if (player !== undefined) {
@@ -1409,8 +1413,9 @@ export const makeController = ({
 
       const choice = await choose(options);
 
-      reset();
-      outerTock();
+      // Plan new animation turn.
+      yield undefined;
+
       oneKeyView.put(0, 0, builtinTileTypesByName.hamburger);
       oneKeyView.enter(0);
 
@@ -1418,6 +1423,10 @@ export const makeController = ({
         return enterEditMode(position, player, {});
       } else if (choice === 'load') {
         const result = await loadWorld();
+
+        // Plan new animation turn.
+        yield undefined;
+
         if (result === undefined) {
           assertDefined(player);
           return enterPlayMode(player, {});
@@ -1430,6 +1439,10 @@ export const makeController = ({
           ...wholeWorldDescription,
           ...capture(player),
         });
+
+        // Plan new animation turn.
+        yield undefined;
+
         assertDefined(player);
         return enterPlayMode(player, {});
       } else {
@@ -1515,7 +1528,7 @@ export const makeController = ({
   const suspenseMode = {
     name: 'suspense',
     commandKeys: {},
-    handleCommand(_command, _repeat) {
+    handleCommand: async function* (_command, _repeat) {
       return suspenseMode;
     },
   };
@@ -1539,7 +1552,7 @@ export const makeController = ({
   const limboMode = {
     name: 'limbo',
     commandKeys: {},
-    handleCommand(_command, _repeat) {
+    handleCommand: async function* (_command, _repeat) {
       return limboMode;
     },
     play: enterWorld,
@@ -1662,17 +1675,21 @@ export const makeController = ({
     supplementaryAnimation.tock();
   };
 
-  const outerTock = tock;
-
   let mode = limboMode;
 
   /** @type {HandleCommandFn} */
-  const handleCommand = async (command, repeat, reset) => {
-    tock();
-    const nextModeP = mode.handleCommand(command, repeat, reset);
+  const handleCommand = async function* (command, repeat) {
+    const turnGenerator = mode.handleCommand(command, repeat);
+    const promise = turnGenerator.next();
     mode = suspenseMode;
-    tick();
-    mode = await nextModeP;
+    const result = await promise;
+    if (result.done) {
+      mode = result.value;
+      return undefined;
+    } else {
+      yield result.value;
+      mode = yield* turnGenerator;
+    }
   };
 
   /** @param {string} key */
@@ -1728,6 +1745,7 @@ export const makeController = ({
   };
 
   return {
+    tick,
     tock,
     animate,
     down,

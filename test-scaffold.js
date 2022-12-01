@@ -462,8 +462,6 @@ export const makeScaffold = (
     controller.tock();
   };
 
-  const reset = () => {};
-
   /**
    * @param {number} digit
    * @param {boolean} [repeat]
@@ -471,7 +469,7 @@ export const makeScaffold = (
   const command = async (digit, repeat = false) => {
     // t.log('---');
     // t.log('command', digit, repeat);
-    await controller.handleCommand(digit, repeat, reset);
+    for await (const _ of controller.handleCommand(digit, repeat)) {}
     controller.tock();
   };
 
