@@ -50,9 +50,17 @@ import { makeBoxTileMap } from './tile-map-box.js';
 /** @typedef {import('./types.js').WatchEntitiesFn} WatchEntitiesFn */
 
 /**
- * @callback ChooseFn
- * @param {Record<string, string>} options
+ * @callback InputFn
+ * @param {object} [options]
+ * @param {string} [options.placeholder]
+ * @param {string} [options.initial]
  * @returns {Promise<string | undefined>}
+ */
+
+/**
+ * @callback ChooseFn
+ * @param {Record<string, any>} options
+ * @returns {Promise<any | undefined>}
  */
 
 /**
@@ -321,6 +329,7 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {(worldData: import('./file.js').WholeWorldDescription) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
  * @param {ChooseFn} args.choose
+ * @param {InputFn} args.input
  * @param {import('./types.js').Clock} args.supplementaryAnimation
  */
 export const makeController = ({

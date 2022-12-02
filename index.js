@@ -361,10 +361,22 @@ const main = async () => {
           }
           match = match.slice(1);
         }
+      } else if (key === 'Tab') {
+        SEARCH: while (match.length > 0) {
+          for (let offset = 0; offset < values.length; offset += 1) {
+            const index = (cursor + offset + 1) % values.length;
+            if (search[index].slice(0, match.length) === match) {
+              scrollTo(index);
+              break SEARCH;
+            }
+          }
+          match = match.slice(1);
+        }
       } else {
         return;
       }
       event.stopPropagation();
+      event.preventDefault();
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -381,6 +393,62 @@ const main = async () => {
     hamburgerController.show();
 
     return choice;
+  };
+
+  /**
+   * @param {object} [options]
+   * @param {string} [options.placeholder]
+   * @param {string} [options.initial]
+   */
+  const input = async ({ placeholder = '', initial = '' } = {}) => {
+    controlsController.hide();
+    hamburgerController.hide();
+    scrimElement.style.display = 'block';
+
+    const menuElement = document.createElement('div');
+    menuElement.className = 'menu';
+    document.body.appendChild(menuElement);
+
+    const inputElement = document.createElement('input');
+    inputElement.className = 'input';
+    inputElement.placeholder = placeholder;
+    inputElement.value = initial;
+    menuElement.appendChild(inputElement);
+
+    /** @type {(value: string | undefined) => void} */
+    let resolve;
+    /** @type {Promise<string | undefined>} */
+    const promise = new Promise(res => (resolve = res));
+
+    /** @param {Event} event */
+    const onChange = event => {
+      resolve(inputElement.value);
+      event.stopPropagation();
+    };
+
+    /** @param {KeyboardEvent} event */
+    const onKeyup = event => {
+      if (event.key === 'Escape') {
+        resolve(undefined);
+        event.stopPropagation();
+      }
+    };
+
+    inputElement.addEventListener('change', onChange);
+    inputElement.addEventListener('keyup', onKeyup);
+    inputElement.select();
+
+    await promise;
+
+    inputElement.removeEventListener('change', onChange);
+    inputElement.removeEventListener('keyup', onKeyup);
+
+    menuElement.remove();
+    scrimElement.style.display = 'none';
+    controlsController.show();
+    hamburgerController.show();
+
+    return promise;
   };
 
   /** @type {import('./types.js').Clock}  */
@@ -415,6 +483,7 @@ const main = async () => {
     loadWorld,
     saveWorld,
     choose,
+    input,
     supplementaryAnimation,
   });
 
