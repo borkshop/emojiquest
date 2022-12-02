@@ -330,6 +330,8 @@ export const makeScaffold = (
     animate() {},
     tick() {},
     tock() {},
+    hide() {},
+    show() {},
   };
 
   let stamina = 0;
@@ -341,6 +343,8 @@ export const makeScaffold = (
     animate() {},
     tick() {},
     tock() {},
+    hide() {},
+    show() {},
   };
 
   const capture = () => ({

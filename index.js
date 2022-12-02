@@ -280,6 +280,8 @@ const main = async () => {
 
     controlsController.hide();
     hamburgerController.hide();
+    healthController.hide();
+    staminaController.hide();
     scrimElement.style.display = 'block';
 
     const menuElement = document.createElement('div');
@@ -391,6 +393,8 @@ const main = async () => {
     scrimElement.style.display = 'none';
     controlsController.show();
     hamburgerController.show();
+    healthController.show();
+    staminaController.show();
 
     return choice;
   };

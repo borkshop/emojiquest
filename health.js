@@ -5,6 +5,7 @@ import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeElementWatcher } from './element-watcher.js';
 import { makeBoxTileMap } from './tile-map-box.js';
+import { makeRotatingElementController } from './rotator.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -26,6 +27,8 @@ export function writeHealthBar({
   element.setAttributeNS(null, 'height', `${(1 * tileSizePx) / 2}`);
   element.setAttributeNS(null, 'width', `${(5 * tileSizePx) / 2}`);
   element.setAttributeNS(null, 'class', 'healthBar');
+
+  const rotatingElementController = makeRotatingElementController(element, -1);
 
   const watcher = makeElementWatcher(
     element,
@@ -60,13 +63,31 @@ export function writeHealthBar({
     }
   };
 
-  const { animate, tick, tock } = macroViewModel;
+  const { show, hide } = rotatingElementController;
+
+  const tick = () => {
+    macroViewModel.tick();
+    rotatingElementController.tick();
+  };
+
+  const tock = () => {
+    macroViewModel.tock();
+    rotatingElementController.tock();
+  };
+
+  /** @type {import('./progress.js').AnimateFn} */
+  const animate = progress => {
+    macroViewModel.animate(progress);
+    rotatingElementController.animate(progress);
+  };
 
   const controller = {
     set,
     animate,
     tick,
     tock,
+    hide,
+    show,
   };
 
   return { element, controller };

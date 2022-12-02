@@ -1138,6 +1138,9 @@ export const makeController = ({
       worldModel.follow(player, playerFollower);
       cameraController.jump(position);
 
+      staminaController.show();
+      healthController.show();
+
       return playMode;
     };
 
@@ -1480,6 +1483,9 @@ export const makeController = ({
       updateEditorDialog();
 
       restoreEditorReticle(position);
+
+      staminaController.hide();
+      healthController.hide();
 
       return editMode;
     };
