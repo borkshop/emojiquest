@@ -342,6 +342,7 @@ export const makeController = ({
   loadWorld,
   saveWorld,
   choose,
+  input,
   supplementaryAnimation,
 }) => {
   // State:
@@ -441,6 +442,10 @@ export const makeController = ({
       // bump,
       // viewText,
     } = mechanics;
+
+    // TODO persistence of marks
+    /** @type {Map<string, number>} */
+    const marks = new Map();
 
     /**
      * @param {number} player
@@ -1203,6 +1208,14 @@ export const makeController = ({
         }
       };
 
+      /** @param {number} position */
+      const teleport = position => {
+        cameraController.jump(position);
+        worldMacroViewModel.jump(-1, position, 0, -1);
+        cursor = { position, direction: north };
+        updateEditorDialog();
+      };
+
       /** @type {Mode} */
       const editMode = {
         name: 'edit',
@@ -1296,9 +1309,11 @@ export const makeController = ({
         // options.entities = '🙂 Entities';
         // options.addEntity = '👶 Add Entity';
         options.choose = '🎰 Choose Entity';
-        // options.waypoints = '🗺 Waypoints';
-        // options.mark = '📍 Mark Waypoint';
-        options.teleport = '🛸 Teleport to Waypoint';
+        options.mark = '📍 Mark';
+        if (marks.size) {
+          options.marks = '🗺 Marks';
+          options.teleport = '🛸 Teleport';
+        }
         // options.levels = '🪜 Levels';
         // options.addLevel = '🏗 Add Level';
         // options.items = '🎒 Items';
@@ -1340,13 +1355,80 @@ export const makeController = ({
           return editMode;
         } else if (choice === 'choose') {
           return yield* chooseAgent();
+        } else if (choice === 'mark') {
+          const label = await input();
+
+          if (label !== undefined) {
+            marks.set(label, cursor.position);
+          }
+
+          // Plan new animation turn
+          yield undefined;
+
+          return editMode;
+        } else if (choice === 'marks') {
+          const options = Object.fromEntries(
+            [...marks.entries()].map(([label, position]) => [
+              label,
+              `${label} @${position}`,
+            ]),
+          );
+          const label = await choose(options);
+
+          if (label !== undefined) {
+            const verb = await choose({
+              teleport: '🛸 Teleport',
+              rename: '✍️ Rename',
+              delete: '✂️ Delete',
+            });
+            if (verb === 'teleport') {
+              // Start new animated turn
+              yield undefined;
+
+              const position = assumeDefined(marks.get(label));
+              teleport(position);
+            }
+            if (verb === 'delete') {
+              marks.delete(label);
+            }
+            if (verb === 'rename') {
+              const relabel = await input({
+                initial: label,
+                placeholder: 'New label',
+              });
+              if (relabel !== undefined) {
+                const position = assumeDefined(marks.get(label));
+                marks.delete(label);
+                marks.set(relabel, position);
+
+                // Plan new animation turn
+                yield undefined;
+
+                dialogController.close();
+                dialogController.log(
+                  `✍️ Renamed “${label}” to “${relabel}” @${position}`,
+                );
+              }
+            }
+          }
+
+          return editMode;
         } else if (choice === 'teleport') {
-          // TODO destination selection menu tree
-          const destination = Math.floor(worldModel.size * Math.random());
-          cameraController.jump(destination);
-          worldMacroViewModel.jump(-1, destination, 0, -1);
-          cursor = { position: destination, direction: north };
-          updateEditorDialog();
+          const options = Object.fromEntries(
+            [...marks.entries()].map(([label, position]) => [
+              label,
+              `${label} @${position}`,
+            ]),
+          );
+          const label = await choose(options);
+
+          // Plan new animation turn
+          yield undefined;
+
+          if (label !== undefined) {
+            const position = assumeDefined(marks.get(label));
+            teleport(position);
+          }
 
           return editMode;
         } else {
