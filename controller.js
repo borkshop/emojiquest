@@ -1341,6 +1341,10 @@ export const makeController = ({
         // options.addItem = '🔨 Add Item';
         // options.recipes = '🧑‍🍳 Recipes';
         // options.addRecipe = '📝 Add Recipe';
+        if (marks.size) {
+          options.targetEntity = '🏹   Target Entity';
+          options.targetLocation = '🎯    Target Location';
+        }
 
         const choice = await choose(options);
 
@@ -1483,6 +1487,62 @@ export const makeController = ({
               const position = level.offset + Math.floor(level.size / 2);
               teleport(position);
             }
+          }
+
+          return editMode;
+        } else if (choice === 'targetEntity') {
+          const options = Object.fromEntries(
+            [...marks.entries()]
+              .filter(([_, location]) => {
+                const entityType = worldModel.entityTypeAt(location);
+                return entityType !== 0;
+              })
+              .map(([label, location]) => {
+                const entityType = worldModel.entityTypeAt(location);
+                const tileType = defaultTileTypeForAgentType[entityType];
+                const { text } = tileTypes[tileType];
+                return [label, `${text} ${label} @${position}`];
+              })
+              .filter(entry => entry !== undefined),
+          );
+          const label = await choose(options);
+
+          const entity = worldModel.entityAt(cursor.position);
+          const location = assumeDefined(marks.get(label));
+          const target = worldModel.entityAt(location);
+
+          // Plan new animation turn
+          yield undefined;
+
+          dialogController.close();
+          if (worldModel.setEntityTargetEntity(entity, target)) {
+            dialogController.log(`🏹 Target entity set`);
+          } else {
+            dialogController.log(`⚠️  Failed to set target entity`);
+          }
+
+          return editMode;
+        } else if (choice === 'targetLocation') {
+          const options = Object.fromEntries(
+            [...marks.entries()]
+              .map(([label, location]) => {
+                return [label, `${label} @${location}`];
+              })
+              .filter(entry => entry !== undefined),
+          );
+          const label = await choose(options);
+
+          const entity = worldModel.entityAt(cursor.position);
+          const target = assumeDefined(marks.get(label));
+
+          // Plan new animation turn
+          yield undefined;
+
+          dialogController.close();
+          if (worldModel.setEntityTargetLocation(entity, target)) {
+            dialogController.log(`🎯 Target location set`);
+          } else {
+            dialogController.log(`⚠️  Failed to set target entity`);
           }
 
           return editMode;

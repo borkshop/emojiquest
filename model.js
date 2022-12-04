@@ -648,9 +648,36 @@ export function makeModel({
 
   /**
    * @param {number} entity
+   * @param {number} target
+   */
+  function setEntityTargetLocation(entity, target) {
+    if (!entityTypes.has(entity)) {
+      return false;
+    }
+    entityTargetLocations.set(entity, target);
+    return true;
+  }
+
+  /**
+   * @param {number} entity
    */
   function entityTargetEntity(entity) {
     return entityTargetEntities.get(entity);
+  }
+
+  /**
+   * @param {number} entity
+   * @param {number} target
+   */
+  function setEntityTargetEntity(entity, target) {
+    if (!entityTypes.has(entity)) {
+      return false;
+    }
+    if (!entityTypes.has(target)) {
+      return false;
+    }
+    entityTargetEntities.set(entity, target);
+    return true;
   }
 
   /** @type {import('./types.js').ModelKit} */
@@ -1604,6 +1631,8 @@ export function makeModel({
     entityHealth,
     setHealth, // for tests only
     setStamina, // for tests only
+    setEntityTargetEntity,
+    setEntityTargetLocation,
     watchTerrain,
     unwatchTerrain,
     getTerrainFlags,

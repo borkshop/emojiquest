@@ -87,6 +87,8 @@ export type ModelWriteFacet = {
   remove: (location: number) => void;
   set: (location: number, entityType: number) => number;
   toggleTerrainFlags: (location: number, terrainFlags: number) => void;
+  setEntityTargetLocation: (entity: number, location: number) => boolean;
+  setEntityTargetEntity: (entity: number, location: number) => boolean;
 };
 
 export type ModelFacetForController = ModelReadFacet &
