@@ -21,6 +21,7 @@ import { writeHealthBar } from './health.js';
 import { writeStaminaBar } from './stamina.js';
 
 import { makeRotatingElementController } from './rotator.js';
+import { makeClock } from './clock.js';
 
 import { makeWorld } from './world.js';
 import { validate } from './file.js';
@@ -451,27 +452,11 @@ const main = async () => {
     return promise;
   };
 
-  /** @type {import('./types.js').Clock}  */
-  const supplementaryAnimation = {
-    tick() {
-      controlsController.tick();
-      hamburgerController.tick();
-      healthController.tick();
-      staminaController.tick();
-    },
-    tock() {
-      controlsController.tock();
-      hamburgerController.tock();
-      healthController.tock();
-      staminaController.tock();
-    },
-    animate(progress) {
-      controlsController.animate(progress);
-      hamburgerController.animate(progress);
-      healthController.animate(progress);
-      staminaController.animate(progress);
-    },
-  };
+  const supplementaryAnimation = makeClock();
+  supplementaryAnimation.add(controlsController);
+  supplementaryAnimation.add(hamburgerController);
+  supplementaryAnimation.add(healthController);
+  supplementaryAnimation.add(staminaController);
 
   const controller = makeController({
     nineKeyWatcher,
