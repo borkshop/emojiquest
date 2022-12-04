@@ -257,7 +257,24 @@ const directionFromForPackIndex = directionToForPackIndex.map(
  */
 
 /**
+ * @typedef {object} Face
+ * @prop {string} name
+ * @prop {number} offset
+ * @prop {number} size
+ */
+
+/**
+ * @typedef {object} Level
+ * @prop {string} name
+ * @prop {number} offset
+ * @prop {number} size
+ * @prop {Array<Face>} faces
+ */
+
+/**
  * @typedef {object} World
+ * @prop {string} name
+ * @prop {Array<Level>} levels
  * @prop {import('./types.js').ModelFacetForController} worldModel
  * @prop {import('./types.js').MacroViewModelFacetForController} worldMacroViewModel
  * @prop {import('./types.js').AdvanceFn} advance,
@@ -418,6 +435,7 @@ export const makeController = ({
    */
   const makeWorldModes = (world, mechanics, wholeWorldDescription) => {
     const {
+      levels,
       worldModel,
       worldMacroViewModel,
       cameraController,
@@ -1317,7 +1335,7 @@ export const makeController = ({
           options.marks = '🗺 Marks';
           options.teleport = '🛸 Teleport';
         }
-        // options.levels = '🪜 Levels';
+        options.levels = '🪜 Levels';
         // options.addLevel = '🏗 Add Level';
         // options.items = '🎒 Items';
         // options.addItem = '🔨 Add Item';
@@ -1431,6 +1449,40 @@ export const makeController = ({
           if (label !== undefined) {
             const position = assumeDefined(marks.get(label));
             teleport(position);
+          }
+
+          return editMode;
+        } else if (choice === 'levels') {
+          const options = Object.fromEntries(
+            levels.map((_, index) => [`${index + 1}`, `${index + 1}`]),
+          );
+
+          const choice = await choose(options);
+
+          // Plan new animation turn
+          yield undefined;
+
+          if (choice !== undefined) {
+            const level = levels[choice - 1];
+            if (level.faces.length) {
+              const options = Object.fromEntries(
+                level.faces.map((_, index) => [`${index + 1}`, `${index + 1}`]),
+              );
+
+              const choice = await choose(options);
+
+              // Plan new animation turn
+              yield undefined;
+
+              if (choice !== undefined) {
+                const face = level.faces[choice - 1];
+                const position = face.offset + Math.floor(face.size / 2);
+                teleport(position);
+              }
+            } else {
+              const position = level.offset + Math.floor(level.size / 2);
+              teleport(position);
+            }
           }
 
           return editMode;

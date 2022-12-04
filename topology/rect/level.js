@@ -137,12 +137,21 @@ export const makeLevel = ({
   };
 
   return {
+    name: 'Rect',
     descriptor: {
       topology: /** @type {'rect'} */ ('rect'),
       size,
       colors: colorNamePalette,
     },
+    offset,
     size: area,
+    faces: [
+      {
+        name: 'Face',
+        offset,
+        size: area,
+      },
+    ],
     advance,
     toponym,
     makeView,

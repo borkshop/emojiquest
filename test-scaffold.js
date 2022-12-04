@@ -359,6 +359,7 @@ export const makeScaffold = (
   });
 
   const world = {
+    name: 'Test World',
     mechanics,
     worldModel,
     worldMacroViewModel,
@@ -366,6 +367,7 @@ export const makeScaffold = (
     toponym,
     advance,
     capture,
+    levels: [], // TODO
   };
 
   const supplementaryAnimation = {
@@ -473,7 +475,8 @@ export const makeScaffold = (
   const command = async (digit, repeat = false) => {
     // t.log('---');
     // t.log('command', digit, repeat);
-    for await (const _ of controller.handleCommand(digit, repeat)) {}
+    for await (const _ of controller.handleCommand(digit, repeat)) {
+    }
     controller.tock();
   };
 

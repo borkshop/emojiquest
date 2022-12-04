@@ -116,13 +116,22 @@ export const makeLevel = ({
   };
 
   return {
+    name: 'Torus',
     descriptor: {
       topology: /** @type {'torus'} */ ('torus'),
       chunksPerLevel,
       tilesPerChunk,
       colors: colorNamePalette,
     },
+    offset,
     size: area,
+    faces: [
+      {
+        name: 'Face',
+        offset,
+        size: area,
+      },
+    ],
     advance,
     toponym,
     makeView,

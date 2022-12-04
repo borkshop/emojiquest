@@ -19,9 +19,19 @@ import * as rect from './topology/rect/level.js';
  */
 
 /**
+ * @typedef {object} Face
+ * @prop {string} name
+ * @prop {number} offset
+ * @prop {number} size
+ */
+
+/**
  * @typedef {object} Level
  * @prop {import('./file.js').Level} descriptor
+ * @prop {string} name
+ * @prop {number} offset
  * @prop {number} size
+ * @prop {Array<Face>} faces
  * @prop {import('./types.js').AdvanceFn} advance
  * @prop {import('./types.js').ToponymFn} toponym
  * @prop {(args: { parentElement: Node, nextSibling: Node }) => LevelView} makeView
@@ -51,7 +61,7 @@ export const makeWorld = (
 ) => {
   const frustumRadius = 10;
 
-  const levelSizes = snapshot.levels.map(level => {
+  const sizes = snapshot.levels.map(level => {
     const { topology } = level;
     if (topology === 'daia') {
       return daia.sizeLevel(level);
@@ -67,7 +77,7 @@ export const makeWorld = (
   let size = 0;
   /** @type {Array<number>} */
   const offsets = [];
-  for (const levelSize of levelSizes) {
+  for (const levelSize of sizes) {
     offsets.push(size);
     size += levelSize;
   }
@@ -365,6 +375,8 @@ export const makeWorld = (
   };
 
   const world = {
+    name: 'World',
+    levels,
     worldModel,
     worldMacroViewModel,
     cameraController,

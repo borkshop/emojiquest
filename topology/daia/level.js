@@ -127,14 +127,26 @@ export const makeLevel = ({
     };
   };
 
+  const faces = [];
+  for (let face = 0; face < 6; face += 1) {
+    faces.push({
+      name: `${face}`,
+      offset: offset + tilesPerFace * tilesPerFace * face,
+      size: tilesPerFace * tilesPerFace,
+    });
+  }
+
   return {
+    name: 'Daia',
     descriptor: {
       topology: /** @type {'daia'} */ ('daia'),
       facetsPerFace,
       tilesPerFacet,
       colors: colorNamePalettes,
     },
+    offset,
     size: tileTopology.worldArea,
+    faces,
     advance: tileTopology.advance,
     toponym,
     makeView,
