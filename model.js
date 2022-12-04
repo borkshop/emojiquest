@@ -837,12 +837,12 @@ export function makeModel({
 
     // Auction for Moves.
     // Considering every tile that an entity wishes to move into or act upon.
-    for (const [destination, options] of targets.entries()) {
+    for (const [destination, candidates] of targets.entries()) {
       // TODO filter entities that have been scheduled for demolition from the
       // losers.
-      const losers = [...options.keys()];
+      const losers = [...candidates.keys()];
       const winner = pluck(losers, Math.floor(Math.random() * losers.length));
-      const change = assumeDefined(options.get(winner));
+      const bid = assumeDefined(candidates.get(winner));
       const {
         position: origin,
         health,
@@ -850,8 +850,12 @@ export function makeModel({
         handler,
         parameters,
         dialog,
-      } = change;
-      assert(entities[destination] === 0);
+      } = bid;
+
+      // Ignore bids to move onto occupied destinations.
+      if (entities[destination] !== 0) {
+        continue;
+      }
 
       if (dialog !== undefined) {
         onDialog(winner, dialog);
@@ -865,7 +869,7 @@ export function makeModel({
       locations.set(winner, destination);
       staleTileTypes.add(winner);
       staleHealthTrajectories.add(winner);
-      moves.set(winner, change);
+      moves.set(winner, bid);
       entitiesWriteBuffer[destination] = winner;
       entitiesWriteBuffer[origin] = 0;
       adjustHealth(winner, health);
@@ -874,7 +878,7 @@ export function makeModel({
       // Bounce all of the candidates that did not get to proceed in the
       // direction they intended.
       for (const loser of losers) {
-        const change = assumeDefined(options.get(loser));
+        const change = assumeDefined(candidates.get(loser));
         const { direction } = change;
         if (direction === undefined) {
           // TODO
