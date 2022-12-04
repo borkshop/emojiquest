@@ -290,6 +290,14 @@ export const agentTypes = [
       '🧙‍♂️ Definitely do not <i>approach</i> the <b>🐧 penguins</b>. 🔚',
     ],
   },
+  {
+    name: 'northLadder',
+    tile: 'ladder',
+  },
+  {
+    name: 'southSlide',
+    tile: 'slide',
+  },
 ];
 
 /**
@@ -522,6 +530,8 @@ export const tileTypes = [
   { name: 'banana', text: '🍌' },
   { name: 'sponge', text: '🧽' },
   { name: 'shark', text: '🦈    ' },
+  { name: 'ladder', text: '🪜    ' },
+  { name: 'slide', text: '🛝      ' },
 ];
 
 /**
@@ -832,6 +842,22 @@ export const actions = [
     verb: 'touch',
     items: [],
     dialog: '🧙‍♂️ Up you go! 🧙‍♀️',
+    jump: 'entity',
+  },
+  {
+    patient: 'northLadder',
+    right: 'any',
+    verb: 'touch',
+    items: [],
+    dialog: '🎅Welcome back!🤶',
+    jump: 'entity',
+  },
+  {
+    patient: 'southSlide',
+    right: 'any',
+    verb: 'touch',
+    items: [],
+    dialog: '🐧 Wheeeee! 🐧',
     jump: 'entity',
   },
 ];
