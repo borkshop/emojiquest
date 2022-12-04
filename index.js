@@ -351,8 +351,8 @@ const main = async () => {
         scrollTo((values.length + cursor - 1) % values.length);
       } else if (key === 'ArrowDown') {
         scrollTo((cursor + 1) % values.length);
-      } else if (key.length === 1) {
-        match = match + key;
+      } else if (/^\w$/.test(key)) {
+        match = match + key.toLowerCase();
         SEARCH: while (match.length > 0) {
           for (let index = 0; index < values.length; index += 1) {
             if (search[index].slice(0, match.length) === match) {
