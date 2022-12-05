@@ -35,12 +35,13 @@
 import { dot } from './lib/vector2d.js';
 import { enumerate } from './lib/iterate.js';
 import { makeMechanics } from './mechanics.js';
-import { toValidator, toEnricher } from './lib/schema-validator.js';
+import { makeValidator } from './lib/schema-validator.js';
+import { makeEnricher } from './lib/schema-enricher.js';
 import { wholeWorldSchema } from './schema.js';
 import { terrainMask } from './model.js';
 
-const validator = wholeWorldSchema(toValidator);
-const enricher = wholeWorldSchema(toEnricher);
+const validator = makeValidator(wholeWorldSchema);
+const enricher = makeEnricher(wholeWorldSchema);
 
 /**
  * @param {string} colorName

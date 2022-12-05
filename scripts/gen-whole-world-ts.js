@@ -1,8 +1,8 @@
 import { toTypeScriptNotation } from '../lib/schema-typescript.js';
 import { worldSchema, wholeWorldSchema } from '../schema.js';
 
-const worldType = worldSchema(toTypeScriptNotation);
-const wholeWorldType = wholeWorldSchema(toTypeScriptNotation);
+const worldType = toTypeScriptNotation(worldSchema);
+const wholeWorldType = toTypeScriptNotation(wholeWorldSchema);
 
 process.stdout.write(`\
 /**

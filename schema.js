@@ -187,4 +187,5 @@ export const wholeWorldSchema = $ =>
     ),
     ...worldFields($),
     mechanics: mechanicsSchema($),
+    marks: $.optional($.dict($.number())),
   });
