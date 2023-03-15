@@ -372,7 +372,7 @@ export const validate = allegedWholeWorldDescription => {
     locations: describedLocations,
     terrain: describedTerrain = [],
     inventories: describedInventories = [],
-    healths: describedHealths = [],
+    healths: describedHealths = new Map(),
     staminas: describedStaminas = [],
     entityTargetLocations: describedEntityTargetLocations = [],
     entityTargetEntities: describedEntityTargetEntities = [],
@@ -511,8 +511,7 @@ export const validate = allegedWholeWorldDescription => {
 
   /** @type {Map<number, number>} */
   const healths = new Map();
-  for (const entry of describedHealths) {
-    const { entity: describedEntity, health: describedHealth } = entry;
+  for (const [describedEntity, describedHealth] of describedHealths.entries()) {
     const entity = describedEntityToEntity.get(describedEntity);
     if (entity === undefined) {
       errors.push(

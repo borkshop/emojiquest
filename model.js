@@ -1452,15 +1452,13 @@ export function makeModel({
       });
     }
 
-    /** @type {Array<{entity: number, health: number}>} */
-    const rehealths = [];
+    /** @type {Record<number, number>} */
+    const rehealths = new Map();
     for (const [entity, health] of healths.entries()) {
       const reentity = assumeDefined(renames.get(entity));
-      rehealths.push({
-        entity: reentity,
-        health,
-      });
+      rehealths.set(reentity, health);
     }
+
     /** @type {Array<{entity: number, stamina: number}>} */
     const restaminas = [];
     for (const [entity, stamina] of staminas.entries()) {
@@ -1502,7 +1500,7 @@ export function makeModel({
       types: retypes,
       inventories: reinventories,
       terrain: [...terrain.slice()],
-      healths: rehealths,
+      healths: Object.fromEntries(rehealths.entries()),
       staminas: restaminas,
       entityTargetLocations: reentityTargetLocations,
       entityTargetEntities: reentityTargetEntities,

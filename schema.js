@@ -137,14 +137,7 @@ const worldFields = $ => ({
     ),
   ),
   terrain: $.optional($.list($.number())),
-  healths: $.optional(
-    $.list(
-      $.struct({
-        entity: $.number(),
-        health: $.number(),
-      }),
-    ),
-  ),
+  healths: $.optional($.index($.number())),
   staminas: $.optional(
     $.list(
       $.struct({
