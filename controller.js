@@ -1458,7 +1458,7 @@ export const makeController = ({
           return editMode;
         } else if (choice === 'levels') {
           const options = Object.fromEntries(
-            levels.map((_, index) => [`${index + 1}`, `${index + 1}`]),
+            levels.map((_, index) => [`${index + 1}`, `Level ${index + 1}`]),
           );
 
           const choice = await choose(options);
@@ -1468,9 +1468,12 @@ export const makeController = ({
 
           if (choice !== undefined) {
             const level = levels[choice - 1];
-            if (level.faces.length) {
+            if (level.faces.length > 1) {
               const options = Object.fromEntries(
-                level.faces.map((_, index) => [`${index + 1}`, `${index + 1}`]),
+                level.faces.map((_, index) => [
+                  `${index + 1}`,
+                  `Face ${index + 1}`,
+                ]),
               );
 
               const choice = await choose(options);
