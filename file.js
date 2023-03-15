@@ -10,26 +10,10 @@
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
- * @property {Array<Level>} levels
+ * @property {Array<import('./types.js').LevelDescription>} levels
  * @property {Map<number, number>} entityTargetLocations
  * @property {Map<number, number>} entityTargetEntities
  * @property {Map<string, string>} colorsByName
- */
-
-/**
- * @typedef {import('./topology/daia/file.js').Level} DaiaLevel
- * @typedef {import('./topology/torus/file.js').Level} TorusLevel
- * @typedef {import('./topology/rect/file.js').Level} RectLevel
- * @typedef {DaiaLevel | TorusLevel | RectLevel} Level
- */
-
-/**
- * @typedef {object} ColorNamePalette
- * @property {string} base - average color of a face (presumably one of either
- * the earth or water color for its tiles)
- * @property {string} earth - color of a tile when earth is on the surface
- * @property {string} water - color of a tile when water is on the surface
- * @property {string} lava - color of a tile when lava is on the surface
  */
 
 import { dot } from './lib/vector2d.js';

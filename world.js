@@ -27,7 +27,7 @@ import * as rect from './topology/rect/level.js';
 
 /**
  * @typedef {object} Level
- * @prop {import('./file.js').Level} descriptor
+ * @prop {import('./types.js').LevelDescription} descriptor
  * @prop {string} name
  * @prop {number} offset
  * @prop {number} size

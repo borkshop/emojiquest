@@ -1,5 +1,6 @@
 import type { Coord, Transition } from './animation2d.js';
 import type { Progress, AnimateFn } from './progress.js';
+import type { Point } from './lib/geometry2d.js';
 
 // Informs the view that the animation turn has begun.
 export type TickFn = () => void;
@@ -259,6 +260,38 @@ export type ActionParameters = {
 };
 
 export type ActionHandler = (kit: ModelKit, params: ActionParameters) => void;
+
+export type ColorNamePalette = {
+  base: string;
+  earth: string;
+  water: string;
+  lava: string;
+};
+
+export type DaiaLevelDescription = {
+  topology: 'daia';
+  facetsPerFace: number;
+  tilesPerFacet: number;
+  colors: Array<ColorNamePalette>;
+};
+
+export type TorusLevelDescription = {
+  topology: 'torus';
+  tilesPerChunk: Point;
+  chunksPerLevel: Point;
+  colors: ColorNamePalette;
+};
+
+export type RectLevelDescription = {
+  topology: 'rect';
+  size: Point;
+  colors: ColorNamePalette;
+};
+
+export type LevelDescription =
+  | DaiaLevelDescription
+  | TorusLevelDescription
+  | RectLevelDescription;
 
 export type AgentDescription = {
   name: string;
