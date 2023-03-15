@@ -1356,7 +1356,7 @@ export const makeController = ({
           exitEditMode(handoff);
 
           assertDefined(player);
-          return enterPlayMode(player, {});
+          return enterPlayMode(player, handoff);
         } else if (choice === 'load') {
           const handoff = {};
           exitEditMode(handoff);
