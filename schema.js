@@ -3,19 +3,15 @@
  * @typedef {import('./lib/schema.js').SchemaTo<T>} SchemaTo
  */
 
-import { rect } from './topology/rect/schema.js';
-import { torus } from './topology/torus/schema.js';
-import { daia } from './topology/daia/schema.js';
-
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const pointSchema = $ =>
+export const Point = $ =>
   $.struct({
     x: $.number(),
     y: $.number(),
   });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const colorsSchema = $ =>
+export const WorldColors = $ =>
   $.struct({
     base: $.string(),
     lava: $.string(),
@@ -24,7 +20,7 @@ export const colorsSchema = $ =>
   });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const mechanicsSchema = $ =>
+export const WorldMechanicsDescription = $ =>
   $.struct({
     agentTypes: $.list(
       $.struct({
@@ -128,50 +124,58 @@ const worldFields = $ => ({
   player: $.optional($.number()),
   locations: $.list($.number()),
   types: $.list($.number()),
-  inventories: $.optional(
-    $.list(
-      $.struct({
-        entity: $.number(),
-        inventory: $.list($.number()),
-      }),
-    ),
-  ),
+  inventories: $.optional($.index($.list($.number()))),
   terrain: $.optional($.list($.number())),
   healths: $.optional($.index($.number())),
   staminas: $.optional($.index($.number())),
-  entityTargetLocations: $.optional(
-    $.list(
-      $.struct({
-        entity: $.number(),
-        location: $.number(),
-      }),
-    ),
-  ),
-  entityTargetEntities: $.optional(
-    $.list(
-      $.struct({
-        from: $.number(),
-        to: $.number(),
-      }),
-    ),
-  ),
+  targetLocations: $.optional($.index($.number())),
+  targetEntities: $.optional($.index($.number())),
 });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const worldSchema = $ => $.struct(worldFields($));
+export const WorldDescription = $ => $.struct(worldFields($));
+
+/**
+ * @template T
+ * @param {SchemaTo<T>} $
+ */
+const daiaLevelFields = $ => ({
+  facetsPerFace: $.number(),
+  tilesPerFacet: $.number(),
+  colors: $.list(WorldColors($)),
+});
+
+/**
+ * @template T
+ * @param {SchemaTo<T>} $
+ */
+const rectLevelFields = $ => ({
+  size: Point($),
+  colors: WorldColors($),
+});
+
+/**
+ * @template T
+ * @param {SchemaTo<T>} $
+ */
+const torusLevelFields = $ => ({
+  tilesPerChunk: Point($),
+  chunksPerLevel: Point($),
+  colors: WorldColors($),
+});
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const wholeWorldSchema = $ =>
+export const WholeWorldDescription = $ =>
   $.struct({
     colors: $.dict($.string()),
     levels: $.list(
       $.choice('topology', {
-        rect: rect($),
-        torus: torus($),
-        daia: daia($),
+        rect: rectLevelFields($),
+        torus: torusLevelFields($),
+        daia: daiaLevelFields($),
       }),
     ),
     ...worldFields($),
-    mechanics: mechanicsSchema($),
+    mechanics: WorldMechanicsDescription($),
     marks: $.optional($.dict($.number())),
   });

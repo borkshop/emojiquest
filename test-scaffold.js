@@ -463,7 +463,7 @@ export const makeScaffold = (
       world,
       mechanics,
       player,
-      /** @type {import('./file.js').WholeWorldDescription} */ ({}),
+      /** @type {import('./schema-types.js').WholeWorldDescription} */ ({}),
     );
     controller.tock();
   };

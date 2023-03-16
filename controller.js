@@ -68,7 +68,7 @@ import { makeBoxTileMap } from './tile-map-box.js';
  * @property {number | undefined} player
  * @property {ReturnType<import('./world.js').makeWorld>} world
  * @property {import('./mechanics.js').Mechanics} mechanics
- * @property {import('./file.js').WholeWorldDescription} wholeWorldDescription
+ * @property {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
  */
 
 /**
@@ -195,7 +195,7 @@ const noop = () => {};
  * @param {World} world
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
- * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
+ * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
  * @returns {Mode}
  */
 
@@ -343,7 +343,7 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {LoadWorldFn} args.loadWorld
- * @param {(worldData: import('./file.js').WholeWorldDescription) => Promise<void>} args.saveWorld
+ * @param {(worldData: import('./schema-types.js').WholeWorldDescription) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
  * @param {ChooseFn} args.choose
  * @param {InputFn} args.input
@@ -431,7 +431,7 @@ export const makeController = ({
   /**
    * @param {World} world
    * @param {import('./mechanics.js').Mechanics} mechanics
-   * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
+   * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
    */
   const makeWorldModes = (world, mechanics, wholeWorldDescription) => {
     const {
@@ -1917,7 +1917,7 @@ export const makeController = ({
    * @param {World} world
    * @param {import('./mechanics.js').Mechanics} mechanics
    * @param {number | undefined} player
-   * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
+   * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
    */
   const play = (world, mechanics, player, wholeWorldDescription) => {
     if (mode.play) {

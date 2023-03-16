@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import url from 'node:url';
-import { wholeWorldSchema } from '../schema.js';
+import { WholeWorldDescription } from '../schema.js';
 import { makeEnricher } from '../lib/schema-enricher.js';
 import { makeDiluter } from '../lib/schema-diluter.js';
 import { makeValidator } from '../lib/schema-validator.js';
@@ -13,9 +13,9 @@ test('round trip emojiquest data file format', async t => {
   );
   let text = await fs.readFile(path, 'utf8');
 
-  const validate = makeValidator(wholeWorldSchema);
-  const enrich = makeEnricher(wholeWorldSchema);
-  const dilute = makeDiluter(wholeWorldSchema);
+  const validate = makeValidator(WholeWorldDescription);
+  const enrich = makeEnricher(WholeWorldDescription);
+  const dilute = makeDiluter(WholeWorldDescription);
 
   const allegedWholeWorldDescription = JSON.parse(text);
   /** @type {Array<string>} */

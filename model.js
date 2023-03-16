@@ -53,14 +53,14 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
- * @property {Map<number, number>} entityTargetLocations
- * @property {Map<number, number>} entityTargetEntities
+ * @property {Map<number, number>} targetLocations
+ * @property {Map<number, number>} targetEntities
  */
 
 /**
  * @callback CaptureFn
  * @param {number | undefined} player
- * @returns {import('./file.js').WorldDescription}
+ * @returns {import('./schema-types.js').WorldDescription}
  */
 
 const makeFlags = function* () {
@@ -1442,48 +1442,40 @@ export function makeModel({
       retypes[reentity] = type;
     }
 
-    /** @type {Array<{entity: number, inventory: Array<number>}>} */
-    const reinventories = [];
+    /** @type {Map<number, Array<number>>} */
+    const reinventories = new Map();
     for (const [entity, inventory] of inventories.entries()) {
       const reentity = assumeDefined(renames.get(entity));
-      reinventories.push({
-        entity: reentity,
-        inventory: inventory.slice(),
-      });
+      reinventories.set(reentity, inventory.slice());
     }
 
-    /** @type {Record<number, number>} */
+    /** @type {Map<number, number>} */
     const rehealths = new Map();
     for (const [entity, health] of healths.entries()) {
       const reentity = assumeDefined(renames.get(entity));
       rehealths.set(reentity, health);
     }
 
-    /** @type {Record<number, number>} */
+    /** @type {Map<number, number>} */
     const restaminas = new Map();
     for (const [entity, stamina] of staminas.entries()) {
       const reentity = assumeDefined(renames.get(entity));
       restaminas.set(reentity, stamina);
     }
 
-    /** @type {Array<{entity: number, location: number}>} */
-    const reentityTargetLocations = [];
+    /** @type {Map<number, number>} */
+    const retargetLocations = new Map();
     for (const [entity, location] of entityTargetLocations.entries()) {
       const reentity = assumeDefined(renames.get(entity));
-      reentityTargetLocations.push({
-        entity: reentity,
-        location,
-      });
+      retargetLocations.set(reentity, location);
     }
-    /** @type {Array<{from: number, to: number}>} */
-    const reentityTargetEntities = [];
+
+    /** @type {Map<number, number>} */
+    const retargetEntities = new Map();
     for (const [from, to] of entityTargetEntities.entries()) {
       const refrom = assumeDefined(renames.get(from));
       const reto = assumeDefined(renames.get(to));
-      reentityTargetEntities.push({
-        from: refrom,
-        to: reto,
-      });
+      retargetEntities.set(refrom, reto);
     }
 
     /** @type {number | undefined} replayer */
@@ -1496,12 +1488,12 @@ export function makeModel({
       player: replayer,
       locations: relocations,
       types: retypes,
-      inventories: reinventories,
+      inventories: Object.fromEntries(reinventories.entries()),
       terrain: [...terrain.slice()],
       healths: Object.fromEntries(rehealths.entries()),
       staminas: Object.fromEntries(restaminas.entries()),
-      entityTargetLocations: reentityTargetLocations,
-      entityTargetEntities: reentityTargetEntities,
+      targetLocations: Object.fromEntries(retargetLocations.entries()),
+      targetEntities: Object.fromEntries(retargetEntities.entries()),
     };
   }
 
@@ -1514,8 +1506,8 @@ export function makeModel({
    * @param {Map<number, number>} args.healths
    * @param {Map<number, number>} args.staminas
    * @param {Map<number, Array<number>>} args.inventories
-   * @param {Map<number, number>} args.entityTargetLocations
-   * @param {Map<number, number>} args.entityTargetEntities
+   * @param {Map<number, number>} args.targetLocations
+   * @param {Map<number, number>} args.targetEntities
    * @param {string} [name]
    */
   function restore(
@@ -1527,8 +1519,8 @@ export function makeModel({
       healths: purportedHealths,
       staminas: purportedStaminas,
       inventories: purportedInventories,
-      entityTargetLocations: purportedEntityTargetLocations,
-      entityTargetEntities: purportedEntityTargetEntities,
+      targetLocations: purportedTargetLocations,
+      targetEntities: purportedTargetEntities,
     },
     name = '<unknown>',
   ) {
@@ -1566,12 +1558,12 @@ export function makeModel({
           staminas.set(actualEntity, actualStamina);
         }
         const actualTargetLocation =
-          purportedEntityTargetLocations.get(purportedEntity);
+          purportedTargetLocations.get(purportedEntity);
         if (actualTargetLocation !== undefined) {
           entityTargetLocations.set(actualEntity, actualTargetLocation);
         }
         const actualTargetEntity =
-          purportedEntityTargetEntities.get(purportedEntity);
+          purportedTargetEntities.get(purportedEntity);
         if (actualTargetEntity !== undefined) {
           entityTargetEntities.set(actualEntity, actualTargetEntity);
           let sourceEntities = entitySourceEntities.get(actualTargetEntity);

@@ -251,7 +251,7 @@ const main = async () => {
   };
 
   /**
-   * @param {import('./file.js').WholeWorldDescription} wholeWorldDescription
+   * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
    */
   const saveWorld = async wholeWorldDescription => {
     scrimElement.style.display = 'block';
