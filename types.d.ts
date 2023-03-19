@@ -261,127 +261,6 @@ export type ActionParameters = {
 
 export type ActionHandler = (kit: ModelKit, params: ActionParameters) => void;
 
-export type ColorNamePalette = {
-  base: string;
-  earth: string;
-  water: string;
-  lava: string;
-};
-
-export type DaiaLevelDescription = {
-  topology: 'daia';
-  facetsPerFace: number;
-  tilesPerFacet: number;
-  colors: Array<ColorNamePalette>;
-};
-
-export type TorusLevelDescription = {
-  topology: 'torus';
-  tilesPerChunk: Point;
-  chunksPerLevel: Point;
-  colors: ColorNamePalette;
-};
-
-export type RectLevelDescription = {
-  topology: 'rect';
-  size: Point;
-  colors: ColorNamePalette;
-};
-
-export type LevelDescription =
-  | DaiaLevelDescription
-  | TorusLevelDescription
-  | RectLevelDescription;
-
-export type AgentDescription = {
-  name: string;
-  tile?: string;
-  wanders?: string;
-  dialog?: Array<string>;
-  health?: number;
-  stamina?: number;
-  modes?: Array<{
-    tile: string;
-    holds?: string;
-    has?: string;
-    hot?: boolean;
-    cold?: boolean;
-    sick?: boolean;
-    health?: number;
-    stamina?: number;
-    immersed?: boolean;
-  }>;
-  slots?: Array<{
-    tile: string;
-    held?: boolean;
-    pack?: boolean;
-  }>;
-};
-
-export type ConditionDescription =
-  | { has: true; item: number }
-  | { holds: true; item: number }
-  | { hot: true }
-  | { cold: true }
-  | { sick: true }
-  | { immersed: true }
-  | { health: number }
-  | { stamina: number };
-
-export type ItemDescription = {
-  name: string;
-  tile?: string;
-  comestible?: boolean;
-  health?: number;
-  stamina?: number;
-  heat?: number;
-  boat?: boolean;
-  swimGear?: boolean;
-  tip?: string;
-  slot?: string;
-};
-
-export type TileDescription = {
-  name: string;
-  text: string;
-  turn?: number;
-};
-
-export type RecipeDescription = {
-  agent: string;
-  reagent: string;
-  product: string;
-  byproduct?: string;
-  price?: number;
-  dialog?: string;
-};
-
-export type ActionDescription = {
-  agent?: string;
-  patient: string;
-  left?: string;
-  right?: string;
-  effect?: string;
-  verb: string;
-  items?: Array<string>;
-  dialog?: string;
-  jump?: string;
-};
-
-export type EffectDescription = {
-  name: string;
-  tile?: string;
-};
-
-export type MechanicsDescription = {
-  recipes?: Array<RecipeDescription>;
-  actions?: Array<ActionDescription>;
-  tileTypes?: Array<TileDescription>;
-  agentTypes?: Array<AgentDescription>;
-  itemTypes?: Array<ItemDescription>;
-  effectTypes?: Array<EffectDescription>;
-};
-
 // DriverHolderFn Indicates that a key or gesture has been pressed down or up.
 // The holder vocabulary is specific to the input modality, but in a web page,
 // holders are either the names of keys in keyup and keydown events, or the
@@ -398,3 +277,14 @@ export type Driver = {
   up: DriverHolderFn;
   cancel: () => void;
 };
+
+// TODO reconcile with ConditionDescription
+export type Condition =
+  | { has: true; item: number }
+  | { holds: true; item: number }
+  | { hot: true }
+  | { cold: true }
+  | { sick: true }
+  | { immersed: true }
+  | { health: number }
+  | { stamina: number };

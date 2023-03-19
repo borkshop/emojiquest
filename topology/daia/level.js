@@ -6,7 +6,7 @@ import { makeToponym } from './toponym.js';
 import { makePalette } from '../../lib/color.js';
 
 /**
- * @param {import('../../types.js').DaiaLevelDescription} level
+ * @param {import('../../schema-types.js').DaiaLevelDescription} level
  */
 export const sizeLevel = level => {
   const { facetsPerFace, tilesPerFacet } = level;
@@ -18,7 +18,7 @@ export const sizeLevel = level => {
 /**
  * @param {object} args
  * @param {number} args.offset
- * @param {import('../../types.js').DaiaLevelDescription} args.level
+ * @param {import('../../schema-types.js').DaiaLevelDescription} args.level
  * @param {number} args.frustumRadius
  * @param {number} args.tileSizePx
  * @param {import('../../world.js').CreateEntityFn} args.createEntity
@@ -27,7 +27,7 @@ export const sizeLevel = level => {
  * @param {import('../../types.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
  * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
- * @param {Array<import('../../types.js').ColorNamePalette>} args.colorNamePalettes
+ * @param {Array<import('../../schema-types.js').WorldColorNamePalette>} args.colorNamePalettes
  * @param {Map<string, string>} args.colorsByName
  */
 export const makeLevel = ({

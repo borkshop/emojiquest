@@ -10,7 +10,7 @@
  * @property {Map<number, number>} healths
  * @property {Map<number, number>} staminas
  * @property {Map<number, Array<number>>} inventories
- * @property {Array<import('./types.js').LevelDescription>} levels
+ * @property {Array<import('./schema-types.js').LevelDescription>} levels
  * @property {Map<number, number>} targetLocations
  * @property {Map<number, number>} targetEntities
  * @property {Map<string, string>} colorsByName
@@ -497,7 +497,10 @@ export const validate = allegedWholeWorldDescription => {
 
   /** @type {Map<number, number>} */
   const targetLocations = new Map();
-  for (const [ describedEntity, describedLocation ] of describedTargetLocations.entries()) {
+  for (const [
+    describedEntity,
+    describedLocation,
+  ] of describedTargetLocations.entries()) {
     const entity = describedEntityToEntity.get(describedEntity);
     if (entity === undefined) {
       errors.push(
@@ -516,7 +519,10 @@ export const validate = allegedWholeWorldDescription => {
 
   /** @type {Map<number, number>} */
   const targetEntities = new Map();
-  for (const [ describedEntityFrom, describedEntityTo ] of describedTargetEntities.entries()) {
+  for (const [
+    describedEntityFrom,
+    describedEntityTo,
+  ] of describedTargetEntities.entries()) {
     const entityFrom = describedEntityToEntity.get(describedEntityFrom);
     if (entityFrom === undefined) {
       errors.push(

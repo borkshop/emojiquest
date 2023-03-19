@@ -33,7 +33,7 @@ export const sizeLevel = level => {
  * @param {import('../../types.js').GetTerrainFlagsFn} args.getTerrainFlags
  * @param {import('../../types.js').WatchEntitiesFn} args.watchEntities
  * @param {import('../../types.js').WatchEntitiesFn} args.unwatchEntities
- * @param {import('../../types.js').ColorNamePalette} args.colorNamePalette
+ * @param {import('../../schema-types.js').WorldColorNamePalette} args.colorNamePalette
  * @param {Map<string, string>} args.colorsByName
  */
 export const makeLevel = ({

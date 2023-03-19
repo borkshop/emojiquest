@@ -11,7 +11,7 @@ export const Point = $ =>
   });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const WorldColors = $ =>
+export const WorldColorNamePalette = $ =>
   $.struct({
     base: $.string(),
     lava: $.string(),
@@ -19,101 +19,116 @@ export const WorldColors = $ =>
     earth: $.string(),
   });
 
+/**
+ * @template T
+ * @param {SchemaTo<T>} $
+ */
+const conditionFields = $ => ({
+  holds: $.optional($.string()),
+  has: $.optional($.string()),
+  hot: $.optional($.boolean()),
+  cold: $.optional($.boolean()),
+  sick: $.optional($.boolean()),
+  health: $.optional($.number()),
+  stamina: $.optional($.number()),
+  immersed: $.optional($.boolean()),
+});
+
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const WorldMechanicsDescription = $ =>
+export const ConditionDescription = $ => $.struct(conditionFields($));
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const AgentDescription = $ =>
   $.struct({
-    agentTypes: $.list(
-      $.struct({
-        name: $.string(),
-        tile: $.optional($.string()),
-        wanders: $.optional($.string()),
-        dialog: $.optional($.list($.string())),
-        health: $.optional($.number()),
-        stamina: $.optional($.number()),
-        modes: $.optional(
-          $.list(
-            $.struct({
-              tile: $.string(),
-              holds: $.optional($.string()),
-              has: $.optional($.string()),
-              hot: $.optional($.boolean()),
-              cold: $.optional($.boolean()),
-              sick: $.optional($.boolean()),
-              health: $.optional($.number()),
-              stamina: $.optional($.number()),
-              immersed: $.optional($.boolean()),
-            }),
-          ),
-        ),
-        slots: $.optional(
-          $.list(
-            $.struct({
-              tile: $.string(),
-              held: $.optional($.boolean()),
-              pack: $.optional($.boolean()),
-            }),
-          ),
-        ),
-      }),
-    ),
-    recipes: $.optional(
+    name: $.string(),
+    tile: $.optional($.string()),
+    wanders: $.optional($.string()),
+    dialog: $.optional($.list($.string())),
+    health: $.optional($.number()),
+    stamina: $.optional($.number()),
+    modes: $.optional(
       $.list(
         $.struct({
-          agent: $.string(),
-          reagent: $.string(),
-          product: $.string(),
-          byproduct: $.optional($.string()),
-          price: $.optional($.number()),
-          dialog: $.optional($.string()),
+          tile: $.string(),
+          ...conditionFields($),
         }),
       ),
     ),
-    actions: $.optional(
+    slots: $.optional(
       $.list(
         $.struct({
-          agent: $.optional($.string()),
-          patient: $.string(),
-          left: $.optional($.string()),
-          right: $.optional($.string()),
-          effect: $.optional($.string()),
-          verb: $.string(),
-          items: $.optional($.list($.string())),
-          dialog: $.optional($.string()),
-          jump: $.optional($.string()),
+          tile: $.string(),
+          held: $.optional($.boolean()),
+          pack: $.optional($.boolean()),
         }),
       ),
     ),
-    tileTypes: $.list(
-      $.struct({
-        name: $.string(),
-        text: $.string(),
-        turn: $.optional($.number()),
-      }),
-    ),
-    itemTypes: $.optional(
-      $.list(
-        $.struct({
-          name: $.string(),
-          tile: $.optional($.string()),
-          comestible: $.optional($.boolean()),
-          health: $.optional($.number()),
-          stamina: $.optional($.number()),
-          heat: $.optional($.number()),
-          boat: $.optional($.boolean()),
-          swimGear: $.optional($.boolean()),
-          tip: $.optional($.string()),
-          slot: $.optional($.string()),
-        }),
-      ),
-    ),
-    effectTypes: $.optional(
-      $.list(
-        $.struct({
-          name: $.string(),
-          tile: $.optional($.string()),
-        }),
-      ),
-    ),
+  });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const ItemDescription = $ =>
+  $.struct({
+    name: $.string(),
+    tile: $.optional($.string()),
+    comestible: $.optional($.boolean()),
+    health: $.optional($.number()),
+    stamina: $.optional($.number()),
+    heat: $.optional($.number()),
+    boat: $.optional($.boolean()),
+    swimGear: $.optional($.boolean()),
+    tip: $.optional($.string()),
+    slot: $.optional($.string()),
+  });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const TileDescription = $ =>
+  $.struct({
+    name: $.string(),
+    text: $.string(),
+    turn: $.optional($.number()),
+  });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const RecipeDescription = $ =>
+  $.struct({
+    agent: $.string(),
+    reagent: $.string(),
+    product: $.string(),
+    byproduct: $.optional($.string()),
+    price: $.optional($.number()),
+    dialog: $.optional($.string()),
+  });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const ActionDescription = $ =>
+  $.struct({
+    agent: $.optional($.string()),
+    patient: $.string(),
+    left: $.optional($.string()),
+    right: $.optional($.string()),
+    effect: $.optional($.string()),
+    verb: $.string(),
+    items: $.optional($.list($.string())),
+    dialog: $.optional($.string()),
+    jump: $.optional($.string()),
+  });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const EffectDescription = $ =>
+  $.struct({
+    name: $.string(),
+    tile: $.optional($.string()),
+  });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const MechanicsDescription = $ =>
+  $.struct({
+    agentTypes: $.optional($.list(AgentDescription($))),
+    recipes: $.optional($.list(RecipeDescription($))),
+    actions: $.optional($.list(ActionDescription($))),
+    tileTypes: $.optional($.list(TileDescription($))),
+    itemTypes: $.optional($.list(ItemDescription($))),
+    effectTypes: $.optional($.list(EffectDescription($))),
   });
 
 /**
@@ -142,8 +157,11 @@ export const WorldDescription = $ => $.struct(worldFields($));
 const daiaLevelFields = $ => ({
   facetsPerFace: $.number(),
   tilesPerFacet: $.number(),
-  colors: $.list(WorldColors($)),
+  colors: $.list(WorldColorNamePalette($)),
 });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const DaiaLevelDescription = $ => $.struct(daiaLevelFields($));
 
 /**
  * @template T
@@ -151,8 +169,11 @@ const daiaLevelFields = $ => ({
  */
 const rectLevelFields = $ => ({
   size: Point($),
-  colors: WorldColors($),
+  colors: WorldColorNamePalette($),
 });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const RectLevelDescription = $ => $.struct(rectLevelFields($));
 
 /**
  * @template T
@@ -161,21 +182,26 @@ const rectLevelFields = $ => ({
 const torusLevelFields = $ => ({
   tilesPerChunk: Point($),
   chunksPerLevel: Point($),
-  colors: WorldColors($),
+  colors: WorldColorNamePalette($),
 });
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const TorusLevelDescription = $ => $.struct(torusLevelFields($));
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const LevelDescription = $ =>
+  $.choice('topology', {
+    rect: rectLevelFields($),
+    torus: torusLevelFields($),
+    daia: daiaLevelFields($),
+  });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
 export const WholeWorldDescription = $ =>
   $.struct({
     colors: $.dict($.string()),
-    levels: $.list(
-      $.choice('topology', {
-        rect: rectLevelFields($),
-        torus: torusLevelFields($),
-        daia: daiaLevelFields($),
-      }),
-    ),
+    levels: $.list(LevelDescription($)),
     ...worldFields($),
-    mechanics: WorldMechanicsDescription($),
+    mechanics: MechanicsDescription($),
     marks: $.optional($.dict($.number())),
   });

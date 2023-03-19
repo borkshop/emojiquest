@@ -12,7 +12,5 @@ out.write(`\
 `);
 
 for (const [name, type] of Object.entries(types)) {
-  out.write(
-    `export type ${name} = ${toTypeScriptNotation(type)};\n\n`,
-  );
+  out.write(`export type ${name} = ${toTypeScriptNotation(type)};\n\n`);
 }

@@ -60,8 +60,9 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 /**
  * @callback CaptureFn
  * @param {number | undefined} player
- * @returns {import('./schema-types.js').WorldDescription}
+ * @returns {object}
  */
+// TODO return import('./schema-types.js').WorldDescription
 
 const makeFlags = function* () {
   for (let i = 0; true; i += 1) {
@@ -1562,8 +1563,7 @@ export function makeModel({
         if (actualTargetLocation !== undefined) {
           entityTargetLocations.set(actualEntity, actualTargetLocation);
         }
-        const actualTargetEntity =
-          purportedTargetEntities.get(purportedEntity);
+        const actualTargetEntity = purportedTargetEntities.get(purportedEntity);
         if (actualTargetEntity !== undefined) {
           entityTargetEntities.set(actualEntity, actualTargetEntity);
           let sourceEntities = entitySourceEntities.get(actualTargetEntity);

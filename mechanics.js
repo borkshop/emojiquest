@@ -19,14 +19,14 @@ const builtinTileTypesByName = Object.assign(Object.create(null), {
 });
 
 /**
- * @typedef {import('./types.js').AgentDescription} AgentDescription
- * @typedef {import('./types.js').ConditionDescription} ConditionDescription
- * @typedef {import('./types.js').ItemDescription} ItemDescription
- * @typedef {import('./types.js').TileDescription} TileDescription
- * @typedef {import('./types.js').RecipeDescription} RecipeDescription
- * @typedef {import('./types.js').ActionDescription} ActionDescription
- * @typedef {import('./types.js').EffectDescription} EffectDescription
- * @typedef {import('./types.js').MechanicsDescription} MechanicsDescription
+ * @typedef {import('./schema-types.js').AgentDescription} AgentDescription
+ * @typedef {import('./schema-types.js').ConditionDescription} ConditionDescription
+ * @typedef {import('./schema-types.js').ItemDescription} ItemDescription
+ * @typedef {import('./schema-types.js').TileDescription} TileDescription
+ * @typedef {import('./schema-types.js').RecipeDescription} RecipeDescription
+ * @typedef {import('./schema-types.js').ActionDescription} ActionDescription
+ * @typedef {import('./schema-types.js').EffectDescription} EffectDescription
+ * @typedef {import('./schema-types.js').MechanicsDescription} MechanicsDescription
  * @typedef {import('./types.js').ModelKit} ModelKit
  * @typedef {import('./types.js').ActionTypeParameters} ActionTypeParameters
  * @typedef {import('./types.js').ActionHandler} ActionHandler
@@ -355,7 +355,7 @@ export function makeMechanics({
             tileTypesByName[tile],
             `No tile type for name ${tile} for agent ${agentDesc.name}`,
           );
-          /** @type {Array<ConditionDescription>}} */
+          /** @type {Array<import('./types.js').Condition>}} */
           const conditions = [];
           if (has !== undefined) {
             conditions.push({
