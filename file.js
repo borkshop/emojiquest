@@ -1,21 +1,5 @@
 /** @typedef {import('./lib/vector2d.js').Point} Point */
 
-/**
- * @typedef {object} Snapshot
- * @property {number | undefined} player
- * @property {number} size
- * @property {Uint16Array} entities
- * @property {Uint8Array} terrain
- * @property {Map<number, number>} entityTypes
- * @property {Map<number, number>} healths
- * @property {Map<number, number>} staminas
- * @property {Map<number, Array<number>>} inventories
- * @property {Array<import('./schema-types.js').LevelDescription>} levels
- * @property {Map<number, number>} targetLocations
- * @property {Map<number, number>} targetEntities
- * @property {Map<string, string>} colorsByName
- */
-
 import { dot } from './lib/vector2d.js';
 import { enumerate } from './lib/iterate.js';
 import { makeMechanics } from './mechanics.js';
@@ -300,7 +284,7 @@ const validateMechanics = (mechanics, errors) => {
  *   wholeWorldDescription: import('./schema-types.js').WholeWorldDescription,
  *   mechanicsDescription: import('./mechanics.js').MechanicsDescription,
  *   mechanics: import('./mechanics.js').Mechanics,
- *   snapshot: Snapshot,
+ *   snapshot: import('./types.js').WorldSnapshot,
  * } | {
  *   errors: Array<string>
  * }}
@@ -573,7 +557,7 @@ export const validate = allegedWholeWorldDescription => {
     return { errors };
   }
 
-  /** @type {Snapshot} */
+  /** @type {import('./types.js').WorldSnapshot} */
   const snapshot = {
     player,
     size,

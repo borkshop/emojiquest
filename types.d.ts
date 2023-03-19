@@ -1,6 +1,7 @@
 import type { Coord, Transition } from './animation2d.js';
 import type { Progress, AnimateFn } from './progress.js';
 import type { Point } from './lib/geometry2d.js';
+import type { LevelDescription } from './schema-types.js';
 
 // Informs the view that the animation turn has begun.
 export type TickFn = () => void;
@@ -288,3 +289,21 @@ export type Condition =
   | { immersed: true }
   | { health: number }
   | { stamina: number };
+
+export type ModelSnapshot = {
+  player: number | undefined;
+  size: number;
+  entities: Uint16Array;
+  terrain: Uint8Array;
+  entityTypes: Map<number, number>;
+  healths: Map<number, number>;
+  staminas: Map<number, number>;
+  inventories: Map<number, Array<number>>;
+  targetLocations: Map<number, number>;
+  targetEntities: Map<number, number>;
+};
+
+export type WorldSnapshot = {
+  levels: Array<LevelDescription>;
+  colorsByName: Map<string, string>;
+} & ModelSnapshot;

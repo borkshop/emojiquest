@@ -45,7 +45,7 @@ import * as rect from './topology/rect/level.js';
  */
 
 /**
- * @param {import('./file.js').Snapshot} snapshot
+ * @param {import('./types.js').WorldSnapshot} snapshot
  * @param {Node} parentElement
  * @param {Node} nextSibling
  * @param {object} args
@@ -255,7 +255,7 @@ export const makeWorld = (
    */
   const capture = player => {
     return {
-      colors: Object.fromEntries(snapshot.colorsByName.entries()),
+      colors: snapshot.colorsByName,
       levels: levels.map(({ descriptor }) => descriptor),
       ...worldModel.capture(player),
     };

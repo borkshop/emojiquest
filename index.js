@@ -26,6 +26,11 @@ import { makeClock } from './clock.js';
 import { makeWorld } from './world.js';
 import { validate } from './file.js';
 
+import { WholeWorldDescription } from './schema.js';
+import { makeDiluter } from './lib/schema-diluter.js';
+
+const dilute = makeDiluter(WholeWorldDescription);
+
 const svgNS = 'http://www.w3.org/2000/svg';
 
 /** @typedef {import('./animation2d.js').Coord} Coord */
@@ -263,7 +268,8 @@ const main = async () => {
         return;
       }
       const stream = await handle.createWritable();
-      const text = `${JSON.stringify(wholeWorldDescription)}\n`;
+      const json = dilute(wholeWorldDescription);
+      const text = `${JSON.stringify(json)}\n`;
       const blob = new Blob([text]);
       await stream.write(blob);
       await stream.close();

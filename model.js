@@ -44,20 +44,6 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  */
 
 /**
- * @typedef {object} Snapshot
- * @property {number | undefined} player
- * @property {number} size
- * @property {Uint16Array} entities
- * @property {Uint8Array} terrain
- * @property {Map<number, number>} entityTypes
- * @property {Map<number, number>} healths
- * @property {Map<number, number>} staminas
- * @property {Map<number, Array<number>>} inventories
- * @property {Map<number, number>} targetLocations
- * @property {Map<number, number>} targetEntities
- */
-
-/**
  * @callback CaptureFn
  * @param {number | undefined} player
  * @returns {object}
@@ -94,7 +80,7 @@ const pluck = (candidates, index) => {
  * @param {import('./types.js').AdvanceFn} args.advance
  * @param {import('./types.js').MacroViewModelFacetForModel} args.macroViewModel
  * @param {import('./mechanics.js').Mechanics} args.mechanics
- * @param {Snapshot} [args.snapshot]
+ * @param {import('./types.js').ModelSnapshot} [args.snapshot]
  */
 export function makeModel({
   size,
@@ -1489,12 +1475,12 @@ export function makeModel({
       player: replayer,
       locations: relocations,
       types: retypes,
-      inventories: Object.fromEntries(reinventories.entries()),
+      inventories: reinventories,
       terrain: [...terrain.slice()],
-      healths: Object.fromEntries(rehealths.entries()),
-      staminas: Object.fromEntries(restaminas.entries()),
-      targetLocations: Object.fromEntries(retargetLocations.entries()),
-      targetEntities: Object.fromEntries(retargetEntities.entries()),
+      healths: rehealths,
+      staminas: restaminas,
+      targetLocations: retargetLocations,
+      targetEntities: retargetEntities,
     };
   }
 
