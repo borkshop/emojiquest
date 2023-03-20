@@ -45,7 +45,8 @@ import * as rect from './topology/rect/level.js';
  */
 
 /**
- * @param {import('./types.js').WorldSnapshot} snapshot
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {import('./types.js').Snapshot} snapshot
  * @param {Node} parentElement
  * @param {Node} nextSibling
  * @param {object} args
@@ -54,6 +55,7 @@ import * as rect from './topology/rect/level.js';
  * @param {import('./mechanics.js').Mechanics} args.mechanics
  */
 export const makeWorld = (
+  meta,
   snapshot,
   parentElement,
   nextSibling,
@@ -61,7 +63,7 @@ export const makeWorld = (
 ) => {
   const frustumRadius = 10;
 
-  const sizes = snapshot.levels.map(level => {
+  const sizes = meta.levels.map(level => {
     const { topology } = level;
     if (topology === 'daia') {
       return daia.sizeLevel(level);
@@ -149,7 +151,7 @@ export const makeWorld = (
   });
 
   /** @type {Array<Level>} */
-  const levels = snapshot.levels.map((level, index) => {
+  const levels = meta.levels.map((level, index) => {
     const offset = offsets[index];
 
     /**
@@ -215,7 +217,7 @@ export const makeWorld = (
         watchEntities,
         unwatchEntities,
         colorNamePalettes: level.colors,
-        colorsByName: snapshot.colorsByName,
+        colorsByName: meta.colors,
       });
     } else if (topology === 'torus') {
       return torus.makeLevel({
@@ -230,7 +232,7 @@ export const makeWorld = (
         watchEntities,
         unwatchEntities,
         colorNamePalette: level.colors,
-        colorsByName: snapshot.colorsByName,
+        colorsByName: meta.colors,
       });
     } else if (topology === 'rect') {
       return rect.makeLevel({
@@ -244,7 +246,7 @@ export const makeWorld = (
         watchEntities,
         unwatchEntities,
         colorNamePalette: level.colors,
-        colorsByName: snapshot.colorsByName,
+        colorsByName: meta.colors,
       });
     }
     assert(false, `Unrecognized level topology ${topology}`);
@@ -255,7 +257,7 @@ export const makeWorld = (
    */
   const capture = player => {
     return {
-      colors: snapshot.colorsByName,
+      colors: meta.colors,
       levels: levels.map(({ descriptor }) => descriptor),
       ...worldModel.capture(player),
     };

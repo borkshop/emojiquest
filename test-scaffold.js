@@ -270,7 +270,7 @@ export const makeScaffold = (
     glyphsByTileName,
   });
 
-  /** @type {import('./types.js').ModelSnapshot | undefined} */
+  /** @type {import('./types.js').Snapshot | undefined} */
   let snapshot = undefined;
   if (worldData !== undefined) {
     const result = validate(worldData);

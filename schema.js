@@ -135,10 +135,11 @@ export const MechanicsDescription = $ =>
  * @template T
  * @param {SchemaTo<T>} $
  */
-const worldFields = $ => ({
-  player: $.optional($.number()),
+const worldModelFields = $ => ({
   locations: $.list($.number()),
   types: $.list($.number()),
+
+  player: $.optional($.number()),
   inventories: $.optional($.index($.list($.number()))),
   terrain: $.optional($.list($.number())),
   healths: $.optional($.index($.number())),
@@ -148,7 +149,7 @@ const worldFields = $ => ({
 });
 
 /** @type {<T>(t: SchemaTo<T>) => T} */
-export const WorldDescription = $ => $.struct(worldFields($));
+export const WorldDescription = $ => $.struct(worldModelFields($));
 
 /**
  * @template T
@@ -196,12 +197,23 @@ export const LevelDescription = $ =>
     daia: daiaLevelFields($),
   });
 
+/**
+ * @template T
+ * @param {SchemaTo<T>} $
+ */
+const worldMetaFields = $ => ({
+  colors: $.dict($.string()),
+  levels: $.list(LevelDescription($)),
+  mechanics: MechanicsDescription($),
+  marks: $.optional($.dict($.number())),
+});
+
+/** @type {<T>(t: SchemaTo<T>) => T} */
+export const WorldMetaDescription = $ => $.struct(worldMetaFields($));
+
 /** @type {<T>(t: SchemaTo<T>) => T} */
 export const WholeWorldDescription = $ =>
   $.struct({
-    colors: $.dict($.string()),
-    levels: $.list(LevelDescription($)),
-    ...worldFields($),
-    mechanics: MechanicsDescription($),
-    marks: $.optional($.dict($.number())),
+    ...worldModelFields($),
+    ...worldMetaFields($),
   });

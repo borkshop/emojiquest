@@ -290,20 +290,15 @@ export type Condition =
   | { health: number }
   | { stamina: number };
 
-export type ModelSnapshot = {
-  player: number | undefined;
-  size: number;
+export type Snapshot = {
   entities: Uint16Array;
+  types: Map<number, number>;
+
+  player: number | undefined;
+  inventories: Map<number, Array<number>>;
   terrain: Uint8Array;
-  entityTypes: Map<number, number>;
   healths: Map<number, number>;
   staminas: Map<number, number>;
-  inventories: Map<number, Array<number>>;
   targetLocations: Map<number, number>;
   targetEntities: Map<number, number>;
 };
-
-export type WorldSnapshot = {
-  levels: Array<LevelDescription>;
-  colorsByName: Map<string, string>;
-} & ModelSnapshot;

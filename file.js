@@ -2,14 +2,17 @@
 
 import { dot } from './lib/vector2d.js';
 import { enumerate } from './lib/iterate.js';
+import { assumeDefined } from './lib/assert.js';
 import { makeMechanics } from './mechanics.js';
 import { makeValidator } from './lib/schema-validator.js';
 import { makeEnricher } from './lib/schema-enricher.js';
+import { makeDiluter } from './lib/schema-diluter.js';
 import { WholeWorldDescription } from './schema.js';
 import { terrainMask } from './model.js';
 
 const validator = makeValidator(WholeWorldDescription);
 const enricher = makeEnricher(WholeWorldDescription);
+const dilute = makeDiluter(WholeWorldDescription);
 
 /**
  * @param {string} colorName
@@ -281,10 +284,9 @@ const validateMechanics = (mechanics, errors) => {
 /**
  * @param {unknown} allegedWholeWorldDescription
  * @returns {{
- *   wholeWorldDescription: import('./schema-types.js').WholeWorldDescription,
- *   mechanicsDescription: import('./mechanics.js').MechanicsDescription,
+ *   meta: import('./schema-types.js').WorldMetaDescription,
  *   mechanics: import('./mechanics.js').Mechanics,
- *   snapshot: import('./types.js').WorldSnapshot,
+ *   snapshot: import('./types.js').Snapshot,
  * } | {
  *   errors: Array<string>
  * }}
@@ -317,6 +319,7 @@ export const validate = allegedWholeWorldDescription => {
     targetEntities: describedTargetEntities = new Map(),
     colors: colorsByName,
     mechanics: mechanicsDescription,
+    marks,
   } = wholeWorldDescription;
 
   if (levels.length < 1) {
@@ -557,21 +560,131 @@ export const validate = allegedWholeWorldDescription => {
     return { errors };
   }
 
-  /** @type {import('./types.js').WorldSnapshot} */
+  /** @type {import('./types.js').Snapshot} */
   const snapshot = {
     player,
-    size,
-    levels,
     entities,
+    types: entityTypes,
     terrain,
-    entityTypes,
     healths,
     staminas,
     inventories,
     targetLocations,
     targetEntities,
-    colorsByName,
   };
 
-  return { wholeWorldDescription, mechanicsDescription, snapshot, mechanics };
+  const meta = {
+    colors: colorsByName,
+    levels,
+    mechanics: mechanicsDescription,
+    marks,
+  };
+
+  return { meta, snapshot, mechanics };
+};
+
+/**
+ * Converts model state into its serializable form, suitable for converting to
+ * JSON.
+ * This largely involves transposing the entities (to locations) array to a
+ * locations (in order of respective entities) array, and consequently
+ * renumbering all of the entities so that their locations are sequential.
+ *
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {import('./types.js').Snapshot} snapshot
+ * @returns {any}
+ */
+export const format = (meta, snapshot) => {
+  const { colors, levels, mechanics, marks } = meta;
+  const {
+    entities,
+    types,
+    player,
+    inventories,
+    terrain,
+    healths,
+    staminas,
+    targetLocations,
+    targetEntities,
+  } = snapshot;
+
+  const renames = new Map();
+  const relocations = [];
+
+  for (let location = 0; location < entities.length; location += 1) {
+    const entity = entities[location];
+    if (entity !== 0) {
+      const reentity = relocations.length;
+      relocations.push(location);
+      renames.set(entity, reentity);
+    }
+  }
+
+  /** @type {Array<number>} */
+  const retypes = [];
+  for (const [entity, type] of types.entries()) {
+    const reentity = assumeDefined(renames.get(entity));
+    retypes[reentity] = type;
+  }
+
+  /** @type {Map<number, Array<number>>} */
+  const reinventories = new Map();
+  for (const [entity, inventory] of inventories.entries()) {
+    const reentity = assumeDefined(renames.get(entity));
+    reinventories.set(reentity, inventory.slice());
+  }
+
+  /** @type {Map<number, number>} */
+  const rehealths = new Map();
+  for (const [entity, health] of healths.entries()) {
+    const reentity = assumeDefined(renames.get(entity));
+    rehealths.set(reentity, health);
+  }
+
+  /** @type {Map<number, number>} */
+  const restaminas = new Map();
+  for (const [entity, stamina] of staminas.entries()) {
+    const reentity = assumeDefined(renames.get(entity));
+    restaminas.set(reentity, stamina);
+  }
+
+  /** @type {Map<number, number>} */
+  const retargetLocations = new Map();
+  for (const [entity, location] of targetLocations.entries()) {
+    const reentity = assumeDefined(renames.get(entity));
+    retargetLocations.set(reentity, location);
+  }
+
+  /** @type {Map<number, number>} */
+  const retargetEntities = new Map();
+  for (const [from, to] of targetEntities.entries()) {
+    const refrom = assumeDefined(renames.get(from));
+    const reto = assumeDefined(renames.get(to));
+    retargetEntities.set(refrom, reto);
+  }
+
+  /** @type {number | undefined} replayer */
+  let replayer;
+  if (player !== undefined) {
+    replayer = assumeDefined(renames.get(player));
+  }
+
+  /** @type {import('./schema-types.js').WholeWorldDescription} */
+  const wholeWorldDescription = {
+    colors,
+    levels,
+    mechanics,
+    marks,
+    player: replayer,
+    locations: relocations,
+    types: retypes,
+    inventories: reinventories,
+    terrain: [...terrain.slice()],
+    healths: rehealths,
+    staminas: restaminas,
+    targetLocations: retargetLocations,
+    targetEntities: retargetEntities,
+  };
+
+  return dilute(wholeWorldDescription);
 };

@@ -46,9 +46,10 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
 /**
  * @callback CaptureFn
  * @param {number | undefined} player
- * @returns {object}
+ * @returns {import('./types.js').Snapshot}
  */
-// TODO return import('./schema-types.js').WorldDescription
+// TOOD consider DeepReadonly on returned snapshot or enforce immutability by
+// other means.
 
 const makeFlags = function* () {
   for (let i = 0; true; i += 1) {
@@ -80,7 +81,7 @@ const pluck = (candidates, index) => {
  * @param {import('./types.js').AdvanceFn} args.advance
  * @param {import('./types.js').MacroViewModelFacetForModel} args.macroViewModel
  * @param {import('./mechanics.js').Mechanics} args.mechanics
- * @param {import('./types.js').ModelSnapshot} [args.snapshot]
+ * @param {import('./types.js').Snapshot} [args.snapshot]
  */
 export function makeModel({
   size,
@@ -1405,104 +1406,31 @@ export function makeModel({
     return true;
   }
 
-  // TODO allow for absence of player in model file
-  /**
-   * @type {CaptureFn}
-   */
+  /** @type {CaptureFn} */
   function capture(player) {
-    const renames = new Map();
-    const relocations = [];
-
-    for (let location = 0; location < size; location += 1) {
-      const entity = entities[location];
-      if (entity !== 0) {
-        const reentity = relocations.length;
-        relocations.push(location);
-        renames.set(entity, reentity);
-      }
-    }
-
-    /** @type {Array<number>} */
-    const retypes = [];
-    for (const [entity, type] of entityTypes.entries()) {
-      const reentity = assumeDefined(renames.get(entity));
-      retypes[reentity] = type;
-    }
-
-    /** @type {Map<number, Array<number>>} */
-    const reinventories = new Map();
-    for (const [entity, inventory] of inventories.entries()) {
-      const reentity = assumeDefined(renames.get(entity));
-      reinventories.set(reentity, inventory.slice());
-    }
-
-    /** @type {Map<number, number>} */
-    const rehealths = new Map();
-    for (const [entity, health] of healths.entries()) {
-      const reentity = assumeDefined(renames.get(entity));
-      rehealths.set(reentity, health);
-    }
-
-    /** @type {Map<number, number>} */
-    const restaminas = new Map();
-    for (const [entity, stamina] of staminas.entries()) {
-      const reentity = assumeDefined(renames.get(entity));
-      restaminas.set(reentity, stamina);
-    }
-
-    /** @type {Map<number, number>} */
-    const retargetLocations = new Map();
-    for (const [entity, location] of entityTargetLocations.entries()) {
-      const reentity = assumeDefined(renames.get(entity));
-      retargetLocations.set(reentity, location);
-    }
-
-    /** @type {Map<number, number>} */
-    const retargetEntities = new Map();
-    for (const [from, to] of entityTargetEntities.entries()) {
-      const refrom = assumeDefined(renames.get(from));
-      const reto = assumeDefined(renames.get(to));
-      retargetEntities.set(refrom, reto);
-    }
-
-    /** @type {number | undefined} replayer */
-    let replayer;
-    if (player !== undefined) {
-      replayer = assumeDefined(renames.get(player));
-    }
-
     return {
-      player: replayer,
-      locations: relocations,
-      types: retypes,
-      inventories: reinventories,
-      terrain: [...terrain.slice()],
-      healths: rehealths,
-      staminas: restaminas,
-      targetLocations: retargetLocations,
-      targetEntities: retargetEntities,
+      entities,
+      types: entityTypes,
+      player,
+      inventories,
+      terrain,
+      healths,
+      staminas,
+      targetLocations: entityTargetLocations,
+      targetEntities: entityTargetEntities,
     };
   }
 
   /**
-   * @param {object} args
-   * @param {number | undefined} args.player
-   * @param {Uint16Array} args.entities
-   * @param {Uint8Array} args.terrain
-   * @param {Map<number, number>} args.entityTypes
-   * @param {Map<number, number>} args.healths
-   * @param {Map<number, number>} args.staminas
-   * @param {Map<number, Array<number>>} args.inventories
-   * @param {Map<number, number>} args.targetLocations
-   * @param {Map<number, number>} args.targetEntities
+   * @param {import('./types.js').Snapshot} snapshot
    * @param {string} [name]
    */
   function restore(
     {
       player: agent,
       entities: purportedEntities,
+      types: purportedEntityTypes,
       terrain: purportedTerrain,
-      entityTypes: purportedEntityTypes,
       healths: purportedHealths,
       staminas: purportedStaminas,
       inventories: purportedInventories,

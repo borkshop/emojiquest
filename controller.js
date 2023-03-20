@@ -68,7 +68,7 @@ import { makeBoxTileMap } from './tile-map-box.js';
  * @property {number | undefined} player
  * @property {ReturnType<import('./world.js').makeWorld>} world
  * @property {import('./mechanics.js').Mechanics} mechanics
- * @property {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
+ * @property {import('./schema-types.js').WorldMetaDescription} meta
  */
 
 /**
@@ -195,7 +195,7 @@ const noop = () => {};
  * @param {World} world
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
- * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
  * @returns {Mode}
  */
 
@@ -343,7 +343,7 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {LoadWorldFn} args.loadWorld
- * @param {(worldData: import('./schema-types.js').WholeWorldDescription) => Promise<void>} args.saveWorld
+ * @param {(worldData: import('./schema-types.js').WorldMetaDescription, snapshot: import('./types.js').Snapshot) => Promise<void>} args.saveWorld
  * @param {FollowCursorFn} args.followCursor
  * @param {ChooseFn} args.choose
  * @param {InputFn} args.input
@@ -431,9 +431,9 @@ export const makeController = ({
   /**
    * @param {World} world
    * @param {import('./mechanics.js').Mechanics} mechanics
-   * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
    */
-  const makeWorldModes = (world, mechanics, wholeWorldDescription) => {
+  const makeWorldModes = (world, mechanics, meta) => {
     const {
       levels,
       worldModel,
@@ -1369,14 +1369,12 @@ export const makeController = ({
           if (result === undefined) {
             return enterEditMode(position, player, handoff);
           } else {
-            const { world, mechanics, player, wholeWorldDescription } = result;
-            return enterWorld(world, mechanics, player, wholeWorldDescription);
+            const { world, mechanics, player, meta } = result;
+            return enterWorld(world, mechanics, player, meta);
           }
         } else if (choice === 'save') {
-          await saveWorld({
-            ...wholeWorldDescription,
-            ...capture(player),
-          });
+          const snapshot = capture(player);
+          await saveWorld(meta, snapshot);
           return editMode;
         } else if (choice === 'choose') {
           return yield* chooseAgent();
@@ -1643,14 +1641,12 @@ export const makeController = ({
           assertDefined(player);
           return enterPlayMode(player, {});
         } else {
-          const { world, mechanics, player, wholeWorldDescription } = result;
-          return enterWorld(world, mechanics, player, wholeWorldDescription);
+          const { world, mechanics, player, meta } = result;
+          return enterWorld(world, mechanics, player, meta);
         }
       } else if (choice === 'save') {
-        await saveWorld({
-          ...wholeWorldDescription,
-          ...capture(player),
-        });
+        const snapshot = capture(player);
+        await saveWorld(meta, snapshot);
 
         // Plan new animation turn.
         yield undefined;
@@ -1746,11 +1742,11 @@ export const makeController = ({
   };
 
   /** @type {PlayFn} */
-  const enterWorld = (world, mechanics, player, wholeWorldDescription) => {
+  const enterWorld = (world, mechanics, player, meta) => {
     const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
       world,
       mechanics,
-      wholeWorldDescription,
+      meta,
     );
     worldClock = clock;
     if (player !== undefined) {
@@ -1917,12 +1913,12 @@ export const makeController = ({
    * @param {World} world
    * @param {import('./mechanics.js').Mechanics} mechanics
    * @param {number | undefined} player
-   * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
    */
-  const play = (world, mechanics, player, wholeWorldDescription) => {
+  const play = (world, mechanics, player, meta) => {
     if (mode.play) {
       tock();
-      mode = mode.play(world, mechanics, player, wholeWorldDescription);
+      mode = mode.play(world, mechanics, player, meta);
       tick();
     }
   };

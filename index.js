@@ -24,12 +24,7 @@ import { makeRotatingElementController } from './rotator.js';
 import { makeClock } from './clock.js';
 
 import { makeWorld } from './world.js';
-import { validate } from './file.js';
-
-import { WholeWorldDescription } from './schema.js';
-import { makeDiluter } from './lib/schema-diluter.js';
-
-const dilute = makeDiluter(WholeWorldDescription);
+import { validate, format } from './file.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -187,7 +182,7 @@ const main = async () => {
       dialogController.logHTML(message);
       return;
     }
-    const { snapshot, mechanics, wholeWorldDescription } = result;
+    const { snapshot, mechanics, meta } = result;
 
     const createElement = makeEntityCreator(mechanics.viewText);
     nineKeyWatcher.reset(createElement);
@@ -198,7 +193,7 @@ const main = async () => {
 
     const createEntity = makeEntityCreator(mechanics.viewText);
 
-    const world = makeWorld(snapshot, playElement, $mapAnchor, {
+    const world = makeWorld(meta, snapshot, playElement, $mapAnchor, {
       tileSizePx,
       createEntity,
       mechanics,
@@ -211,7 +206,7 @@ const main = async () => {
       world,
       mechanics,
       player,
-      wholeWorldDescription,
+      meta,
     };
   };
 
@@ -256,9 +251,10 @@ const main = async () => {
   };
 
   /**
-   * @param {import('./schema-types.js').WholeWorldDescription} wholeWorldDescription
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
    */
-  const saveWorld = async wholeWorldDescription => {
+  const saveWorld = async (meta, snapshot) => {
     scrimElement.style.display = 'block';
     try {
       let handle;
@@ -268,7 +264,7 @@ const main = async () => {
         return;
       }
       const stream = await handle.createWritable();
-      const json = dilute(wholeWorldDescription);
+      const json = format(meta, snapshot);
       const text = `${JSON.stringify(json)}\n`;
       const blob = new Blob([text]);
       await stream.write(blob);
@@ -491,10 +487,10 @@ const main = async () => {
     new URL('emojiquest/emojiquest.json', import.meta.url).href,
   );
   const allegedWholeWorldDescription = await response.json();
-  const { world, mechanics, player, wholeWorldDescription } = assumeDefined(
+  const { world, mechanics, player, meta } = assumeDefined(
     playWorld(allegedWholeWorldDescription),
   );
-  controller.play(world, mechanics, player, wholeWorldDescription);
+  controller.play(world, mechanics, player, meta);
 };
 
 main();

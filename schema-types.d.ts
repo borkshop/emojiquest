@@ -172,6 +172,15 @@ export type TorusLevelDescription = {
 };
 
 export type WholeWorldDescription = {
+  locations: Array<number>;
+  types: Array<number>;
+  player?: number;
+  inventories?: Map<number, Array<number>>;
+  terrain?: Array<number>;
+  healths?: Map<number, number>;
+  staminas?: Map<number, number>;
+  targetLocations?: Map<number, number>;
+  targetEntities?: Map<number, number>;
   colors: Map<string, string>;
   levels: Array<
     | {
@@ -197,15 +206,6 @@ export type WholeWorldDescription = {
         }>;
       }
   >;
-  player?: number;
-  locations: Array<number>;
-  types: Array<number>;
-  inventories?: Map<number, Array<number>>;
-  terrain?: Array<number>;
-  healths?: Map<number, number>;
-  staminas?: Map<number, number>;
-  targetLocations?: Map<number, number>;
-  targetEntities?: Map<number, number>;
   mechanics: {
     agentTypes?: Array<{
       name: string;
@@ -272,13 +272,97 @@ export type WorldColorNamePalette = {
 };
 
 export type WorldDescription = {
-  player?: number;
   locations: Array<number>;
   types: Array<number>;
+  player?: number;
   inventories?: Map<number, Array<number>>;
   terrain?: Array<number>;
   healths?: Map<number, number>;
   staminas?: Map<number, number>;
   targetLocations?: Map<number, number>;
   targetEntities?: Map<number, number>;
+};
+
+export type WorldMetaDescription = {
+  colors: Map<string, string>;
+  levels: Array<
+    | {
+        topology: 'rect';
+        size: { x: number; y: number };
+        colors: { base: string; lava: string; water: string; earth: string };
+      }
+    | {
+        topology: 'torus';
+        tilesPerChunk: { x: number; y: number };
+        chunksPerLevel: { x: number; y: number };
+        colors: { base: string; lava: string; water: string; earth: string };
+      }
+    | {
+        topology: 'daia';
+        facetsPerFace: number;
+        tilesPerFacet: number;
+        colors: Array<{
+          base: string;
+          lava: string;
+          water: string;
+          earth: string;
+        }>;
+      }
+  >;
+  mechanics: {
+    agentTypes?: Array<{
+      name: string;
+      tile?: string;
+      wanders?: string;
+      dialog?: Array<string>;
+      health?: number;
+      stamina?: number;
+      modes?: Array<{
+        tile: string;
+        holds?: string;
+        has?: string;
+        hot?: boolean;
+        cold?: boolean;
+        sick?: boolean;
+        health?: number;
+        stamina?: number;
+        immersed?: boolean;
+      }>;
+      slots?: Array<{ tile: string; held?: boolean; pack?: boolean }>;
+    }>;
+    recipes?: Array<{
+      agent: string;
+      reagent: string;
+      product: string;
+      byproduct?: string;
+      price?: number;
+      dialog?: string;
+    }>;
+    actions?: Array<{
+      agent?: string;
+      patient: string;
+      left?: string;
+      right?: string;
+      effect?: string;
+      verb: string;
+      items?: Array<string>;
+      dialog?: string;
+      jump?: string;
+    }>;
+    tileTypes?: Array<{ name: string; text: string; turn?: number }>;
+    itemTypes?: Array<{
+      name: string;
+      tile?: string;
+      comestible?: boolean;
+      health?: number;
+      stamina?: number;
+      heat?: number;
+      boat?: boolean;
+      swimGear?: boolean;
+      tip?: string;
+      slot?: string;
+    }>;
+    effectTypes?: Array<{ name: string; tile?: string }>;
+  };
+  marks?: Map<string, number>;
 };
