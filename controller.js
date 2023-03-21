@@ -460,10 +460,7 @@ export const makeController = ({
       // bump,
       // viewText,
     } = mechanics;
-
-    // TODO persistence of marks
-    /** @type {Map<string, number>} */
-    const marks = new Map();
+    const { marks = new Map() } = meta;
 
     /**
      * @param {number} player
@@ -1373,8 +1370,12 @@ export const makeController = ({
             return enterWorld(world, mechanics, player, meta);
           }
         } else if (choice === 'save') {
+          const newMeta = {
+            ...meta,
+            marks,
+          };
           const snapshot = capture(player);
-          await saveWorld(meta, snapshot);
+          await saveWorld(newMeta, snapshot);
           return editMode;
         } else if (choice === 'choose') {
           return yield* chooseAgent();
@@ -1645,8 +1646,12 @@ export const makeController = ({
           return enterWorld(world, mechanics, player, meta);
         }
       } else if (choice === 'save') {
+        const newMeta = {
+          ...meta,
+          marks,
+        };
         const snapshot = capture(player);
-        await saveWorld(meta, snapshot);
+        await saveWorld(newMeta, snapshot);
 
         // Plan new animation turn.
         yield undefined;
