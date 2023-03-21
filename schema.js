@@ -141,7 +141,7 @@ const worldModelFields = $ => ({
 
   player: $.optional($.number()),
   inventories: $.optional($.index($.list($.number()))),
-  terrain: $.optional($.list($.number())),
+  terrain: $.optional($.uint8array()),
   healths: $.optional($.index($.number())),
   staminas: $.optional($.index($.number())),
   targetLocations: $.optional($.index($.number())),

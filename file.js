@@ -311,7 +311,7 @@ export const validate = allegedWholeWorldDescription => {
     levels,
     types: describedEntityTypes,
     locations: describedLocations,
-    terrain: describedTerrain = [],
+    terrain: describedTerrain,
     inventories: describedInventories = new Map(),
     healths: describedHealths = new Map(),
     staminas: describedStaminas = new Map(),
@@ -537,14 +537,15 @@ export const validate = allegedWholeWorldDescription => {
     }
   }
 
-  const terrain = new Uint8Array(size);
-  if (describedTerrain.length > size) {
+  const terrain =
+    describedTerrain === undefined ? new Uint8Array(size) : describedTerrain;
+  if (terrain.length > size) {
     errors.push(
-      `Described terrain length (${describedTerrain.length}) is longer than the world's actual length (${size})`,
+      `Described terrain length (${terrain.length}) is longer than the world's actual length (${size})`,
     );
   } else {
-    for (let index = 0; index < describedTerrain.length; index += 1) {
-      const terrainFlags = describedTerrain[index];
+    for (let index = 0; index < terrain.length; index += 1) {
+      const terrainFlags = terrain[index];
       if ((terrainFlags | terrainMask) !== terrainMask) {
         errors.push(
           `Terrain flags at location ${index} include unsupported flags: 0b${(
@@ -553,7 +554,6 @@ export const validate = allegedWholeWorldDescription => {
         );
       }
     }
-    terrain.set(describedTerrain, 0);
   }
 
   if (errors.length > 0) {
@@ -679,7 +679,7 @@ export const format = (meta, snapshot) => {
     locations: relocations,
     types: retypes,
     inventories: reinventories,
-    terrain: [...terrain.slice()],
+    terrain,
     healths: rehealths,
     staminas: restaminas,
     targetLocations: retargetLocations,

@@ -176,7 +176,7 @@ export type WholeWorldDescription = {
   types: Array<number>;
   player?: number;
   inventories?: Map<number, Array<number>>;
-  terrain?: Array<number>;
+  terrain?: Uint8Array;
   healths?: Map<number, number>;
   staminas?: Map<number, number>;
   targetLocations?: Map<number, number>;
@@ -276,7 +276,7 @@ export type WorldDescription = {
   types: Array<number>;
   player?: number;
   inventories?: Map<number, Array<number>>;
-  terrain?: Array<number>;
+  terrain?: Uint8Array;
   healths?: Map<number, number>;
   staminas?: Map<number, number>;
   targetLocations?: Map<number, number>;
