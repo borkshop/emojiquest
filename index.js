@@ -344,7 +344,10 @@ const main = async () => {
 
     /** @param {KeyboardEvent} event */
     const onKeyDown = event => {
-      const { key } = event;
+      const { key, ctrlKey, altKey, metaKey } = event;
+      if (ctrlKey || altKey || metaKey) {
+        return;
+      }
       if (key === 'Escape') {
         resolve(undefined);
       } else if (key === 'Enter') {
