@@ -1439,53 +1439,46 @@ export function makeModel({
     },
     name = '<unknown>',
   ) {
-    // Reset just in case there's some dangling state transition in progress.
-    tock();
-    mobiles.clear();
-    healths.clear();
-    staminas.clear();
-    entityTargetLocations.clear();
-    entityTargetEntities.clear();
-    entitySourceEntities.clear();
+    // Defend the assumed invariant that restore may only be called once on a
+    // model.
+    // This was not assumed in earlier editions.
+    assert(mobiles.size === 0);
+    assert(healths.size === 0);
+    assert(staminas.size === 0);
+    assert(entityTargetLocations.size === 0);
+    assert(entityTargetEntities.size === 0);
+    assert(entitySourceEntities.size === 0);
     for (let location = 0; location < size; location += 1) {
-      const entity = entities[location];
+      assert(entities[location] === 0);
+      const entity = purportedEntities[location];
       if (entity !== 0) {
-        destroyEntity(entity, location);
-        macroViewModel.exit(entity);
-        entities[location] = 0;
-      }
-      const purportedEntity = purportedEntities[location];
-      if (purportedEntity !== 0) {
-        const type = assumeDefined(purportedEntityTypes.get(purportedEntity));
-        const actualEntity = createEntity(type);
-        assert(
-          actualEntity === purportedEntity,
-          `Expected entities in ${name} to appear in ascending order of location, ${purportedEntity} should be ${actualEntity}`,
-        );
-        entities[location] = actualEntity;
-        locations.set(actualEntity, location);
-        const actualHealth = purportedHealths.get(purportedEntity) || 0;
+        const type = assumeDefined(purportedEntityTypes.get(entity));
+        assert(entityTypes.get(entity) === undefined);
+        entities[location] = entity;
+        nextEntity = Math.max(nextEntity, entity) + 1;
+        entityTypes.set(entity, type);
+        locations.set(entity, location);
+        const actualHealth = purportedHealths.get(entity) || 0;
         if (actualHealth !== 0) {
-          healths.set(actualEntity, actualHealth);
+          healths.set(entity, actualHealth);
         }
-        const actualStamina = purportedStaminas.get(purportedEntity) || 0;
+        const actualStamina = purportedStaminas.get(entity) || 0;
         if (actualStamina !== 0) {
-          staminas.set(actualEntity, actualStamina);
+          staminas.set(entity, actualStamina);
         }
-        const actualTargetLocation =
-          purportedTargetLocations.get(purportedEntity);
+        const actualTargetLocation = purportedTargetLocations.get(entity);
         if (actualTargetLocation !== undefined) {
-          entityTargetLocations.set(actualEntity, actualTargetLocation);
+          entityTargetLocations.set(entity, actualTargetLocation);
         }
-        const actualTargetEntity = purportedTargetEntities.get(purportedEntity);
+        const actualTargetEntity = purportedTargetEntities.get(entity);
         if (actualTargetEntity !== undefined) {
-          entityTargetEntities.set(actualEntity, actualTargetEntity);
+          entityTargetEntities.set(entity, actualTargetEntity);
           let sourceEntities = entitySourceEntities.get(actualTargetEntity);
           if (sourceEntities === undefined) {
             sourceEntities = new Set();
             entitySourceEntities.set(actualTargetEntity, sourceEntities);
           }
-          sourceEntities.add(actualEntity);
+          sourceEntities.add(entity);
         }
       }
     }
