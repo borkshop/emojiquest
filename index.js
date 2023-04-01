@@ -405,8 +405,13 @@ const main = async () => {
    * @param {object} [options]
    * @param {string} [options.placeholder]
    * @param {string} [options.initial]
+   * @param {string} [options.type]
    */
-  const input = async ({ placeholder = '', initial = '' } = {}) => {
+  const input = async ({
+    placeholder = '',
+    initial = '',
+    type = 'text',
+  } = {}) => {
     controlsController.hide();
     hamburgerController.hide();
     scrimElement.style.display = 'block';
@@ -419,6 +424,7 @@ const main = async () => {
     inputElement.className = 'input';
     inputElement.placeholder = placeholder;
     inputElement.value = initial;
+    inputElement.type = type;
     menuElement.appendChild(inputElement);
 
     /** @type {(value: string | undefined) => void} */
