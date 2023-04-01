@@ -293,6 +293,10 @@ select {
   max-width: 90%;
 }
 
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
 .choice {
   position: relative;
   display: block;
