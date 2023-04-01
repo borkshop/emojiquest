@@ -4,6 +4,7 @@ import { assert } from './lib/assert.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { makeModel } from './model.js';
+import { sizeLevel } from './world-description.js';
 
 // Supported level types:
 import * as daia from './topology/daia/level.js';
@@ -63,17 +64,7 @@ export const makeWorld = (
 ) => {
   const frustumRadius = 10;
 
-  const sizes = meta.levels.map(level => {
-    const { topology } = level;
-    if (topology === 'daia') {
-      return daia.sizeLevel(level);
-    } else if (topology === 'torus') {
-      return torus.sizeLevel(level);
-    } else if (topology === 'rect') {
-      return rect.sizeLevel(level);
-    }
-    assert(false, `Unrecognized level topology ${topology}`);
-  });
+  const sizes = meta.levels.map(level => sizeLevel(level));
 
   // Aggregate data from layers.
   let size = 0;
