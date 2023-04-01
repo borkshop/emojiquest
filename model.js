@@ -1423,7 +1423,7 @@ export function makeModel({
 
   /**
    * @param {import('./types.js').Snapshot} snapshot
-   * @param {string} [name]
+   * @param {string} [_name]
    */
   function restore(
     {
@@ -1437,7 +1437,7 @@ export function makeModel({
       targetLocations: purportedTargetLocations,
       targetEntities: purportedTargetEntities,
     },
-    name = '<unknown>',
+    _name = '<unknown>',
   ) {
     // Defend the assumed invariant that restore may only be called once on a
     // model.

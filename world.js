@@ -47,7 +47,7 @@ import * as rect from './topology/rect/level.js';
 
 /**
  * @param {import('./schema-types.js').WorldMetaDescription} meta
- * @param {import('./types.js').Snapshot} snapshot
+ * @param {import('./types.js').Snapshot | undefined} snapshot
  * @param {Node} parentElement
  * @param {Node} nextSibling
  * @param {object} args
@@ -95,7 +95,7 @@ export const makeWorld = (
         };
       }
     }
-    assert(false);
+    assert(false, `Cannot locate global index ${global}`);
   };
 
   /** @type {import('./types.js').AdvanceFn} */

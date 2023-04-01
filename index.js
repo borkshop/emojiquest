@@ -171,7 +171,7 @@ const main = async () => {
   /**
    * @param {unknown} allegedWholeWorldDescription
    */
-  const playWorld = allegedWholeWorldDescription => {
+  const playAllegedWorldDescription = allegedWholeWorldDescription => {
     const result = validate(allegedWholeWorldDescription);
     if ('errors' in result) {
       let message = '';
@@ -184,6 +184,24 @@ const main = async () => {
     }
     const { snapshot, mechanics, meta } = result;
 
+    const { world } = playWorld(meta, snapshot, mechanics);
+
+    const { player } = snapshot;
+
+    return {
+      world,
+      mechanics,
+      player,
+      meta,
+    };
+  };
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot | undefined} snapshot
+   * @param {import('./mechanics.js').Mechanics} mechanics
+   */
+  const playWorld = (meta, snapshot, mechanics) => {
     const createElement = makeEntityCreator(mechanics.viewText);
     nineKeyWatcher.reset(createElement);
     oneKeyWatcher.reset(createElement);
@@ -201,13 +219,7 @@ const main = async () => {
 
     dispose = world.dispose;
 
-    const { player } = snapshot;
-    return {
-      world,
-      mechanics,
-      player,
-      meta,
-    };
+    return { world };
   };
 
   const types = [
@@ -242,7 +254,7 @@ const main = async () => {
           console.error(result.error);
           return;
         }
-        return playWorld(result.value);
+        return playAllegedWorldDescription(result.value);
       }
       return;
     } finally {
@@ -274,8 +286,11 @@ const main = async () => {
     }
   };
 
-  /** @param {Record<string, string>} options */
-  const choose = async options => {
+  /**
+   * @param {Record<string, string>} options
+   * @param {string} [label]
+   */
+  const choose = async (options, label) => {
     const values = Object.keys(options);
     if (values.length === 0) {
       return undefined;
@@ -293,6 +308,15 @@ const main = async () => {
     choiceElement.className = 'choice';
     menuElement.appendChild(choiceElement);
 
+    let labelOffset = 0;
+    if (label !== undefined) {
+      const labelElement = document.createElement('div');
+      labelElement.innerText = label;
+      labelElement.className = 'label';
+      choiceElement.appendChild(labelElement);
+      labelOffset = 1;
+    }
+
     let index = 0;
     let match = '';
     /** @type {Array<string>} */
@@ -304,7 +328,7 @@ const main = async () => {
       optionElement.className = 'option';
       optionElement.innerText = label;
       optionElement.dataset.value = value;
-      optionElement.style.setProperty('--index', `${index}`);
+      optionElement.style.setProperty('--index', `${index + labelOffset}`);
       choiceElement.appendChild(optionElement);
       optionElements.push(optionElement);
       index += 1;
@@ -315,7 +339,7 @@ const main = async () => {
     const cursorElement = document.createElement('div');
     cursorElement.innerText = builtinTileTextByName.east;
     cursorElement.className = 'cursor';
-    cursorElement.style.setProperty('--index', `${cursor}`);
+    cursorElement.style.setProperty('--index', `${cursor + labelOffset}`);
     choiceElement.appendChild(cursorElement);
 
     /** @type {(value: string | undefined) => void} */
@@ -334,12 +358,16 @@ const main = async () => {
     /** @param {number} index */
     const scrollTo = index => {
       cursor = index;
-      cursorElement.style.setProperty('--index', `${cursor}`);
-      optionElements[cursor].scrollIntoView({
-        behavior: 'auto',
-        block: 'center',
-        inline: 'nearest',
-      });
+      cursorElement.style.setProperty('--index', `${cursor + labelOffset}`);
+      if (index === 0) {
+        scrimElement.scrollTop = 0;
+      } else {
+        optionElements[cursor].scrollIntoView({
+          behavior: 'auto',
+          block: 'center',
+          inline: 'nearest',
+        });
+      }
     };
 
     /** @param {KeyboardEvent} event */
@@ -397,6 +425,7 @@ const main = async () => {
     scrimElement.style.display = 'none';
     controlsController.show();
     hamburgerController.show();
+    scrimElement.scrollTop = 0;
 
     return choice;
   };
@@ -478,6 +507,7 @@ const main = async () => {
     followCursor,
     loadWorld,
     saveWorld,
+    playWorld,
     choose,
     input,
     supplementaryAnimation,
@@ -497,7 +527,7 @@ const main = async () => {
   );
   const allegedWholeWorldDescription = await response.json();
   const { world, mechanics, player, meta } = assumeDefined(
-    playWorld(allegedWholeWorldDescription),
+    playAllegedWorldDescription(allegedWholeWorldDescription),
   );
   controller.play(world, mechanics, player, meta);
 };

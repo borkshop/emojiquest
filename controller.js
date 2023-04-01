@@ -36,10 +36,12 @@ import {
   fullOcturn,
 } from './lib/geometry2d.js';
 import { terrainWater, terrainLava, terrainCold, terrainHot } from './model.js';
+import { makeMechanics } from './mechanics.js';
 import { makeViewModel } from './view-model.js';
 import { makeMacroViewModel } from './macro-view-model.js';
 import { tileMap, locate, makeNineKeyView } from './nine-key-view.js';
 import { makeBoxTileMap } from './tile-map-box.js';
+import { makeEditorModes } from './editor.js';
 
 /** @typedef {import('./progress.js').AnimateFn} AnimateFn */
 /** @typedef {import('./progress.js').Progress} Progress */
@@ -60,6 +62,7 @@ import { makeBoxTileMap } from './tile-map-box.js';
 /**
  * @callback ChooseFn
  * @param {Record<string, any>} options
+ * @param {string} [label]
  * @returns {Promise<any | undefined>}
  */
 
@@ -196,6 +199,7 @@ const noop = () => {};
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
  * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {number | undefined} [position]
  * @returns {Mode}
  */
 
@@ -343,7 +347,8 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {LoadWorldFn} args.loadWorld
- * @param {(worldData: import('./schema-types.js').WorldMetaDescription, snapshot: import('./types.js').Snapshot) => Promise<void>} args.saveWorld
+ * @param {(meta: import('./schema-types.js').WorldMetaDescription, snapshot: import('./types.js').Snapshot) => Promise<void>} args.saveWorld
+ * @param {(meta: import('./schema-types.js').WorldMetaDescription, snapshot: import('./types.js').Snapshot | undefined, mechanics: import('./mechanics.js').Mechanics) => { world: ReturnType<import('./world.js').makeWorld>}} args.playWorld
  * @param {FollowCursorFn} args.followCursor
  * @param {ChooseFn} args.choose
  * @param {InputFn} args.input
@@ -358,6 +363,7 @@ export const makeController = ({
   followCursor,
   loadWorld,
   saveWorld,
+  playWorld,
   choose,
   input,
   supplementaryAnimation,
@@ -427,6 +433,18 @@ export const makeController = ({
   let editType = 0;
 
   // Modes:
+
+  const {
+    designNewWorld,
+    planLevelAddition,
+    planLevelRemoval,
+    chooseLocation,
+    levelMenu,
+    markMenu,
+  } = makeEditorModes({
+    choose,
+    input,
+  });
 
   /**
    * @param {World} world
@@ -1318,6 +1336,7 @@ export const makeController = ({
         if (player !== undefined) {
           options.play = '🎭 Play   '; // 🪁 ▶️
         }
+        options.new = '🆕 New';
         if (window.showSaveFilePicker !== undefined) {
           options.save = '🛟  Save  '; //  🏦
         }
@@ -1333,11 +1352,6 @@ export const makeController = ({
           options.teleport = '🛸 Teleport';
         }
         options.levels = '🪜 Levels';
-        // options.addLevel = '🏗 Add Level';
-        // options.items = '🎒 Items';
-        // options.addItem = '🔨 Add Item';
-        // options.recipes = '🧑‍🍳 Recipes';
-        // options.addRecipe = '📝 Add Recipe';
         if (marks.size) {
           options.targetEntity = '🏹   Target Entity';
           options.targetLocation = '🎯    Target Location';
@@ -1377,6 +1391,34 @@ export const makeController = ({
           const snapshot = capture(player);
           await saveWorld(newMeta, snapshot);
           return editMode;
+        } else if (choice === 'new') {
+          const newMeta = yield* designNewWorld(meta);
+          if (newMeta === undefined) {
+            return editMode;
+          }
+
+          const location = yield* chooseLocation(newMeta);
+
+          // Plan new animation turn
+          yield undefined;
+
+          const newMechanics = makeMechanics(newMeta.mechanics);
+
+          const { world: newWorld } = playWorld(
+            newMeta,
+            undefined,
+            newMechanics,
+          );
+
+          const handoff = {};
+          exitEditMode(handoff);
+          return enterWorld(
+            newWorld,
+            newMechanics,
+            undefined,
+            newMeta,
+            location,
+          );
         } else if (choice === 'choose') {
           return yield* chooseAgent();
         } else if (choice === 'mark') {
@@ -1391,22 +1433,16 @@ export const makeController = ({
 
           return editMode;
         } else if (choice === 'marks') {
-          const options = Object.fromEntries(
-            [...marks.entries()].map(([label, position]) => [
-              label,
-              `${label} @${position}`,
-            ]),
-          );
-          const label = await choose(options);
+          const label = await choose(Object.fromEntries(markMenu(marks)));
 
           if (label !== undefined) {
             const verb = await choose({
               teleport: '🛸 Teleport',
-              rename: '✍️ Rename',
-              delete: '✂️ Delete',
+              rename: '🏷 Rename',
+              delete: '⚡️ Delete',
             });
             if (verb === 'teleport') {
-              // Start new animated turn
+              // Plan new animation turn
               yield undefined;
 
               const position = assumeDefined(marks.get(label));
@@ -1438,13 +1474,7 @@ export const makeController = ({
 
           return editMode;
         } else if (choice === 'teleport') {
-          const options = Object.fromEntries(
-            [...marks.entries()].map(([label, position]) => [
-              label,
-              `${label} @${position}`,
-            ]),
-          );
-          const label = await choose(options);
+          const label = await choose(Object.fromEntries(markMenu(marks)));
 
           // Plan new animation turn
           yield undefined;
@@ -1456,38 +1486,129 @@ export const makeController = ({
 
           return editMode;
         } else if (choice === 'levels') {
-          const options = Object.fromEntries(
-            levels.map((_, index) => [`${index + 1}`, `Level ${index + 1}`]),
-          );
+          const options = Object.fromEntries(levelMenu(meta.levels));
+          options.new = '🆕 New';
 
           const choice = await choose(options);
 
           // Plan new animation turn
           yield undefined;
 
-          if (choice !== undefined) {
-            const level = levels[choice - 1];
-            if (level.faces.length > 1) {
-              const options = Object.fromEntries(
-                level.faces.map((_, index) => [
-                  `${index + 1}`,
-                  `Face ${index + 1}`,
-                ]),
+          if (choice === 'new') {
+            const snapshot = capture(player);
+
+            const result = yield* planLevelAddition(meta, snapshot);
+
+            if (result === undefined) {
+              return editMode;
+            }
+
+            const {
+              meta: newMeta,
+              snapshot: newSnapshot,
+              index: levelIndex,
+            } = result;
+
+            const location = yield* chooseLocation(newMeta, levelIndex);
+
+            // Plan new animation turn
+            yield undefined;
+
+            const newMechanics = makeMechanics(newMeta.mechanics);
+
+            const { world: newWorld } = playWorld(
+              newMeta,
+              newSnapshot,
+              newMechanics,
+            );
+
+            const handoff = {};
+            exitEditMode(handoff);
+            return enterWorld(
+              newWorld,
+              newMechanics,
+              undefined,
+              newMeta,
+              location,
+            );
+          } else if (choice !== undefined) {
+            const levelIndex = choice - 1;
+            const level = levels[levelIndex];
+
+            const verb = await choose({
+              teleport: '🛸 Teleport',
+              // TODO 🏷 Rename
+              // TODO 🎨 Colors
+              delete: '⚡️ Delete',
+            });
+
+            // Plan new animation turn
+            yield undefined;
+
+            if (verb === undefined) {
+              return editMode;
+            } else if (verb === 'delete') {
+              const snapshot = capture(player);
+              const result = yield* planLevelRemoval(
+                meta,
+                snapshot,
+                levelIndex,
+                position,
               );
 
-              const choice = await choose(options);
+              if (result === undefined) {
+                return editMode;
+              }
 
-              // Plan new animation turn
+              const {
+                meta: newMeta,
+                snapshot: newSnapshot,
+                location: newLocation,
+              } = result;
+
+              const newMechanics = makeMechanics(newMeta.mechanics);
+
               yield undefined;
 
-              if (choice !== undefined) {
-                const face = level.faces[choice - 1];
-                const position = face.offset + Math.floor(face.size / 2);
+              const { world: newWorld } = playWorld(
+                newMeta,
+                newSnapshot,
+                newMechanics,
+              );
+
+              const handoff = {};
+              exitEditMode(handoff);
+              return enterWorld(
+                newWorld,
+                newMechanics,
+                undefined,
+                newMeta,
+                newLocation,
+              );
+            } else if (verb === 'teleport') {
+              if (level.faces.length > 1) {
+                const options = Object.fromEntries(
+                  level.faces.map((_, index) => [
+                    `${index + 1}`,
+                    `${(index % 10) + 1}\ufe0f\u20e3 Face ${index + 1}`,
+                  ]),
+                );
+                options.delete = '⚡️ Delete';
+
+                const faceNumber = await choose(options);
+
+                // Plan new animation turn
+                yield undefined;
+
+                if (faceNumber !== undefined) {
+                  const face = level.faces[faceNumber - 1];
+                  const position = face.offset + Math.floor(face.size / 2);
+                  teleport(position);
+                }
+              } else {
+                const position = level.offset + Math.floor(level.size / 2);
                 teleport(position);
               }
-            } else {
-              const position = level.offset + Math.floor(level.size / 2);
-              teleport(position);
             }
           }
 
@@ -1601,6 +1722,8 @@ export const makeController = ({
       staminaController.hide();
       healthController.hide();
 
+      world.cameraController.jump(position);
+
       return editMode;
     };
 
@@ -1615,6 +1738,7 @@ export const makeController = ({
         options.play = '🎭 Play   '; // 🪁 ▶️
       }
       options.edit = '✏️  Edit'; // 🚧
+      options.new = '🆕 New';
       if (window.showSaveFilePicker !== undefined) {
         options.save = '🛟  Save  '; //  🏦
       }
@@ -1630,7 +1754,37 @@ export const makeController = ({
       oneKeyView.put(0, 0, builtinTileTypesByName.hamburger);
       oneKeyView.enter(0);
 
-      if (choice === 'edit') {
+      if (choice === 'new') {
+        const newMeta = yield* designNewWorld(meta);
+
+        if (newMeta === undefined) {
+          // Plan new animation turn
+          yield undefined;
+
+          if (player !== undefined) {
+            return enterPlayMode(player, {});
+          } else {
+            return enterEditMode(position, player, {});
+          }
+        }
+
+        const newLocation = yield* chooseLocation(newMeta);
+
+        // Plan new animation turn.
+        yield undefined;
+
+        const newMechanics = makeMechanics(newMeta.mechanics);
+
+        const { world: newWorld } = playWorld(newMeta, undefined, newMechanics);
+
+        return enterWorld(
+          newWorld,
+          newMechanics,
+          undefined,
+          newMeta,
+          newLocation,
+        );
+      } else if (choice === 'edit') {
         return enterEditMode(position, player, {});
       } else if (choice === 'load') {
         const result = await loadWorld();
@@ -1747,7 +1901,7 @@ export const makeController = ({
   };
 
   /** @type {PlayFn} */
-  const enterWorld = (world, mechanics, player, meta) => {
+  const enterWorld = (world, mechanics, player, meta, position = 0) => {
     const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
       world,
       mechanics,
@@ -1757,7 +1911,7 @@ export const makeController = ({
     if (player !== undefined) {
       return limboToPlayMode(player);
     } else {
-      return limboToEditMode(0);
+      return limboToEditMode(position);
     }
   };
 

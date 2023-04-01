@@ -302,6 +302,15 @@ input[type='number']::-webkit-inner-spin-button {
   display: block;
 }
 
+.label {
+  font-weight: bold;
+  font-size: calc(var(--tileSizePx) * 0.8px);
+  height: calc(var(--tileSizePx) * 1px);
+  top: 0;
+  padding-left: calc(var(--tileSizePx) * 1px);
+  white-space: nowrap;
+}
+
 .option {
   font-size: calc(var(--tileSizePx) * 0.8px);
   height: calc(var(--tileSizePx) * 1px);
