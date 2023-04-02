@@ -25,8 +25,8 @@ export function makeTopology({ size }) {
   function tileCoordinate(t) {
     const f = 0;
     const n = 0;
-    const x = mod(t, size.y);
-    const y = Math.floor(mod(t, area) / size.y);
+    const x = mod(t, size.x);
+    const y = Math.floor(mod(t, area) / size.x);
     return { t, f, n, x, y };
   }
 
