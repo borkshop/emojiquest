@@ -19,6 +19,10 @@ const makeChatFakes = (t, dialog) => {
       t.log(question);
       return dialog.shift();
     },
+    /** @param {string} message */
+    logHTML(message) {
+      t.log(message);
+    },
   };
 };
 

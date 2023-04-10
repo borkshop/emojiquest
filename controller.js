@@ -410,7 +410,7 @@ export const makeController = ({
       }
     },
     dialog(_entity, text) {
-      dialogController.logHTML(text);
+      logHTML(text);
     },
     health(_entity, health) {
       healthController.set(health);
@@ -434,16 +434,20 @@ export const makeController = ({
 
   // Modes:
 
+  const { logHTML } = dialogController;
+
   const {
     designNewWorld,
     planLevelAddition,
     planLevelRemoval,
+    editColorPalette,
     chooseLocation,
     levelMenu,
     markMenu,
   } = makeEditorModes({
     choose,
     input,
+    logHTML,
   });
 
   /**
@@ -823,7 +827,7 @@ export const makeController = ({
           const itemType = leftHandItemType();
           const itemDesc = itemTypes[itemType];
           if (itemDesc.tip !== undefined) {
-            dialogController.logHTML(itemDesc.tip);
+            logHTML(itemDesc.tip);
           }
         }
 
@@ -1238,7 +1242,7 @@ export const makeController = ({
         if (editType !== undefined) {
           const entity = worldModel.set(cursor.position, editType);
           if (editType === agentTypesByName.player) {
-            dialogController.logHTML('😊 <b>player</b> updated');
+            logHTML('😊 <b>player</b> updated');
             player = entity;
           }
         }
@@ -1356,6 +1360,7 @@ export const makeController = ({
           options.targetEntity = '🏹   Target Entity';
           options.targetLocation = '🎯    Target Location';
         }
+        options.colorPalette = '🎨 Color Palette';
 
         const choice = await choose(options);
 
@@ -1669,6 +1674,35 @@ export const makeController = ({
           }
 
           return editMode;
+        } else if (choice === 'colorPalette') {
+          const snapshot = capture(player);
+          const result = yield* editColorPalette(meta, snapshot);
+          if (result === undefined) {
+            return editMode;
+          }
+
+          const { meta: newMeta, snapshot: newSnapshot } = result;
+
+          const newMechanics = makeMechanics(newMeta.mechanics);
+
+          // Prepare new animation turn.
+          yield undefined;
+
+          const { world: newWorld } = playWorld(
+            newMeta,
+            newSnapshot,
+            newMechanics,
+          );
+
+          const handoff = {};
+          exitEditMode(handoff);
+          return enterWorld(
+            newWorld,
+            newMechanics,
+            undefined,
+            newMeta,
+            position,
+          );
         } else {
           return editMode;
         }

@@ -69,3 +69,46 @@ export const locateFace = (meta, levelIndex, faceIndex) => {
   }
   assert(false, `Unrecognized level topology ${topology}`);
 };
+
+/**
+ * @param {Map<string, Set<string>>} colors
+ * @param {{ earth: string, base: string, water: string, lava: string }} faceColors
+ * @param {string} user
+ */
+const addColors = (colors, faceColors, user) => {
+  const { earth, base, water, lava } = faceColors;
+  for (const color of [earth, base, water, lava]) {
+    let set = colors.get(color);
+    if (set === undefined) {
+      set = new Set();
+      colors.set(color, set);
+    }
+    set.add(user);
+  }
+};
+
+export const faceSymbols = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+/**
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ */
+export const worldColors = meta => {
+  /** @type {Map<string, Set<string>>} */
+  const colors = new Map();
+
+  let levelIndex = 0;
+  for (const level of meta.levels) {
+    if (level.topology === 'torus' || level.topology === 'rect') {
+      addColors(colors, level.colors, `${levelIndex}`);
+    } else if (level.topology === 'daia') {
+      let faceIndex = 0;
+      for (const faceColors of level.colors) {
+        addColors(colors, faceColors, `${levelIndex}.${faceIndex}`);
+        faceIndex += 1;
+      }
+    }
+    levelIndex += 1;
+  }
+
+  return colors;
+};

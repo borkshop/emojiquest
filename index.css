@@ -282,7 +282,8 @@ select {
   align-items: center;
 }
 
-.input {
+.input[type='text'],
+.input[type=''] {
   font-size: calc(var(--tileSizePx) * 0.8px);
   height: calc(var(--tileSizePx) * 1px);
   border-radius: calc(var(--tileSizePx) * 0.5px);
@@ -295,6 +296,11 @@ select {
 
 input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
+}
+
+input[type='color'] {
+  height: calc(var(--tileSizePx) * 1px);
+  width: calc(var(--tileSizePx) * 1px);
 }
 
 .choice {

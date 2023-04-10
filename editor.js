@@ -1,12 +1,22 @@
-import { countFaces, locateLevel, locateFace } from './world-description.js';
+import { assumeDefined } from './lib/assert.js';
+import {
+  countFaces,
+  locateLevel,
+  locateFace,
+  worldColors,
+} from './world-description.js';
 import { addLevel, removeLevel } from './edit.js';
+
+// q as in quote
+const q = JSON.stringify;
 
 /**
  * @param {object} args
  * @param {import('./controller.js').ChooseFn} args.choose
  * @param {import('./controller.js').InputFn} args.input
+ * @param {(html: string) => void} args.logHTML
  */
-export const makeEditorModes = ({ choose, input }) => {
+export const makeEditorModes = ({ choose, input, logHTML }) => {
   /**
    * @param {import('./schema-types.js').WorldMetaDescription} oldMeta
    */
@@ -345,6 +355,127 @@ export const makeEditorModes = ({ choose, input }) => {
   };
 
   /**
+   * @param {import('./schema-types.js').WorldMetaDescription} oldMeta
+   * @param {import('./types.js').Snapshot} oldSnapshot
+   */
+  const editColorPalette = async function* (oldMeta, oldSnapshot) {
+    const options = {
+      // TODO untangle "new" from color name space.
+      new: '🆕 New',
+      ...Object.fromEntries(colorMenu(oldMeta.colors)),
+    };
+    const choice = await choose(options, '🎨 Colors');
+    if (choice === 'new') {
+      return yield* addColor(oldMeta, oldSnapshot);
+    } else {
+      return yield* editColor(oldMeta, oldSnapshot, choice);
+    }
+    return undefined;
+  };
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} oldMeta
+   * @param {import('./types.js').Snapshot} snapshot
+   */
+  const addColor = async function* (oldMeta, snapshot) {
+    const colorName = await input({ placeholder: 'name for color' });
+    if (colorName === undefined) {
+      return undefined;
+    }
+
+    if (oldMeta.colors.has(colorName)) {
+      // Begin animation turn
+      yield undefined;
+
+      logHTML(`🚨 The color name ${q(colorName)} already exists`);
+
+      return undefined;
+    }
+    if (colorName === undefined) return undefined;
+    const colorValue = await input({ type: 'color' });
+    if (colorValue === undefined) return undefined;
+    return {
+      meta: {
+        ...oldMeta,
+        colors: new Map([...oldMeta.colors.entries(), [colorName, colorValue]]),
+      },
+      snapshot,
+    };
+  };
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
+   * @param {string} colorName
+   */
+  const editColor = async function* (meta, snapshot, colorName) {
+    const choice = await choose({
+      change: '🎨 Change',
+      rename: '🏷 Rename',
+      delete: '⚡️ Delete',
+    });
+    let colorPalette = meta.colors;
+    if (choice === 'change') {
+      const oldColorValue = assumeDefined(
+        colorPalette.get(colorName),
+        `Color ${q(colorName)} absent in color palette`,
+      );
+      const newColorValue = await input({
+        initial: oldColorValue,
+        type: 'color',
+      });
+      if (newColorValue === undefined) return undefined;
+      colorPalette = new Map(
+        [...colorPalette.entries()].map(([entryName, colorValue]) => [
+          entryName,
+          entryName === colorName ? newColorValue : colorValue,
+        ]),
+      );
+    } else if (choice === 'rename') {
+      const newColorName = await input({ placeholder: 'new name' });
+      if (newColorName === undefined) return undefined;
+      colorPalette = new Map(
+        [...colorPalette.entries()].map(([entryName, colorValue]) => [
+          entryName === colorName ? newColorName : entryName,
+          colorValue,
+        ]),
+      );
+    } else if (choice === 'delete') {
+      // We have the options of either denying the deletion of a color that is
+      // used, or requiring a replacement only if it is used.
+      // Currently, we will deny the deletion of a used color.
+      const usedColors = worldColors(meta);
+      const faceDescriptions = usedColors.get(colorName);
+      if (faceDescriptions !== undefined) {
+        // Start a new animation turn.
+        yield undefined;
+
+        logHTML(
+          `🚨 Cannot delete color because it is in use on ${[
+            ...faceDescriptions,
+          ].join(', ')}.`,
+        );
+
+        return undefined;
+      }
+      colorPalette = new Map(
+        [...colorPalette.entries()].filter(
+          ([entryName]) => entryName === colorName,
+        ),
+      );
+    } else {
+      return undefined;
+    }
+    return {
+      meta: {
+        ...meta,
+        colors: colorPalette,
+      },
+      snapshot,
+    };
+  };
+
+  /**
    * @param {Map<string, string>} colorPalette
    */
   const colorMenu = colorPalette =>
@@ -386,6 +517,7 @@ export const makeEditorModes = ({ choose, input }) => {
     designNewWorld,
     planLevelAddition,
     planLevelRemoval,
+    editColorPalette,
     chooseLocation,
     levelMenu,
     markMenu,
