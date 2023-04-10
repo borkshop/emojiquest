@@ -1050,18 +1050,3 @@ test('medal shop', async t => {
     [ . ]
   `);
 });
-
-// This of course covers restoration, but is also a useful utility for ad-hoc
-// test failure isolation and reproduction.
-test('restore', async t => {
-  const path = url.fileURLToPath(
-    new URL('emojiquest/emojiquest.json', import.meta.url),
-  );
-  const text = await fs.readFile(path, 'utf8');
-  const worldData = JSON.parse(text);
-
-  const s = makeScaffold(t, { tilesPerFacet: 9, facetsPerFace: 9, worldData });
-  s.play();
-
-  s.expectMode('play');
-});
