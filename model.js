@@ -372,15 +372,11 @@ export function makeModel({
       }
     }
 
-    const health = healths.get(e);
-    if (health !== undefined) {
-      onHealth(e, health);
-    }
+    const health = healths.get(e) ?? 5;
+    onHealth(e, health);
 
-    const stamina = staminas.get(e);
-    if (stamina !== undefined) {
-      onStamina(e, stamina);
-    }
+    const stamina = staminas.get(e) ?? 5;
+    onStamina(e, stamina);
   }
 
   /**
@@ -719,10 +715,10 @@ export function makeModel({
 
     // Update entity health
     for (const [entity, trajectory] of healthTrajectories.entries()) {
-      let health = healths.get(entity) || 0;
+      let health = healths.get(entity) ?? 5;
       health += trajectory;
       health = Math.max(0, health);
-      if (health === 0) {
+      if (health === 5) {
         healths.delete(entity);
       } else {
         healths.set(entity, health);
@@ -732,7 +728,7 @@ export function makeModel({
 
     // Emit health change
     for (const entity of staleHealths) {
-      const health = healths.get(entity) || 0;
+      const health = healths.get(entity) ?? 5;
       onHealth(entity, health);
       staleTileTypes.add(entity);
     }
@@ -1245,8 +1241,8 @@ export function makeModel({
    */
   function pass(entity, location) {
     const terrainFlags = getTerrainFlags(location);
-    const health = healths.get(entity) || 0;
-    const stamina = staminas.get(entity) || 0;
+    const health = healths.get(entity) ?? 5;
+    const stamina = staminas.get(entity) ?? 5;
     if (health === 0) {
       return { passable: false, dialog: '💀!!1!' };
     }
@@ -1270,14 +1266,14 @@ export function makeModel({
    * @param {number} entity
    */
   function entityStamina(entity) {
-    return staminas.get(entity) || 0;
+    return staminas.get(entity) ?? 5;
   }
 
   /**
    * @param {number} entity
    */
   function entityHealth(entity) {
-    return healths.get(entity) || 0;
+    return healths.get(entity) ?? 5;
   }
 
   /**
@@ -1296,7 +1292,7 @@ export function makeModel({
     }
     const staminaEffect = itemDescriptor.stamina;
     if (staminaEffect !== undefined) {
-      const oldStamina = staminas.get(entity) || 0;
+      const oldStamina = staminas.get(entity) ?? 5;
       const newStamina = Math.min(5, oldStamina + 1);
       staminas.set(entity, newStamina);
       onStamina(entity, newStamina);
@@ -1310,8 +1306,8 @@ export function makeModel({
    * @param {number} amount
    */
   function adjustStamina(entity, amount) {
-    if (amount === 0) return;
-    const oldStamina = staminas.get(entity) || 0;
+    if (amount === 5) return;
+    const oldStamina = staminas.get(entity) ?? 5;
     const newStamina = Math.max(0, Math.min(5, oldStamina + amount));
     setStamina(entity, newStamina);
   }
@@ -1321,7 +1317,7 @@ export function makeModel({
    * @param {number} stamina
    */
   function setStamina(entity, stamina) {
-    if (stamina === 0) {
+    if (stamina === 5) {
       staminas.delete(entity);
     } else {
       staminas.set(entity, stamina);
@@ -1337,7 +1333,7 @@ export function makeModel({
    */
   function adjustHealth(entity, amount) {
     if (amount === 0) return;
-    const oldHealth = healths.get(entity) || 0;
+    const oldHealth = healths.get(entity) ?? 5;
     const newHealth = Math.max(0, Math.min(5, oldHealth + amount));
     setHealth(entity, newHealth);
   }
@@ -1347,7 +1343,7 @@ export function makeModel({
    * @param {number} health
    */
   function setHealth(entity, health) {
-    if (health === 0) {
+    if (health === 5) {
       healths.delete(entity);
     } else {
       healths.set(entity, health);
@@ -1458,12 +1454,12 @@ export function makeModel({
         nextEntity = Math.max(nextEntity, entity) + 1;
         entityTypes.set(entity, type);
         locations.set(entity, location);
-        const actualHealth = purportedHealths.get(entity) || 0;
-        if (actualHealth !== 0) {
+        const actualHealth = purportedHealths.get(entity) ?? 5;
+        if (actualHealth !== 5) {
           healths.set(entity, actualHealth);
         }
-        const actualStamina = purportedStaminas.get(entity) || 0;
-        if (actualStamina !== 0) {
+        const actualStamina = purportedStaminas.get(entity) ?? 5;
+        if (actualStamina !== 5) {
           staminas.set(entity, actualStamina);
         }
         const actualTargetLocation = purportedTargetLocations.get(entity);
