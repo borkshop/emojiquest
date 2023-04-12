@@ -1233,8 +1233,8 @@ export const makeController = ({
       const copy = () => {
         const entityType = worldModel.entityTypeAt(cursor.position);
         if (entityType !== editType) {
-          nineKeyView.replace(4, defaultTileTypeForAgentType[editType]);
           editType = entityType;
+          nineKeyView.replace(4, defaultTileTypeForAgentType[editType]);
         }
       };
 
