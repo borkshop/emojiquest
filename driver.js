@@ -205,18 +205,19 @@ export const makeDriver = (controller, options) => {
       return true;
     }
 
-    assert(!held.has(command));
-    const up = controller.down(command);
-    held.set(command, { start: performance.now(), up });
-
     // If a command key goes down during an animated transition for a prior
     // command, we abort that animation so the next move advances immediately
     // to the beginning of the next animation.
-    if (held.size === 0) {
+    if (held.size <= 1) {
       abort.resolve();
       abort = defer();
       queue.length = 0;
     }
+
+    assert(!held.has(command));
+    const up = controller.down(command);
+    held.set(command, { start: performance.now(), up });
+
     queue.push(command);
     // Kick the command processor into gear if it hasn't been provoked
     // already.
