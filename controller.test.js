@@ -1,6 +1,4 @@
 import test from 'ava';
-import url from 'url';
-import fs from 'fs/promises';
 import { makeScaffold } from './test-scaffold.js';
 
 test('limbo', async t => {
