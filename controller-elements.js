@@ -56,18 +56,19 @@ export const watchControllerCommands = (
     return x + (2 - y) * 3 + 1;
   };
 
+  // TODO third argument for whether the state change indicates cancellation,
+  // propagate through "up". Requires us to answer a question about
+  // cancellation if the command is held by multiple buttons.
   /**
    * @param {number} command
    * @param {boolean} pressed
    */
   const onControlMouseStateChange = (command, pressed) => {
     const touchIdentifiers = commandToTouchIdentifiers.get(command);
-    if (touchIdentifiers !== undefined) {
-      pressed = pressed || touchIdentifiers.size > 0;
-    } else {
+    if (touchIdentifiers === undefined) {
       return;
     }
-    if (pressed) {
+    if (pressed || touchIdentifiers.size > 0) {
       if (previousCommand === -1) {
         // unpressed to pressed
         previousCommand = command;
@@ -91,79 +92,63 @@ export const watchControllerCommands = (
     }
   };
 
-  /**
-   * @param {Event} event
-   */
-  const onControlsMouseChange = event => {
-    const mouseEvent = /** @type {MouseEvent} */ (event);
-    const command = controlEventToCommand(mouseEvent);
-    onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
-  };
-
-  /**
-   * @param {Event} event
-   */
-  const onControlsMouseEnter = event => {
-    const mouseEvent = /** @type {MouseEvent} */ (event);
-    const command = controlEventToCommand(mouseEvent);
-    onControlMouseStateChange(command, (mouseEvent.buttons & 1) !== 0);
-    $controls.addEventListener('mousemove', onControlsMouseChange);
-  };
-
-  const onControlsMouseLeave = () => {
-    onControlMouseStateChange(-1, false);
-    $controls.removeEventListener('mousemove', onControlsMouseChange);
-  };
-
   const touchIdentifierToCommand = new Map();
   const commandToTouchIdentifiers = new Map(
     new Array(commandCount).fill(0).map((_, n) => [n, new Set()]),
   );
 
-  /**
-   * @param {Event} touchEvent
-   */
-  const onControlsTouchStart = touchEvent => {
-    const event = /** @type {TouchEvent} */ (touchEvent);
+  $controls.addEventListener('pointerdown', pointerEvent => {
+    const event = /** @type {PointerEvent} */ (pointerEvent);
     event.preventDefault();
-    for (const touch of event.changedTouches) {
-      const { top, left } = $controls.getBoundingClientRect();
-      const command = controlEventToCommand({
-        offsetX: touch.pageX - left,
-        offsetY: touch.pageY - top,
-      });
-      touchIdentifierToCommand.set(touch.identifier, command);
-      const touchIdentifiers = commandToTouchIdentifiers.get(command);
-      if (touchIdentifiers !== undefined) {
-        touchIdentifiers.add(touch.identifier);
-      }
-      onControlMouseStateChange(command, true);
+    const identifier = event.pointerId;
+    const { top, left } = $controls.getBoundingClientRect();
+    const command = controlEventToCommand({
+      offsetX: event.pageX - left,
+      offsetY: event.pageY - top,
+    });
+    touchIdentifierToCommand.set(identifier, command);
+    const touchIdentifiers = commandToTouchIdentifiers.get(command);
+    if (touchIdentifiers !== undefined) {
+      touchIdentifiers.add(identifier);
     }
-  };
+    onControlMouseStateChange(command, true);
+  });
 
   /**
-   * @param {Event} touchEvent
+   * @param {Event} pointerEvent
    */
-  const onControlsTouchEnd = touchEvent => {
-    const event = /** @type {TouchEvent} */ (touchEvent);
+  const pointerRelease = pointerEvent => {
+    const event = /** @type {PointerEvent} */ (pointerEvent);
+
     event.preventDefault();
-    for (const touch of event.changedTouches) {
-      const command = touchIdentifierToCommand.get(touch.identifier);
-      touchIdentifierToCommand.delete(touch.identifier);
-      const touchIdentifiers = commandToTouchIdentifiers.get(command);
-      if (touchIdentifiers !== undefined) {
-        touchIdentifiers.delete(touch.identifier);
-      }
+    const identifier = event.pointerId;
+
+    const command = touchIdentifierToCommand.get(identifier);
+    if (command === undefined) {
+      return;
+    }
+    const touchIdentifiers = commandToTouchIdentifiers.get(command);
+    if (touchIdentifiers === undefined) {
+      return;
+    }
+    touchIdentifierToCommand.delete(identifier);
+    touchIdentifiers.delete(identifier);
+    if (touchIdentifiers.size !== 0) {
+      return undefined;
+    }
+    return command;
+  };
+
+  $controls.addEventListener('pointerup', event => {
+    const command = pointerRelease(event);
+    if (command !== undefined) {
       onControlMouseStateChange(command, false);
     }
-  };
+  });
 
-  $controls.addEventListener('mouseenter', onControlsMouseEnter);
-  $controls.addEventListener('mouseleave', onControlsMouseLeave);
-  $controls.addEventListener('mouseup', onControlsMouseChange);
-  $controls.addEventListener('mousedown', onControlsMouseChange);
-  $controls.addEventListener('touchstart', onControlsTouchStart);
-  $controls.addEventListener('touchend', onControlsTouchEnd);
+  $controls.addEventListener('pointercancel', event => {
+    pointerRelease(event);
+  });
 
   /**
    * @param {KeyboardEvent} event
@@ -191,14 +176,16 @@ export const watchControllerCommands = (
   $window.addEventListener('keyup', onKeyUp);
   $window.addEventListener('blur', cancel);
 
-  const onHamburgerMouseDown = () => {
+  $hamburger.addEventListener('pointerdown', event => {
+    event.preventDefault();
     down('Mouse', 0);
-  };
-
-  const onHamburgerMouseUp = () => {
+  });
+  $hamburger.addEventListener('pointerup', event => {
+    event.preventDefault();
     up('Mouse', 0);
-  };
-
-  $hamburger.addEventListener('mousedown', onHamburgerMouseDown);
-  $hamburger.addEventListener('mouseup', onHamburgerMouseUp);
+  });
+  $hamburger.addEventListener('pointercancel', event => {
+    event.preventDefault();
+    up('Mouse', 0);
+  });
 };
