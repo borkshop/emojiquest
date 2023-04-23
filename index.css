@@ -200,21 +200,25 @@ rect.backTile {
 }
 
 .controlPanel {
+  --liftBottom: 60px;
+
   user-select: none;
   cursor: pointer;
   position: absolute;
-  bottom: 0;
+  bottom: var(--liftBottom);
   right: 0;
 
-  transform-origin: calc(100% + 10px) calc(100% + 10px);
+  transform-origin: calc(100% + 30px) calc(100% + 10px + var(--liftBottom));
 }
 
 .hamburgerPanel {
+  --liftBottom: 60px;
+
   position: absolute;
-  bottom: 0;
+  bottom: var(--liftBottom);
   left: 0;
 
-  transform-origin: -10px calc(100% + 10px);
+  transform-origin: -10px calc(10px + var(--liftBottom));
 }
 
 .dialog {
@@ -229,9 +233,10 @@ rect.backTile {
 }
 
 .blade {
-  transform-origin: 0 calc(100% + var(--tileSizePx) * 3px + 10px);
+  --margin: calc(var(--tileSizePx) * 3px + 30px);
+  transform-origin: 0 calc(100% + var(--margin));
   position: absolute;
-  bottom: calc(var(--tileSizePx) * 3px + 10px);
+  bottom: calc(var(--margin));
   left: 0;
 }
 
