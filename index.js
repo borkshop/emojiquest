@@ -291,6 +291,8 @@ const main = async () => {
    * @param {string} [label]
    */
   const choose = async (options, label) => {
+    driver.cancel();
+
     const values = Object.keys(options);
     if (values.length === 0) {
       return undefined;
@@ -443,6 +445,8 @@ const main = async () => {
     initial = '',
     type = 'text',
   } = {}) => {
+    driver.cancel();
+
     controlsController.hide();
     hamburgerController.hide();
     scrimElement.style.display = 'block';
