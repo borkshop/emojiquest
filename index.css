@@ -343,3 +343,16 @@ input[type='color'] {
   top: calc(var(--tileSizePx) * var(--index) * 1px);
   height: calc(var(--tileSizePx) * 1px);
 }
+
+.debug {
+  overflow: scroll;
+  max-height: 30%;
+  white-space: pre;
+  padding: 20px;
+  z-index: 10000;
+  font-size: 40px;
+  font-weight: bold;
+  position: fixed;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}

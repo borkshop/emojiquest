@@ -10,6 +10,23 @@
     <title>Cube</title>
   </head>
   <body>
+    <script>
+      (() => {
+        const debugElement = document.createElement('div');
+        debugElement.className = 'debug';
+        debugElement.style.display = 'none';
+        document.body.appendChild(debugElement);
+        let lead = '';
+        window.debug = (...text) => {
+          debugElement.innerText += lead + text.join(' ');
+          debugElement.scrollTop = debugElement.scrollHeight;
+          if (lead === '') {
+            debugElement.style.display = 'block';
+            lead = '\n';
+          }
+        };
+      })();
+    </script>
     <script type="module" src="./index.js"></script>
   </body>
 </html>
