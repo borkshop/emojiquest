@@ -266,9 +266,9 @@ export const makeDriver = (controller, options) => {
   }
 
   const cancel = () => {
-    for (const holders of commandHolders.values()) {
+    for (const [command, holders] of commandHolders.entries()) {
       for (const holder of holders) {
-        up(holder);
+        up(holder, command);
       }
     }
   };
