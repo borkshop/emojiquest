@@ -299,6 +299,7 @@ const main = async () => {
     controlsController.hide();
     hamburgerController.hide();
     scrimElement.style.display = 'block';
+    document.documentElement.style.overflow = 'auto';
 
     const menuElement = document.createElement('div');
     menuElement.className = 'menu';
@@ -426,6 +427,7 @@ const main = async () => {
     controlsController.show();
     hamburgerController.show();
     scrimElement.scrollTop = 0;
+    document.documentElement.style.overflow = 'hidden';
 
     return choice;
   };
@@ -521,6 +523,20 @@ const main = async () => {
   watchControllerCommands(window, $controls, $hamburger, driver, {
     tileSizePx,
   });
+
+  // Disable double-tap to zoom
+  let lastTouchEnd = 0;
+  document.addEventListener(
+    'touchend',
+    event => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    },
+    false,
+  );
 
   const response = await fetch(
     new URL('emojiquest/emojiquest.json', import.meta.url).href,
