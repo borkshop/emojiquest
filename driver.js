@@ -102,17 +102,17 @@ export const makeDriver = (controller, options) => {
     const turnGenerator = controller.handleCommand(command, repeat);
 
     for (;;) {
+      // Ensure that the animation gets all the way to 100%, regardless of
+      // animation frame timing.
+      controller.animate(makeProgress(timeSinceTransitionStart, 1));
+
       timeSinceTransitionStart = 0;
       controller.tock();
+
       const turnCompleted = turnGenerator.next();
       controller.tick();
 
       await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
-
-      // Ensure that the animation gets all the way to 100%, regardless of
-      // animation frame timing.
-      const progress = makeProgress(animatedTransitionDuration, 1.0);
-      controller.animate(progress);
 
       const { done } = await turnCompleted;
       if (done) {
