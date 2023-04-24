@@ -353,9 +353,8 @@ const main = async () => {
     /** @param {Event} event */
     const onClick = event => {
       const value = /** @type {HTMLElement} */ (event?.target)?.dataset?.value;
-      if (typeof value === 'string') {
-        resolve(value);
-      }
+      // undefined if clicked a non-option
+      resolve(value);
     };
 
     /** @param {number} index */
