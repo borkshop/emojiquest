@@ -1162,7 +1162,7 @@ export function makeModel({
     }
     return inventory.slice(0, 2).some(itemType => {
       const itemDesc = itemTypes[itemType];
-      return 'swimGear' in itemDesc;
+      return itemDesc.swimGear;
     });
   }
 
@@ -1176,7 +1176,7 @@ export function makeModel({
     }
     return inventory.slice(0, 2).some(itemType => {
       const itemDesc = itemTypes[itemType];
-      return 'boat' in itemDesc;
+      return itemDesc.boat;
     });
   }
 
