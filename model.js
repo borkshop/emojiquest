@@ -1246,6 +1246,9 @@ export function makeModel({
     if (health === 0) {
       return { passable: false, dialog: '💀!!1!' };
     }
+    if ((terrainFlags & terrainLava) !== 0) {
+      return { passable: false, dialog: '🔥!!1!' };
+    }
     if ((terrainFlags & terrainWater) !== 0) {
       if (afloat(entity)) {
         if (stamina > 0) {
