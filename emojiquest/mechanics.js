@@ -181,11 +181,7 @@ export const agentTypes = [
     dialog: [
       '🧓    Hello, I’m <b>Jack</b>…',
       '🧓    A <b>🪵 Lumber Jack</b> needs an <b>🪓 axe</b>…',
-      '🧓    For an <b>🪓 axe</b>, <b>🏭 forge</b> a <b>🔪 knife</b> on a <b>🔨 hammer</b>…',
-      '🧓    It’s hard to stay warm in the <b>❄️  frigid north</b>…',
-      '🧓    That’s why I knit myself a <b>🧥 Jacket</b>…',
-      '🧓    To knit, you’ll need <b>🧶 yarn</b> and <b>🥢 needles</b>…',
-      '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>. 🔚',
+      '🧓    For an <b>🪓 axe</b>, <b>🏭 forge</b> a <b>🔪 knife</b> on a <b>🔨 hammer</b>. 🔚',
     ],
   },
   {
@@ -308,6 +304,15 @@ export const agentTypes = [
       '🍄 …that we’re a <b>recycling plant</b>!…',
       '🍄 Come to us to recycle <b>🥉medals</b>! 🔚',
       '🧙‍♂️ (I regret nothing!)',
+    ],
+  },
+  {
+    name: 'jack2',
+    dialog: [
+      '🧓    It’s hard to stay warm in the <b>❄️  frigid north</b>…',
+      '🧓    That’s why I knit myself a <b>🧥 Jacket</b>…',
+      '🧓    To knit, you’ll need <b>🧶 yarn</b> and <b>🥢 needles</b>…',
+      '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>. 🔚',
     ],
   },
 ];
@@ -521,6 +526,7 @@ export const tileTypes = [
   { name: 'harriet', text: '🏠   ' },
   { name: 'boulder', text: '🪨     ' },
   { name: 'jack', text: '🏡    ' },
+  { name: 'jack2', text: '🧍‍♂️' },
   { name: 'fish', text: '🐟    ' },
   { name: 'owl', text: '🦉   ' },
   { name: 'log', text: '🪵 ' },
