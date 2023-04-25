@@ -192,10 +192,13 @@ export function makeMechanics({
       return mergeHandler;
     },
 
-    replace([yieldType]) {
+    replace([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
       function replaceHandler(kit, { agent }) {
-        kit.put(agent, 0, yieldType);
+        kit.put(agent, 0, leftYieldType);
+        if (rightYieldType !== undefined) {
+          kit.put(agent, 1, rightYieldType);
+        }
       }
       return replaceHandler;
     },

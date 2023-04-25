@@ -92,7 +92,7 @@ export const agentTypes = [
       // '🔗 / 🔗 🔜 ⛓ ',
       // '🔗 / ⚙️  🔜 🛡 ',
       // '🔩 / 🔗 🔜 🔧 ',
-      // '⚙️  / 🔗 🔜 ⚓️ ',
+      // '⚙️  / 🔗 🔜 🪝 ',
       // '⚙️  / 🔩 🔜 ⛏ ',
       // '⚙️  / ⚙️  🔜 🚲 ',
       // '🔩 / 🔪 🔜 🗡 ',
@@ -298,6 +298,18 @@ export const agentTypes = [
     name: 'southSlide',
     tile: 'slide',
   },
+  {
+    name: 'recyclingPlant',
+    tile: 'mushroom',
+    dialog: [
+      '🍄 We are the Champignons!…',
+      '🍄 We live in the dark and eat <b>💩 waste</b>…',
+      '🍄 So, it could be argued…',
+      '🍄 …that we’re a <b>recycling plant</b>!…',
+      '🍄 Come to us to recycle <b>🥉medals</b>! 🔚',
+      '🧙‍♂️ (I regret nothing!)',
+    ],
+  },
 ];
 
 /**
@@ -401,12 +413,18 @@ export const itemTypes = [
   {
     name: 'banana',
     tip: '🍌 It’s peanut butter jelly time.',
+    comestible: true,
     health: 1,
   },
   {
     name: 'date',
     tip: '📆 Try the figs too.',
+    comestible: true,
     stamina: 1,
+  },
+  {
+    name: 'umbrella',
+    tip: '🌂 Harness the <b>💨 mojick</b> <b>of wind!</b>',
   },
 ];
 
@@ -532,6 +550,8 @@ export const tileTypes = [
   { name: 'shark', text: '🦈    ' },
   { name: 'ladder', text: '🪜    ' },
   { name: 'slide', text: '🛝      ' },
+  { name: 'mushroom', text: '🍄  ' },
+  { name: 'umbrella', text: '🌂  ' },
 ];
 
 /**
@@ -814,6 +834,97 @@ export const actions = [
     items: ['gear'],
     dialog: '⚙️  Gear made.',
   },
+
+  // recycling
+  {
+    patient: 'recyclingPlant',
+    left: 'axe', // knife + hammer = (2 + 2) + (2 + 1) = 7
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'gold'], // yields 3 + 3 = 6
+    dialog: '🪓🔜🥇🥇 Best we could do!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'spoon',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'silver'],
+    dialog: '🥄🔜🥇🥈 Recovered <b>medals</b>!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'hammer',
+    right: 'any',
+    verb: 'replace',
+    items: ['gold'],
+    dialog: '🥄🔜🥇🥈 Recovered <b>medals</b>!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'knife',
+    right: 'empty',
+    verb: 'replace',
+    items: ['silver', 'silver'],
+    dialog: '🔪🔜🥈🥈 Recovered <b>medals</b>!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'scissors', // (2 + 2) + (2 + 2) = 8
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'gold'], // 3 + 3 = 6
+    dialog: '✂️🔜🥇🥇 Some <b>constituents</b> were lost 😞.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'bicycle',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'gold'],
+    dialog: '🚲🔜🥇🥇 Recovered <b>medals</b>!.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'hook',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'copper'],
+    dialog: '🪝🔜🥇🥉 Recovered <b>medals</b>!.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'shield',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'copper'],
+    dialog: '🛡🔜🥇🥉 Recovered <b>medals</b>!.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'dagger', // bolt + knife = 3 bolt = 3 * 2 = 6
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'gold'],
+    dialog: '🗡🔜🥇🥇 Recovered <b>medals</b>!.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'basket',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'silver'],
+    dialog: '🗑🔜🥇🥈 Recovered <b>medals</b>!.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'pick',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold', 'silver'],
+    dialog: '⛏🔜🥇🥈 Recovered <b>medals</b>!.',
+  },
+
   {
     patient: 'boulder',
     verb: 'pick',
@@ -830,18 +941,20 @@ export const actions = [
 
   {
     patient: 'northPole',
+    left: 'umbrella',
     right: 'any',
     verb: 'touch',
     items: [],
-    dialog: '🎅Down you go!🤶',
+    dialog: '🎅Down you go!🤶 ☂️',
     jump: 'entity',
   },
   {
     patient: 'southPole',
+    left: 'umbrella',
     right: 'any',
     verb: 'touch',
     items: [],
-    dialog: '🧙‍♂️ Up you go! 🧙‍♀️',
+    dialog: '🧙‍♂️ Up you go! 🧙‍♀️ ☂️',
     jump: 'entity',
   },
   {
