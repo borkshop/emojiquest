@@ -328,8 +328,6 @@ export const itemTypes = [
     name: 'axe',
     tip: '🪓 Did you know that <b>axe</b>, <b>acid</b>, and <b>oxygen</b> are all related words?',
   },
-  { name: 'softwood', tile: 'log', tip: '🌲🪵 The lumber of a softwood.' },
-  { name: 'hardwood', tile: 'log', tip: '🌳🪵 The lumber of a hardwood.' },
   { name: 'poop', tip: '💩 Everyone poops!' },
   {
     name: 'shield',
@@ -431,6 +429,7 @@ export const itemTypes = [
     name: 'umbrella',
     tip: '🌂 Harness the <b>💨 mojick</b> <b>of wind!</b>',
   },
+  { name: 'wood', tile: 'log', tip: '🪵 Wood be nice.' },
 ];
 
 /**
@@ -591,20 +590,20 @@ export const recipes = [
   { agent: 'gear', reagent: 'chain', product: 'basket', price: 5 },
 
   // composite 2
-  { agent: 'spoon', reagent: 'softwood', product: 'canoe', byproduct: 'spoon' },
+  { agent: 'spoon', reagent: 'wood', product: 'canoe', byproduct: 'spoon' },
   {
     agent: 'knife',
-    reagent: 'softwood',
+    reagent: 'wood',
     product: 'knittingNeedles',
     byproduct: 'knife',
   },
   {
     agent: 'axe',
-    reagent: 'softwood',
+    reagent: 'wood',
     product: 'knittingNeedles',
     byproduct: 'axe',
   },
-  { agent: 'hook', reagent: 'softwood', product: 'fishingRod' },
+  { agent: 'hook', reagent: 'wood', product: 'fishingRod' },
 
   // metallurgy 3
   { agent: 'bicycle', reagent: 'basket', product: 'cart' },
@@ -647,14 +646,14 @@ export const actions = [
     patient: 'pineTree',
     left: 'axe',
     verb: 'reap',
-    items: ['softwood'],
+    items: ['wood'],
     dialog: '🌲🪓🔜🪵 You chop down a pine tree.',
   },
   {
     patient: 'appleTree',
     left: 'axe',
     verb: 'reap',
-    items: ['hardwood'],
+    items: ['wood'],
     dialog: '🌳🪓🔜🪵 You chop down an apple tree.',
   },
   {
