@@ -225,6 +225,7 @@ const validateMechanics = (mechanics, errors) => {
       ![
         'touch',
         'take',
+        'give',
         'reap',
         'cut',
         'pick',

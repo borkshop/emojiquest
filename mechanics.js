@@ -148,6 +148,14 @@ export function makeMechanics({
       return takeHandler;
     },
 
+    give([]) {
+      /** @type {ActionHandler} */
+      function giveHandler(kit, { agent, patient, direction, destination }) {
+        kit.put(agent, 0, itemTypesByName.empty);
+      }
+      return giveHandler;
+    },
+
     reap([yieldType]) {
       /** @type {ActionHandler} */
       function reapHandler(kit, { agent, patient, destination }) {
