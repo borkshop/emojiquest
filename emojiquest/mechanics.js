@@ -315,6 +315,10 @@ export const agentTypes = [
       '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>. 🔚',
     ],
   },
+  {
+    name: 'gift',
+    dialog: ['🎁 Present and accounted for.🔚'],
+  },
 ];
 
 /**
@@ -557,6 +561,7 @@ export const tileTypes = [
   { name: 'slide', text: '🛝      ' },
   { name: 'mushroom', text: '🍄  ' },
   { name: 'umbrella', text: '🌂  ' },
+  { name: 'gift', text: '🎁' },
 ];
 
 /**
@@ -633,6 +638,16 @@ export const recipes = [
  * @type {Array<import('../mechanics.js').ActionDescription>}
  */
 export const actions = [
+  // debug
+  {
+    patient: 'gift',
+    left: 'empty',
+    right: 'any',
+    items: ['scissors'],
+    verb: 'cut',
+    dialog: '🎁 It is dangerous to go alone. Take this!',
+  },
+
   // raw material
   {
     patient: 'axe',
