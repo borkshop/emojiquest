@@ -168,7 +168,12 @@ export function makeMechanics({
     cut([yieldType]) {
       /** @type {ActionHandler} */
       function cutHandler(kit, { agent }) {
-        kit.put(agent, 1, yieldType);
+        let position = 0;
+        if (kit.inventory(agent, 0) === itemTypesByName.empty) {
+          kit.put(agent, 0, yieldType);
+        } else if (kit.inventory(agent, 1) === itemTypesByName.empty) {
+          kit.put(agent, 1, yieldType);
+        }
       }
       return cutHandler;
     },
