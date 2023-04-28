@@ -319,6 +319,32 @@ export const agentTypes = [
     name: 'gift',
     dialog: ['🎁 Present and accounted for.🔚'],
   },
+  {
+    name: 'bull',
+    dialog: [
+      '🐂 Moo, Low, Clue…',
+      '🐂 Weld <b>🔩 bolt</b> over a <b>⚙️  gear</b>…',
+      '🐂 Then, like a <b>🍽 dish</b>, you can run away with a <b>🥄 spoon</b>…',
+      '🐂 Or hollow out a <b>🪵 log</b> to make a <b>🛶 canoe…',
+      '🐂 Whatever works for you! 🔚',
+    ],
+  },
+  {
+    name: 'brownBear',
+    dialog: [
+      '🐻 I am Arctus of Borea…',
+      '🐻 I have fallen on hard times…',
+      '🐻 …since I lost my <b>🥼 cloak</b> <b>of invisibility</b>. 🔚',
+    ],
+  },
+  {
+    name: 'polarBear',
+    dialog: [
+      '🐻‍❄️ I am so happy to be a polar bear again…',
+      '🐻‍❄️ Only a pair of <b>🕶 night shades</b> would make me cooler…',
+      '🐻‍❄️ Thank you again for restoring my 🥼 cloak.🔚',
+    ],
+  },
 ];
 
 /**
@@ -434,6 +460,7 @@ export const itemTypes = [
     tip: '🌂 Harness the <b>💨 mojick</b> <b>of wind!</b>',
   },
   { name: 'wood', tile: 'log', tip: '🪵 Wood be nice.' },
+  { name: 'labCoat', tip: '🥼 For science or something.' },
 ];
 
 /**
@@ -562,6 +589,10 @@ export const tileTypes = [
   { name: 'mushroom', text: '🍄  ' },
   { name: 'umbrella', text: '🌂  ' },
   { name: 'gift', text: '🎁' },
+  { name: 'bull', text: '🐂' },
+  { name: 'labCoat', text: '🥼 ' },
+  { name: 'brownBear', text: '🐻 ' },
+  { name: 'polarBear', text: '🐻‍❄️' },
 ];
 
 /**
@@ -1016,6 +1047,26 @@ export const actions = [
     items: [],
     dialog: '🐧 Wheeeee! 🐧',
     jump: 'entity',
+  },
+
+  {
+    patient: 'cow',
+    left: 'scissors',
+    right: 'empty',
+    items: ['labCoat'],
+    verb: 'cut',
+    morph: 'bull',
+    dialog: '✂️ You take the cow’s <b>🥼 white coat</b>.',
+  },
+  {
+    patient: 'brownBear',
+    left: 'labCoat',
+    right: 'any',
+    verb: 'give',
+    items: [],
+    morph: 'polarBear',
+    dialog:
+      '🐻‍❄️ Thank you for restoring my <b>🥼 cloak</b> <b>of invisibility</b>!',
   },
 ];
 
