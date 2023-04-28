@@ -273,8 +273,10 @@ export const makeDriver = (controller, options) => {
     }
   };
 
-  run();
-  animate();
+  // @ts-ignore-next-line reportError not defined
+  run().catch(reportError);
+  // @ts-ignore-next-line reportError not defined
+  animate().catch(reportError);
 
   return { down, up, cancel };
 };
