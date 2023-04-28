@@ -773,6 +773,30 @@ export const actions = [
     items: ['silver', 'copper'],
     dialog: '🥇🔜🥈🥉 Don’t spend it all in one place.',
   },
+  {
+    patient: 'bank',
+    left: 'silver',
+    right: 'silver',
+    verb: 'replace',
+    items: ['gold', 'copper'],
+    dialog: '🥈🥈🔜🥇🥉 Large and small.',
+  },
+  {
+    patient: 'bank',
+    left: 'gold',
+    right: 'copper',
+    verb: 'replace',
+    items: ['silver', 'silver'],
+    dialog: '🥇🥉🔜🥈🥈 Spread evenly.',
+  },
+  {
+    patient: 'bank',
+    left: 'copper',
+    right: 'gold',
+    verb: 'replace',
+    items: ['silver', 'silver'],
+    dialog: '🥉🥇🔜🥈🥈 Evenly spread.',
+  },
 
   // Loan shark exchange
   {
