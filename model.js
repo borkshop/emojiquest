@@ -35,6 +35,8 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @prop {import('./types.js').ActionHandler} [handler]
  * @prop {import('./types.js').ActionParameters} [parameters]
  * @prop {string} [dialog]
+ * @prop {number} [morphType]
+ * @prop {number} [shiftType]
  */
 
 /**
@@ -625,6 +627,16 @@ export function makeModel({
 
   /**
    * @param {number} entity
+   * @param {number} entityType
+   */
+  function replace(entity, entityType) {
+    entityTypes.set(entity, entityType);
+    staleTileTypes.add(entity);
+    bounces.delete(entity);
+  }
+
+  /**
+   * @param {number} entity
    */
   function entityTargetLocation(entity) {
     return entityTargetLocations.get(entity);
@@ -753,7 +765,8 @@ export function makeModel({
       };
       const bumped = bump(kit, parameters);
       if (bumped !== undefined) {
-        const { handler, dialog, jump } = bumped;
+        const { handler, dialog, jump, morphType, shiftType } = bumped;
+
         if (jump !== undefined) {
           let jumpTargetLocation;
           if (jump === 'location') {
@@ -801,6 +814,8 @@ export function makeModel({
                 handler,
                 parameters,
                 dialog,
+                morphType,
+                shiftType,
               });
             }
           } else {
@@ -810,6 +825,12 @@ export function makeModel({
         } else {
           // Effective immediately.
           handler(kit, parameters);
+          if (shiftType !== undefined) {
+            replace(agent, shiftType);
+          }
+          if (morphType !== undefined) {
+            replace(patient, morphType);
+          }
           if (dialog !== undefined) {
             onDialog(agent, dialog);
           }
@@ -834,10 +855,19 @@ export function makeModel({
         handler,
         parameters,
         dialog,
+        // shiftType,
+        // morphType,
       } = bid;
 
       // Ignore bids to move onto occupied destinations.
       if (entities[destination] !== 0) {
+        // TODO Well, actually, if the patient entity at the destination
+        // may be altered by the action (e.g., have its type change),
+        // we need to auction all of those bids to bump and reify the
+        // morph effect here.
+        // It is also possible that a bid might destroy the target *and*
+        // consequently allow the agent to move onto its space at once,
+        // either as a battle mechanic or even merely entering a vehicle.
         continue;
       }
 

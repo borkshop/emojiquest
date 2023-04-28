@@ -10,6 +10,8 @@ export type ActionDescription = {
   effect?: string;
   verb: string;
   items?: Array<string>;
+  morph?: string;
+  shift?: string;
   dialog?: string;
   jump?: string;
 };
@@ -128,6 +130,8 @@ export type MechanicsDescription = {
     effect?: string;
     verb: string;
     items?: Array<string>;
+    morph?: string;
+    shift?: string;
     dialog?: string;
     jump?: string;
   }>;
@@ -243,6 +247,8 @@ export type WholeWorldDescription = {
       effect?: string;
       verb: string;
       items?: Array<string>;
+      morph?: string;
+      shift?: string;
       dialog?: string;
       jump?: string;
     }>;
@@ -346,6 +352,8 @@ export type WorldMetaDescription = {
       effect?: string;
       verb: string;
       items?: Array<string>;
+      morph?: string;
+      shift?: string;
       dialog?: string;
       jump?: string;
     }>;

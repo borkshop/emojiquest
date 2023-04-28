@@ -6,7 +6,7 @@
 
 // @ts-check
 
-import { assertDefined, assumeDefined } from './lib/assert.js';
+import { assert, assertDefined, assumeDefined } from './lib/assert.js';
 import { heldSlot, packSlot } from './model.js';
 
 /** @typedef {import('./types.js').AdvanceFn} AdvanceFn */
@@ -150,7 +150,7 @@ export function makeMechanics({
 
     give([]) {
       /** @type {ActionHandler} */
-      function giveHandler(kit, { agent, patient, direction, destination }) {
+      function giveHandler(kit, { agent }) {
         kit.put(agent, 0, itemTypesByName.empty);
       }
       return giveHandler;
@@ -168,7 +168,6 @@ export function makeMechanics({
     cut([yieldType]) {
       /** @type {ActionHandler} */
       function cutHandler(kit, { agent }) {
-        let position = 0;
         if (kit.inventory(agent, 0) === itemTypesByName.empty) {
           kit.put(agent, 0, yieldType);
         } else if (kit.inventory(agent, 1) === itemTypesByName.empty) {
@@ -331,12 +330,18 @@ export function makeMechanics({
       effect = 'any',
       verb,
       items = [],
+      morph,
+      shift,
       dialog,
       jump,
     } = action;
 
     const productType = itemTypesByName[items[0]];
     const byproductType = itemTypesByName[items[1]];
+    const morphType = morph === undefined ? undefined : agentTypesByName[morph];
+    assert(morph === undefined || typeof morphType === 'number');
+    const shiftType = shift === undefined ? undefined : agentTypesByName[shift];
+    assert(shift === undefined || typeof shiftType === 'number');
     const makeVerb = verbs[verb];
     assertDefined(makeVerb);
     const handler = makeVerb([productType, byproductType]);
@@ -360,7 +365,7 @@ export function makeMechanics({
       effectType,
     });
 
-    bumpingFormulae.set(key, { handler, dialog, jump });
+    bumpingFormulae.set(key, { handler, dialog, jump, morphType, shiftType });
   }
 
   // Cross-reference agent modes.

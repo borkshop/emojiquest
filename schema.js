@@ -109,6 +109,8 @@ export const ActionDescription = $ =>
     effect: $.optional($.string()),
     verb: $.string(),
     items: $.optional($.list($.string())),
+    morph: $.optional($.string()),
+    shift: $.optional($.string()),
     dialog: $.optional($.string()),
     jump: $.optional($.string()),
   });
