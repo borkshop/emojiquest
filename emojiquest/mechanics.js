@@ -8,6 +8,18 @@
 
 // @ts-check
 
+/** @param {import('../mechanics.js').RecipeDescription} recipe */
+const ambiRecipe = ({ agent, reagent, ...rest }) => [
+  { agent, reagent, ...rest },
+  { agent: reagent, reagent: agent, ...rest },
+];
+
+/** @param {import('../mechanics.js').ActionDescription} action */
+const ambiAction = ({ left, right, ...rest }) => [
+  { left, right, ...rest },
+  { left: right, right: left, ...rest },
+];
+
 /**
  * Agent types are captured by index in game state and are not safe to reorder
  * or delete.
@@ -83,16 +95,16 @@ export const agentTypes = [
       '🥈 🔜  🔩  Bolts from silver…',
       '🥇 🔜  ⚙️   And gears from gold…',
       '👨‍🏭	Components can be combined to make other components…',
-      '🔩 / 🔩 🔜 🔪 We can forge knives from bolts… ',
+      '🔩 / 🔩 🔜 🔪 You can forge knives from bolts… ',
       '🔗 / 🔩 🔜 🔨 A link over a bolt makes a hammer…',
       '👩‍🏭	The combinations are quite exhaustive! 🔚',
       // '🔩 / ⚙️  🔜 🥄 ', // Cow clues this
       // '🔨 / 🔪 🔜 🪓 ', // Jack and Hariet clue this
       // '🔪 / 🔪 🔜 ✂️  ', // Harriet clues this
       // '🔗 / 🔗 🔜 ⛓ ',
-      // '🔗 / ⚙️  🔜 🛡 ',
       // '🔩 / 🔗 🔜 🔧 ',
-      // '⚙️  / 🔗 🔜 🪝 ',
+      // '⚙️ /  🔗 🔜 🛡 ',
+      // '⚙️  / 🔗 🔜 🪝 ', // Pirate clues this
       // '⚙️  / 🔩 🔜 ⛏ ',
       // '⚙️  / ⚙️  🔜 🚲 ',
       // '🔩 / 🔪 🔜 🗡 ',
@@ -153,7 +165,7 @@ export const agentTypes = [
       '💇‍♀️ Did you know that you can shear <b>🐑 sheep</b> with <b>✂️  scissors</b>?',
       '💇‍♀️ That’s why scissors are an improvement over just <b>🔪 two knives</b>…',
       '💇‍♀️ I knit with <b>🧶 yarn</b> and <b>🥢 needles</b>…',
-      '💇‍♀️ My friend, <b>🧓 Jack</b> <b>🔪 whittled</b> my needles from <b>🌲🪵 soft wood</b>. 🔚',
+      '💇‍♀️ My friend, <b>🧓 Jack</b> <b>🔪 whittled</b> my needles from <b>🪵 wood</b>. 🔚',
     ],
   },
   {
@@ -191,7 +203,7 @@ export const agentTypes = [
       '🐟    You are not a fish…',
       '🐟    Fish do not need <b>🛶 canoes</b>…',
       '🐟    Fish can swim over the <b>edge of the world</b>…',
-      '🐟    Canoes are made from <b>🌲🪵 soft wood</b>…',
+      '🐟    Canoes are made from <b>🪵 wood</b>…',
       '🐟    I have seen <b>you people</b> make them with <b>🥄 shovels</b>. 🔚',
     ],
   },
@@ -212,7 +224,7 @@ export const agentTypes = [
       '🤶	We watched over everything, <b>Knotty</b> <i>and</i> <b>Nice</b>…',
       '🎅	We were the stewards of the <b>💨 Essence</b> <b>of Wind</b>…',
       '🤶	We seek a student to pass on our knowledge…',
-      '🎅	They must construct for us an <b>🌂 umbrella</b>…',
+      '🎅	They must recreate the <b>☔️ wand of</b> <b>wind and water</b>…',
       '🤶	We swear it’s relevant. 🔚',
     ],
   },
@@ -312,7 +324,7 @@ export const agentTypes = [
       '🧓    It’s hard to stay warm in the <b>❄️  frigid north</b>…',
       '🧓    That’s why I knit myself a <b>🧥 Jacket</b>…',
       '🧓    To knit, you’ll need <b>🧶 yarn</b> and <b>🥢 needles</b>…',
-      '🧓    I <b>🔪 whittled</b> my needles out of <b>🌲🪵 soft wood</b>. 🔚',
+      '🧓    I <b>🔪 whittled</b> my needles out of <b>🪵 wood</b>. 🔚',
     ],
   },
   {
@@ -343,6 +355,99 @@ export const agentTypes = [
       '🐻‍❄️ I am so happy to be a polar bear again…',
       '🐻‍❄️ Only a pair of <b>🕶 night shades</b> would make me cooler…',
       '🐻‍❄️ Thank you again for restoring my 🥼 cloak.🔚',
+    ],
+  },
+  {
+    name: 'tanabata',
+    dialog: [
+      '🎋 I am Tanabata…',
+      '🎋 I can grant a wish…',
+      '🎋 As long as you wish…',
+      '🎋 For a <b>🦯 long stick</b>…',
+      '🎋 And only if you wish…',
+      '🎋 With <b>🔪 something sharp</b>. 🔚',
+    ],
+  },
+  {
+    name: 'fishingBoat',
+    dialog: [
+      '🛥 You’ll need a <b>🎣 fishing rod</b>…',
+      '🛥 To make one, attach a <b>🪝 hook</b>…',
+      '🛥 To a <b>🦯 stick</b> of some kind.🔚',
+    ],
+  },
+  {
+    name: 'pirate',
+    dialog: [
+      '🏴‍☠️ For ye a pirate to be…',
+      '🏴‍☠️ A patch for an eye,',
+      '🏴‍☠️ A peg for a leg,',
+      '🏴‍☠️ And a handy <b>🪝 hook</b> you’ll need…',
+      '🏴‍☠️ So craft a <b>🔗 link</b>…',
+      '🏴‍☠️ O’er the work of <b>🥇 treasure</b>…',
+      '🏴‍☠️ And high seas shall be y’r pleasure.🔚',
+    ],
+  },
+  {
+    name: 'blowFish',
+    dialog: [
+      '🐡 Puff puff puff puff…',
+      '🐡 If my size does not dissuade you…',
+      '🐡 And my spikes do fail to argue…',
+      '🐡 Still, beware the poison inside…',
+      '🐡 It’s more toxic than cyanide.🔚',
+    ],
+  },
+  {
+    name: 'mountainCyclist',
+    dialog: [
+      '🚵 Bikes get stolen a lot…',
+      '🚵 Perhaps this is because…',
+      '🚵 With the right <b>⚙️ gear⚙️</b>…',
+      '🚵 They are a great store for <b>🥇value🥇</b>.🔚',
+    ],
+  },
+  {
+    name: 'skull',
+    tile: 'death',
+    dialog: ['💀 I feel happy!🔚'],
+  },
+  {
+    name: 'treasure',
+    tile: 'gold',
+    dialog: ['🏴‍☠️  marks the spot!'],
+  },
+  {
+    name: 'panda',
+    dialog: ['🐼 I’m the coolest bear evar.🔚'],
+  },
+  {
+    name: 'gift2',
+    tile: 'gift',
+    dialog: ['🎁 Present and accounted for.🔚'],
+  },
+  {
+    name: 'merman',
+    dialog: [
+      '🧜‍♂️ I am <b>Herman</b>…',
+      '🧜‍♂️ <i>Wait for it…</i>',
+      '🧜‍♂️ Herman the <b>Merman</b>!…',
+      '🧜‍♂️ Thank you for restoring my <b>🔱 trident</b>…',
+      '🧜‍♂️ I can <b>💦 hydrate</b> some things…',
+      '🧜‍♂️ Imbuing them with the mojick of <b>💦 water</b>…',
+      '🧜‍♂️ So you can come to me if you don’t have your own <b>🔱 trident</b>.🔚',
+    ],
+  },
+  {
+    name: 'herman',
+    dialog: [
+      '🏊‍♂️ I am <b>Herman</b>…',
+      '🏊‍♂️ I once had a <b>🔱 trident</b>…',
+      '🏊‍♂️ It is a wand of <b>💦 water</b> mojicks…',
+      '🏊‍♂️ Legend is that you can <b>🥇 gild</b> a <b>🌼 lily</b>…',
+      '🏊‍♂️ But that’s not important right now…',
+      '🏊‍♂️ Maybe you can gild a three-lobed <b>☘️ clover</b>…',
+      '🏊‍♂️ You would probably need a <b>🏭 forge</b>.🔚',
     ],
   },
 ];
@@ -456,11 +561,26 @@ export const itemTypes = [
     stamina: 1,
   },
   {
-    name: 'umbrella',
+    name: 'umbrella', // deprecated until further notice
     tip: '🌂 Harness the <b>💨 mojick</b> <b>of wind!</b>',
   },
   { name: 'wood', tile: 'log', tip: '🪵 Wood be nice.' },
-  { name: 'labCoat', tip: '🥼 For science or something.' },
+  { name: 'labCoat', tip: '🥼 For science or something.', heat: 1 },
+  { name: 'cane', tip: '🦯 Some sort of walking stick.' },
+  { name: 'skull', tile: 'death', tip: '💀 Alas, I knew him well.' },
+  { name: 'bone', tip: '🦴 I have a bone to pick with you!' },
+  { name: 'blowFish', tip: '🐡 Fully inflated.' },
+  {
+    name: 'openUmbrella',
+    tip: '☂️  Harness the <b>💨 mojick</b> of <b>wind!</b>',
+  },
+  {
+    name: 'wetOpenUmbrella',
+    tip: '<b>☔️ Wand</b> of <b>💨 wind</b> <i>and</i> <b>💦 water</b>. The <b>🎅 magi 🤶</b> will surely help you now!',
+  },
+  { name: 'nightShades', tip: '<b>🕶 Shades</b> dark as night.' },
+  { name: 'soda', tip: '<i>🥤 slurp</i>', comestible: true, health: 5 },
+  { name: 'trident', tip: 'The <b>🔱 trident</b>: wand of <b>💦 water</b>' },
 ];
 
 /**
@@ -593,6 +713,20 @@ export const tileTypes = [
   { name: 'labCoat', text: '🥼 ' },
   { name: 'brownBear', text: '🐻 ' },
   { name: 'polarBear', text: '🐻‍❄️' },
+  { name: 'tanabata', text: '🎋' },
+  { name: 'cane', text: '🦯' },
+  { name: 'blowFish', text: '🐡' },
+  { name: 'openUmbrella', text: '☂️' },
+  { name: 'wetOpenUmbrella', text: '☔️ ' },
+  { name: 'fishingBoat', text: '🛥' },
+  { name: 'pirate', text: '☠️' },
+  { name: 'mountainCyclist', text: '🚵' },
+  { name: 'bone', text: '🦴' },
+  { name: 'nightShades', text: '🕶' },
+  { name: 'soda', text: '🥤 ' },
+  { name: 'panda', text: '🐼' },
+  { name: 'merman', text: '🧜‍♂️' },
+  { name: 'herman', text: '🏊‍♂️' },
 ];
 
 /**
@@ -612,8 +746,8 @@ export const recipes = [
   { agent: 'bolt', reagent: 'link', product: 'wrench', price: 3 },
   { agent: 'gear', reagent: 'bolt', product: 'pick', price: 5 },
   { agent: 'gear', reagent: 'gear', product: 'bicycle', price: 6 },
-  { agent: 'gear', reagent: 'link', product: 'hook', price: 4 },
-  { agent: 'link', reagent: 'gear', product: 'shield', price: 4 },
+  { agent: 'gear', reagent: 'link', product: 'shield', price: 4 },
+  { agent: 'link', reagent: 'gear', product: 'hook', price: 4 },
   { agent: 'link', reagent: 'bolt', product: 'hammer', price: 3 },
   { agent: 'link', reagent: 'link', product: 'chain', price: 2 },
 
@@ -639,7 +773,12 @@ export const recipes = [
     product: 'knittingNeedles',
     byproduct: 'axe',
   },
-  { agent: 'hook', reagent: 'wood', product: 'fishingRod' },
+  ...ambiRecipe({
+    agent: 'cane',
+    reagent: 'hook',
+    product: 'fishingRod',
+    dialog: '🎣 Gon’ fishin’.',
+  }),
 
   // metallurgy 3
   { agent: 'bicycle', reagent: 'basket', product: 'cart' },
@@ -660,6 +799,22 @@ export const recipes = [
     product: 'pear',
     dialog: 'Now you have a <b>🍐 pear</b> of <b>🍎 apples</b>!',
   },
+
+  {
+    agent: 'cane',
+    reagent: 'blowFish',
+    product: 'openUmbrella',
+    dialog: 'You skewer the blowfish making an <b>☂️ umbrella</b>',
+  },
+
+  {
+    agent: 'openUmbrella',
+    reagent: 'trident',
+    product: 'wetOpenUmbrella',
+    byproduct: 'trident',
+    dialog:
+      'You <i>charge</i> the <b>🌂wand</b> of <b>💨 wind</b> with <b>💦 water</b>! The <b>🎅 magi 🤶</b> will surely help you now!',
+  },
 ];
 
 /**
@@ -673,8 +828,16 @@ export const actions = [
   {
     patient: 'gift',
     left: 'empty',
+    right: 'empty',
+    items: ['gold', 'canoe'],
+    verb: 'cut',
+    dialog: '🎁 It is dangerous to go alone. Take this!',
+  },
+  {
+    patient: 'gift2',
+    left: 'empty',
     right: 'any',
-    items: ['scissors'],
+    items: ['clover'],
     verb: 'cut',
     dialog: '🎁 It is dangerous to go alone. Take this!',
   },
@@ -909,8 +1072,41 @@ export const actions = [
     items: ['gear'],
     dialog: '⚙️  Gear made.',
   },
+  ...ambiAction({
+    patient: 'forge',
+    left: 'clover',
+    right: 'gold',
+    verb: 'merge',
+    items: ['trident'],
+    dialog:
+      'The <b>🥇 gilded</b> <b>☘️ clover</b> makes a <b>🔱 trident</b>, the <b>wand of water</b>!',
+  }),
 
   // recycling
+  {
+    patient: 'recyclingPlant',
+    left: 'link',
+    right: 'any',
+    verb: 'replace',
+    items: ['copper'],
+    dialog: '🔗🔜🥉 Recovered some copper!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'bolt',
+    right: 'any',
+    verb: 'replace',
+    items: ['silver'],
+    dialog: '🔩🔜🥈 Recovered some silver!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'gear',
+    right: 'any',
+    verb: 'replace',
+    items: ['gold'],
+    dialog: '⚙️🔜🥇 Recovered some gold!',
+  },
   {
     patient: 'recyclingPlant',
     left: 'axe', // knife + hammer = (2 + 2) + (2 + 1) = 7
@@ -1016,20 +1212,20 @@ export const actions = [
 
   {
     patient: 'northPole',
-    left: 'umbrella',
+    left: 'wetOpenUmbrella',
     right: 'any',
     verb: 'touch',
     items: [],
-    dialog: '🎅Down you go!🤶 ☂️',
+    dialog: '🎅Down you go!🤶 ☔️',
     jump: 'entity',
   },
   {
     patient: 'southPole',
-    left: 'umbrella',
+    left: 'wetOpenUmbrella',
     right: 'any',
     verb: 'touch',
     items: [],
-    dialog: '🧙‍♂️ Up you go! 🧙‍♀️ ☂️',
+    dialog: '🧙‍♂️ Up you go! 🧙‍♀️ ☔️',
     jump: 'entity',
   },
   {
@@ -1067,6 +1263,76 @@ export const actions = [
     morph: 'polarBear',
     dialog:
       '🐻‍❄️ Thank you for restoring my <b>🥼 cloak</b> <b>of invisibility</b>!',
+  },
+  {
+    patient: 'polarBear',
+    left: 'nightShades',
+    right: 'empty',
+    verb: 'exchange',
+    items: ['soda'],
+    morph: 'panda',
+    dialog: '🐼 Thank you! The <b>❄️ snow</b> is so bright!',
+  },
+
+  ...['knife', 'axe', 'scissors', 'dagger'].map(left => ({
+    patient: 'tanabata',
+    left,
+    right: 'empty',
+    verb: 'cut',
+    items: ['cane'],
+    dialog: '🦯 You cut some cane.',
+  })),
+
+  // treasure dig
+  {
+    patient: 'pirate',
+    left: 'empty',
+    right: 'empty',
+    verb: 'pick',
+    items: ['bone', 'bone'],
+    morph: 'skull',
+  },
+  {
+    patient: 'skull',
+    left: 'spoon',
+    right: 'empty',
+    verb: 'cut',
+    items: ['skull'],
+    morph: 'treasure',
+  },
+  ...ambiAction({
+    patient: 'treasure',
+    left: 'empty',
+    right: 'any',
+    verb: 'take',
+    items: ['gold'],
+  }),
+
+  {
+    patient: 'blowFish',
+    left: 'fishingRod',
+    right: 'empty',
+    verb: 'reap',
+    items: ['blowFish'],
+  },
+  {
+    patient: 'herman',
+    left: 'trident',
+    right: 'any',
+    verb: 'give',
+    morph: 'merman',
+    dialog: '🧜‍♂️ Thank you!',
+  },
+
+  // Hydration
+  {
+    patient: 'merman',
+    left: 'openUmbrella',
+    right: 'any',
+    verb: 'exchange',
+    items: ['wetOpenUmbrella'],
+    dialog:
+      '🧜‍♂️ I have recharged your <b>☔️ wand</b> of <b>💨 wind</b> and <b>💦 water</b>! The <b>🤶 magi 🎅</b> will surely help you now!',
   },
 ];
 

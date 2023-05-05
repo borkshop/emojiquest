@@ -214,22 +214,22 @@ test('chop down a tree', async t => {
     . . .
   `);
   s.expectInventory(0, 'axe');
-  s.expectInventory(1, 'hardwood');
+  s.expectInventory(1, 'wood');
 });
 
-test('craft softwood over axe', async t => {
+test('craft wood over axe', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'axe');
-  s.inventory(1, 'softwood');
+  s.inventory(1, 'wood');
   s.play();
   s.expectControls(`
     . ^ . <- nothing in the pack
     < z >
-    a v l <- axe and softwood (as lumber tile)
+    a v l <- axe and wood (as lumber tile)
   `);
 
-  await s.command(3); // select softwood
+  await s.command(3); // select wood
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(l).  <- lumber (agent) over
@@ -275,23 +275,23 @@ test('craft axe from knife and hammer', async t => {
   s.expectInventory(1, 'empty');
 });
 
-test('craft axe over softwood', async t => {
+test('craft axe over wood', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'axe');
-  s.inventory(1, 'softwood');
+  s.inventory(1, 'wood');
   s.play();
   s.expectControls(`
     . ^ . <- nothing in the pack
     < z >
-    a v l <- axe and softwood (as lumber tile)
+    a v l <- axe and wood (as lumber tile)
   `);
 
   await s.command(1); // select axe
   s.expectControls(`
     b . t  <- backpack and trash show (not mouth, not comestible)
     .(a).  <- axe (agent) over
-    [ l ]  <- softwood with lumber tile (reagent)
+    [ l ]  <- wood with lumber tile (reagent)
   `);
 
   await s.command(2); // craft
@@ -308,11 +308,11 @@ test('craft canoe', async t => {
   const s = makeScaffold(t);
   s.scene('@');
   s.inventory(0, 'spoon');
-  s.inventory(1, 'softwood');
+  s.inventory(1, 'wood');
   s.play();
 
   await s.command(1); // select spoon
-  await s.command(2); // apply to softwood
+  await s.command(2); // apply to wood
   s.expectInventory(0, 'canoe');
   s.expectInventory(1, 'spoon');
   s.expectControls(`

@@ -165,22 +165,65 @@ export function makeMechanics({
       return reapHandler;
     },
 
-    cut([yieldType]) {
+    cut(yieldTypes) {
       /** @type {ActionHandler} */
       function cutHandler(kit, { agent }) {
-        if (kit.inventory(agent, 0) === itemTypesByName.empty) {
-          kit.put(agent, 0, yieldType);
-        } else if (kit.inventory(agent, 1) === itemTypesByName.empty) {
-          kit.put(agent, 1, yieldType);
+        for (const yieldType of yieldTypes) {
+          if (yieldType !== undefined) {
+            if (kit.inventory(agent, 0) === itemTypesByName.empty) {
+              kit.put(agent, 0, yieldType);
+            } else if (kit.inventory(agent, 1) === itemTypesByName.empty) {
+              kit.put(agent, 1, yieldType);
+            }
+          }
         }
       }
       return cutHandler;
     },
 
-    pick([yieldType]) {
+    pick([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
       function cutHandler(kit, { agent }) {
-        kit.put(agent, 0, yieldType);
+        const actionHasLeftYieldType = leftYieldType !== undefined;
+        const actionHasRightYieldType = rightYieldType !== undefined;
+        const agentCanHoldLeftItem =
+          kit.inventory(agent, 0) === itemTypesByName.empty;
+        const agentCanHoldRightItem =
+          kit.inventory(agent, 1) === itemTypesByName.empty;
+        if (
+          (actionHasLeftYieldType && !agentCanHoldLeftItem) ||
+          (actionHasRightYieldType && !agentCanHoldRightItem)
+        ) {
+          console.warn(
+            'Invalid pick mechanic: hands must be empty for corresponding items',
+            {
+              actionHasLeftYieldType,
+              actionHasRightYieldType,
+              agentCanHoldLeftItem,
+              agentCanHoldRightItem,
+            },
+          );
+        } else {
+          if (leftYieldType !== undefined) {
+            kit.put(agent, 0, leftYieldType);
+          }
+          if (rightYieldType !== undefined) {
+            kit.put(agent, 1, rightYieldType);
+          }
+        }
+      }
+      return cutHandler;
+    },
+
+    exchange([leftYieldType, rightYieldType]) {
+      /** @type {ActionHandler} */
+      function cutHandler(kit, { agent }) {
+        if (leftYieldType !== undefined) {
+          kit.put(agent, 0, leftYieldType);
+        }
+        if (rightYieldType !== undefined) {
+          kit.put(agent, 1, rightYieldType);
+        }
       }
       return cutHandler;
     },
@@ -265,22 +308,29 @@ export function makeMechanics({
     const agentType = kit.entityType(parameters.agent);
     const patientType = kit.entityType(parameters.patient);
     const agentEffectType = kit.entityEffect(parameters.agent);
-    const left = kit.inventory(parameters.agent, 0);
-    const right = kit.inventory(parameters.agent, 1);
+    const leftType = kit.inventory(parameters.agent, 0);
+    const rightType = kit.inventory(parameters.agent, 1);
     for (const effectType of [agentEffectType, effectTypesByName.any]) {
-      for (const rightType of [right, itemTypesByName.any]) {
-        for (const leftType of [left, itemTypesByName.any]) {
-          const match = bumpCombination({
-            agentType,
-            patientType,
-            leftType,
-            rightType,
-            effectType,
-          });
-          if (match !== undefined) {
-            return match;
-          }
-        }
+      let match = bumpCombination({
+        agentType,
+        patientType,
+        leftType,
+        rightType,
+        effectType,
+      });
+      if (match !== undefined) {
+        return match;
+      }
+
+      match = bumpCombination({
+        agentType,
+        patientType,
+        leftType,
+        rightType: itemTypesByName.any,
+        effectType,
+      });
+      if (match !== undefined) {
+        return match;
       }
     }
     return undefined;

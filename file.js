@@ -232,6 +232,7 @@ const validateMechanics = (mechanics, errors) => {
         'split',
         'merge',
         'replace',
+        'exchange',
       ].includes(verb)
     ) {
       errors.push(
