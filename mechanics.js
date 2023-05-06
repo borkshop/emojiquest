@@ -260,6 +260,14 @@ export function makeMechanics({
       return replaceHandler;
     },
 
+    grow([yieldType]) {
+      /** @type {ActionHandler} */
+      function growHandler(kit, { agent }) {
+        kit.put(agent, 0, yieldType);
+      }
+      return growHandler;
+    },
+
     // XXX Coordinate new verbs with validator in file.js.
   };
 

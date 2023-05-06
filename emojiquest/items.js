@@ -127,4 +127,27 @@ export const itemTypes = [
   { name: 'nightShades', tip: '<b>🕶 Shades</b> dark as night.' },
   { name: 'soda', tip: '<i>🥤 slurp</i>', comestible: true, health: 5 },
   { name: 'trident', tip: 'The <b>🔱 trident</b>: wand of <b>💦 water</b>' },
+  { name: 'potato', tip: 'Potato, the <i>🥇 Most Boring Nightshade</i>' },
+  {
+    name: 'tomato',
+    tip: 'Tomato, almost the <i>🥈 Most Boring Nightshade</i>',
+    comestible: true,
+    health: 1,
+  },
+  { name: 'aubergine', tip: 'Aubergine, the <i>🏅 Lewdest Nightshade</i>' },
+  {
+    name: 'bellPepper',
+    tip: 'Bell pepper, the third <i>🥉 Most Boring Nightshade</i>',
+    comestible: true,
+    health: 1,
+  },
+  {
+    name: 'chiliPepper',
+    tip: 'Chili pepper, the second <i>🎖 Most Aggressive Nightshade</i>',
+    comestible: true,
+    health: 2,
+    stamina: -1,
+  },
+  { name: 'yam', tip: 'Yam, <b>😞 not a nightshade</b>' },
+  { name: 'carrot', tip: '🥕 Is it a carrot? No one <b>nose</b>.' },
 ];

@@ -142,4 +142,13 @@ export const tileTypes = [
   { name: 'panda', text: '🐼' },
   { name: 'merman', text: '🧜‍♂️' },
   { name: 'herman', text: '🏊‍♂️' },
+  { name: 'plant', text: '🌱 ' },
+  { name: 'potato', text: '🥔 ' },
+  { name: 'tomato', text: '🍅 ' },
+  { name: 'aubergine', text: '🍆 ' },
+  { name: 'bellPepper', text: '🫑 ' },
+  { name: 'chiliPepper', text: '🌶 ' },
+  { name: 'yam', text: '🍠' },
+  { name: 'carrot', text: '🥕' },
+  { name: 'gene', text: '🧑‍🌾' },
 ];

@@ -4,6 +4,29 @@ const ambi = ({ agent, reagent, ...rest }) => [
   { agent: reagent, reagent: agent, ...rest },
 ];
 
+const nightShades = [
+  'tomato',
+  'potato',
+  'aubergine',
+  'bellPepper',
+  'chiliPepper',
+];
+
+function* nightShadeRecipes() {
+  for (const agent of nightShades) {
+    for (const reagent of nightShades) {
+      if (agent !== reagent) {
+        yield {
+          agent,
+          reagent,
+          product: 'nightShades',
+          dialog: 'You combine a pair of <b>🕶  night shades</b>.',
+        };
+      }
+    }
+  }
+}
+
 /**
  * Recipes are not _yet_ captured by index in game state, but probably
  * will need to be for tracking achievements.
@@ -90,4 +113,5 @@ export const recipes = [
     dialog:
       'You <i>charge</i> the <b>🌂wand</b> of <b>💨 wind</b> with <b>💦 water</b>! The <b>🎅 magi 🤶</b> will surely help you now!',
   },
+  ...nightShadeRecipes(),
 ];

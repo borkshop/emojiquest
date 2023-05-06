@@ -428,4 +428,78 @@ export const agentTypes = [
       '🏊‍♂️ You would probably need a <b>🏭 forge</b>.🔚',
     ],
   },
+  {
+    name: 'tomatoPlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I am a <b>🍅 tomato</b> plant.🔚',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And something <b>🔪 sharp ✂️</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'potatoPlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I am a <b>🥔 potato</b> plant.🔚',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And a <b>🥄 shovel</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'auberginePlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I am an <b>🍆 aubergine</b> plant.🔚',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And something <b>🔪 sharp ✂️</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'bellPepperPlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I am an <b>🫑 bell pepper</b> plant.🔚',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And something <b>🔪 sharp ✂️</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'chiliPepperPlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I am an <b>🌶 chili pepper</b> plant.🔚',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And something <b>🔪 sharp ✂️</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'yamPlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I <b>🍠 yam</b> a plant.🔚',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And a <b>🥄 shovel</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'carrotPlant',
+    tile: 'plant',
+    dialog: [
+      '🌱 I am a <b>🥕 carrot</b> a plant…',
+      '🌱 Grow me with <b>🦴 fertilizer</b> in one <b>🫲 hand</b>…',
+      '🌱 And a <b>🥄 shovel</b> in the <b>🫱 other</b>.🔚',
+    ],
+  },
+  {
+    name: 'gene',
+    dialog: [
+      '🧑‍🌾 Hello, I’m <b>Gene</b>…',
+      '🧑‍🌾 <b>Gene <i>the Gnome</i></b>, at your service…',
+      '🧑‍🌾 We mostly grow <b>🕶 nightshades</b>…',
+      '🧑‍🌾 Plants need <b>🦴 bone</b> fertilizer to grow…',
+      '🧑‍🌾 Use a <b>🥄 shovel</b> for roots…',
+      '🧑‍🌾 Use something <b>🔪 sharp ✂️ </b> for fruit.🔚',
+    ],
+  },
 ];

@@ -16,7 +16,7 @@ export const actions = [
     patient: 'gift',
     left: 'empty',
     right: 'empty',
-    items: ['gold', 'canoe'],
+    items: ['bone', 'bone'],
     verb: 'cut',
     dialog: '🎁 It is dangerous to go alone. Take this!',
   },
@@ -24,7 +24,7 @@ export const actions = [
     patient: 'gift2',
     left: 'empty',
     right: 'any',
-    items: ['clover'],
+    items: ['scissors', 'spoon'],
     verb: 'cut',
     dialog: '🎁 It is dangerous to go alone. Take this!',
   },
@@ -520,5 +520,72 @@ export const actions = [
     items: ['wetOpenUmbrella'],
     dialog:
       '🧜‍♂️ I have recharged your <b>☔️ wand</b> of <b>💨 wind</b> and <b>💦 water</b>! The <b>🤶 magi 🎅</b> will surely help you now!',
+  },
+
+  // Night shades
+  {
+    patient: 'potatoPlant',
+    left: 'spoon',
+    right: 'bone',
+    verb: 'grow',
+    items: ['potato'],
+    dialog:
+      'You grow a <b>🥔 potato</b>, the <i>🥇 Most Boring Nightshade</i>.',
+  },
+  ...['scissors', 'knife'].flatMap(tool => [
+    {
+      patient: 'tomatoPlant',
+      left: 'bone',
+      right: tool,
+      verb: 'grow',
+      items: ['tomato'],
+      dialog:
+        'You grow a <b>🍅 tomato</b>, almost the <i>🥈 Most Boring Nightshade</i>.',
+    },
+    {
+      patient: 'auberginePlant',
+      left: 'bone',
+      right: tool,
+      verb: 'grow',
+      items: ['aubergine'],
+      dialog:
+        'You grow an <b>🍆 aubergine</b>, the <i>🏅 Lewdest Nightshade</i>.',
+    },
+    {
+      patient: 'bellPepperPlant',
+      left: 'bone',
+      right: tool,
+      verb: 'grow',
+      items: ['bellPepper'],
+      dialog:
+        'You grow a <b>🫑 bell pepper</b>, the third <i>🥉 Most Boring Nightshade</i>.',
+    },
+    {
+      patient: 'chiliPepperPlant',
+      left: 'bone',
+      right: tool,
+      verb: 'grow',
+      items: ['chiliPepper'],
+      dialog:
+        'You grow a <b>🌶 chili pepper</b>, the second <i>🎖 Most Aggressive Nightshade</i>.',
+    },
+  ]),
+
+  {
+    patient: 'yamPlant',
+    left: 'bone',
+    right: 'spoon',
+    verb: 'grow',
+    items: ['yam'],
+    dialog: 'You grow a <b>🍠 yam</b>, which isn’t even a nightshade.',
+  },
+  {
+    patient: 'carrotPlant',
+    left: 'bone',
+    right: 'spoon',
+    verb: 'grow',
+    items: ['carrot'],
+    dialog:
+      'You grow a <b>🥕 carrot</b>. What’s it for? Nobody <b>🤥 nose</b>.',
   },
 ];

@@ -233,6 +233,7 @@ const validateMechanics = (mechanics, errors) => {
         'merge',
         'replace',
         'exchange',
+        'grow',
       ].includes(verb)
     ) {
       errors.push(
