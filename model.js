@@ -38,6 +38,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @prop {number} [morphType]
  * @prop {number} [shiftType]
  * @prop {number} [patient]
+ * @prop {boolean} [mirror]
  */
 
 /**
@@ -766,7 +767,7 @@ export function makeModel({
       };
       const bumped = bump(kit, parameters);
       if (bumped !== undefined) {
-        const { handler, dialog, jump, morphType, shiftType } = bumped;
+        const { handler, dialog, jump, morphType, shiftType, mirror } = bumped;
 
         if (jump !== undefined) {
           let jumpTargetLocation;
@@ -820,6 +821,7 @@ export function makeModel({
                 shiftType,
                 morphType,
                 patient,
+                mirror,
               });
             }
           } else {
@@ -841,6 +843,7 @@ export function makeModel({
             morphType,
             shiftType,
             patient,
+            mirror,
           });
         }
       } else {
@@ -866,6 +869,7 @@ export function makeModel({
         shiftType,
         morphType,
         patient = 0,
+        mirror,
       } = bid;
 
       if (dialog !== undefined) {
@@ -873,7 +877,11 @@ export function makeModel({
       }
 
       if (handler !== undefined && parameters !== undefined) {
-        handler(kit, parameters);
+        if (mirror) {
+          handler(kit, parameters, 1, 0);
+        } else {
+          handler(kit, parameters, 0, 1);
+        }
       }
 
       if (shiftType !== undefined) {

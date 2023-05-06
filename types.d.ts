@@ -260,7 +260,12 @@ export type ActionParameters = {
   destination: number;
 };
 
-export type ActionHandler = (kit: ModelKit, params: ActionParameters) => void;
+export type ActionHandler = (
+  kit: ModelKit,
+  params: ActionParameters,
+  firstHand: number,
+  secondHand: number,
+) => void;
 
 // DriverHolderFn Indicates that a key or gesture has been pressed down or up.
 // The holder vocabulary is specific to the input modality, but in a web page,

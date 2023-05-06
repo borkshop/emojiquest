@@ -141,8 +141,12 @@ export function makeMechanics({
 
     take([yieldType]) {
       /** @type {ActionHandler} */
-      function takeHandler(kit, { agent, patient, direction, destination }) {
-        kit.put(agent, 0, yieldType);
+      function takeHandler(
+        kit,
+        { agent, patient, direction, destination },
+        slot,
+      ) {
+        kit.put(agent, slot, yieldType);
         kit.take(patient, direction, destination);
       }
       return takeHandler;
@@ -150,16 +154,16 @@ export function makeMechanics({
 
     give([]) {
       /** @type {ActionHandler} */
-      function giveHandler(kit, { agent }) {
-        kit.put(agent, 0, itemTypesByName.empty);
+      function giveHandler(kit, { agent }, slot) {
+        kit.put(agent, slot, itemTypesByName.empty);
       }
       return giveHandler;
     },
 
     reap([yieldType]) {
       /** @type {ActionHandler} */
-      function reapHandler(kit, { agent, patient, destination }) {
-        kit.put(agent, 1, yieldType);
+      function reapHandler(kit, { agent, patient, destination }, _slot0, slot1) {
+        kit.put(agent, slot1, yieldType);
         kit.fell(patient, destination);
       }
       return reapHandler;
@@ -167,13 +171,13 @@ export function makeMechanics({
 
     cut(yieldTypes) {
       /** @type {ActionHandler} */
-      function cutHandler(kit, { agent }) {
+      function cutHandler(kit, { agent }, slot0, slot1) {
         for (const yieldType of yieldTypes) {
           if (yieldType !== undefined) {
-            if (kit.inventory(agent, 0) === itemTypesByName.empty) {
-              kit.put(agent, 0, yieldType);
-            } else if (kit.inventory(agent, 1) === itemTypesByName.empty) {
-              kit.put(agent, 1, yieldType);
+            if (kit.inventory(agent, slot0) === itemTypesByName.empty) {
+              kit.put(agent, slot0, yieldType);
+            } else if (kit.inventory(agent, slot1) === itemTypesByName.empty) {
+              kit.put(agent, slot1, yieldType);
             }
           }
         }
@@ -183,13 +187,13 @@ export function makeMechanics({
 
     pick([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
-      function pickHandler(kit, { agent }) {
+      function pickHandler(kit, { agent }, slot0, slot1) {
         const actionHasLeftYieldType = leftYieldType !== undefined;
         const actionHasRightYieldType = rightYieldType !== undefined;
         const agentCanHoldLeftItem =
-          kit.inventory(agent, 0) === itemTypesByName.empty;
+          kit.inventory(agent, slot0) === itemTypesByName.empty;
         const agentCanHoldRightItem =
-          kit.inventory(agent, 1) === itemTypesByName.empty;
+          kit.inventory(agent, slot1) === itemTypesByName.empty;
         if (
           (actionHasLeftYieldType && !agentCanHoldLeftItem) ||
           (actionHasRightYieldType && !agentCanHoldRightItem)
@@ -205,10 +209,10 @@ export function makeMechanics({
           );
         } else {
           if (leftYieldType !== undefined) {
-            kit.put(agent, 0, leftYieldType);
+            kit.put(agent, slot0, leftYieldType);
           }
           if (rightYieldType !== undefined) {
-            kit.put(agent, 1, rightYieldType);
+            kit.put(agent, slot1, rightYieldType);
           }
         }
       }
@@ -217,12 +221,12 @@ export function makeMechanics({
 
     exchange([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
-      function exchangeHandler(kit, { agent }) {
+      function exchangeHandler(kit, { agent }, slot0, slot1) {
         if (leftYieldType !== undefined) {
-          kit.put(agent, 0, leftYieldType);
+          kit.put(agent, slot0, leftYieldType);
         }
         if (rightYieldType !== undefined) {
-          kit.put(agent, 1, rightYieldType);
+          kit.put(agent, slot1, rightYieldType);
         }
       }
       return exchangeHandler;
@@ -230,31 +234,31 @@ export function makeMechanics({
 
     split([leftType, rightType]) {
       /** @type {ActionHandler} */
-      function splitHandler(kit, { agent }) {
+      function splitHandler(kit, { agent }, slot0, slot1) {
         assertDefined(rightType);
-        kit.put(agent, 0, leftType);
-        kit.put(agent, 1, rightType);
+        kit.put(agent, slot0, leftType);
+        kit.put(agent, slot1, rightType);
       }
       return splitHandler;
     },
 
     merge([changeType]) {
       /** @type {ActionHandler} */
-      function mergeHandler(kit, { agent }) {
-        kit.put(agent, 0, changeType);
-        kit.put(agent, 1, itemTypesByName.empty);
+      function mergeHandler(kit, { agent }, slot0, slot1) {
+        kit.put(agent, slot0, changeType);
+        kit.put(agent, slot1, itemTypesByName.empty);
       }
       return mergeHandler;
     },
 
     replace([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
-      function replaceHandler(kit, { agent }) {
+      function replaceHandler(kit, { agent }, slot0, slot1) {
         if (leftYieldType !== undefined) {
-          kit.put(agent, 0, leftYieldType);
+          kit.put(agent, slot0, leftYieldType);
         }
         if (rightYieldType !== undefined) {
-          kit.put(agent, 1, rightYieldType);
+          kit.put(agent, slot1, rightYieldType);
         }
       }
       return replaceHandler;
@@ -262,8 +266,8 @@ export function makeMechanics({
 
     grow([yieldType]) {
       /** @type {ActionHandler} */
-      function growHandler(kit, { agent }) {
-        kit.put(agent, 0, yieldType);
+      function growHandler(kit, { agent }, slot) {
+        kit.put(agent, slot, yieldType);
       }
       return growHandler;
     },
@@ -340,6 +344,19 @@ export function makeMechanics({
             if (match !== undefined) {
               return match;
             }
+            match = bumpCombination({
+              agentType,
+              patientType,
+              leftType: rightType,
+              rightType: leftType,
+              effectType,
+            });
+            if (match !== undefined) {
+              return {
+                ...match,
+                mirror: true,
+              };
+            }
           }
         }
       }
@@ -386,8 +403,8 @@ export function makeMechanics({
     const {
       agent = 'any',
       patient,
-      left = 'empty',
-      right = 'empty',
+      left = 'any',
+      right = 'any',
       effect = 'any',
       verb,
       items = [],

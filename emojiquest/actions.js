@@ -23,7 +23,7 @@ export const actions = [
   {
     patient: 'gift2',
     left: 'empty',
-    right: 'any',
+    right: 'empty',
     items: ['scissors', 'spoon'],
     verb: 'cut',
     dialog: '🎁 It is dangerous to go alone. Take this!',
@@ -33,14 +33,16 @@ export const actions = [
   {
     patient: 'axe',
     verb: 'take',
+    left: 'empty',
     items: ['axe'],
     dialog: '🪓 You get an axe.',
   },
-  { patient: 'coat', verb: 'take', items: ['coat'] }, // temporary
-  { patient: 'swimBriefs', verb: 'take', items: ['swimBriefs'] }, // temporary
+  { patient: 'coat', left: 'empty', verb: 'take', items: ['coat'] }, // temporary
+  { patient: 'swimBriefs', left: 'empty', verb: 'take', items: ['swimBriefs'] }, // temporary
   {
     patient: 'pineTree',
     left: 'axe',
+    right: 'empty',
     verb: 'reap',
     items: ['wood'],
     dialog: '🌲🪓🔜🪵 You chop down a pine tree.',
@@ -48,13 +50,14 @@ export const actions = [
   {
     patient: 'appleTree',
     left: 'axe',
+    right: 'empty',
     verb: 'reap',
     items: ['wood'],
     dialog: '🌳🪓🔜🪵 You chop down an apple tree.',
   },
   {
     patient: 'pick',
-    right: 'any',
+    left: 'empty',
     verb: 'take',
     items: ['pick'],
     dialog: '⛏ Got pick?',
@@ -62,6 +65,7 @@ export const actions = [
   {
     patient: 'mountain',
     left: 'pick',
+    right: 'empty',
     verb: 'cut',
     items: ['copper'],
     dialog: '⛰⛏🔜🥉 You win copper!',
@@ -69,6 +73,7 @@ export const actions = [
   {
     patient: 'ewe',
     left: 'scissors',
+    right: 'empty',
     verb: 'cut',
     items: ['yarn'],
     dialog: '🐑✂️🔜🧶 Wool becomes ewe?',
@@ -76,6 +81,7 @@ export const actions = [
   {
     patient: 'ewe',
     left: 'knife',
+    right: 'empty',
     verb: 'reap',
     items: ['meat'],
     dialog: '🐑🔪🔜🥩 Was this a Miss Steak?',
@@ -83,6 +89,7 @@ export const actions = [
   {
     patient: 'ram',
     left: 'scissors',
+    right: 'empty',
     verb: 'cut',
     items: ['yarn'],
     dialog: '🐏✂️🔜🧶 Shear audacity!',
@@ -90,41 +97,42 @@ export const actions = [
   {
     patient: 'ram',
     left: 'knife',
+    right: 'empty',
     verb: 'reap',
     items: ['meat'],
     dialog: '🐏🐑🔪🔜🥩 Meat your maker!',
   },
   {
     patient: 'appleTree',
-    right: 'any',
+    left: 'empty',
     verb: 'pick',
     items: ['apple'],
     dialog: '🍎  Apple?',
   },
   {
     patient: 'pearTree',
-    right: 'any',
+    left: 'empty',
     verb: 'pick',
     items: ['pear'],
     dialog: '🍐 The fruit of the <b>🌳 world tree</b> comes in pears',
   },
   {
     patient: 'pineTree',
-    right: 'any',
+    left: 'empty',
     verb: 'pick',
     items: ['pineApple'],
     dialog: '🍍 Got <i>pine</i> apple. ',
   },
   {
     patient: 'palmTree',
-    right: 'any',
+    left: 'empty',
     verb: 'pick',
     items: ['banana'],
     dialog: '🍌 Got banana.',
   },
   {
     patient: 'palmIsland',
-    right: 'any',
+    left: 'empty',
     verb: 'pick',
     items: ['banana'],
     dialog: '🍌 Got banana.',
@@ -385,13 +393,14 @@ export const actions = [
 
   {
     patient: 'boulder',
+    left: 'empty',
     verb: 'pick',
     items: ['pick'],
     dialog: '⛏ You find a pick under this boulder.',
   },
   {
     patient: 'clover',
-    right: 'any',
+    left: 'empty',
     verb: 'pick',
     items: ['clover'],
     dialog: '☘️ One leaf shy of lucky.',
@@ -400,7 +409,6 @@ export const actions = [
   {
     patient: 'northPole',
     left: 'wetOpenUmbrella',
-    right: 'any',
     verb: 'exchange',
     items: ['openUmbrella'],
     dialog:
@@ -410,8 +418,6 @@ export const actions = [
   },
   {
     patient: 'openNorthPole',
-    left: 'any',
-    right: 'any',
     verb: 'touch',
     items: [],
     dialog: '🎅🤶 Welcome back!',
@@ -419,8 +425,6 @@ export const actions = [
   },
   {
     patient: 'southPole',
-    left: 'any',
-    right: 'any',
     verb: 'touch',
     items: [],
     dialog: '🧙‍♂️ Up you go! 🧙‍♀️ ☔️',
@@ -428,8 +432,6 @@ export const actions = [
   },
   {
     patient: 'northLadder',
-    left: 'any',
-    right: 'any',
     verb: 'touch',
     items: [],
     dialog: '🎅Welcome back!🤶',
@@ -437,8 +439,6 @@ export const actions = [
   },
   {
     patient: 'southSlide',
-    left: 'any',
-    right: 'any',
     verb: 'touch',
     items: [],
     dialog: '🐧 Wheeeee! 🐧',
@@ -457,7 +457,6 @@ export const actions = [
   {
     patient: 'brownBear',
     left: 'labCoat',
-    right: 'any',
     verb: 'give',
     items: [],
     morph: 'polarBear',
@@ -467,7 +466,6 @@ export const actions = [
   {
     patient: 'polarBear',
     left: 'nightShades',
-    right: 'empty',
     verb: 'exchange',
     items: ['soda'],
     morph: 'panda',
@@ -503,7 +501,6 @@ export const actions = [
   ...ambi({
     patient: 'treasure',
     left: 'empty',
-    right: 'any',
     verb: 'take',
     items: ['gold'],
   }),
@@ -518,7 +515,6 @@ export const actions = [
   {
     patient: 'herman',
     left: 'trident',
-    right: 'any',
     verb: 'give',
     morph: 'merman',
     dialog: '🧜‍♂️ Thank you!',
@@ -528,7 +524,6 @@ export const actions = [
   {
     patient: 'merman',
     left: 'openUmbrella',
-    right: 'any',
     verb: 'exchange',
     items: ['wetOpenUmbrella'],
     dialog:
