@@ -502,4 +502,9 @@ export const agentTypes = [
       '🧑‍🌾 Use something <b>🔪 sharp ✂️ </b> for fruit.🔚',
     ],
   },
+  {
+    name: 'openNorthPole',
+    tile: 'northPole',
+    dialog: ['🎅🤶	Welcome back!'],
+  },
 ];

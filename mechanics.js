@@ -313,27 +313,34 @@ export function makeMechanics({
    * @param {ActionParameters} parameters
    */
   function bump(kit, parameters) {
-    const agentType = kit.entityType(parameters.agent);
-    const patientType = kit.entityType(parameters.patient);
-    const agentEffectType = kit.entityEffect(parameters.agent);
-    const left = kit.inventory(parameters.agent, 0);
-    const right = kit.inventory(parameters.agent, 1);
-    for (const effectType of [agentEffectType, effectTypesByName.any]) {
-      for (const [leftType, rightType] of [
-        [left, right],
-        [left, itemTypesByName.any],
-        [itemTypesByName.any, right],
-        [itemTypesByName.any, itemTypesByName.any],
-      ]) {
-        let match = bumpCombination({
-          agentType,
-          patientType,
-          leftType,
-          rightType,
-          effectType,
-        });
-        if (match !== undefined) {
-          return match;
+    const specificAgentType = kit.entityType(parameters.agent);
+    const specificPatientType = kit.entityType(parameters.patient);
+    const specificAgentEffectType = kit.entityEffect(parameters.agent);
+    const specificLeftType = kit.inventory(parameters.agent, 0);
+    const specificRightType = kit.inventory(parameters.agent, 1);
+    for (const agentType of [specificAgentType, agentTypesByName.any]) {
+      for (const patientType of [specificPatientType, agentTypesByName.any]) {
+        for (const effectType of [
+          specificAgentEffectType,
+          effectTypesByName.any,
+        ]) {
+          for (const [leftType, rightType] of [
+            [specificLeftType, specificRightType],
+            [specificLeftType, itemTypesByName.any],
+            [itemTypesByName.any, specificRightType],
+            [itemTypesByName.any, itemTypesByName.any],
+          ]) {
+            let match = bumpCombination({
+              agentType,
+              patientType,
+              leftType,
+              rightType,
+              effectType,
+            });
+            if (match !== undefined) {
+              return match;
+            }
+          }
         }
       }
     }
@@ -377,7 +384,7 @@ export function makeMechanics({
 
   for (const action of actions) {
     const {
-      agent = 'player',
+      agent = 'any',
       patient,
       left = 'empty',
       right = 'empty',

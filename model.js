@@ -37,6 +37,7 @@ import { halfOcturn, fullOcturn, quarturnToOcturn } from './lib/geometry2d.js';
  * @prop {string} [dialog]
  * @prop {number} [morphType]
  * @prop {number} [shiftType]
+ * @prop {number} [patient]
  */
 
 /**
@@ -799,13 +800,14 @@ export function makeModel({
               stamina,
             } = pass(agent, jumpTargetLocation);
             if (!passable) {
-              onDialog(agent, passDialog ?? dialog);
+              if (passDialog !== undefined) {
+                onDialog(agent, passDialog);
+              }
             } else {
-              const origin = locate(agent);
               assertDefined(health);
               assertDefined(stamina);
               bids(jumpTargetLocation).set(agent, {
-                position: origin,
+                position: locate(agent),
                 destination: jumpTargetLocation,
                 direction,
                 turn: undefined,
@@ -814,9 +816,10 @@ export function makeModel({
                 stamina,
                 handler,
                 parameters,
-                dialog: passDialog ?? dialog,
-                morphType,
+                dialog: dialog,
                 shiftType,
+                morphType,
+                patient,
               });
             }
           } else {
@@ -824,17 +827,21 @@ export function makeModel({
             // topology.
           }
         } else {
-          // Effective immediately.
-          handler(kit, parameters);
-          if (shiftType !== undefined) {
-            replace(agent, shiftType);
-          }
-          if (morphType !== undefined) {
-            replace(patient, morphType);
-          }
-          if (dialog !== undefined) {
-            onDialog(agent, dialog);
-          }
+          bids(destination).set(agent, {
+            position: locate(agent),
+            destination,
+            direction,
+            turn: undefined,
+            transit: false,
+            health: 0,
+            stamina: 0,
+            handler,
+            parameters,
+            dialog,
+            morphType,
+            shiftType,
+            patient,
+          });
         }
       } else {
         talk(agent, patient);
@@ -856,21 +863,10 @@ export function makeModel({
         handler,
         parameters,
         dialog,
-        // shiftType,
-        // morphType,
+        shiftType,
+        morphType,
+        patient = 0,
       } = bid;
-
-      // Ignore bids to move onto occupied destinations.
-      if (entities[destination] !== 0) {
-        // TODO Well, actually, if the patient entity at the destination
-        // may be altered by the action (e.g., have its type change),
-        // we need to auction all of those bids to bump and reify the
-        // morph effect here.
-        // It is also possible that a bid might destroy the target *and*
-        // consequently allow the agent to move onto its space at once,
-        // either as a battle mechanic or even merely entering a vehicle.
-        continue;
-      }
 
       if (dialog !== undefined) {
         onDialog(winner, dialog);
@@ -878,6 +874,19 @@ export function makeModel({
 
       if (handler !== undefined && parameters !== undefined) {
         handler(kit, parameters);
+      }
+
+      if (shiftType !== undefined) {
+        replace(winner, shiftType);
+      }
+
+      if (patient !== 0 && morphType !== undefined) {
+        replace(patient, morphType);
+      }
+
+      // Bump
+      if (entities[destination] !== 0) {
+        continue;
       }
 
       // Move

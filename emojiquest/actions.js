@@ -406,10 +406,20 @@ export const actions = [
     dialog:
       '🎅🤶 Worthy apprentice, travel now to the <b>Center of 🎲 Daia</b>! ',
     jump: 'location',
+    morph: 'openNorthPole',
+  },
+  {
+    patient: 'openNorthPole',
+    left: 'any',
+    right: 'any',
+    verb: 'touch',
+    items: [],
+    dialog: '🎅🤶 Welcome back!',
+    jump: 'location',
   },
   {
     patient: 'southPole',
-    left: 'wetOpenUmbrella',
+    left: 'any',
     right: 'any',
     verb: 'touch',
     items: [],
@@ -418,6 +428,7 @@ export const actions = [
   },
   {
     patient: 'northLadder',
+    left: 'any',
     right: 'any',
     verb: 'touch',
     items: [],
@@ -426,6 +437,7 @@ export const actions = [
   },
   {
     patient: 'southSlide',
+    left: 'any',
     right: 'any',
     verb: 'touch',
     items: [],
