@@ -16,7 +16,7 @@ export const actions = [
     patient: 'gift',
     left: 'empty',
     right: 'empty',
-    items: ['bone', 'bone'],
+    items: ['wetOpenUmbrella', 'coat'],
     verb: 'cut',
     dialog: '🎁 It is dangerous to go alone. Take this!',
   },
@@ -401,10 +401,11 @@ export const actions = [
     patient: 'northPole',
     left: 'wetOpenUmbrella',
     right: 'any',
-    verb: 'touch',
-    items: [],
-    dialog: '🎅Down you go!🤶 ☔️',
-    jump: 'entity',
+    verb: 'exchange',
+    items: ['openUmbrella'],
+    dialog:
+      '🎅🤶 Worthy apprentice, travel now to the <b>Center of 🎲 Daia</b>! ',
+    jump: 'location',
   },
   {
     patient: 'southPole',
@@ -413,7 +414,7 @@ export const actions = [
     verb: 'touch',
     items: [],
     dialog: '🧙‍♂️ Up you go! 🧙‍♀️ ☔️',
-    jump: 'entity',
+    jump: 'location',
   },
   {
     patient: 'northLadder',
@@ -421,7 +422,7 @@ export const actions = [
     verb: 'touch',
     items: [],
     dialog: '🎅Welcome back!🤶',
-    jump: 'entity',
+    jump: 'location',
   },
   {
     patient: 'southSlide',
@@ -429,7 +430,7 @@ export const actions = [
     verb: 'touch',
     items: [],
     dialog: '🐧 Wheeeee! 🐧',
-    jump: 'entity',
+    jump: 'location',
   },
 
   {

@@ -197,7 +197,7 @@ export function makeModel({
   const entityTypes = new Map();
 
   /** @type {Map<number, Map<number, Bid>>} target tile number -> intended
-   * entity number -> transition */
+   * entity number -> transition/bid */
   const targets = new Map();
   /** @type {Set<number>} entity numbers of mobile entities */
   const mobiles = new Set();
@@ -792,13 +792,14 @@ export function makeModel({
           }
 
           if (jumpTargetLocation !== undefined) {
-            const { passable, dialog, health, stamina } = pass(
-              agent,
-              jumpTargetLocation,
-            );
+            const {
+              passable,
+              dialog: passDialog,
+              health,
+              stamina,
+            } = pass(agent, jumpTargetLocation);
             if (!passable) {
-              assertDefined(dialog);
-              onDialog(agent, dialog);
+              onDialog(agent, passDialog ?? dialog);
             } else {
               const origin = locate(agent);
               assertDefined(health);
@@ -813,7 +814,7 @@ export function makeModel({
                 stamina,
                 handler,
                 parameters,
-                dialog,
+                dialog: passDialog ?? dialog,
                 morphType,
                 shiftType,
               });

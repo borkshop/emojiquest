@@ -183,7 +183,7 @@ export function makeMechanics({
 
     pick([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
-      function cutHandler(kit, { agent }) {
+      function pickHandler(kit, { agent }) {
         const actionHasLeftYieldType = leftYieldType !== undefined;
         const actionHasRightYieldType = rightYieldType !== undefined;
         const agentCanHoldLeftItem =
@@ -212,12 +212,12 @@ export function makeMechanics({
           }
         }
       }
-      return cutHandler;
+      return pickHandler;
     },
 
     exchange([leftYieldType, rightYieldType]) {
       /** @type {ActionHandler} */
-      function cutHandler(kit, { agent }) {
+      function exchangeHandler(kit, { agent }) {
         if (leftYieldType !== undefined) {
           kit.put(agent, 0, leftYieldType);
         }
@@ -225,7 +225,7 @@ export function makeMechanics({
           kit.put(agent, 1, rightYieldType);
         }
       }
-      return cutHandler;
+      return exchangeHandler;
     },
 
     split([leftType, rightType]) {
