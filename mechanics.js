@@ -316,29 +316,25 @@ export function makeMechanics({
     const agentType = kit.entityType(parameters.agent);
     const patientType = kit.entityType(parameters.patient);
     const agentEffectType = kit.entityEffect(parameters.agent);
-    const leftType = kit.inventory(parameters.agent, 0);
-    const rightType = kit.inventory(parameters.agent, 1);
+    const left = kit.inventory(parameters.agent, 0);
+    const right = kit.inventory(parameters.agent, 1);
     for (const effectType of [agentEffectType, effectTypesByName.any]) {
-      let match = bumpCombination({
-        agentType,
-        patientType,
-        leftType,
-        rightType,
-        effectType,
-      });
-      if (match !== undefined) {
-        return match;
-      }
-
-      match = bumpCombination({
-        agentType,
-        patientType,
-        leftType,
-        rightType: itemTypesByName.any,
-        effectType,
-      });
-      if (match !== undefined) {
-        return match;
+      for (const [leftType, rightType] of [
+        [left, right],
+        [left, itemTypesByName.any],
+        [itemTypesByName.any, right],
+        [itemTypesByName.any, itemTypesByName.any],
+      ]) {
+        let match = bumpCombination({
+          agentType,
+          patientType,
+          leftType,
+          rightType,
+          effectType,
+        });
+        if (match !== undefined) {
+          return match;
+        }
       }
     }
     return undefined;
