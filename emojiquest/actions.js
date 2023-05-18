@@ -533,8 +533,8 @@ export const actions = [
   // Night shades
   {
     patient: 'potatoPlant',
-    left: 'spoon',
-    right: 'bone',
+    left: 'bone',
+    right: 'spoon',
     verb: 'grow',
     items: ['potato'],
     dialog:
