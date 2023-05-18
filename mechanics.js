@@ -162,7 +162,12 @@ export function makeMechanics({
 
     reap([yieldType]) {
       /** @type {ActionHandler} */
-      function reapHandler(kit, { agent, patient, destination }, _slot0, slot1) {
+      function reapHandler(
+        kit,
+        { agent, patient, destination },
+        _slot0,
+        slot1,
+      ) {
         kit.put(agent, slot1, yieldType);
         kit.fell(patient, destination);
       }

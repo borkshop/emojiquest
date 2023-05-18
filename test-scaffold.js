@@ -385,9 +385,19 @@ export const makeScaffold = (
     healthController,
     staminaController,
     followCursor,
-    // @ts-expect-error This stub is not used in tests.
-    async loadWorld() {},
-    async saveWorld() {},
+    loadWorld: async function* loadWorld() {
+      return undefined;
+    },
+    saveWorld: async function* saveWorld() {
+      return undefined;
+    },
+    createWorld: async function createWorld() {
+      return undefined;
+    },
+    // @ts-expect-error playWorld is not used by the scaffold.
+    playWorld() {
+      return undefined;
+    },
     choose,
     supplementaryAnimation,
   });

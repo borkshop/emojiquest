@@ -72,11 +72,41 @@ import { makeEditorModes } from './editor.js';
  * @property {ReturnType<import('./world.js').makeWorld>} world
  * @property {import('./mechanics.js').Mechanics} mechanics
  * @property {import('./schema-types.js').WorldMetaDescription} meta
+ * @property {string | undefined} slot
  */
 
 /**
  * @callback LoadWorldFn
- * @returns {Promise<undefined | LoadedWorld>}
+ * @param {string} [slot]
+ * @returns {AsyncIteration<undefined, undefined | LoadedWorld>}
+ */
+
+/**
+ * @callback SlotsMenuFn
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {import('./types.js').Snapshot} snapshot
+ * @returns {AsyncIteration<undefined, undefined | LoadedWorld>}
+ */
+
+/**
+ * @callback SaveWorldFn
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {import('./types.js').Snapshot} snapshot
+ * @param {string | undefined} [slot]
+ * @returns {AsyncIteration<undefined, undefined | string>}
+ */
+
+/**
+ * @callback PlayWorldFn
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {import('./types.js').Snapshot | undefined} snapshot
+ * @param {import('./mechanics.js').Mechanics} mechanics
+ * @returns {{world: ReturnType<import('./world.js').makeWorld>}}
+ */
+
+/**
+ * @callback CreateWorldFn
+ * @returns {Promise<LoadedWorld | undefined>}
  */
 
 /**
@@ -199,7 +229,7 @@ const noop = () => {};
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
  * @param {import('./schema-types.js').WorldMetaDescription} meta
- * @param {number | undefined} [position]
+ * @param {{ position?: number, slot?: string }} [opts]
  * @returns {Mode}
  */
 
@@ -347,8 +377,10 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {LoadWorldFn} args.loadWorld
- * @param {(meta: import('./schema-types.js').WorldMetaDescription, snapshot: import('./types.js').Snapshot) => Promise<void>} args.saveWorld
- * @param {(meta: import('./schema-types.js').WorldMetaDescription, snapshot: import('./types.js').Snapshot | undefined, mechanics: import('./mechanics.js').Mechanics) => { world: ReturnType<import('./world.js').makeWorld>}} args.playWorld
+ * @param {SlotsMenuFn} args.slotsMenu
+ * @param {CreateWorldFn} args.createWorld
+ * @param {SaveWorldFn} args.saveWorld
+ * @param {PlayWorldFn} args.playWorld
  * @param {FollowCursorFn} args.followCursor
  * @param {ChooseFn} args.choose
  * @param {InputFn} args.input
@@ -363,7 +395,9 @@ export const makeController = ({
   followCursor,
   loadWorld,
   saveWorld,
+  slotsMenu,
   playWorld,
+  createWorld,
   choose,
   input,
   supplementaryAnimation,
@@ -491,8 +525,9 @@ export const makeController = ({
      * @param {boolean} [handoff.south]
      * @param {boolean} [handoff.east]
      * @param {boolean} [handoff.west]
+     * @param {string} [slot]
      */
-    const enterPlayMode = (player, handoff) => {
+    const enterPlayMode = (player, handoff, slot) => {
       const position = worldModel.locate(player);
       let cursor = { position, direction: north };
 
@@ -675,7 +710,7 @@ export const makeController = ({
             // stash
             return openStash();
           } else if (command === 0 && !repeat) {
-            return yield* playToMenuMode(cursor.position, player);
+            return yield* playToMenuMode(cursor.position, player, slot);
           } else {
             return playMode;
           }
@@ -1155,13 +1190,14 @@ export const makeController = ({
       /**
        * @param {number} position
        * @param {number} player
+       * @param {string} [slot]
        */
-      const playToMenuMode = async function* (position, player) {
+      const playToMenuMode = async function* (position, player, slot) {
         const handoff = {};
         exitPlayMode(player, handoff);
         oneKeyView.exit(0);
 
-        return yield* playMenu(position, player);
+        return yield* playMenu(position, player, slot);
       };
 
       restoreDpad(handoff);
@@ -1186,13 +1222,14 @@ export const makeController = ({
      * @param {number | undefined} player - entity of the player from play mode, to which
      * we may return if we do nothing in the menu or edit modes before returning.
      * Without a defined player, we cannot go to play mode.
-     * @param {Object} handoff
+     * @param {object} handoff
      * @param {boolean} [handoff.north]
      * @param {boolean} [handoff.south]
      * @param {boolean} [handoff.east]
      * @param {boolean} [handoff.west]
+     * @param {string} [slot]
      */
-    const enterEditMode = (position, player, handoff) => {
+    const enterEditMode = (position, player, handoff, slot) => {
       let cursor = { position, direction: north };
 
       const updateEditorDialog = () => {
@@ -1372,21 +1409,21 @@ export const makeController = ({
           exitEditMode(handoff);
 
           assertDefined(player);
-          return enterPlayMode(player, handoff);
+          return enterPlayMode(player, handoff, slot);
         } else if (choice === 'load') {
           const handoff = {};
           exitEditMode(handoff);
 
-          const result = await loadWorld();
+          const result = yield* loadWorld();
 
           // Plan new animation turn
           yield undefined;
 
           if (result === undefined) {
-            return enterEditMode(position, player, handoff);
+            return enterEditMode(position, player, handoff, slot);
           } else {
-            const { world, mechanics, player, meta } = result;
-            return enterWorld(world, mechanics, player, meta);
+            const { world, mechanics, player, meta, slot } = result;
+            return enterWorld(world, mechanics, player, meta, { slot });
           }
         } else if (choice === 'save') {
           const newMeta = {
@@ -1394,7 +1431,7 @@ export const makeController = ({
             marks,
           };
           const snapshot = capture(player);
-          await saveWorld(newMeta, snapshot);
+          slot = yield* saveWorld(newMeta, snapshot, slot);
           return editMode;
         } else if (choice === 'new') {
           const newMeta = yield* designNewWorld(meta);
@@ -1417,13 +1454,10 @@ export const makeController = ({
 
           const handoff = {};
           exitEditMode(handoff);
-          return enterWorld(
-            newWorld,
-            newMechanics,
-            undefined,
-            newMeta,
-            location,
-          );
+          return enterWorld(newWorld, newMechanics, undefined, newMeta, {
+            slot,
+            position: location,
+          });
         } else if (choice === 'choose') {
           return yield* chooseAgent();
         } else if (choice === 'mark') {
@@ -1529,13 +1563,10 @@ export const makeController = ({
 
             const handoff = {};
             exitEditMode(handoff);
-            return enterWorld(
-              newWorld,
-              newMechanics,
-              undefined,
-              newMeta,
-              location,
-            );
+            return enterWorld(newWorld, newMechanics, undefined, newMeta, {
+              slot,
+              position: location,
+            });
           } else if (choice !== undefined) {
             const levelIndex = choice - 1;
             const level = levels[levelIndex];
@@ -1583,13 +1614,10 @@ export const makeController = ({
 
               const handoff = {};
               exitEditMode(handoff);
-              return enterWorld(
-                newWorld,
-                newMechanics,
-                undefined,
-                newMeta,
-                newLocation,
-              );
+              return enterWorld(newWorld, newMechanics, undefined, newMeta, {
+                slot,
+                position: newLocation,
+              });
             } else if (verb === 'teleport') {
               if (level.faces.length > 1) {
                 const options = Object.fromEntries(
@@ -1696,13 +1724,10 @@ export const makeController = ({
 
           const handoff = {};
           exitEditMode(handoff);
-          return enterWorld(
-            newWorld,
-            newMechanics,
-            undefined,
-            newMeta,
+          return enterWorld(newWorld, newMechanics, undefined, newMeta, {
             position,
-          );
+            slot,
+          });
         } else {
           return editMode;
         }
@@ -1764,21 +1789,22 @@ export const makeController = ({
     /**
      * @param {number} position
      * @param {number | undefined} player
+     * @param {string | undefined} slot
      */
-    const playMenu = async function* (position, player) {
+    const playMenu = async function* (position, player, slot) {
       /** @type {Record<string, string>} */
       const options = Object.create(null);
       if (player !== undefined) {
         options.play = '🎭 Play   '; // 🪁 ▶️
       }
+      if (slot !== undefined) {
+        options.back = '🔙 Back';
+      }
+      options.start = '🎬 Start';
       options.edit = '✏️  Edit'; // 🚧
-      options.new = '🆕 New';
-      if (window.showSaveFilePicker !== undefined) {
-        options.save = '🛟  Save  '; //  🏦
-      }
-      if (window.showOpenFilePicker !== undefined) {
-        options.load = '🛻  Load'; // 🚜 🏗
-      }
+      options.save = '🛟  Save  '; //  🏦
+      options.load = '🛻  Load'; // 🚜 🏗
+      options.slot = '🎰 Slot';
 
       const choice = await choose(options);
 
@@ -1788,50 +1814,67 @@ export const makeController = ({
       oneKeyView.put(0, 0, builtinTileTypesByName.hamburger);
       oneKeyView.enter(0);
 
-      if (choice === 'new') {
-        const newMeta = yield* designNewWorld(meta);
-
-        if (newMeta === undefined) {
-          // Plan new animation turn
-          yield undefined;
-
-          if (player !== undefined) {
-            return enterPlayMode(player, {});
-          } else {
-            return enterEditMode(position, player, {});
-          }
-        }
-
-        const newLocation = yield* chooseLocation(newMeta);
-
-        // Plan new animation turn.
-        yield undefined;
-
-        const newMechanics = makeMechanics(newMeta.mechanics);
-
-        const { world: newWorld } = playWorld(newMeta, undefined, newMechanics);
-
-        return enterWorld(
-          newWorld,
-          newMechanics,
-          undefined,
-          newMeta,
-          newLocation,
-        );
-      } else if (choice === 'edit') {
-        return enterEditMode(position, player, {});
-      } else if (choice === 'load') {
-        const result = await loadWorld();
+      if (choice === 'edit') {
+        return enterEditMode(position, player, {}, slot);
+      } else if (choice === 'back') {
+        const result = yield* loadWorld(slot);
 
         // Plan new animation turn.
         yield undefined;
 
         if (result === undefined) {
           assertDefined(player);
-          return enterPlayMode(player, {});
+          return enterPlayMode(player, {}, slot);
+        }
+
+        const {
+          world: newWorld,
+          mechanics: newMechanics,
+          player: newPlayer,
+          meta: newMeta,
+          slot: newSlot,
+        } = result;
+        return enterWorld(newWorld, newMechanics, newPlayer, newMeta, {
+          slot: newSlot,
+        });
+      } else if (choice === 'start') {
+        const result = await createWorld();
+
+        // Plan new animation turn.
+        yield undefined;
+
+        if (result === undefined) {
+          assertDefined(player);
+          return enterPlayMode(player, {}, slot);
+        }
+
+        const {
+          world: newWorld,
+          mechanics: newMechanics,
+          player: newPlayer,
+          meta: newMeta,
+        } = result;
+        return enterWorld(newWorld, newMechanics, newPlayer, newMeta);
+      } else if (choice === 'load') {
+        const result = yield* loadWorld();
+
+        // Plan new animation turn.
+        yield undefined;
+
+        if (result === undefined) {
+          assertDefined(player);
+          return enterPlayMode(player, {}, slot);
         } else {
-          const { world, mechanics, player, meta } = result;
-          return enterWorld(world, mechanics, player, meta);
+          const {
+            world: newWorld,
+            mechanics: newMechanics,
+            player: newPlayer,
+            meta: newMeta,
+            slot: newSlot,
+          } = result;
+          return enterWorld(newWorld, newMechanics, newPlayer, newMeta, {
+            slot: newSlot,
+          });
         }
       } else if (choice === 'save') {
         const newMeta = {
@@ -1839,16 +1882,35 @@ export const makeController = ({
           marks,
         };
         const snapshot = capture(player);
-        await saveWorld(newMeta, snapshot);
+        slot = yield* saveWorld(newMeta, snapshot);
 
         // Plan new animation turn.
         yield undefined;
 
         assertDefined(player);
-        return enterPlayMode(player, {});
+        return enterPlayMode(player, {}, slot);
+      } else if (choice === 'slot') {
+        const snapshot = capture(player);
+        const result = yield* slotsMenu(meta, snapshot);
+
+        // Plan new animation turn.
+        yield undefined;
+
+        if (result === undefined) {
+          assertDefined(player);
+          return enterPlayMode(player, {}, slot);
+        }
+
+        if (result === undefined) {
+          assertDefined(player);
+          return enterPlayMode(player, {}, slot);
+        } else {
+          const { world, mechanics, player, meta, slot } = result;
+          return enterWorld(world, mechanics, player, meta, { slot });
+        }
       } else {
         assertDefined(player);
-        return enterPlayMode(player, {});
+        return enterPlayMode(player, {}, slot);
       }
     };
 
@@ -1872,17 +1934,21 @@ export const makeController = ({
       dialogController.close();
     };
 
-    /** @param {number} position */
-    const limboToEditMode = position => {
-      return enterEditMode(position, undefined, {});
+    /**
+     * @param {number} position
+     * @param {string} [slot]
+     */
+    const limboToEditMode = (position, slot) => {
+      return enterEditMode(position, undefined, {}, slot);
     };
 
     /**
      * @param {number} player
+     * @param {string} [slot]
      */
-    const limboToPlayMode = player => {
+    const limboToPlayMode = (player, slot) => {
       const handoff = {};
-      return enterPlayMode(player, handoff);
+      return enterPlayMode(player, handoff, slot);
     };
 
     const tick = () => {
@@ -1935,7 +2001,14 @@ export const makeController = ({
   };
 
   /** @type {PlayFn} */
-  const enterWorld = (world, mechanics, player, meta, position = 0) => {
+  const enterWorld = (
+    world,
+    mechanics,
+    player,
+    meta,
+    opts = { position: 0, slot: undefined },
+  ) => {
+    const { position = 0, slot = undefined } = opts;
     const { limboToPlayMode, limboToEditMode, ...clock } = makeWorldModes(
       world,
       mechanics,
@@ -1943,9 +2016,9 @@ export const makeController = ({
     );
     worldClock = clock;
     if (player !== undefined) {
-      return limboToPlayMode(player);
+      return limboToPlayMode(player, slot);
     } else {
-      return limboToEditMode(position);
+      return limboToEditMode(position, slot);
     }
   };
 

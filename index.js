@@ -170,8 +170,9 @@ const main = async () => {
 
   /**
    * @param {unknown} allegedWholeWorldDescription
+   * @param {string} [slot]
    */
-  const playAllegedWorldDescription = allegedWholeWorldDescription => {
+  const playAllegedWorldDescription = (allegedWholeWorldDescription, slot) => {
     const result = validate(allegedWholeWorldDescription);
     if ('errors' in result) {
       let message = '';
@@ -193,6 +194,7 @@ const main = async () => {
       mechanics,
       player,
       meta,
+      slot,
     };
   };
 
@@ -231,60 +233,224 @@ const main = async () => {
     },
   ];
 
-  const loadWorld = async () => {
-    scrimElement.style.display = 'block';
-    try {
-      let handle;
-      try {
-        [handle] = await window.showOpenFilePicker({
-          types,
-          multiple: false,
-        });
-      } catch (error) {
-        dialogController.log(`⚠️ No new world selected.`);
-        console.error(error);
+  const slotOptions = () => {
+    /** @type {Record<string, string>} */
+    const options = {};
+    if (window.localStorage !== undefined) {
+      let index = 0;
+      for (const key of Object.keys(window.localStorage)) {
+        const match = /^emojiquest:(slot:(.*))$/.exec(key);
+        if (match) {
+          const [_, name, label] = match;
+          options[name] = `${(index % 10) + 1}\ufe0f\u20e3 ${label}`;
+          index += 1;
+        }
+      }
+    }
+    return options;
+  };
+
+  /**
+   * @param {string} [slot]
+   */
+  async function* loadWorld(slot) {
+    if (slot === undefined) {
+      /** @type {Record<string, string>} */
+      const options = slotOptions();
+      if (window.showOpenFilePicker !== undefined) {
+        options.file = '💾 File';
+      }
+
+      slot = await choose(options);
+
+      if (slot === undefined) {
+        return undefined;
+      }
+    }
+
+    return loadWorldSlot(slot);
+  }
+
+  /**
+   * @param {Record<string, string>} options
+   */
+  async function chooseNewOrOldSlot(options) {
+    let slot = await choose(options);
+
+    if (slot === 'new') {
+      const name = await input({ placeholder: 'name' });
+      if (name === undefined) {
         return;
       }
-      if (handle !== undefined) {
-        const file = await handle.getFile();
-        const text = await file.text();
-        const result = parseJson(text);
-        if ('error' in result) {
-          dialogController.log(`${result.error}`);
-          console.error(result.error);
-          return;
-        }
-        return playAllegedWorldDescription(result.value);
-      }
-      return;
-    } finally {
-      scrimElement.style.display = 'none';
+      slot = `slot:${name}`;
     }
-  };
+
+    return slot;
+  }
 
   /**
    * @param {import('./schema-types.js').WorldMetaDescription} meta
    * @param {import('./types.js').Snapshot} snapshot
    */
-  const saveWorld = async (meta, snapshot) => {
+  async function* slotsMenu(meta, snapshot) {
+    const options = slotOptions();
+    options.new = '🎰 New Slot';
+    const slot = await chooseNewOrOldSlot(options);
+
+    if (slot === undefined) {
+      return undefined;
+    }
+
+    return yield* slotMenu(meta, snapshot, slot);
+  }
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
+   * @param {string} slot
+   */
+  async function* slotMenu(meta, snapshot, slot) {
+    const key = `emojiquest:${slot}`;
+
+    /** @type {Record<string, string>} */
+    const options = Object.create(null);
+    options.save = '🛟  Save  '; //  🏦
+    if (localStorage.getItem(key)) {
+      options.load = '🛻  Load'; // 🚜 🏗
+    }
+    options.delete = '🪓  Delete'; // 💣 🧨
+    const choice = await choose(options);
+
+    if (choice === undefined) {
+      return undefined;
+    } else if (choice === 'save') {
+      await saveWorldSlot(meta, snapshot, slot);
+      return undefined;
+    } else if (choice === 'load') {
+      return loadWorldSlot(slot);
+    } else if (choice === 'delete') {
+      deleteWorldSlot(slot);
+      return undefined;
+    } else {
+      throw new Error('not reachable');
+    }
+  }
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
+   * @param {string | undefined} slot
+   */
+  async function saveWorldSlot(meta, snapshot, slot) {
+    const json = format(meta, snapshot);
+    const text = `${JSON.stringify(json)}\n`;
+
+    if (slot === 'file') {
+      scrimElement.style.display = 'block';
+      try {
+        let handle;
+        try {
+          handle = await window.showSaveFilePicker({ types });
+        } catch (error) {
+          return undefined;
+        }
+        const stream = await handle.createWritable();
+        const blob = new Blob([text]);
+        await stream.write(blob);
+        await stream.close();
+        return slot;
+      } finally {
+        scrimElement.style.display = 'none';
+      }
+    } else {
+      localStorage.setItem(`emojiquest:${slot}`, text);
+      return slot;
+    }
+  }
+
+  /**
+   * @param {string | undefined} slot
+   */
+  async function loadWorldSlot(slot) {
     scrimElement.style.display = 'block';
     try {
-      let handle;
-      try {
-        handle = await window.showSaveFilePicker({ types });
-      } catch (error) {
+      if (slot === 'file') {
+        let handle;
+        try {
+          [handle] = await window.showOpenFilePicker({
+            types,
+            multiple: false,
+          });
+        } catch (error) {
+          dialogController.log(`⚠️ No new world selected.`);
+          console.error(error);
+          return undefined;
+        }
+        if (handle !== undefined) {
+          const file = await handle.getFile();
+          const text = await file.text();
+          const result = parseJson(text);
+          if ('error' in result) {
+            dialogController.log(`${result.error}`);
+            console.error(result.error);
+            return;
+          }
+          return playAllegedWorldDescription(result.value, slot);
+        }
         return;
+      } else {
+        const text = assumeDefined(localStorage.getItem(`emojiquest:${slot}`));
+        const result = parseJson(text);
+        if ('error' in result) {
+          dialogController.log(`${result.error}`);
+          console.error(result.error);
+          return undefined;
+        }
+        return playAllegedWorldDescription(result.value, slot);
       }
-      const stream = await handle.createWritable();
-      const json = format(meta, snapshot);
-      const text = `${JSON.stringify(json)}\n`;
-      const blob = new Blob([text]);
-      await stream.write(blob);
-      await stream.close();
     } finally {
       scrimElement.style.display = 'none';
     }
-  };
+  }
+
+  /**
+   * @param {string} slot
+   */
+  function deleteWorldSlot(slot) {
+    const key = `emojiquest:${slot}`;
+    localStorage.removeItem(key);
+  }
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
+   * @param {string} [slot]
+   */
+  async function* saveWorld(meta, snapshot, slot) {
+    if (slot === undefined) {
+      const options = slotOptions();
+      options.new = '🎰 New Slot';
+      if (window.showOpenFilePicker !== undefined) {
+        options.file = '💾 File';
+      }
+      slot = await chooseNewOrOldSlot(options);
+    }
+
+    if (slot === undefined) {
+      return undefined;
+    }
+
+    return saveWorldSlot(meta, snapshot, slot);
+  }
+
+  async function createWorld() {
+    const response = await fetch(
+      new URL('emojiquest/emojiquest.json', import.meta.url).href,
+      { cache: 'no-cache' },
+    );
+    const allegedWholeWorldDescription = await response.json();
+    return playAllegedWorldDescription(allegedWholeWorldDescription);
+  }
 
   /**
    * @param {Record<string, string>} options
@@ -512,7 +678,9 @@ const main = async () => {
     followCursor,
     loadWorld,
     saveWorld,
+    slotsMenu,
     playWorld,
+    createWorld,
     choose,
     input,
     supplementaryAnimation,
@@ -541,13 +709,7 @@ const main = async () => {
     false,
   );
 
-  const response = await fetch(
-    new URL('emojiquest/emojiquest.json', import.meta.url).href,
-  );
-  const allegedWholeWorldDescription = await response.json();
-  const { world, mechanics, player, meta } = assumeDefined(
-    playAllegedWorldDescription(allegedWholeWorldDescription),
-  );
+  const { world, mechanics, player, meta } = assumeDefined(await createWorld());
   controller.play(world, mechanics, player, meta);
 };
 
