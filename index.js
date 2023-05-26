@@ -268,7 +268,7 @@ const main = async () => {
       }
     }
 
-    return loadWorldSlot(slot);
+    return await loadWorldSlot(slot);
   }
 
   /**
