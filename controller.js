@@ -72,12 +72,12 @@ import { makeEditorModes } from './editor.js';
  * @property {ReturnType<import('./world.js').makeWorld>} world
  * @property {import('./mechanics.js').Mechanics} mechanics
  * @property {import('./schema-types.js').WorldMetaDescription} meta
- * @property {string | undefined} slot
+ * @property {number | undefined} slot
  */
 
 /**
  * @callback LoadWorldFn
- * @param {string} [slot]
+ * @param {number} [slot]
  * @returns {AsyncIteration<undefined, undefined | LoadedWorld>}
  */
 
@@ -92,8 +92,8 @@ import { makeEditorModes } from './editor.js';
  * @callback SaveWorldFn
  * @param {import('./schema-types.js').WorldMetaDescription} meta
  * @param {import('./types.js').Snapshot} snapshot
- * @param {string | undefined} [slot]
- * @returns {AsyncIteration<undefined, undefined | string>}
+ * @param {number | undefined} [slot]
+ * @returns {AsyncIteration<undefined, undefined | number>}
  */
 
 /**
@@ -229,7 +229,7 @@ const noop = () => {};
  * @param {import('./mechanics.js').Mechanics} mechanics
  * @param {number | undefined} player
  * @param {import('./schema-types.js').WorldMetaDescription} meta
- * @param {{ position?: number, slot?: string }} [opts]
+ * @param {{ position?: number, slot?: number }} [opts]
  * @returns {Mode}
  */
 
@@ -377,7 +377,6 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {import('./health.js').HealthController} args.healthController
  * @param {import('./stamina.js').StaminaController} args.staminaController
  * @param {LoadWorldFn} args.loadWorld
- * @param {SlotsMenuFn} args.slotsMenu
  * @param {CreateWorldFn} args.createWorld
  * @param {SaveWorldFn} args.saveWorld
  * @param {PlayWorldFn} args.playWorld
@@ -395,7 +394,6 @@ export const makeController = ({
   followCursor,
   loadWorld,
   saveWorld,
-  slotsMenu,
   playWorld,
   createWorld,
   choose,
@@ -525,7 +523,7 @@ export const makeController = ({
      * @param {boolean} [handoff.south]
      * @param {boolean} [handoff.east]
      * @param {boolean} [handoff.west]
-     * @param {string} [slot]
+     * @param {number} [slot]
      */
     const enterPlayMode = (player, handoff, slot) => {
       const position = worldModel.locate(player);
@@ -1190,7 +1188,7 @@ export const makeController = ({
       /**
        * @param {number} position
        * @param {number} player
-       * @param {string} [slot]
+       * @param {number} [slot]
        */
       const playToMenuMode = async function* (position, player, slot) {
         const handoff = {};
@@ -1227,7 +1225,7 @@ export const makeController = ({
      * @param {boolean} [handoff.south]
      * @param {boolean} [handoff.east]
      * @param {boolean} [handoff.west]
-     * @param {string} [slot]
+     * @param {number} [slot]
      */
     const enterEditMode = (position, player, handoff, slot) => {
       let cursor = { position, direction: north };
@@ -1378,12 +1376,8 @@ export const makeController = ({
           options.play = '🎭 Play   '; // 🪁 ▶️
         }
         options.new = '🆕 New';
-        if (window.showSaveFilePicker !== undefined) {
-          options.save = '🛟  Save  '; //  🏦
-        }
-        if (window.showOpenFilePicker !== undefined) {
-          options.load = '🛻  Load'; // 🚜 🏗
-        }
+        options.save = '🛟  Save '; //  🏦
+        options.load = '🛻  Load'; // 🚜 🏗
         // options.entities = '🙂 Entities';
         // options.addEntity = '👶 Add Entity';
         options.choose = '🎰 Choose Entity';
@@ -1789,7 +1783,7 @@ export const makeController = ({
     /**
      * @param {number} position
      * @param {number | undefined} player
-     * @param {string | undefined} slot
+     * @param {number | undefined} slot
      */
     const playMenu = async function* (position, player, slot) {
       /** @type {Record<string, string>} */
@@ -1804,7 +1798,6 @@ export const makeController = ({
       options.edit = '✏️  Edit'; // 🚧
       options.save = '🛟  Save  '; //  🏦
       options.load = '🛻  Load'; // 🚜 🏗
-      options.slot = '🎰 Slot';
 
       const choice = await choose(options);
 
@@ -1882,32 +1875,13 @@ export const makeController = ({
           marks,
         };
         const snapshot = capture(player);
-        slot = yield* saveWorld(newMeta, snapshot);
+        slot = yield* saveWorld(newMeta, snapshot, slot);
 
         // Plan new animation turn.
         yield undefined;
 
         assertDefined(player);
         return enterPlayMode(player, {}, slot);
-      } else if (choice === 'slot') {
-        const snapshot = capture(player);
-        const result = yield* slotsMenu(meta, snapshot);
-
-        // Plan new animation turn.
-        yield undefined;
-
-        if (result === undefined) {
-          assertDefined(player);
-          return enterPlayMode(player, {}, slot);
-        }
-
-        if (result === undefined) {
-          assertDefined(player);
-          return enterPlayMode(player, {}, slot);
-        } else {
-          const { world, mechanics, player, meta, slot } = result;
-          return enterWorld(world, mechanics, player, meta, { slot });
-        }
       } else {
         assertDefined(player);
         return enterPlayMode(player, {}, slot);
@@ -1936,7 +1910,7 @@ export const makeController = ({
 
     /**
      * @param {number} position
-     * @param {string} [slot]
+     * @param {number} [slot]
      */
     const limboToEditMode = (position, slot) => {
       return enterEditMode(position, undefined, {}, slot);
@@ -1944,7 +1918,7 @@ export const makeController = ({
 
     /**
      * @param {number} player
-     * @param {string} [slot]
+     * @param {number} [slot]
      */
     const limboToPlayMode = (player, slot) => {
       const handoff = {};

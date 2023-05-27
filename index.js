@@ -170,7 +170,7 @@ const main = async () => {
 
   /**
    * @param {unknown} allegedWholeWorldDescription
-   * @param {string} [slot]
+   * @param {number} [slot]
    */
   const playAllegedWorldDescription = (allegedWholeWorldDescription, slot) => {
     const result = validate(allegedWholeWorldDescription);
@@ -233,214 +233,160 @@ const main = async () => {
     },
   ];
 
-  const slotOptions = () => {
+  const saveSlotOptions = () => {
     /** @type {Record<string, string>} */
     const options = {};
     if (window.localStorage !== undefined) {
-      let index = 0;
-      for (const key of Object.keys(window.localStorage)) {
-        const match = /^emojiquest:(slot:(.*))$/.exec(key);
-        if (match) {
-          const [_, name, label] = match;
-          options[name] = `${(index % 10) + 1}\ufe0f\u20e3 ${label}`;
-          index += 1;
-        }
+      for (let index = 0; index < 4; index += 1) {
+        const name = `${index + 1}`;
+        options[name] = `🎰 ${(index % 10) + 1}\ufe0f\u20e3`;
       }
+    }
+    if (window.showOpenFilePicker !== undefined) {
+      options.file = '💾 File';
     }
     return options;
   };
 
+  const loadSlotOptions = () => {
+    /** @type {Record<string, string>} */
+    const options = {};
+    if (window.localStorage !== undefined) {
+      for (let index = 0; index < 4; index += 1) {
+        const name = `${index + 1}`;
+        const key = `emojiquest:slot:${index}`;
+        if (Object.prototype.hasOwnProperty.call(window.localStorage, key)) {
+          options[name] = `🎰${(index % 10) + 1}\ufe0f\u20e3`;
+        }
+      }
+    }
+    if (window.showOpenFilePicker !== undefined) {
+      options.file = '💾 File';
+    }
+    return options;
+  };
   /**
-   * @param {string} [slot]
+   * @param {number} [slot]
    */
   async function* loadWorld(slot) {
-    if (slot === undefined) {
-      /** @type {Record<string, string>} */
-      const options = slotOptions();
-      if (window.showOpenFilePicker !== undefined) {
-        options.file = '💾 File';
-      }
-
-      slot = await choose(options);
-
-      if (slot === undefined) {
-        return undefined;
-      }
+    if (slot !== undefined) {
+      return await loadWorldSlot(slot);
     }
-
-    return await loadWorldSlot(slot);
-  }
-
-  /**
-   * @param {Record<string, string>} options
-   */
-  async function chooseNewOrOldSlot(options) {
-    let slot = await choose(options);
-
-    if (slot === 'new') {
-      const name = await input({ placeholder: 'name' });
-      if (name === undefined) {
-        return;
-      }
-      slot = `slot:${name}`;
-    }
-
-    return slot;
-  }
-
-  /**
-   * @param {import('./schema-types.js').WorldMetaDescription} meta
-   * @param {import('./types.js').Snapshot} snapshot
-   */
-  async function* slotsMenu(meta, snapshot) {
-    const options = slotOptions();
-    options.new = '🎰 New Slot';
-    const slot = await chooseNewOrOldSlot(options);
-
-    if (slot === undefined) {
-      return undefined;
-    }
-
-    return yield* slotMenu(meta, snapshot, slot);
-  }
-
-  /**
-   * @param {import('./schema-types.js').WorldMetaDescription} meta
-   * @param {import('./types.js').Snapshot} snapshot
-   * @param {string} slot
-   */
-  async function* slotMenu(meta, snapshot, slot) {
-    const key = `emojiquest:${slot}`;
 
     /** @type {Record<string, string>} */
-    const options = Object.create(null);
-    options.save = '🛟  Save  '; //  🏦
-    if (localStorage.getItem(key)) {
-      options.load = '🛻  Load'; // 🚜 🏗
-    }
-    options.delete = '🪓  Delete'; // 💣 🧨
+    const options = loadSlotOptions();
     const choice = await choose(options);
 
     if (choice === undefined) {
       return undefined;
-    } else if (choice === 'save') {
-      await saveWorldSlot(meta, snapshot, slot);
-      return undefined;
-    } else if (choice === 'load') {
-      return loadWorldSlot(slot);
-    } else if (choice === 'delete') {
-      deleteWorldSlot(slot);
-      return undefined;
+    } else if (choice === 'file') {
+      return await loadWorldFile();
     } else {
-      throw new Error('not reachable');
+      const slot = +choice - 1;
+      return await loadWorldSlot(slot);
     }
   }
 
   /**
    * @param {import('./schema-types.js').WorldMetaDescription} meta
    * @param {import('./types.js').Snapshot} snapshot
-   * @param {string | undefined} slot
+   * @param {number} slot
    */
   async function saveWorldSlot(meta, snapshot, slot) {
     const json = format(meta, snapshot);
     const text = `${JSON.stringify(json)}\n`;
-
-    if (slot === 'file') {
-      scrimElement.style.display = 'block';
-      try {
-        let handle;
-        try {
-          handle = await window.showSaveFilePicker({ types });
-        } catch (error) {
-          return undefined;
-        }
-        const stream = await handle.createWritable();
-        const blob = new Blob([text]);
-        await stream.write(blob);
-        await stream.close();
-        return slot;
-      } finally {
-        scrimElement.style.display = 'none';
-      }
-    } else {
-      localStorage.setItem(`emojiquest:${slot}`, text);
-      return slot;
-    }
+    localStorage.setItem(`emojiquest:slot:${slot}`, text);
   }
 
   /**
-   * @param {string | undefined} slot
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
    */
-  async function loadWorldSlot(slot) {
+  async function saveWorldFile(meta, snapshot) {
+    const json = format(meta, snapshot);
+    const text = `${JSON.stringify(json)}\n`;
+
     scrimElement.style.display = 'block';
     try {
-      if (slot === 'file') {
-        let handle;
-        try {
-          [handle] = await window.showOpenFilePicker({
-            types,
-            multiple: false,
-          });
-        } catch (error) {
-          dialogController.log(`⚠️ No new world selected.`);
-          console.error(error);
-          return undefined;
-        }
-        if (handle !== undefined) {
-          const file = await handle.getFile();
-          const text = await file.text();
-          const result = parseJson(text);
-          if ('error' in result) {
-            dialogController.log(`${result.error}`);
-            console.error(result.error);
-            return;
-          }
-          return playAllegedWorldDescription(result.value, slot);
-        }
+      let handle;
+      try {
+        handle = await window.showSaveFilePicker({ types });
+      } catch (error) {
         return;
-      } else {
-        const text = assumeDefined(localStorage.getItem(`emojiquest:${slot}`));
-        const result = parseJson(text);
-        if ('error' in result) {
-          dialogController.log(`${result.error}`);
-          console.error(result.error);
-          return undefined;
-        }
-        return playAllegedWorldDescription(result.value, slot);
       }
+      const stream = await handle.createWritable();
+      const blob = new Blob([text]);
+      await stream.write(blob);
+      await stream.close();
     } finally {
       scrimElement.style.display = 'none';
     }
   }
 
   /**
-   * @param {string} slot
+   * @param {number} slot
    */
-  function deleteWorldSlot(slot) {
-    const key = `emojiquest:${slot}`;
-    localStorage.removeItem(key);
+  async function loadWorldSlot(slot) {
+    const text = assumeDefined(localStorage.getItem(`emojiquest:slot:${slot}`));
+    const result = parseJson(text);
+    if ('error' in result) {
+      dialogController.log(`${result.error}`);
+      console.error(result.error);
+      return undefined;
+    }
+    return playAllegedWorldDescription(result.value, slot);
+  }
+
+  async function loadWorldFile() {
+    scrimElement.style.display = 'block';
+    try {
+      let handle;
+      try {
+        [handle] = await window.showOpenFilePicker({
+          types,
+          multiple: false,
+        });
+      } catch (error) {
+        dialogController.log(`⚠️ No new world selected.`);
+        console.error(error);
+        return undefined;
+      }
+      if (handle !== undefined) {
+        const file = await handle.getFile();
+        const text = await file.text();
+        const result = parseJson(text);
+        if ('error' in result) {
+          dialogController.log(`${result.error}`);
+          console.error(result.error);
+          return undefined;
+        }
+        return playAllegedWorldDescription(result.value);
+      }
+      return undefined;
+    } finally {
+      scrimElement.style.display = 'none';
+    }
   }
 
   /**
    * @param {import('./schema-types.js').WorldMetaDescription} meta
    * @param {import('./types.js').Snapshot} snapshot
-   * @param {string} [slot]
+   * @param {number} [slot]
+   * @return {AsyncGenerator<undefined, number | undefined>}
    */
   async function* saveWorld(meta, snapshot, slot) {
-    if (slot === undefined) {
-      const options = slotOptions();
-      options.new = '🎰 New Slot';
-      if (window.showOpenFilePicker !== undefined) {
-        options.file = '💾 File';
-      }
-      slot = await chooseNewOrOldSlot(options);
+    const options = saveSlotOptions();
+    const choice = await choose(options);
+    if (choice === undefined) {
+      return slot;
     }
-
-    if (slot === undefined) {
+    if (choice === 'file') {
+      await saveWorldFile(meta, snapshot);
       return undefined;
     }
-
-    return saveWorldSlot(meta, snapshot, slot);
+    slot = +choice - 1;
+    await saveWorldSlot(meta, snapshot, slot);
+    return undefined;
   }
 
   async function createWorld() {
@@ -678,7 +624,6 @@ const main = async () => {
     followCursor,
     loadWorld,
     saveWorld,
-    slotsMenu,
     playWorld,
     createWorld,
     choose,
