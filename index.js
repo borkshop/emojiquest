@@ -400,9 +400,18 @@ const main = async () => {
 
   /**
    * @param {Record<string, string>} options
-   * @param {string} [label]
+   * @param {object} [opts]
+   * @param {string} [opts.label]
+   * @param {string} [opts.optionClass]
+   * @param {string} [opts.optionsClass]
    */
-  const choose = async (options, label) => {
+  const choose = async (options, opts = {}) => {
+    const {
+      label = undefined,
+      optionClass = undefined,
+      optionsClass = undefined,
+    } = opts;
+
     driver.cancel();
 
     const values = Object.keys(options);
@@ -420,13 +429,16 @@ const main = async () => {
     document.body.appendChild(menuElement);
 
     const choiceElement = document.createElement('div');
-    choiceElement.className = 'choice';
+    if (optionsClass !== undefined) {
+      choiceElement.classList.add(optionsClass);
+    }
+    choiceElement.classList.add('choice');
     menuElement.appendChild(choiceElement);
 
     let labelOffset = 0;
     if (label !== undefined) {
       const labelElement = document.createElement('div');
-      labelElement.innerText = label;
+      labelElement.innerHTML = label;
       labelElement.className = 'label';
       choiceElement.appendChild(labelElement);
       labelOffset = 1;
@@ -440,8 +452,11 @@ const main = async () => {
     const optionElements = [];
     for (const [value, label] of Object.entries(options)) {
       const optionElement = document.createElement('div');
-      optionElement.className = 'option';
-      optionElement.innerText = label;
+      if (optionClass !== undefined) {
+        optionElement.classList.add(optionClass);
+      }
+      optionElement.classList.add('option');
+      optionElement.innerHTML = label;
       optionElement.dataset.value = value;
       optionElement.style.setProperty('--index', `${index + labelOffset}`);
       choiceElement.appendChild(optionElement);

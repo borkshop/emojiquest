@@ -41,7 +41,7 @@ export const makeEditorModes = ({ choose, input, logHTML }) => {
    * @param {string} [label]
    */
   const chooseColor = async function* (colorPalette, label) {
-    return await choose(Object.fromEntries(colorMenu(colorPalette)), label);
+    return await choose(Object.fromEntries(colorMenu(colorPalette)), { label });
   };
 
   /**
@@ -75,7 +75,9 @@ export const makeEditorModes = ({ choose, input, logHTML }) => {
         torus: '🍩 Torus',
         daia: '🎲 Daia',
       },
-      label,
+      {
+        label,
+      },
     );
 
     const colorPalette = meta.colors;
@@ -364,7 +366,7 @@ export const makeEditorModes = ({ choose, input, logHTML }) => {
       new: '🆕 New',
       ...Object.fromEntries(colorMenu(oldMeta.colors)),
     };
-    const choice = await choose(options, '🎨 Colors');
+    const choice = await choose(options, { label: '🎨 Colors' });
     if (choice === 'new') {
       return yield* addColor(oldMeta, oldSnapshot);
     } else {

@@ -62,7 +62,10 @@ import { makeEditorModes } from './editor.js';
 /**
  * @callback ChooseFn
  * @param {Record<string, any>} options
- * @param {string} [label]
+ * @param {object} [opts]
+ * @param {string} [opts.label]
+ * @param {string} [opts.optionClass]
+ * @param {string} [opts.optionsClass]
  * @returns {Promise<any | undefined>}
  */
 
@@ -92,7 +95,8 @@ import { makeEditorModes } from './editor.js';
  * @callback SaveWorldFn
  * @param {import('./schema-types.js').WorldMetaDescription} meta
  * @param {import('./types.js').Snapshot} snapshot
- * @param {number | undefined} [slot]
+ * @param {number | undefined} slot
+ * @param {string} label
  * @returns {AsyncIteration<undefined, undefined | number>}
  */
 
