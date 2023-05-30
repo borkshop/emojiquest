@@ -239,7 +239,9 @@ const main = async () => {
     if (window.localStorage !== undefined) {
       for (let index = 0; index < 4; index += 1) {
         const name = `${index + 1}`;
-        options[name] = `🎰 ${(index % 10) + 1}\ufe0f\u20e3`;
+        const labelKey = `emojiquest:slot-label:${index}`;
+        const label = window.localStorage[labelKey] ?? '🫙 Empty<br>☆☆☆☆☆☆';
+        options[name] = `🎰 ${(index % 10) + 1}\ufe0f\u20e3 ${label}`;
       }
     }
     if (window.showOpenFilePicker !== undefined) {
@@ -256,7 +258,9 @@ const main = async () => {
         const name = `${index + 1}`;
         const key = `emojiquest:slot:${index}`;
         if (Object.prototype.hasOwnProperty.call(window.localStorage, key)) {
-          options[name] = `🎰${(index % 10) + 1}\ufe0f\u20e3`;
+          const labelKey = `emojiquest:slot-label:${index}`;
+          const label = window.localStorage[labelKey] ?? '';
+          options[name] = `🎰${(index % 10) + 1}\ufe0f\u20e3 ${label}`;
         }
       }
     }
@@ -275,7 +279,9 @@ const main = async () => {
 
     /** @type {Record<string, string>} */
     const options = loadSlotOptions();
-    const choice = await choose(options);
+    const choice = await choose(options, {
+      optionClass: 'halfOption',
+    });
 
     if (choice === undefined) {
       return undefined;
@@ -291,11 +297,13 @@ const main = async () => {
    * @param {import('./schema-types.js').WorldMetaDescription} meta
    * @param {import('./types.js').Snapshot} snapshot
    * @param {number} slot
+   * @param {string} label
    */
-  async function saveWorldSlot(meta, snapshot, slot) {
+  async function saveWorldSlot(meta, snapshot, slot, label) {
     const json = format(meta, snapshot);
     const text = `${JSON.stringify(json)}\n`;
     localStorage.setItem(`emojiquest:slot:${slot}`, text);
+    localStorage.setItem(`emojiquest:slot-label:${slot}`, label);
   }
 
   /**
@@ -371,12 +379,15 @@ const main = async () => {
   /**
    * @param {import('./schema-types.js').WorldMetaDescription} meta
    * @param {import('./types.js').Snapshot} snapshot
-   * @param {number} [slot]
+   * @param {number | undefined} slot
+   * @param {string} label
    * @return {AsyncGenerator<undefined, number | undefined>}
    */
-  async function* saveWorld(meta, snapshot, slot) {
+  async function* saveWorld(meta, snapshot, slot, label) {
     const options = saveSlotOptions();
-    const choice = await choose(options);
+    const choice = await choose(options, {
+      optionClass: 'halfOption',
+    });
     if (choice === undefined) {
       return slot;
     }
@@ -385,7 +396,7 @@ const main = async () => {
       return undefined;
     }
     slot = +choice - 1;
-    await saveWorldSlot(meta, snapshot, slot);
+    await saveWorldSlot(meta, snapshot, slot, label);
     return undefined;
   }
 

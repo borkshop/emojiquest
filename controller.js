@@ -516,7 +516,7 @@ export const makeController = ({
       // tileTypeForEffectType,
       // craft,
       // bump,
-      // viewText,
+      viewText,
     } = mechanics;
     const { marks = new Map() } = meta;
 
@@ -1429,7 +1429,17 @@ export const makeController = ({
             marks,
           };
           const snapshot = capture(player);
-          slot = yield* saveWorld(newMeta, snapshot, slot);
+          const date = new Date();
+          const formatter = new Intl.DateTimeFormat(undefined, {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+          });
+          const label = `${formatter.format(date)}`;
+          slot = yield* saveWorld(newMeta, snapshot, slot, label);
           return editMode;
         } else if (choice === 'new') {
           const newMeta = yield* designNewWorld(meta);
@@ -1879,7 +1889,28 @@ export const makeController = ({
           marks,
         };
         const snapshot = capture(player);
-        slot = yield* saveWorld(newMeta, snapshot, slot);
+        const date = new Date();
+        const formatter = new Intl.DateTimeFormat(undefined, {
+          month: 'long',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+        });
+        const statusText =
+          player !== undefined
+            ? viewText[worldModel.entityTileType(player)]
+            : '';
+        const healthText =
+          player !== undefined
+            ? Array.from(
+                { length: worldModel.entityHealth(player) },
+                _ => '❤️',
+              ).join('')
+            : '';
+        const label = `${statusText} ${healthText}<br>${formatter.format(
+          date,
+        )}`;
+        slot = yield* saveWorld(newMeta, snapshot, slot, label);
 
         // Plan new animation turn.
         yield undefined;

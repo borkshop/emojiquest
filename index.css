@@ -318,6 +318,8 @@ input[type='color'] {
 .choice {
   position: relative;
   display: block;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .label {
@@ -335,6 +337,11 @@ input[type='color'] {
   top: calc(var(--tileSizePx) * var(--index) * 1px);
   padding-left: calc(var(--tileSizePx) * 1px);
   white-space: nowrap;
+}
+
+.halfOption {
+  font-size: calc(var(--tileSizePx) * 0.35px);
+  font-family: Arial Narrow;
 }
 
 .cursor {

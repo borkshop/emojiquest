@@ -77,6 +77,7 @@ export type ModelReadFacet = {
   entityType: (entity: number) => number;
   entityHealth: (entity: number) => number;
   entityStamina: (entity: number) => number;
+  entityTileType: (entity: number) => number;
   intendToMove: (entity: number, direction: number, repeat?: boolean) => void;
   intendToCraft: (entity: number) => void;
   swap: (entity: number, i: number, j: number) => void;

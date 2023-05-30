@@ -346,6 +346,12 @@ export function makeModel({
   }
 
   /**
+   * @param {number} entity - entity
+   * @returns {number} tile type
+   */
+  const entityTileType = entity => tileTypeForAgent(entity, kit);
+
+  /**
    * @param {number} e - entity
    * @returns {number} t - tile
    */
@@ -1575,6 +1581,7 @@ export function makeModel({
     entityTypeAt,
     entityStamina,
     entityHealth,
+    entityTileType,
     setHealth, // for tests only
     setStamina, // for tests only
     setEntityTargetEntity,
