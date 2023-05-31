@@ -274,14 +274,11 @@ const main = async () => {
    * @param {number} [slot]
    */
   async function* loadWorld(slot) {
-    if (slot !== undefined) {
-      return await loadWorldSlot(slot);
-    }
-
     /** @type {Record<string, string>} */
     const options = loadSlotOptions();
     const choice = await choose(options, {
       optionClass: 'halfOption',
+      initial: slot !== undefined ? `${slot + 1}` : undefined,
     });
 
     if (choice === undefined) {
@@ -397,6 +394,7 @@ const main = async () => {
   async function* saveWorld(meta, snapshot, slot, label) {
     const options = saveSlotOptions();
     const choice = await choose(options, {
+      initial: slot !== undefined ? `${slot + 1}` : undefined,
       optionClass: 'halfOption',
     });
     if (choice === undefined) {
@@ -424,12 +422,14 @@ const main = async () => {
    * @param {Record<string, string>} options
    * @param {object} [opts]
    * @param {string} [opts.label]
+   * @param {string} [opts.initial]
    * @param {string} [opts.optionClass]
    * @param {string} [opts.optionsClass]
    */
   const choose = async (options, opts = {}) => {
     const {
       label = undefined,
+      initial = undefined,
       optionClass = undefined,
       optionsClass = undefined,
     } = opts;
@@ -466,6 +466,7 @@ const main = async () => {
       labelOffset = 1;
     }
 
+    let initialIndex = 0;
     let index = 0;
     let match = '';
     /** @type {Array<string>} */
@@ -473,6 +474,9 @@ const main = async () => {
     /** @type {Array<Element>} */
     const optionElements = [];
     for (const [value, label] of Object.entries(options)) {
+      if (value === initial) {
+        initialIndex = index;
+      }
       const optionElement = document.createElement('div');
       if (optionClass !== undefined) {
         optionElement.classList.add(optionClass);
@@ -520,6 +524,8 @@ const main = async () => {
         });
       }
     };
+
+    scrollTo(initialIndex);
 
     /** @param {KeyboardEvent} event */
     const onKeyDown = event => {

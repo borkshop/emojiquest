@@ -104,6 +104,7 @@ import { makeEditorModes } from './editor.js';
  * @callback AutoSaveWorldFn
  * @param {import('./schema-types.js').WorldMetaDescription} meta
  * @param {import('./types.js').Snapshot} snapshot
+ * @param {number | undefined} slot
  */
 
 /**
@@ -773,8 +774,8 @@ export const makeController = ({
         },
         idle() {
           const snapshot = capture(player);
-          autoSaveWorld(meta, snapshot);
-        }
+          autoSaveWorld(meta, snapshot, slot);
+        },
       };
 
       /**
@@ -1384,6 +1385,10 @@ export const makeController = ({
           }
           return false;
         },
+        idle() {
+          const snapshot = capture(player);
+          autoSaveWorld(meta, snapshot, slot);
+        },
       };
 
       /**
@@ -1429,7 +1434,7 @@ export const makeController = ({
           const handoff = {};
           exitEditMode(handoff);
 
-          const result = yield* loadWorld();
+          const result = yield* loadWorld(slot);
 
           // Plan new animation turn
           yield undefined;
@@ -1455,7 +1460,8 @@ export const makeController = ({
             hour: 'numeric',
             minute: 'numeric',
           });
-          const label = `${formatter.format(date)}`;
+          // TODO player status and location as elsewhere
+          const label = `<br>${formatter.format(date)}`;
           slot = yield* saveWorld(newMeta, snapshot, slot, label);
           return editMode;
         } else if (choice === 'new') {
@@ -1822,10 +1828,7 @@ export const makeController = ({
       if (player !== undefined) {
         options.play = '🎭 Play   '; // 🪁 ▶️
       }
-      if (slot !== undefined) {
-        options.back = '🔙 Back';
-      }
-      options.start = '🎬 Start';
+      options.new = '🎬 New';
       options.edit = '✏️  Edit'; // 🚧
       options.save = '🛟  Save  '; //  🏦
       options.load = '🛻  Load'; // 🚜 🏗
@@ -1840,28 +1843,7 @@ export const makeController = ({
 
       if (choice === 'edit') {
         return enterEditMode(position, player, {}, slot);
-      } else if (choice === 'back') {
-        const result = yield* loadWorld(slot);
-
-        // Plan new animation turn.
-        yield undefined;
-
-        if (result === undefined) {
-          assertDefined(player);
-          return enterPlayMode(player, {}, slot);
-        }
-
-        const {
-          world: newWorld,
-          mechanics: newMechanics,
-          player: newPlayer,
-          meta: newMeta,
-          slot: newSlot,
-        } = result;
-        return enterWorld(newWorld, newMechanics, newPlayer, newMeta, {
-          slot: newSlot,
-        });
-      } else if (choice === 'start') {
+      } else if (choice === 'new') {
         const result = await createWorld();
 
         // Plan new animation turn.
@@ -1880,7 +1862,7 @@ export const makeController = ({
         } = result;
         return enterWorld(newWorld, newMechanics, newPlayer, newMeta);
       } else if (choice === 'load') {
-        const result = yield* loadWorld();
+        const result = yield* loadWorld(slot);
 
         // Plan new animation turn.
         yield undefined;
