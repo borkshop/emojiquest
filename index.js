@@ -27,6 +27,7 @@ import { makeWorld } from './world.js';
 import { validate, format } from './file.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
+const autoSaveKey = 'emojiquest:autosave';
 
 /** @typedef {import('./animation2d.js').Coord} Coord */
 
@@ -299,11 +300,21 @@ const main = async () => {
    * @param {number} slot
    * @param {string} label
    */
-  async function saveWorldSlot(meta, snapshot, slot, label) {
+  function saveWorldSlot(meta, snapshot, slot, label) {
     const json = format(meta, snapshot);
     const text = `${JSON.stringify(json)}\n`;
     localStorage.setItem(`emojiquest:slot:${slot}`, text);
     localStorage.setItem(`emojiquest:slot-label:${slot}`, label);
+  }
+
+  /**
+   * @param {import('./schema-types.js').WorldMetaDescription} meta
+   * @param {import('./types.js').Snapshot} snapshot
+   */
+  function autoSaveWorld(meta, snapshot) {
+    const json = format(meta, snapshot);
+    const text = `${JSON.stringify(json)}\n`;
+    localStorage.setItem(autoSaveKey, text);
   }
 
   /**
@@ -396,8 +407,8 @@ const main = async () => {
       return undefined;
     }
     slot = +choice - 1;
-    await saveWorldSlot(meta, snapshot, slot, label);
-    return undefined;
+    saveWorldSlot(meta, snapshot, slot, label);
+    return slot;
   }
 
   async function createWorld() {
@@ -650,6 +661,7 @@ const main = async () => {
     followCursor,
     loadWorld,
     saveWorld,
+    autoSaveWorld,
     playWorld,
     createWorld,
     choose,
@@ -680,7 +692,14 @@ const main = async () => {
     false,
   );
 
-  const { world, mechanics, player, meta } = assumeDefined(await createWorld());
+  const playable = assumeDefined(
+    Object.prototype.hasOwnProperty.call(window.localStorage, autoSaveKey)
+      ? playAllegedWorldDescription(
+          JSON.parse(assumeDefined(window.localStorage.getItem(autoSaveKey))),
+        )
+      : await createWorld(),
+  );
+  const { world, mechanics, player, meta } = playable;
   controller.play(world, mechanics, player, meta);
 };
 

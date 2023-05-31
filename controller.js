@@ -101,6 +101,12 @@ import { makeEditorModes } from './editor.js';
  */
 
 /**
+ * @callback AutoSaveWorldFn
+ * @param {import('./schema-types.js').WorldMetaDescription} meta
+ * @param {import('./types.js').Snapshot} snapshot
+ */
+
+/**
  * @callback PlayWorldFn
  * @param {import('./schema-types.js').WorldMetaDescription} meta
  * @param {import('./types.js').Snapshot | undefined} snapshot
@@ -249,6 +255,10 @@ const noop = () => {};
  */
 
 /**
+ * @callback IdleFn
+ */
+
+/**
  * @typedef {object} Mode
  * @prop {string} name
  * @prop {HandleModeCommandFn} handleCommand
@@ -259,6 +269,7 @@ const noop = () => {};
  * @prop {CraftFn} [craft]
  * @prop {InventoryFn} [inventory]
  * @prop {PlayFn} [play]
+ * @prop {IdleFn} [idle]
  */
 
 const leftHandInventoryIndex = 0;
@@ -383,6 +394,7 @@ export const builtinTileNames = Object.keys(builtinTileTypesByName);
  * @param {LoadWorldFn} args.loadWorld
  * @param {CreateWorldFn} args.createWorld
  * @param {SaveWorldFn} args.saveWorld
+ * @param {AutoSaveWorldFn} args.autoSaveWorld
  * @param {PlayWorldFn} args.playWorld
  * @param {FollowCursorFn} args.followCursor
  * @param {ChooseFn} args.choose
@@ -398,6 +410,7 @@ export const makeController = ({
   followCursor,
   loadWorld,
   saveWorld,
+  autoSaveWorld,
   playWorld,
   createWorld,
   choose,
@@ -758,6 +771,10 @@ export const makeController = ({
             restorePack();
           }
         },
+        idle() {
+          const snapshot = capture(player);
+          autoSaveWorld(meta, snapshot);
+        }
       };
 
       /**
@@ -2198,6 +2215,12 @@ export const makeController = ({
     }
   };
 
+  const idle = () => {
+    if (mode.idle) {
+      mode.idle();
+    }
+  };
+
   const modeName = () => {
     return mode.name;
   };
@@ -2232,6 +2255,7 @@ export const makeController = ({
     tock,
     animate,
     down,
+    idle,
     handleMiscKeyPress,
     handleCommand,
     commandForDirection,

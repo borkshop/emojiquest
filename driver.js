@@ -61,6 +61,7 @@ import { fullQuarturn } from './lib/geometry2d.js';
  * @property {(progress: Progress) => void} animate
  * @property {(direction: number) => number} commandForDirection
  * @property {(command: number) => number | undefined} directionForCommand
+ * @property {() => void} idle
  */
 
 /**
@@ -112,7 +113,7 @@ export const makeDriver = (controller, options) => {
       const turnCompleted = turnGenerator.next();
       controller.tick();
 
-      await Promise.race([abort.promise, delay(animatedTransitionDuration)]);
+      await delay(animatedTransitionDuration, abort.promise);
 
       const { done } = await turnCompleted;
       if (done) {
@@ -164,6 +165,8 @@ export const makeDriver = (controller, options) => {
           await issue(command, true);
         }
       }
+
+      controller.idle();
     }
   }
 
