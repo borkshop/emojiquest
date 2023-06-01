@@ -102,7 +102,6 @@ const main = async () => {
   const playElement = document.createElement('div');
   playElement.className = 'play';
   bodyElement.insertBefore(playElement, null);
-  const lastPlayChild = null;
 
   const scrimElement = document.createElement('div');
   scrimElement.className = 'scrim';
@@ -112,11 +111,11 @@ const main = async () => {
   documentElement.style.setProperty('--tileSizePx', `${tileSizePx}`);
 
   const $mapAnchor = document.createTextNode('');
-  playElement.insertBefore($mapAnchor, lastPlayChild);
+  playElement.insertBefore($mapAnchor, null);
 
   const { element: $dialogBox, controller: dialogController } =
     createDialogBox();
-  playElement.insertBefore($dialogBox, lastPlayChild);
+  playElement.insertBefore($dialogBox, null);
 
   const { element: $staminaBar, controller: staminaController } =
     writeStaminaBar({
@@ -124,22 +123,22 @@ const main = async () => {
       staminaTileType: builtinTileTypesByName.stamina,
       createElement: createEntity,
     });
-  playElement.insertBefore($staminaBar, lastPlayChild);
+  playElement.insertBefore($staminaBar, null);
 
   const { element: $healthBar, controller: healthController } = writeHealthBar({
     tileSizePx,
     healthTileType: builtinTileTypesByName.health,
     createElement: createEntity,
   });
-  playElement.insertBefore($healthBar, lastPlayChild);
+  playElement.insertBefore($healthBar, null);
 
   const { $element: $controls, controller: controlsController } =
     createControls({ tileSizePx });
-  playElement.insertBefore($controls, lastPlayChild);
+  playElement.insertBefore($controls, null);
 
   const { $element: $hamburger, controller: hamburgerController } =
     createHamburger({ tileSizePx });
-  playElement.insertBefore($hamburger, lastPlayChild);
+  playElement.insertBefore($hamburger, null);
 
   /**
    * The moment preserves the intended heading of the player agent if they
@@ -450,6 +449,11 @@ const main = async () => {
     menuElement.className = 'menu';
     document.body.appendChild(menuElement);
 
+    const cancelElement = document.createElement('div');
+    cancelElement.innerText = '🚫';
+    cancelElement.className = 'cancel';
+    document.body.appendChild(cancelElement);
+
     const choiceElement = document.createElement('div');
     if (optionsClass !== undefined) {
       choiceElement.classList.add(optionsClass);
@@ -570,15 +574,22 @@ const main = async () => {
       event.preventDefault();
     };
 
+    const onCancel = () => {
+      resolve(undefined);
+    };
+
     window.addEventListener('keydown', onKeyDown);
     choiceElement.addEventListener('click', onClick);
+    cancelElement.addEventListener('click', onCancel);
 
     const choice = await promise;
 
     window.removeEventListener('keydown', onKeyDown);
     choiceElement.removeEventListener('click', onClick);
+    cancelElement.removeEventListener('click', onCancel);
 
     menuElement.remove();
+    cancelElement.remove();
     scrimElement.style.display = 'none';
     controlsController.show();
     hamburgerController.show();
@@ -616,6 +627,11 @@ const main = async () => {
     inputElement.type = type;
     menuElement.appendChild(inputElement);
 
+    const cancelElement = document.createElement('div');
+    cancelElement.innerText = '🚫';
+    cancelElement.className = 'cancel';
+    document.body.appendChild(cancelElement);
+
     /** @type {(value: string | undefined) => void} */
     let resolve;
     /** @type {Promise<string | undefined>} */
@@ -635,16 +651,24 @@ const main = async () => {
       }
     };
 
+    const onCancel = () => {
+      resolve(undefined);
+    };
+
     inputElement.addEventListener('change', onChange);
     inputElement.addEventListener('keyup', onKeyup);
+    cancelElement.addEventListener('click', onCancel);
+
     inputElement.select();
 
     await promise;
 
     inputElement.removeEventListener('change', onChange);
     inputElement.removeEventListener('keyup', onKeyup);
+    cancelElement.removeEventListener('click', onCancel);
 
     menuElement.remove();
+    cancelElement.remove();
     scrimElement.style.display = 'none';
     controlsController.show();
     hamburgerController.show();
