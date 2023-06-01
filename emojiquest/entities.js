@@ -507,4 +507,30 @@ export const agentTypes = [
     tile: 'northPole',
     dialog: ['🎅🤶	Welcome back!'],
   },
+  {
+    name: 'construction',
+    tile: 'warning',
+    dialog: [
+      '🚧 Under Construction…',
+      '🚧 New attractions…',
+      '🚧 Coming Soon.🔚',
+    ],
+  },
+  {
+    name: 'sal',
+    tile: 'lizard',
+    dialog: [
+      '🦎 Greetings, character…',
+      '🦎 I am <b>Sal Mander</b>…',
+      '🦎 The <i>Toadally Newtral</i>…',
+      '🦎 I was once a <b>🐉 Dragon</b>…',
+      '🦎 But that is not important right now!…',
+      '🦎 Allow me to introduce our <b>🧙‍♂️ Developer</b>,',
+      '🧙‍♂️ Hello, you have reached the end…',
+      '🧙‍♂️ Of this developer preview…',
+      '🧙‍♂️ Thank you for playing…',
+      '🧙‍♂️ And please,',
+      '🧙‍♂️ <b>🚮 leave feedback</b>!🔚',
+    ],
+  },
 ];

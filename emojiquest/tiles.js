@@ -151,4 +151,5 @@ export const tileTypes = [
   { name: 'yam', text: '🍠' },
   { name: 'carrot', text: '🥕' },
   { name: 'gene', text: '🧑‍🌾' },
+  { name: 'lizard', text: '🦎 ' },
 ];
