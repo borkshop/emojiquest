@@ -527,7 +527,7 @@ export const agentTypes = [
       '🦎 But that is not important right now!…',
       '🦎 Allow me to introduce our <b>🧙‍♂️ Developer</b>,',
       '🧙‍♂️ Hello, you have reached the end…',
-      '🧙‍♂️ Of this developer preview…',
+      '🧙‍♂️ Of this preview…',
       '🧙‍♂️ Thank you for playing…',
       '🧙‍♂️ And please,',
       '🧙‍♂️ <b>🚮 leave feedback</b>!🔚',
