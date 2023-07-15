@@ -264,7 +264,7 @@ export const agentTypes = [
       '🦈 I am a <b>loan shark</b>…',
       '🦈 I won’t bite…',
       '🦈 But, I will exchange <b>🥉🥈🥇 precious</b> <b>medals</b>…',
-      '🦈 MARIA DIEI:<br> Seas the day! 🔚',
+      '🦈 Seas the day! 🔚',
     ],
   },
   {
