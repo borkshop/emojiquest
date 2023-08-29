@@ -21,11 +21,11 @@ Labyrinth][bork], a [weird color picker][color], an [Elvish][elvish]
 transcriber, an Elvish interactive [Map of Middle-Earth][elfmap], and some
 [influential][q] JavaScript [stuff][commonjs].[^puns]
 
-* 🕷 [Web Home][web]
-* 🧸 [Play][web]
-* 🎮 [Discord][discord]
-* 📈 [Spreadsheets][spreadsheets]
-* 🧛‍♂️ [Patreon][patreon]
+- 🕷 [Web Home][web]
+- 🧸 [Play][web]
+- 🎮 [Discord][discord]
+- 📈 [Spreadsheets][spreadsheets]
+- 🧛‍♂️ [Patreon][patreon]
 
 By way of historical note, we [previously attempted to build <nobr>Emoji
 Quest</nobr>][lobsterquest] in a graphics programming language called
@@ -42,7 +42,6 @@ Quest</nobr>][lobsterquest] in a graphics programming language called
 [commonjs]: http://wiki.commonjs.org/wiki/Modules/1.1
 [lobsterquest]: https://github.com/borkshop/lobsterquest
 [lobster]: http://strlen.com/lobster/
-
 [discord]: https://discordapp.com/channels/692076552514699426/692076553017884723
 [spreadsheets]: https://docs.google.com/spreadsheets/d/1U8JJM-g7Br0ePrjH7kg7tJ3N2eb0Mab2y5GDiJo1Tx8/edit#gid=97282066
 [web]: https://github.com/borkshop/emojiquest.app
