@@ -631,6 +631,6 @@ export const actions = [
     items: [],
     verb: 'touch',
     dialog:
-      '🐝 Take the <b>☔️ wand of wind and water</b> <b>💈 north</b> to the <b>🎅 moji 🤶</b>.',
+      '🐝 Take the <b>☔️ wand of wind</b> </b>and water</b> <b>💈 north</b> to the <b>🎅 moji 🤶</b>.',
   },
 ];
