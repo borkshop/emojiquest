@@ -572,7 +572,7 @@ export const agentTypes = [
       '🧑‍🌾 But if you need to dig up some <b>🦴 bones</b>…',
       '🧑‍🌾 A <b>🥄 spoon</b> will do in a pinch.',
       '🧑‍🌾 To make your own…',
-      '🧑‍🌾 Weld a <b>🔩 bolt</b> over a <b>⚙️< gear</b>.🔚',
+      '🧑‍🌾 Weld a <b>🔩 bolt</b> over a <b>⚙️ gear</b>.🔚',
     ],
   },
   {
