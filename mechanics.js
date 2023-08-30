@@ -327,18 +327,28 @@ export function makeMechanics({
     const specificAgentEffectType = kit.entityEffect(parameters.agent);
     const specificLeftType = kit.inventory(parameters.agent, 0);
     const specificRightType = kit.inventory(parameters.agent, 1);
-    for (const agentType of [specificAgentType, agentTypesByName.any]) {
-      for (const patientType of [specificPatientType, agentTypesByName.any]) {
+
+    const agentTypes = [specificAgentType];
+    if (specificAgentType !== agentTypesByName.empty) {
+      agentTypes.push(agentTypesByName.any);
+    }
+    for (const agentType of agentTypes) {
+      const patientTypes = [specificPatientType];
+      if (specificPatientType !== agentTypesByName.empty) {
+        patientTypes.push(agentTypesByName.any);
+      }
+      for (const patientType of patientTypes) {
         for (const effectType of [
           specificAgentEffectType,
           effectTypesByName.any,
         ]) {
-          for (const [leftType, rightType] of [
+          const combinations = [
             [specificLeftType, specificRightType],
             [specificLeftType, itemTypesByName.any],
             [itemTypesByName.any, specificRightType],
             [itemTypesByName.any, itemTypesByName.any],
-          ]) {
+          ];
+          for (const [leftType, rightType] of combinations) {
             let match = bumpCombination({
               agentType,
               patientType,
