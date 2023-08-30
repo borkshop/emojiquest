@@ -40,7 +40,7 @@ function* nightShadeRecipes() {
 export const recipes = [
   // metallurgy 1
   { agent: 'bolt', reagent: 'bolt', product: 'knife', price: 4 },
-  { agent: 'bolt', reagent: 'gear', product: 'spoon', price: 5 },
+  { agent: 'bolt', reagent: 'gear', product: 'spoon', price: 5 }, // Clue: cow, tractor
   { agent: 'bolt', reagent: 'link', product: 'wrench', price: 3 },
   { agent: 'gear', reagent: 'bolt', product: 'pick', price: 5 },
   { agent: 'gear', reagent: 'gear', product: 'bicycle', price: 6 },

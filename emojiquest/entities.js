@@ -82,7 +82,7 @@ export const agentTypes = [
       // '🔗 / 🔗 🔜 ⛓ ',
       // '🔩 / 🔗 🔜 🔧 ',
       // '⚙️ /  🔗 🔜 🛡 ',
-      // '⚙️  / 🔗 🔜 🪝 ', // Pirate clues this
+      // '⚙️  / 🔗 🔜 🪝 ', // Skeleton clues this
       // '⚙️  / 🔩 🔜 ⛏ ',
       // '⚙️  / ⚙️  🔜 🚲 ',
       // '🔩 / 🔪 🔜 🗡 ',
@@ -219,6 +219,7 @@ export const agentTypes = [
       '<b>🐧 The</b> <b>Management</b>',
     ],
   },
+
   {
     name: 'bee',
     dialog: [
@@ -244,11 +245,11 @@ export const agentTypes = [
   },
   {
     name: 'palmTree',
-    dialog: ['🌴 This is bananas.', '🌴 Wanna date?'],
+    dialog: ['🌴 Wanna date?'],
   },
   {
     name: 'palmIsland',
-    dialog: ['🏝 This is bananas.', '🏝 Wanna date?'],
+    dialog: ['🏝 Wanna date?'],
   },
   {
     name: 'sponge',
@@ -355,14 +356,14 @@ export const agentTypes = [
     ],
   },
   {
-    name: 'pirate',
+    name: 'skeleton',
     dialog: [
       '🏴‍☠️ For ye a pirate to be…',
       '🏴‍☠️ A patch for an eye,',
       '🏴‍☠️ A peg for a leg,',
       '🏴‍☠️ And a handy <b>🪝 hook</b> you’ll need…',
       '🏴‍☠️ So craft a <b>🔗 link</b>…',
-      '🏴‍☠️ O’er the work of <b>🥇 treasure</b>…',
+      '🏴‍☠️ O’er a <b>🥇 treasure</b> worked at a <b>🏭 forge</b>…',
       '🏴‍☠️ And high seas shall be y’r pleasure.🔚',
     ],
   },
@@ -372,8 +373,8 @@ export const agentTypes = [
       '🐡 Puff puff puff puff…',
       '🐡 If my size does not dissuade you…',
       '🐡 And my spikes do fail to argue…',
-      '🐡 Still, beware the poison inside…',
-      '🐡 It’s more toxic than cyanide.🔚',
+      '🐡 Still, beware the juice inside…',
+      '🐡 ’Tis more powerful than cyanide.🔚',
     ],
   },
   {
@@ -397,7 +398,7 @@ export const agentTypes = [
   },
   {
     name: 'panda',
-    dialog: ['🐼 I’m the coolest bear evar.🔚'],
+    dialog: ['🐼 I’m the <i>coolest</i> bear evar.🔚'],
   },
   {
     name: 'gift2',
@@ -531,6 +532,54 @@ export const agentTypes = [
       '🧙‍♂️ Thank you for playing…',
       '🧙‍♂️ And please,',
       '🧙‍♂️ <b>🚮 leave feedback</b>!🔚',
+    ],
+  },
+  {
+    name: 'elfis',
+    tile: 'theyElf',
+    dialog: [
+      '🧝 Well met, Stranger!…',
+      '🧝 I travel on an errand of the <b>🎅 elflord</b> and <b>🤶 elflady</b>…',
+      '🧝 I seek to skewer the <b>🐡 inflatable fish</b> with a <b>🦯 cane</b>…',
+      '🧝 Yet my boat…melted, so I seem fatèd to remain here forever.🔚',
+    ],
+  },
+  {
+    name: 'heFairy',
+    dialog: [
+      '🧚‍♂️ Of the five <i>⚄ Isles of Occia</i>…',
+      '🧚‍♂️ A <b>🐡 puffer</b> can best be found…',
+      '🧚‍♂️ In the north by west.🔚',
+    ],
+  },
+  {
+    name: 'sheFairy',
+    dialog: [
+      '🧚‍♀️ All about <i>Occia</i>, you will find…',
+      '🧚‍♀️ <b>🎋 cane</b> grows along the shores…',
+      '🧚‍♀️ For the most helpful <i>staff</i>…',
+      '🧚‍♀️ <i>Reed</i> my lips:',
+      '🧚‍♀️ Sugar cane is <i>especially sticky</i>.🔚',
+    ],
+  },
+  {
+    name: 'tractor',
+    dialog: [
+      '🧑‍🌾 There is no such thing as a shovel…',
+      '🧑‍🌾 But if you need to dig up some <b>🦴 bones</b>…',
+      '🧑‍🌾 A <b>🥄 spoon</b> will do in a pinch.',
+      '🧑‍🌾 To make your own…',
+      '🧑‍🌾 Weld a <b>🔩 bolt</b> over a <b>⚙️< gear</b>.🔚',
+    ],
+  },
+  {
+    name: 'trollHut',
+    tile: 'hut',
+    dialog: [
+      '🧌 Surely you must admire…',
+      '🧌 The <b>🐄 cow’s</b> white coat…',
+      '🧌 I must wonder…',
+      '🧌 Can they be shorn like <b>🐑 sheep</b>?🔚',
     ],
   },
 ];

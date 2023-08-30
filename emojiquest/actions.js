@@ -28,8 +28,6 @@ export const actions = [
     verb: 'cut',
     dialog: '🎁 It is dangerous to go alone. Take this!',
   },
-
-  // raw material
   {
     patient: 'axe',
     verb: 'take',
@@ -62,6 +60,8 @@ export const actions = [
     items: ['pick'],
     dialog: '⛏ Got pick?',
   },
+
+  // Clued by major and miner:
   {
     patient: 'mountain',
     left: 'pick',
@@ -70,6 +70,8 @@ export const actions = [
     items: ['copper'],
     dialog: '⛰⛏🔜🥉 You win copper!',
   },
+
+  // Clued by harriet:
   {
     patient: 'ewe',
     left: 'scissors',
@@ -78,6 +80,18 @@ export const actions = [
     items: ['yarn'],
     dialog: '🐑✂️🔜🧶 Wool becomes ewe?',
   },
+  // Clued by harriet:
+  {
+    patient: 'ram',
+    left: 'scissors',
+    right: 'empty',
+    verb: 'cut',
+    items: ['yarn'],
+    dialog: '🐏✂️🔜🧶 Shear audacity!',
+  },
+
+  // TODO Not in quest line
+  // TODO Not clued
   {
     patient: 'ewe',
     left: 'knife',
@@ -88,20 +102,13 @@ export const actions = [
   },
   {
     patient: 'ram',
-    left: 'scissors',
-    right: 'empty',
-    verb: 'cut',
-    items: ['yarn'],
-    dialog: '🐏✂️🔜🧶 Shear audacity!',
-  },
-  {
-    patient: 'ram',
     left: 'knife',
     right: 'empty',
     verb: 'reap',
     items: ['meat'],
     dialog: '🐏🐑🔪🔜🥩 Meat your maker!',
   },
+
   {
     patient: 'appleTree',
     left: 'empty',
@@ -109,6 +116,9 @@ export const actions = [
     items: ['apple'],
     dialog: '🍎  Apple?',
   },
+
+  // Clue deliberately omitted.
+  // This is a cheat for the captain's stamina quest.
   {
     patient: 'pearTree',
     left: 'empty',
@@ -116,6 +126,7 @@ export const actions = [
     items: ['pear'],
     dialog: '🍐 The fruit of the <b>🌳 world tree</b> comes in pears',
   },
+
   {
     patient: 'pineTree',
     left: 'empty',
@@ -123,22 +134,23 @@ export const actions = [
     items: ['pineApple'],
     dialog: '🍍 Got <i>pine</i> apple. ',
   },
+
   {
     patient: 'palmTree',
     left: 'empty',
     verb: 'pick',
-    items: ['banana'],
-    dialog: '🍌 Got banana.',
+    items: ['date'],
+    dialog: '📆 Got a date.',
   },
   {
     patient: 'palmIsland',
     left: 'empty',
     verb: 'pick',
     items: ['banana'],
-    dialog: '🍌 Got banana.',
+    dialog: '📆 Got a date.',
   },
 
-  // monetary exchange
+  // Monetary exchange
   {
     patient: 'bank',
     left: 'copper',
@@ -242,7 +254,7 @@ export const actions = [
     dialog: '🥇🔜🥈🥉 Divide and conquer.',
   },
 
-  // forgery
+  // Forgery
   {
     patient: 'forge',
     left: 'copper',
@@ -277,7 +289,7 @@ export const actions = [
       'The <b>🥇 gilded</b> <b>☘️ clover</b> makes a <b>🔱 trident</b>, the <b>wand of water</b>!',
   }),
 
-  // recycling
+  // Recycling
   {
     patient: 'recyclingPlant',
     left: 'link',
@@ -394,10 +406,13 @@ export const actions = [
   {
     patient: 'boulder',
     left: 'empty',
+    right: 'empty',
     verb: 'pick',
     items: ['pick'],
     dialog: '⛏ You find a pick under this boulder.',
   },
+
+  // Involved in the quest for the trident and clued by herman.
   {
     patient: 'clover',
     left: 'empty',
@@ -445,6 +460,7 @@ export const actions = [
     jump: 'location',
   },
 
+  // Clued at trollHut:
   {
     patient: 'cow',
     left: 'scissors',
@@ -454,6 +470,10 @@ export const actions = [
     morph: 'bull',
     dialog: '✂️ You take the cow’s <b>🥼 white coat</b>.',
   },
+
+  // Clued by brown bear:
+  // On the minor quest line to restore the polar bear, then panda bear.
+  // Not a mojical quest but hints at the progression.
   {
     patient: 'brownBear',
     left: 'labCoat',
@@ -463,6 +483,7 @@ export const actions = [
     dialog:
       '🐻‍❄️ Thank you for restoring my <b>🥼 cloak</b> <b>of invisibility</b>!',
   },
+
   {
     patient: 'polarBear',
     left: 'nightShades',
@@ -472,6 +493,7 @@ export const actions = [
     dialog: '🐼 Thank you! The <b>❄️ snow</b> is so bright!',
   },
 
+  // Clued by sheFairy, tanabata:
   ...['knife', 'axe', 'scissors', 'dagger'].map(left => ({
     patient: 'tanabata',
     left,
@@ -481,30 +503,16 @@ export const actions = [
     dialog: '🦯 You cut some cane.',
   })),
 
-  // treasure dig
+  // Clued by tractor:
   {
-    patient: 'pirate',
+    patient: 'skeleton',
     left: 'empty',
-    right: 'empty',
+    right: 'spoon',
     verb: 'pick',
-    items: ['bone', 'bone'],
-    morph: 'skull',
+    items: ['bone'],
   },
-  {
-    patient: 'skull',
-    left: 'spoon',
-    right: 'empty',
-    verb: 'cut',
-    items: ['skull'],
-    morph: 'treasure',
-  },
-  ...ambi({
-    patient: 'treasure',
-    left: 'empty',
-    verb: 'take',
-    items: ['gold'],
-  }),
 
+  // Clued by fishingBoat:
   {
     patient: 'blowFish',
     left: 'fishingRod',
@@ -512,6 +520,8 @@ export const actions = [
     verb: 'reap',
     items: ['blowFish'],
   },
+
+  // Clued by herman:
   {
     patient: 'herman',
     left: 'trident',

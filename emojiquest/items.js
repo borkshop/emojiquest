@@ -94,6 +94,7 @@ export const itemTypes = [
     tip: '🩲 Keep on swimming.',
     swimGear: true,
   },
+  // TODO Nothing yet yields a banana.
   {
     name: 'banana',
     tip: '🍌 It’s peanut butter jelly time.',
@@ -102,7 +103,7 @@ export const itemTypes = [
   },
   {
     name: 'date',
-    tip: '📆 Try the figs too.',
+    tip: '📆 Yummy date.',
     comestible: true,
     stamina: 1,
   },
