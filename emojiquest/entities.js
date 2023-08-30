@@ -230,8 +230,11 @@ export const agentTypes = [
       '🐝 I taught <b>mojick spelling</b>…',
       '🐝 I could spell in 𝓬𝓾𝓻𝓼𝓲𝓿𝓮!',
       '🐝 I could spell in 𝓫𝓵𝓮𝓼𝓼𝓲𝓿𝓮!',
+      '🐝 Now for you, Stranger,',
+      '🐝 I review <b>🪄 wands</b>.🔚',
     ],
   },
+
   { name: 'swimBriefs' }, // temporary
   {
     name: 'cow',

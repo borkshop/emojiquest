@@ -606,4 +606,31 @@ export const actions = [
     dialog:
       'You grow a <b>🥕 carrot</b>. What’s it for? Nobody <b>🤥 nose</b>.',
   },
+
+  // Spelling advice with Dumbledore
+  {
+    patient: 'bee',
+    left: 'cane',
+    right: 'any',
+    items: [],
+    verb: 'touch',
+    dialog: '🐝 Is that a <b>🦯 cane</b> or a <b>🐡 puffer skewer</b>?',
+  },
+  {
+    patient: 'bee',
+    left: 'openUmbrella',
+    right: 'any',
+    items: [],
+    verb: 'touch',
+    dialog: '🐝 The <b>🧜‍♂️ merman</b> will recall the <b>☔️ wand of water</b>.',
+  },
+  {
+    patient: 'bee',
+    left: 'wetOpenUmbrella',
+    right: 'any',
+    items: [],
+    verb: 'touch',
+    dialog:
+      '🐝 Take the <b>☔️ wand of wind and water</b> <b>💈 north</b> to the <b>🎅 moji 🤶</b>.',
+  },
 ];
