@@ -48,7 +48,15 @@ export const agentTypes = [
   },
   { name: 'appleTree', dialog: ['🌳 Knock knock?'] },
   { name: 'axe' }, // temporary
-  { name: 'mountain' },
+  {
+    name: 'mountain',
+    dialog: [
+      '⛰ I contain <b>🥉 precious medals</b>…',
+      '⛰ You cannot have them…',
+      '⛰ Because they’re <i>mine</i>…',
+      '⛰ (Unless you’re holding a <b>⛏ pick</b>.)🔚',
+    ],
+  },
   { name: 'pick' }, // temporary
   {
     name: 'bank',
@@ -110,7 +118,6 @@ export const agentTypes = [
       '👸 The <b>🦄 unicorn</b> has not been seen since <b>The Fall</b>…',
       '👸 The <b>🐉 dragon</b> is but a myth.',
       '👸 Will you be the one to restore the mojick of yore?🔚',
-
     ],
   },
   {
@@ -589,6 +596,17 @@ export const agentTypes = [
       '🧌 The <b>🐄 cow’s</b> white coat…',
       '🧌 I must wonder…',
       '🧌 Can they be shorn like <b>🐑 sheep</b>?🔚',
+    ],
+  },
+  {
+    name: 'schoolOfMerging',
+    tile: 'school',
+    dialog: [
+      '🧑‍🏫 Some items can be merged with your bare hands…',
+      '🧑‍🏫 Try making a <i>“pair”</i> of <b>🍎 apples</b>…',
+      '🧑‍🏫 Hold an <b>🍎 apple</b> in your <b>🫲 left</b> hand…',
+      '🧑‍🏫 Hold an <b>🍎 apple</b> in your <b>right🫱</b> hand…',
+      '🧑‍🏫 Select one <b>🍎 apple</b> and then the <b>🍎 other</b>!',
     ],
   },
 ];

@@ -102,7 +102,8 @@ export const recipes = [
     agent: 'cane',
     reagent: 'blowFish',
     product: 'umbrella',
-    dialog: 'You skewer the blowfish, making an <b>🌂 umbrella</b>. It feels like it might be a <b>🪄 wand</b>.',
+    dialog:
+      'You skewer the blowfish, making an <b>🌂 umbrella</b>. It feels like it might be a <b>🪄 wand</b>.',
   },
 
   ...nightShadeRecipes(),

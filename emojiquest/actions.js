@@ -622,7 +622,8 @@ export const actions = [
     right: 'any',
     items: ['openUmbrella'],
     verb: 'exchange',
-    dialog: '🐝 Dumbledore opens your umbrella revealing the <b>☂️ wand<b> <b>of the</b> <b>💨 wind</b>! Go now to <b>👉 Occia</b> for the <b>💦 water blessing</b>…'
+    dialog:
+      '🐝 Dumbledore opens your umbrella revealing the <b>☂️ wand<b> <b>of the</b> <b>💨 wind</b>! Go now to <b>👉 Occia</b> for the <b>💦 water blessing</b>…',
   },
   {
     patient: 'bee',
@@ -630,7 +631,8 @@ export const actions = [
     right: 'any',
     items: [],
     verb: 'touch',
-    dialog: '🐝 The <b>🧜‍♂️ merman</b> will recall the <b>☔️ wand of</b> <b>💨 wind</b> <b>and</b> <b>💦 water</b>.',
+    dialog:
+      '🐝 The <b>🧜‍♂️ merman</b> will recall the <b>☔️ wand of</b> <b>💨 wind</b> <b>and</b> <b>💦 water</b>.',
   },
   {
     patient: 'bee',
@@ -638,7 +640,8 @@ export const actions = [
     right: 'any',
     items: [],
     verb: 'touch',
-    dialog: '🐝 The <b>🔱 wand</b> <b>of water’s</b> provenance lies in <b>👉 Occia</b>. Bear it there and receive it’s blessing on a <b>☂️ wand</b> <b>of the</b> <b>💨 wind</b>!',
+    dialog:
+      '🐝 The <b>🔱 wand</b> <b>of water’s</b> provenance lies in <b>👉 Occia</b>. Bear it there and receive it’s blessing on a <b>☂️ wand</b> <b>of the</b> <b>💨 wind</b>!',
   },
   {
     patient: 'bee',
