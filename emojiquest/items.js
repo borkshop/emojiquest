@@ -108,8 +108,8 @@ export const itemTypes = [
     stamina: 1,
   },
   {
-    name: 'umbrella', // deprecated until further notice
-    tip: '🌂 Harness the <b>💨 mojick</b> <b>of wind!</b>',
+    name: 'umbrella',
+    tip: '🌂 An umbrella that resembles a <b>🪄 wand</b>.',
   },
   { name: 'wood', tile: 'log', tip: '🪵 Wood be nice.' },
   { name: 'labCoat', tip: '🥼 For science or something.', heat: 1 },
@@ -151,4 +151,5 @@ export const itemTypes = [
   },
   { name: 'yam', tip: 'Yam, <b>😞 not a nightshade</b>' },
   { name: 'carrot', tip: '🥕 Is it a carrot? No one <b>nose</b>.' },
+  // { name: 'closedUmbrella', tip: '🌂 If you close your eyes and jump, it could be confused for a wand.' },
 ];

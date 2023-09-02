@@ -108,7 +108,9 @@ export const agentTypes = [
       '👸 The power of <b>mojick</b>—the transmutation of <b>emoji</b>—has faded from the land…',
       '👸 With it, all the <b>mojical creatures</b> have vanished…',
       '👸 The <b>🦄 unicorn</b> has not been seen since <b>The Fall</b>…',
-      '👸 The <b>🐉 dragon</b> is but a myth. 🔚',
+      '👸 The <b>🐉 dragon</b> is but a myth.',
+      '👸 Will you be the one to restore the mojick of yore?🔚',
+
     ],
   },
   {
@@ -124,8 +126,10 @@ export const agentTypes = [
     name: 'captain',
     dialog: [
       '💂‍♂️ Hark! I’m the <b>Captain of the Guard</b>…',
-      '💂‍♂️ In the forest to the <b>👈 west</b>, there is a <b>🌳 tree</b> that is quite unlike the others…',
-      '💂‍♂️ Soldiers use its 🍐<b>fruit</b> to improve their <b>💛 stamina</b> when they travel in the <b>⛰ Eural</b> <b>Mountains</b>. 🔚',
+      '💂‍♂️ Over the water, <b>👉 east</b> from here…',
+      '💂‍♂️ There is a <b>🐝 spelling bee</b>,',
+      '💂‍♂️ A practitioner of mojick from before <i>The Fall</i>…',
+      '💂‍♂️ Perhaps they yet possess some lore of <b>🪄 wands</b>.🔚',
     ],
   },
   {
@@ -190,7 +194,7 @@ export const agentTypes = [
     dialog: [
       '🦉  If the world were candy 🍭…',
       '🦉  Hoo many licks would it take to get to the center?…',
-      '🦉  I hear there’s a <b>snak</b>.',
+      '🦉  I hear there’s a <b>snak</b>.🔚',
     ],
   },
   {
@@ -231,7 +235,9 @@ export const agentTypes = [
       '🐝 I could spell in 𝓬𝓾𝓻𝓼𝓲𝓿𝓮!',
       '🐝 I could spell in 𝓫𝓵𝓮𝓼𝓼𝓲𝓿𝓮!',
       '🐝 Now for you, Stranger,',
-      '🐝 I review <b>🪄 wands</b>.🔚',
+      '🐝 I review <b>🪄 wands</b>,',
+      '🐝 I will take as apprentice,',
+      '🐝 They who make their <b>🌂 first wand</b>.🔚',
     ],
   },
 
@@ -552,7 +558,7 @@ export const agentTypes = [
     dialog: [
       '🧚‍♂️ Of the five <i>⚄ Isles of Occia</i>…',
       '🧚‍♂️ A <b>🐡 puffer</b> can best be found…',
-      '🧚‍♂️ In the north by west.🔚',
+      '🧚‍♂️ In the <b>👆 north</b> by <b>👈 west</b>.🔚',
     ],
   },
   {
@@ -562,7 +568,7 @@ export const agentTypes = [
       '🧚‍♀️ <b>🎋 cane</b> grows along the shores…',
       '🧚‍♀️ For the most helpful <i>staff</i>…',
       '🧚‍♀️ <i>Reed</i> my lips:',
-      '🧚‍♀️ Sugar cane is <i>especially sticky</i>.🔚',
+      '🧚‍♀️ Sugar cane is especially <i>“sticky”</i>.🔚',
     ],
   },
   {

@@ -618,11 +618,27 @@ export const actions = [
   },
   {
     patient: 'bee',
+    left: 'umbrella',
+    right: 'any',
+    items: ['openUmbrella'],
+    verb: 'exchange',
+    dialog: '🐝 Dumbledore opens your umbrella revealing the <b>☂️ wand<b> <b>of the</b> <b>💨 wind</b>! Go now to <b>👉 Occia</b> for the <b>💦 water blessing</b>…'
+  },
+  {
+    patient: 'bee',
     left: 'openUmbrella',
     right: 'any',
     items: [],
     verb: 'touch',
-    dialog: '🐝 The <b>🧜‍♂️ merman</b> will recall the <b>☔️ wand of water</b>.',
+    dialog: '🐝 The <b>🧜‍♂️ merman</b> will recall the <b>☔️ wand of</b> <b>💨 wind</b> <b>and</b> <b>💦 water</b>.',
+  },
+  {
+    patient: 'bee',
+    left: 'trident',
+    right: 'any',
+    items: [],
+    verb: 'touch',
+    dialog: '🐝 The <b>🔱 wand</b> <b>of water’s</b> provenance lies in <b>👉 Occia</b>. Bear it there and receive it’s blessing on a <b>☂️ wand</b> <b>of the</b> <b>💨 wind</b>!',
   },
   {
     patient: 'bee',
@@ -631,6 +647,6 @@ export const actions = [
     items: [],
     verb: 'touch',
     dialog:
-      '🐝 Take the <b>☔️ wand of wind</b> </b>and water</b> <b>💈 north</b> to the <b>🎅 moji 🤶</b>.',
+      '🐝 Take the <b>☔️ wand of</b> <b>💨 wind</b> <b>and</b> <b>💦 water</b> <b>☝️ north</b> to the <b>💈 tower</b> <b>of the Moji</b>.',
   },
 ];

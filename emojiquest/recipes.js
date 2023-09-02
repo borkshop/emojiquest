@@ -101,17 +101,9 @@ export const recipes = [
   {
     agent: 'cane',
     reagent: 'blowFish',
-    product: 'openUmbrella',
-    dialog: 'You skewer the blowfish making an <b>☂️ umbrella</b>',
+    product: 'umbrella',
+    dialog: 'You skewer the blowfish, making an <b>🌂 umbrella</b>. It feels like it might be a <b>🪄 wand</b>.',
   },
 
-  {
-    agent: 'openUmbrella',
-    reagent: 'trident',
-    product: 'wetOpenUmbrella',
-    byproduct: 'trident',
-    dialog:
-      'You <i>charge</i> the <b>🌂wand</b> of <b>💨 wind</b> with <b>💦 water</b>! The <b>🎅 magi 🤶</b> will surely help you now!',
-  },
   ...nightShadeRecipes(),
 ];
