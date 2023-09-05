@@ -12,6 +12,8 @@ const nightShades = [
   'chiliPepper',
 ];
 
+const balls = ['yarn', 'basketBall'];
+
 function* nightShadeRecipes() {
   for (const agent of nightShades) {
     for (const reagent of nightShades) {
@@ -51,11 +53,12 @@ export const recipes = [
 
   // metallurgy 2
   { agent: 'knife', reagent: 'knife', product: 'scissors', price: 8 },
+  // Clued by Galadyelf.
   { agent: 'bolt', reagent: 'knife', product: 'dagger', price: 6 },
   { agent: 'hammer', reagent: 'knife', product: 'axe', price: 7 },
   { agent: 'hammer', reagent: 'pick', product: 'hammerAndPick', price: 8 },
   { agent: 'hammer', reagent: 'wrench', product: 'hammerAndWrench', price: 6 },
-  { agent: 'gear', reagent: 'chain', product: 'basket', price: 5 },
+  { agent: 'gear', reagent: 'chain', product: 'bin', price: 5 },
 
   // composite 2
   { agent: 'spoon', reagent: 'wood', product: 'canoe', byproduct: 'spoon' },
@@ -78,11 +81,11 @@ export const recipes = [
     dialog: '🎣 Gon’ fishin’.',
   }),
 
-  // metallurgy 3
-  { agent: 'bicycle', reagent: 'basket', product: 'cart' },
+  // Metallurgy 3
+  { agent: 'bicycle', reagent: 'bin', product: 'cart' },
   { agent: 'dagger', reagent: 'dagger', product: 'doubleDagger' },
 
-  // composite 3
+  // Composite 3
   {
     agent: 'knittingNeedles',
     reagent: 'yarn',
@@ -90,7 +93,32 @@ export const recipes = [
     byproduct: 'knittingNeedles',
   },
 
-  // A joke that breaks the game a little.
+  // Clued by Mojick John.
+  { agent: 'basket', reagent: 'yarn', product: 'basketBall' },
+
+  // Composite 4
+  // Clued by Disco.
+  {
+    agent: 'basketBall',
+    reagent: 'hammer',
+    product: 'discus',
+    byproduct: 'hammer',
+    dialog: '🔨 Hammer…smash! 🥏',
+  },
+
+  // Composite 5
+  // Not on any quest line, but Disco provides clue for Discus.
+  ...balls.map(ball => ({
+    agent: 'discus',
+    reagent: ball,
+    product: 'discoBall',
+    dialog: '🪩 Go! Go! Disco!',
+  })),
+
+  // Clued by Galadyelf
+  { agent: 'discus', reagent: 'dagger', product: 'umbrella' },
+
+  // A joke that clarifies the game a little.
   {
     agent: 'apple',
     reagent: 'apple',
@@ -98,6 +126,7 @@ export const recipes = [
     dialog: 'Now you have a <b>🍐 pear</b> of <b>🍎 apples</b>!',
   },
 
+  // Not clued and redundant with Galadyelf's recipe.
   {
     agent: 'cane',
     reagent: 'blowFish',
@@ -106,5 +135,14 @@ export const recipes = [
       'You skewer the blowfish, making an <b>🌂 umbrella</b>. It feels like it might be a <b>🪄 wand</b>.',
   },
 
+  // Clued by Mojick Johannson
+  {
+    agent: 'cane',
+    reagent: 'cane',
+    product: 'basket',
+    dialog: 'You weave a <b>🧺 basket</b>.',
+  },
+
+  // Hinted very indirectly by Gene the Gnome
   ...nightShadeRecipes(),
 ];

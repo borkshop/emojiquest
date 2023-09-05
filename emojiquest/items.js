@@ -63,20 +63,20 @@ export const itemTypes = [
     tip: '🥢 There is no emoji for knitting needles.',
   },
   {
-    name: 'basket',
+    name: 'bin',
     tile: 'trash',
     tip: '🗑 Sometimes called the <b>round file</b>.',
   },
-  { name: 'meat', tip: '🍖 We meat again.' },
-  { name: 'yarn', tip: '🧶 Tell a yarn. Spin a tale.' },
+  { name: 'meat', tip: '🥩 We meat again.' },
+  { name: 'yarn', tip: '🧶 Tell a yarn. Spin a tale. Have a ball.' },
   {
     name: 'hammerAndPick',
     tip: '⚒️  Why <b>⛏pick</b> when you can also <b>🔨 hammer</b>.',
   },
-  { name: 'hammerAndWrench', tip: '🛠 Smash <b>and</b> grab.' },
+  { name: 'hammerAndWrench', tip: '🛠 Smash <i>and</i> grab.' },
   {
     name: 'coat',
-    tip: '🧥 It’s a coat! It’s a jacket! No, it’s <b>super warm</b>!',
+    tip: '🧥 It’s a coat! It’s a jacket! No, it’s <i>super warm</i>!',
     heat: 1,
   },
   {
@@ -151,5 +151,9 @@ export const itemTypes = [
   },
   { name: 'yam', tip: 'Yam, <b>😞 not a nightshade</b>' },
   { name: 'carrot', tip: '🥕 Is it a carrot? No one <b>nose</b>.' },
-  // { name: 'closedUmbrella', tip: '🌂 If you close your eyes and jump, it could be confused for a wand.' },
+  { name: 'basket', tip: '🧺 A woven basket.' },
+  { name: 'basketBall', tip: '🏀 A ball for baskets.' },
+  { name: 'discus', tip: '🥏 A disk. A disc. A discus. 📞Discuss.' },
+  { name: 'discoBall', tip: '🪩 Go! Go! Disco!' },
+  { name: 'tea', tile: 'hotBeverage', tip: '☕️ One lump or two?' },
 ];

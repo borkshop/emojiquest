@@ -106,7 +106,7 @@ export const actions = [
     right: 'empty',
     verb: 'reap',
     items: ['meat'],
-    dialog: '🐏🐑🔪🔜🥩 Meat your maker!',
+    dialog: '🐏🔪🔜🥩 Meat your maker!',
   },
 
   {
@@ -388,7 +388,7 @@ export const actions = [
   },
   {
     patient: 'recyclingPlant',
-    left: 'basket',
+    left: 'bin',
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'silver'],
@@ -471,6 +471,19 @@ export const actions = [
     dialog: '✂️ You take the cow’s <b>🥼 white coat</b>.',
   },
 
+  // This is not clued and is redundant with knitting for the production of the
+  // coat, but is essential to explaining that the coat stands for the leather
+  // raw ingredient and will need a clue when these become essential.
+  {
+    patient: 'bull',
+    left: 'scissors',
+    right: 'empty',
+    items: ['coat'],
+    verb: 'cut',
+    morph: 'cow',
+    dialog: '✂️ You take the cow’s <b>🐂 leather jacket</b>.',
+  },
+
   // Clued by brown bear:
   // On the minor quest line to restore the polar bear, then panda bear.
   // Not a mojical quest but hints at the progression.
@@ -484,6 +497,8 @@ export const actions = [
       '🐻‍❄️ Thank you for restoring my <b>🥼 cloak</b> <b>of invisibility</b>!',
   },
 
+  // Clued: The gardener implies the existence of nightshades and the polar
+  // bear suggests they want them.
   {
     patient: 'polarBear',
     left: 'nightShades',
@@ -610,6 +625,15 @@ export const actions = [
   // Spelling advice with Dumbledore
   {
     patient: 'bee',
+    left: 'trident',
+    right: 'any',
+    items: [],
+    verb: 'touch',
+    dialog:
+      '🐝 The <b>🔱 wand</b> <b>of water’s</b> provenance lies in <b>👉 Occia</b>. Its 𝓫𝓵𝓮𝓼𝓼𝓲𝓷𝓰 is <b>💦 water</b>.',
+  },
+  {
+    patient: 'bee',
     left: 'cane',
     right: 'any',
     items: [],
@@ -636,20 +660,19 @@ export const actions = [
   },
   {
     patient: 'bee',
-    left: 'trident',
-    right: 'any',
-    items: [],
-    verb: 'touch',
-    dialog:
-      '🐝 The <b>🔱 wand</b> <b>of water’s</b> provenance lies in <b>👉 Occia</b>. Bear it there and receive it’s blessing on a <b>☂️ wand</b> <b>of the</b> <b>💨 wind</b>!',
-  },
-  {
-    patient: 'bee',
     left: 'wetOpenUmbrella',
     right: 'any',
     items: [],
     verb: 'touch',
     dialog:
       '🐝 Take the <b>☔️ wand of</b> <b>💨 wind</b> <b>and</b> <b>💦 water</b> <b>☝️ north</b> to the <b>💈 tower</b> <b>of the Moji</b>.',
+  },
+  {
+    patient: 'dumbBell',
+    left: 'hammer',
+    right: 'empty',
+    verb: 'cut',
+    items: ['tea'],
+    dialog: '☕️ One lump or two?',
   },
 ];
