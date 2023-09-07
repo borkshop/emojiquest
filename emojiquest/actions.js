@@ -30,13 +30,28 @@ export const actions = [
   },
   {
     patient: 'axe',
-    verb: 'take',
     left: 'empty',
+    right: 'any',
+    verb: 'take',
     items: ['axe'],
     dialog: '🪓 You get an axe.',
   },
-  { patient: 'coat', left: 'empty', verb: 'take', items: ['coat'] }, // temporary
-  { patient: 'swimBriefs', left: 'empty', verb: 'take', items: ['swimBriefs'] }, // temporary
+  // Temporary
+  {
+    patient: 'coat',
+    left: 'empty',
+    right: 'any',
+    verb: 'take',
+    items: ['coat'],
+  },
+  // Temporary
+  {
+    patient: 'swimBriefs',
+    left: 'empty',
+    right: 'any',
+    verb: 'take',
+    items: ['swimBriefs'],
+  },
   {
     patient: 'pineTree',
     left: 'axe',
@@ -56,6 +71,7 @@ export const actions = [
   {
     patient: 'pick',
     left: 'empty',
+    right: 'any',
     verb: 'take',
     items: ['pick'],
     dialog: '⛏ Got pick?',
@@ -112,6 +128,7 @@ export const actions = [
   {
     patient: 'appleTree',
     left: 'empty',
+    right: 'any',
     verb: 'pick',
     items: ['apple'],
     dialog: '🍎  Apple?',
@@ -122,6 +139,7 @@ export const actions = [
   {
     patient: 'pearTree',
     left: 'empty',
+    right: 'any',
     verb: 'pick',
     items: ['pear'],
     dialog: '🍐 The fruit of the <b>🌳 world tree</b> comes in pears',
@@ -130,6 +148,7 @@ export const actions = [
   {
     patient: 'pineTree',
     left: 'empty',
+    right: 'any',
     verb: 'pick',
     items: ['pineApple'],
     dialog: '🍍 Got <i>pine</i> apple. ',
@@ -138,6 +157,7 @@ export const actions = [
   {
     patient: 'palmTree',
     left: 'empty',
+    right: 'any',
     verb: 'pick',
     items: ['date'],
     dialog: '📆 Got a date.',
@@ -145,6 +165,7 @@ export const actions = [
   {
     patient: 'palmIsland',
     left: 'empty',
+    right: 'any',
     verb: 'pick',
     items: ['banana'],
     dialog: '📆 Got a date.',
@@ -178,6 +199,7 @@ export const actions = [
   {
     patient: 'bank',
     left: 'silver',
+    right: 'empty',
     verb: 'split',
     items: ['copper', 'copper'],
     dialog: '🥈🔜🥉🥉 A bird in hand is worth two in the bush.',
@@ -185,6 +207,7 @@ export const actions = [
   {
     patient: 'bank',
     left: 'gold',
+    right: 'empty',
     verb: 'split',
     items: ['silver', 'copper'],
     dialog: '🥇🔜🥈🥉 Don’t spend it all in one place.',
@@ -242,6 +265,7 @@ export const actions = [
   {
     patient: 'shark',
     left: 'silver',
+    right: 'empty',
     verb: 'split',
     items: ['copper', 'copper'],
     dialog: '🥈🔜🥉🥉 A fish in jaws is worth two in the coral.',
@@ -249,6 +273,7 @@ export const actions = [
   {
     patient: 'shark',
     left: 'gold',
+    right: 'empty',
     verb: 'split',
     items: ['silver', 'copper'],
     dialog: '🥇🔜🥈🥉 Divide and conquer.',
@@ -416,6 +441,7 @@ export const actions = [
   {
     patient: 'clover',
     left: 'empty',
+    right: 'any',
     verb: 'pick',
     items: ['clover'],
     dialog: '☘️ One leaf shy of lucky.',
@@ -424,6 +450,7 @@ export const actions = [
   {
     patient: 'northPole',
     left: 'wetOpenUmbrella',
+    right: 'any',
     verb: 'exchange',
     items: ['openUmbrella'],
     dialog:
@@ -490,6 +517,7 @@ export const actions = [
   {
     patient: 'brownBear',
     left: 'labCoat',
+    right: 'any',
     verb: 'give',
     items: [],
     morph: 'polarBear',
@@ -502,6 +530,7 @@ export const actions = [
   {
     patient: 'polarBear',
     left: 'nightShades',
+    right: 'any',
     verb: 'exchange',
     items: ['soda'],
     morph: 'panda',
@@ -540,6 +569,7 @@ export const actions = [
   {
     patient: 'herman',
     left: 'trident',
+    right: 'any',
     verb: 'give',
     morph: 'merman',
     dialog: '🧜‍♂️ Thank you!',
@@ -549,6 +579,7 @@ export const actions = [
   {
     patient: 'merman',
     left: 'openUmbrella',
+    right: 'any',
     verb: 'exchange',
     items: ['wetOpenUmbrella'],
     dialog:
