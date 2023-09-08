@@ -156,4 +156,5 @@ export const itemTypes = [
   { name: 'discus', tip: '🥏 A disk. A disc. A discus. 📞Discuss.' },
   { name: 'discoBall', tip: '🪩 Go! Go! Disco!' },
   { name: 'tea', tile: 'hotBeverage', tip: '☕️ One lump or two?' },
+  { name: 'mushroom', tile: 'mushroom', tip: '🍄 Trippy.' },
 ];

@@ -706,4 +706,14 @@ export const actions = [
     items: ['tea'],
     dialog: '☕️ One lump or two?',
   },
+
+  // Not clued:
+  {
+    patient: 'recyclingPlant',
+    left: 'bone',
+    right: 'any',
+    verb: 'exchange',
+    items: ['mushroom'],
+    dialog: '🍄 Whoa.',
+  },
 ];
