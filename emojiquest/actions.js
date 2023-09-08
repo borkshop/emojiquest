@@ -344,8 +344,8 @@ export const actions = [
     left: 'axe', // knife + hammer = (2 + 2) + (2 + 1) = 7
     right: 'empty',
     verb: 'replace',
-    items: ['gold', 'gold'], // yields 3 + 3 = 6
-    dialog: '🪓🔜🥇🥇 Best we could do!',
+    items: ['knife', 'hammer'],
+    dialog: '🪓🔜🔪🔨 Reduce, reuse, recycle!',
   },
   {
     patient: 'recyclingPlant',
@@ -354,6 +354,14 @@ export const actions = [
     verb: 'replace',
     items: ['gold', 'silver'],
     dialog: '🥄🔜🥇🥈 Recovered <b>medals</b>!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'wrench',
+    right: 'any',
+    verb: 'replace',
+    items: ['gold'],
+    dialog: '🔧🔜🥇Recovered <b>medal</b>!',
   },
   {
     patient: 'recyclingPlant',
@@ -376,8 +384,8 @@ export const actions = [
     left: 'scissors', // (2 + 2) + (2 + 2) = 8
     right: 'empty',
     verb: 'replace',
-    items: ['gold', 'gold'], // 3 + 3 = 6
-    dialog: '✂️🔜🥇🥇 Some <b>constituents</b> were lost 😞.',
+    items: ['knife', 'knife'], // 3 + 3 = 6
+    dialog: '✂️🔜🔪🔪 Reduce and reuse!',
   },
   {
     patient: 'recyclingPlant',
@@ -426,6 +434,30 @@ export const actions = [
     verb: 'replace',
     items: ['gold', 'silver'],
     dialog: '⛏🔜🥇🥈 Recovered <b>medals</b>!.',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'chain',
+    right: 'any',
+    verb: 'replace',
+    items: ['silver'],
+    dialog: '⛓🔜🥈 Recovered some silver!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'hammerAndPick',
+    right: 'empty',
+    verb: 'replace',
+    items: ['hammer', 'pick'],
+    dialog: '⚒️🔜🔨⛏ Reduce, reuse, recycle!',
+  },
+  {
+    patient: 'recyclingPlant',
+    left: 'hammerAndWrench',
+    right: 'empty',
+    verb: 'replace',
+    items: ['hammer', 'wrench'],
+    dialog: '⚒️🔜🔨🔧 Reduce, reuse, recycle!',
   },
 
   {
