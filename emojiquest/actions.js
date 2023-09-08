@@ -678,7 +678,7 @@ export const actions = [
     items: ['openUmbrella'],
     verb: 'exchange',
     dialog:
-      '🐝 Dumbledore opens your umbrella revealing the <b>☂️ wand<b> <b>of the</b> <b>💨 wind</b>! Go now to <b>👉 Occia</b> for the <b>💦 water blessing</b>…',
+      '🐝 Dumbledore opens your umbrella revealing the <b>☂️ wand</b> <b>of the</b> <b>💨 wind</b>! Go now to <b>👉 Occia</b> for the <b>💦 water blessing</b>…',
   },
   {
     patient: 'bee',
