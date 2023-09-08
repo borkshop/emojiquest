@@ -671,4 +671,15 @@ export const agentTypes = [
       '🤺 To add a length of <b>🔩 bolt</b> to a <b>🔪 knife</b>.🔚',
     ],
   },
+  {
+    name: 'occiaGuide',
+    tile: 'theyFairy',
+    dialog: [
+      '🧚 These shores mark the end of <b>👈 Euia</b>…',
+      '🧚 Bordering the fairy <b>🏝 isles</b> of <b>Occia 👉</b>…',
+      '🧚 Most belovèd of all, the central atoll of <b>Oc</b>…',
+      '🧚 The <b>🧊 ice waste</b> of <b>👆 Borea</b> is north…',
+      '🧚 Bring a <b>🧥 jacket</b>!🔚',
+    ],
+  },
 ];

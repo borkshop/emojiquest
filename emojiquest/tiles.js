@@ -169,4 +169,5 @@ export const tileTypes = [
   { name: 'hotBeverage', text: '☕️' },
   { name: 'sheElf', text: '🧝‍♀️' },
   { name: 'fencer', text: '🤺' },
+  { name: 'theyFairy', text: '🧚' },
 ];
