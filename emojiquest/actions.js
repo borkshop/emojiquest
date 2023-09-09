@@ -393,7 +393,7 @@ export const actions = [
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'gold'],
-    dialog: '🚲🔜🥇🥇 Recovered <b>medals</b>!.',
+    dialog: '🚲🔜🥇🥇 Recovered <b>medals</b>!',
   },
   {
     patient: 'recyclingPlant',
@@ -401,7 +401,7 @@ export const actions = [
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'copper'],
-    dialog: '🪝🔜🥇🥉 Recovered <b>medals</b>!.',
+    dialog: '🪝🔜🥇🥉 Recovered <b>medals</b>!',
   },
   {
     patient: 'recyclingPlant',
@@ -409,7 +409,7 @@ export const actions = [
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'copper'],
-    dialog: '🛡🔜🥇🥉 Recovered <b>medals</b>!.',
+    dialog: '🛡🔜🥇🥉 Recovered <b>medals</b>!',
   },
   {
     patient: 'recyclingPlant',
@@ -417,7 +417,7 @@ export const actions = [
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'gold'],
-    dialog: '🗡🔜🥇🥇 Recovered <b>medals</b>!.',
+    dialog: '🗡🔜🥇🥇 Recovered <b>medals</b>!',
   },
   {
     patient: 'recyclingPlant',
@@ -425,7 +425,7 @@ export const actions = [
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'silver'],
-    dialog: '🗑🔜🥇🥈 Recovered <b>medals</b>!.',
+    dialog: '🗑🔜🥇🥈 Recovered <b>medals</b>!',
   },
   {
     patient: 'recyclingPlant',
@@ -433,7 +433,7 @@ export const actions = [
     right: 'empty',
     verb: 'replace',
     items: ['gold', 'silver'],
-    dialog: '⛏🔜🥇🥈 Recovered <b>medals</b>!.',
+    dialog: '⛏🔜🥇🥈 Recovered <b>medals</b>!',
   },
   {
     patient: 'recyclingPlant',
