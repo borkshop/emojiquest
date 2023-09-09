@@ -33,8 +33,20 @@ body {
   width: 100dvw;
   margin: 0;
 
+  display: flex;
+  align-content: center;
+  justify-content: center;
+
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+noscript {
+  font-size: 40px;
+  align-self: center;
+  flex: none;
+  text-align: center;
+  width: 40ex;
 }
 
 .play {
