@@ -467,6 +467,14 @@ export const actions = [
     items: ['gold', 'copper'],
     dialog: '🎣🔜🥇🥉 Recovered <b>medals</b>!',
   },
+  {
+    patient: 'recyclingPlant',
+    left: 'trident',
+    right: 'empty',
+    verb: 'replace',
+    items: ['gold'],
+    dialog: '🔱🔜🥇 Wasted <b>☘️ luck</b>.',
+  },
 
   {
     patient: 'boulder',
