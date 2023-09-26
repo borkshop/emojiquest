@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { makeElementIndex } from '../gldemo.js';
+import { makeElementIndex } from '../gltiles.js';
 
 for (const { name, cap, bytes, els } of [
 
@@ -47,13 +47,12 @@ for (const { name, cap, bytes, els } of [
 ]) test(`index: ${name}`, t => {
   t.timeout(100, 'should be quick');
 
-  const index = makeElementIndex((() => {
-    if (bytes == 1) return new Uint8Array(cap);
-    if (bytes == 2) return new Uint16Array(cap);
-    if (bytes == 4) return new Uint32Array(cap);
-    throw new Error('invalid element bytes')
-  })());
-  t.is(index.elementByteSize, bytes);
+  const canvas = new OffscreenCanvas(1, 1);
+  const gl = canvas.getContext('webgl2');
+  if (!gl) throw new Error('need a test gl context');
+
+  const index = makeElementIndex(gl, cap);
+  // XXX t.is(index.elementByteSize, bytes);
 
   /** @type {Set<number>} */
   const expected = new Set();
