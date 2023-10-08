@@ -28,12 +28,12 @@ export async function compileProgram(gl, ...sources) {
   gl.linkProgram(prog);
 
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
-    throw new Error([
-      `GL program link error: ${gl.getProgramInfoLog(prog)}`,
+    throw new Error(`GL program link error: ${[
+      gl.getProgramInfoLog(prog)?.replace(/[\s\u0000]+$/, ''),
       ...shaders
         .filter(({ shader }) => !gl.getShaderParameter(shader, gl.COMPILE_STATUS))
         .map(({ name, shader }) => getShaderCompileError(gl, shader, name))
-    ].join('\n'));
+    ].join('\n\n')}`);
 
   return prog;
 }
@@ -83,32 +83,66 @@ function getShaderCompileError(gl, shader, sourceName) {
   const log = gl.getShaderInfoLog(shader) || '';
   const source = gl.getShaderSource(shader)
   return `compile error in ${sourceName}:\n${source
-    ? annotateCompileError(source, log)
+    ? [...annotateCompileError(source, log)].join('\n')
     : log
     }`
 }
 
 /**
  * @param {string} src
- * @param {string} mess
+ * @param {string} errorLog
  */
-function annotateCompileError(src, mess) {
-  var match = /^ERROR: \d+:(\d+):/.exec(mess);
-  if (!match) {
-    return mess;
-  }
-  const lineNo = parseInt(match[1] || '');
+function* annotateCompileError(src, errorLog) {
   const contextCount = 3;
+  const indent = 4;
 
-  const lines = src.split(/\n/);
-  const numLines = lines.length;
-  const w = numLines.toString().length;
+  const errorLogLines = errorLog.replace(/[\s\u0000]+$/, '').split(/\n/);
+  let errorLogI = 0;
+  const nextErrorLog = () => {
+    if (errorLogI >= errorLogLines.length) return null;
+    const line = errorLogLines[errorLogI++];
+    const match = /^ERROR: \d+:(\d+):\s*(.+?)$/.exec(line);
+    if (!match) return { lineNo: 0, mess: line };
+    const lineNo = parseInt(match[1] || '');
+    const mess = match[2];
+    return { lineNo, mess };
+  };
 
-  return [...annotateLine(
-    numberLines(w, lines),
-    lineNo, contextCount,
-    `${' '.repeat(w)} ^ --${mess} `
-  )].join('\n');
+  const rawLines = src.split(/\n/);
+  const w = rawLines.length.toString().length + indent;
+  const numLines = numberLines(w, rawLines);
+
+  let nextError = nextErrorLog();
+  while (nextError?.lineNo === 0) {
+    yield `${' '.repeat(w)}${nextError.mess}`;
+    nextError = nextErrorLog();
+  }
+  if (!nextError) return;
+  let context = nextError.lineNo;
+
+  let lineNo = 0;
+  for (const line of numLines) {
+    lineNo++;
+
+    if (Math.abs(context - lineNo) <= contextCount) yield line;
+
+    if (lineNo > context + contextCount) {
+      if (!nextError) break;
+      context = nextError.lineNo;
+    }
+
+    while (lineNo === nextError?.lineNo) {
+      context = nextError.lineNo;
+      yield `${' '.repeat(w)}  ^--${nextError.mess}`;
+
+      nextError = nextErrorLog();
+      while (nextError?.lineNo === 0) {
+        yield `${' '.repeat(w + 5)}${nextError.mess}`;
+        nextError = nextErrorLog();
+      }
+    }
+
+  }
 }
 
 /**
@@ -120,24 +154,5 @@ function* numberLines(w, lines) {
   for (const line of lines) {
     n++;
     yield `${n.toString().padStart(w)}: ${line} `;
-  }
-}
-
-/**
- * @param {Iterable<string>} lines
- * @param {number} lineNo
- * @param {number} contextCount
- * @param {string} mess
- */
-function* annotateLine(lines, lineNo, contextCount, mess) {
-  let n = 0;
-  for (const line of lines) {
-    n++;
-    if (Math.abs(lineNo - n) <= contextCount) {
-      yield line;
-    }
-    if (n === lineNo) {
-      yield mess;
-    }
   }
 }
