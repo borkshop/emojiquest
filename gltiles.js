@@ -66,7 +66,6 @@ export default async function makeTileRenderer(gl) {
   const uniSheet = mustGetUniform('sheet'); // sampler2D
 
   const attrSpin = mustGetAttr('spin'); // float
-  const attrSize = mustGetAttr('size'); // float
   const attrLayerID = mustGetAttr('layerID'); // int
 
   const perspectiveUniform = viewParams.getVar('perspective');
@@ -201,16 +200,19 @@ export default async function makeTileRenderer(gl) {
      */
     makeLayer({
       texture,
-      cellSize,
+      cellSize: givenCellSize,
       left = 0, top = 0,
       width, height,
     }) {
       const layerParams = layerParamsBlock.makeBuffer();
       const transform = layerParams.getVar('transform').asFloatArray();
+      const cellSize = layerParams.getVar('cellSize');
       const stride = layerParams.getVar('stride');
 
+      cellSize.float = givenCellSize;
       stride.int = width;
-      mat4.fromTranslation(transform, [cellSize * left, cellSize * top, 0]);
+
+      mat4.fromTranslation(transform, [givenCellSize * left, givenCellSize * top, 0]);
       layerParams.send();
 
       // TODO do we complect within or without?
@@ -235,7 +237,7 @@ export default async function makeTileRenderer(gl) {
 
       return {
         get texture() { return texture },
-        get cellSize() { return cellSize },
+        get cellSize() { return cellSize.float },
         get left() { return left },
         get top() { return top },
         get width() { return width },
@@ -295,9 +297,6 @@ export default async function makeTileRenderer(gl) {
 
           const texUnit = texCache.get(texture);
           gl.uniform1i(uniSheet, texUnit);
-
-          // TODO optional size buffer
-          gl.vertexAttrib1f(attrSize, cellSize);
 
           // TODO spin optional
           gl.enableVertexAttribArray(attrSpin);

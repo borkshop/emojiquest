@@ -19,6 +19,9 @@ uniform LayerParams {
   // other layers (scale, rotate, skew, etc)
   mat4 transform;
 
+  // pixel size of each tile in this layer
+  float cellSize;
+
   // Implicit positioning system, where tiles are laid out as a dense grid
   // indexed by gl_VertexID in row-major order starting at layer origin
   // (defined by transform) and progressing in stride-siied rows of tiles.
@@ -31,7 +34,7 @@ in uint layerID;
 
 // TODO position input
 in float spin;
-in float size; // TODO make uniform; replace with scale factor
+// TODO scale input
 
 out float sheetLayer;
 out mat3 tileTransform;
@@ -56,7 +59,7 @@ void main(void) {
   loc += 0.5;
 
   gl_Position = perspective * transform * vec4(
-    loc * size, // x, y
+    loc * cellSize, // x, y
     0.0, // z
     1.0  // w
   );
@@ -71,7 +74,7 @@ void main(void) {
     vec3(0.0, 0.0, 1.0)
   ) * inverse(spinOffset);
 
-  gl_PointSize = size;
+  gl_PointSize = cellSize;
 
   sheetLayer = float(layerID) - 1.0;
 }
