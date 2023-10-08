@@ -10,9 +10,13 @@ uniform mat4 transform;
 uniform vec4 nowhere;
 uniform int stride;
 
-in float spin;
-in float size;
+// Layer ordianl (1-based) within the texture atlas; a 0 value means a null
+// tile that will be culled (by having its position set to nowhere.
 in uint layerID;
+
+// TODO position input
+in float spin;
+in float size; // TODO make uniform; replace with scale factor
 
 out float sheetLayer;
 out mat3 tileTransform;
@@ -34,9 +38,10 @@ void main(void) {
     float(gl_VertexID % stride),
     float(gl_VertexID / stride)
   );
+  loc += 0.5;
 
   gl_Position = perspective * transform * vec4(
-    loc * size + size/float(2), // x, y
+    loc * size, // x, y
     0.0, // z
     1.0  // w
   );
