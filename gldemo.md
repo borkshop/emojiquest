@@ -47,13 +47,11 @@
 
 Aligns with @kris's memory of `0.5`-offset rendering
 
-## <https://age-of-transcendence.com/2018/02/09/autotiling-adventures/>
+## autotiling lore
 
-- is a dead link now in 2022 ... TODO wayback machine chase it
-- however found these newer entries
-  - <https://byte-arcane.github.io/age-of-transcendence/2020/12/09/more-autotiles-transitions-between-floor-types/>
-  - <https://byte-arcane.github.io/age-of-transcendence/2020/12/03/autotiles-instancing-and-object-clusters/>
-- which had a reference to this fire resource from `gamedev.stackexchange`:
+- <https://byte-arcane.github.io/sigil-of-kings-website/2020/12/03/autotiles-instancing-and-object-clusters/>
+- <https://byte-arcane.github.io/sigil-of-kings-website/2020/12/09/more-autotiles-transitions-between-floor-types/>
+- which had a reference to this 🔥 resource from `gamedev.stackexchange`:
   - <https://gamedev.stackexchange.com/questions/148460/combinations-for-tiling-two-textures-together/148464>
 
 ## <http://www.cr31.co.uk/stagecast/wang/blob.html>
