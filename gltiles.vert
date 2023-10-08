@@ -22,9 +22,13 @@ uniform LayerParams {
   // pixel size of each tile in this layer
   float cellSize;
 
-  // Implicit positioning system, where tiles are laid out as a dense grid
-  // indexed by gl_VertexID in row-major order starting at layer origin
-  // (defined by transform) and progressing in stride-siied rows of tiles.
+  // Implicit positioning mode is enabled if stride > 0, where tiles are laid
+  // out as a dense grid indexed by gl_VertexID in row-major order starting at
+  // layer origin (defined by transform) and progressing in stride-sized rows.
+  // Any offset attribute value is added to this value.
+  //
+  // Otherwise absolute positioning is used, relying on offset to position each
+  // tile (still relative to transform origin of course).
   int stride;
 };
 
@@ -32,9 +36,8 @@ uniform LayerParams {
 // tile that will be culled (by having its position set to nowhere.
 in uint layerID;
 
-// TODO position input
-in float spin;
-// TODO scale input
+// Tile dosition data: xy = offset, z = spin, w = scale
+in vec4 pos;
 
 out float sheetLayer;
 out mat3 tileTransform;
@@ -46,17 +49,24 @@ const mat3 spinOffset = mat3(
 );
 
 void main(void) {
+  vec2 offset = pos.xy;
+  float spin = pos.z;
+  float scale = pos.w;
 
-  if (int(layerID) == 0) {
+  if (int(layerID) == 0 || scale <= 0.0) {
     gl_Position = nowhere;
     return;
   }
 
-  vec2 loc = vec2(
-    float(gl_VertexID % stride),
-    float(gl_VertexID / stride)
-  );
+  vec2 loc;
+  if (stride > 0) {
+    loc = vec2(
+      float(gl_VertexID % stride),
+      float(gl_VertexID / stride)
+    );
+  }
   loc += 0.5;
+  loc += offset;
 
   gl_Position = perspective * transform * vec4(
     loc * cellSize, // x, y
@@ -74,7 +84,7 @@ void main(void) {
     vec3(0.0, 0.0, 1.0)
   ) * inverse(spinOffset);
 
-  gl_PointSize = cellSize;
+  gl_PointSize = cellSize * scale;
 
   sheetLayer = float(layerID) - 1.0;
 }

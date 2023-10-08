@@ -65,11 +65,11 @@ export default async function makeTileRenderer(gl) {
     return loc;
   };
 
-  const attrSpinSpec = {
+  const attrPosSpec = {
     ArrayType: Float32Array,
-    size: 1,
+    size: 4,
     gl: {
-      attrib: mustGetAttr('spin'), // float
+      attrib: mustGetAttr('pos'), // vec4: xy=offset, z=spin, w=scale
     },
   };
 
@@ -306,7 +306,7 @@ export default async function makeTileRenderer(gl) {
     makeDenseLayer({ width, height, ...params }) {
       const layer = this.makeLayer({ stride: width, ...params });
       const data = makeGLArrays(gl, {
-        spin: attrSpinSpec,
+        pos: attrPosSpec,
         tile: attrTileSpec,
         index: {
           ArrayType: Uint16Array, // TODO bring back varyign type
@@ -350,27 +350,55 @@ export default async function makeTileRenderer(gl) {
             get x() { return x },
             get y() { return y },
 
-            /** Reset all tile data to default (0 values) */
+            /** Reset all tile data to 0 values */
             clear() {
-              data.spin[id] = 0;
+              data.pos[4 * id + 0] = 0;
+              data.pos[4 * id + 1] = 0;
+              data.pos[4 * id + 2] = 0;
+              data.pos[4 * id + 3] = 0;
               data.tile[id] = 0;
               data.delElement(id);
               data.dirty = true;
             },
 
+            /** Tile X offset from cell center */
+            get offsetX() { return data.pos[4 * id + 0] },
+            set offsetX(cellX) {
+              data.pos[4 * id + 0] = cellX;
+              data.dirty = true;
+            },
+
+            /** Tile Y offset from cell center */
+            get offsetY() { return data.pos[4 * id + 1] },
+            set offsetY(cellY) {
+              data.pos[4 * id + 1] = cellY;
+              data.dirty = true;
+            },
+
             /** Tile rotation in units of full turns */
-            get spin() { return data.spin[id] },
+            get spin() { return data.pos[4 * id + 2] },
             set spin(turns) {
-              data.spin[id] = turns;
+              data.pos[4 * id + 2] = turns;
+              data.dirty = true;
+            },
+
+            /** Tile scale factor */
+            get scale() { return data.pos[4 * id + 3] },
+            set scale(factor) {
+              data.pos[4 * id + 3] = factor;
               data.dirty = true;
             },
 
             /** Tile texture Z index.
              *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
             get layerID() { return data.tile[id] },
-            /** Setting a value of 0, the default, will cause this tile to not be drawn. */
+            /** Setting a value of 0, the default, will cause this tile to not be drawn.
+             * When initializing (setting to non-zero when prior value was 0),
+             * a default 1.0 scale value will also be set if scale was 0. */
             set layerID(layerID) {
+              const init = layerID != 0 && data.tile[id] == 0;
               data.tile[id] = layerID;
+              if (init && data.pos[4 * id + 3] == 0) data.pos[4 * id + 3] = 1;
               if (layerID === 0) data.delElement(id); else data.addElement(id);
               data.dirty = true;
             },
