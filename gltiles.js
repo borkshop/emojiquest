@@ -57,8 +57,8 @@ export function makeTileRenderer(gl, prog) {
     draw(layers, {
       left = 0,
       top = 0,
-      width = gl.canvas.width,
-      height = gl.canvas.height,
+      width = gl.drawingBufferWidth,
+      height = gl.drawingBufferHeight
     } = {}) {
       // TODO: why can't this persist across frames?
       texCache.clear();
