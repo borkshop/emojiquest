@@ -28,7 +28,7 @@ export function makeTileRenderer(gl, prog) {
   /** @param {string} name */
   const mustGetAttr = name => {
     const loc = gl.getAttribLocation(prog, name);
-    if (loc == null) throw new Error(`no such attribute ${name}`);
+    if (loc < 0) throw new Error(`no such attribute ${name}`);
     return loc;
   };
 
@@ -280,6 +280,8 @@ export function makeLayer(gl, {
       gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, tileData, gl.STATIC_DRAW);
 
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
       index.send();
     },
 
@@ -322,6 +324,8 @@ export function makeLayer(gl, {
       gl.enableVertexAttribArray(layerID);
       gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
       gl.vertexAttribIPointer(layerID, 1, gl.UNSIGNED_SHORT, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
       index.draw();
     },
@@ -386,11 +390,13 @@ export function makeElementIndex(gl, cap) {
     send() {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, elements.buffer, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     },
 
     draw() {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
       gl.drawElements(gl.POINTS, length, glType, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     },
 
     clear() {
