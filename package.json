@@ -37,6 +37,7 @@
       "@snowpack/plugin-typescript"
     ],
     "exclude": [
+      "**/.git/**/*",
       "**/build/**/*",
       "**/test/**/*",
       "**/scratch/**/*",
