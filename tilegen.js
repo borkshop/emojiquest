@@ -245,6 +245,7 @@ export function* generateSimpleTiles(...tiles) {
       }
 
       if (glyph) {
+        let text = glyph;
         ctx.textBaseline = 'bottom';
 
         const fontSize = tileSize * glyphHeight;
@@ -258,9 +259,22 @@ export function* generateSimpleTiles(...tiles) {
             actualBoundingBoxRight,
             actualBoundingBoxDescent,
             actualBoundingBoxAscent,
-          } = ctx.measureText(glyph),
+          } = ctx.measureText(text),
             actualWidth = Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight),
             actualHeight = Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent);
+
+          if (actualWidth === 0) {
+            console.warn(`tile glyph "${Array.from(glyph)
+              .map(c => {
+                const code = c.codePointAt(0) || 0;
+                // TODO less aggressive quoting, do the ascii thing
+                return `\\u${code.toString(16).toUpperCase()}`;
+              })
+              .join('')}" is unsupported`);
+            text = '�';
+            // TODO support fallback chain of tile specs
+            continue;
+          }
 
           if (actualHeight < fontSize && actualWidth < fontSize) break;
         }
@@ -270,14 +284,14 @@ export function* generateSimpleTiles(...tiles) {
           actualBoundingBoxRight,
           actualBoundingBoxDescent,
           actualBoundingBoxAscent,
-        } = ctx.measureText(glyph),
+        } = ctx.measureText(text),
           actualWidth = Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight),
           actualHeight = Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent),
           widthRem = tileSize - actualWidth,
           heightRem = tileSize - actualHeight;
 
         ctx.fillStyle = glyphStyle;
-        ctx.fillText(glyph, Math.floor(widthRem / 2), tileSize - Math.floor(heightRem / 2));
+        ctx.fillText(text, Math.floor(widthRem / 2), tileSize - Math.floor(heightRem / 2));
       }
 
     }
