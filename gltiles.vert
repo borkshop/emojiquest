@@ -5,9 +5,16 @@
 precision highp float;
 precision highp int;
 
-uniform mat4 perspective;
+uniform ViewParams {
+  // viewport defining transormf matrix over layer pixel space
+  mat4 perspective;
+
+  // nowhere is used to cull null cells (layerID=0), should be set to a
+  // scissored or out of viewport position
+  vec4 nowhere;
+};
+
 uniform mat4 transform;
-uniform vec4 nowhere;
 uniform int stride;
 
 // Layer ordianl (1-based) within the texture atlas; a 0 value means a null

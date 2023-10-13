@@ -2,7 +2,10 @@
 
 import { mat4 } from 'gl-matrix';
 
-import { compileProgram } from './glkit.js';
+import {
+  compileProgram,
+  makeUniformBlock,
+} from './glkit.js';
 
 // TODO per-tile scale support
 // TODO animation support (probably at least per-tile displacement driven externally)
@@ -38,6 +41,12 @@ import { compileProgram } from './glkit.js';
 export default async function makeTileRenderer(gl) {
   const prog = await compileProgram(gl, './gltiles.vert', './gltiles.frag');
 
+  const viewParamsBlock = makeUniformBlock(gl, prog, 'ViewParams', 0);
+
+  viewParamsBlock.link(prog);
+
+  const viewParams = viewParamsBlock.makeBuffer();
+
   /** @param {string} name */
   const mustGetUniform = name => {
     const loc = gl.getUniformLocation(prog, name);
@@ -54,27 +63,25 @@ export default async function makeTileRenderer(gl) {
 
   const uni_sheet = mustGetUniform('sheet'); // sampler2D
   const uni_transform = mustGetUniform('transform'); // mat4
-  const uni_perspective = mustGetUniform('perspective'); // mat4
-  const uni_nowhere = mustGetUniform('nowhere'); // vec4
   const uni_stride = mustGetUniform('stride'); // uint
 
   const attr_spin = mustGetAttr('spin'); // float
   const attr_size = mustGetAttr('size'); // float
   const attr_layerID = mustGetAttr('layerID'); // int
 
-  const perspective = new Float32Array(16);
+  const perspectiveUniform = viewParams.getVar('perspective');
+  const perspective = perspectiveUniform.asFloatArray();
+  const nowhere = viewParams.getVar('nowhere').asFloatArray();
+
   const texCache = makeTextureUnitCache(gl, gl.TEXTURE_2D_ARRAY);
 
-  gl.useProgram(prog);
-
   mat4.identity(perspective);
-  gl.uniformMatrix4fv(uni_perspective, false, perspective);
 
   // NOTE: this just needs to be set to any point outside of camera view, so
   // that the vertex shader can use it to cull points
-  gl.uniform4f(uni_nowhere, -1, -1, -1, 0);
+  nowhere.set([-1, -1, -1, 0]);
 
-  gl.useProgram(null);
+  viewParams.send();
 
   return {
     texCache, // TODO reconsider
@@ -86,12 +93,8 @@ export default async function makeTileRenderer(gl) {
       width = gl.drawingBufferWidth,
       height = gl.drawingBufferHeight
     } = {}) {
-      gl.useProgram(prog);
-
       mat4.ortho(perspective, left, width, height, top, 0, Number.EPSILON);
-      gl.uniformMatrix4fv(uni_perspective, false, perspective);
-
-      gl.useProgram(null);
+      perspectiveUniform.send();
     },
 
     /**
@@ -272,6 +275,8 @@ export default async function makeTileRenderer(gl) {
 
         draw() {
           gl.useProgram(prog);
+
+          viewParams.bind();
 
           const texUnit = texCache.get(texture);
           gl.uniform1i(uni_sheet, texUnit);
