@@ -1532,6 +1532,7 @@ export default async function runDemo(opts) {
         // intersect perspective, but for now we just use leave GL's vertex culling
 
         if (showLayer.bgCurved) {
+          // TODO curved draw wrapper?
           const
             { origin: [left, top], width, height } = bg,
             [viewLeft, viewTop, viewWidth, viewHeight] = view.projectRect(left, top, width, height),
