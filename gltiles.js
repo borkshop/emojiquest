@@ -63,11 +63,11 @@ export default async function makeTileRenderer(gl) {
     return loc;
   };
 
-  const uni_sheet = mustGetUniform('sheet'); // sampler2D
+  const uniSheet = mustGetUniform('sheet'); // sampler2D
 
-  const attr_spin = mustGetAttr('spin'); // float
-  const attr_size = mustGetAttr('size'); // float
-  const attr_layerID = mustGetAttr('layerID'); // int
+  const attrSpin = mustGetAttr('spin'); // float
+  const attrSize = mustGetAttr('size'); // float
+  const attrLayerID = mustGetAttr('layerID'); // int
 
   const perspectiveUniform = viewParams.getVar('perspective');
   const perspective = perspectiveUniform.asFloatArray();
@@ -294,19 +294,19 @@ export default async function makeTileRenderer(gl) {
           layerParams.bind();
 
           const texUnit = texCache.get(texture);
-          gl.uniform1i(uni_sheet, texUnit);
+          gl.uniform1i(uniSheet, texUnit);
 
           // TODO optional size buffer
-          gl.vertexAttrib1f(attr_size, cellSize);
+          gl.vertexAttrib1f(attrSize, cellSize);
 
           // TODO spin optional
-          gl.enableVertexAttribArray(attr_spin);
+          gl.enableVertexAttribArray(attrSpin);
           gl.bindBuffer(gl.ARRAY_BUFFER, spinBuffer);
-          gl.vertexAttribPointer(attr_spin, 1, gl.FLOAT, false, 0, 0);
+          gl.vertexAttribPointer(attrSpin, 1, gl.FLOAT, false, 0, 0);
 
-          gl.enableVertexAttribArray(attr_layerID);
+          gl.enableVertexAttribArray(attrLayerID);
           gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
-          gl.vertexAttribIPointer(attr_layerID, 1, gl.UNSIGNED_SHORT, 0, 0);
+          gl.vertexAttribIPointer(attrLayerID, 1, gl.UNSIGNED_SHORT, 0, 0);
 
           gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
