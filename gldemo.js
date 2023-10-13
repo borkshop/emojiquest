@@ -5,12 +5,7 @@ import {
   sizeToClient,
 } from './glkit.js';
 
-import {
-  compileTileProgram,
-  makeTileRenderer,
-  makeTileSheet,
-  makeLayer,
-} from './gltiles.js';
+import makeTileRenderer from './gltiles.js';
 /** @template T @typedef {import("./gltiles.js").tileable<T>} tileable */
 /** @template T @typedef {import("./gltiles.js").TileSheet<T>} TileSheet */
 /** @typedef {import("./gltiles.js").Layer} Layer */
@@ -31,7 +26,7 @@ import {
   generateSimpleTiles,
 
   generateCurvedTiles,
-  makeCurvedLayer,
+  curvedLayerParams,
   updateCurvedLayer,
   clippedBaseCellQuery,
   extendedBaseCellQuery,
@@ -73,26 +68,24 @@ export default async function demo(opts) {
   const gl = $world.getContext('webgl2');
   if (!gl) throw new Error('No GL For You!');
 
-  const tileRend = makeTileRenderer(gl, await compileTileProgram(gl));
+  const tiles = await makeTileRenderer(gl);
 
-  const landCurveTiles = makeTileSheet(gl, generateCurvedTiles({
+  const landCurveTiles = tiles.makeSheet(generateCurvedTiles({
     aFill: '#5c9e31', // land
     bFill: '#61b2e4', // water
     // gridLineStyle: 'red',
   }), { tileSize });
 
-  const foreTiles = makeTileSheet(gl,
-    generateSimpleTiles(...foreTileSpecs),
-    { tileSize });
+  const foreTiles = tiles.makeSheet(generateSimpleTiles(...foreTileSpecs), { tileSize });
 
-  const bg = makeLayer(gl, {
+  const bg = tiles.makeLayer({
     texture: landCurveTiles.texture,
     cellSize,
     width: worldWidth,
     height: worldHeight,
   });
 
-  const fg = makeLayer(gl, {
+  const fg = tiles.makeLayer({
     texture: foreTiles.texture,
     cellSize,
     width: worldWidth,
@@ -138,7 +131,7 @@ export default async function demo(opts) {
 
   let lastCurveClip = shouldClipCurvyTiles();
 
-  const bgCurved = makeCurvedLayer(gl, bg);
+  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
   updateCurvedLayer(bgCurved, landCurveTiles,
     lastCurveClip
       ? clippedBaseCellQuery(bg, landCurveTiles)
@@ -167,28 +160,32 @@ export default async function demo(opts) {
 
       // TODO: allow viewport zoom/pan?
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-      tileRend.setViewport();
+      tiles.setViewport();
 
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      tileRend.draw(function*() {
-        if (shouldShowCurvyTiles()) {
-          gl.enable(gl.SCISSOR_TEST);
-          gl.scissor(
-            // NOTE: lower left corner, with 0 counting up from bottom edge of viewport
-            bg.left * cellSize,
-            gl.canvas.height - (bg.top + bg.height) * cellSize,
-            bg.width * cellSize,
-            bg.height * cellSize
-          );
-          yield bgCurved;
-          gl.disable(gl.SCISSOR_TEST);
-        } else {
-          yield bg;
-        }
-        yield fg;
-      }());
+      // TODO: why can't this persist across frames?
+      tiles.texCache.clear();
 
+      // TODO at some point, it'll be worth it to cull layers that don't
+      // intersect perspective, but for now we just use leave GL's vertex culling
+
+      if (shouldShowCurvyTiles()) {
+        gl.enable(gl.SCISSOR_TEST);
+        gl.scissor(
+          // NOTE: lower left corner, with 0 counting up from bottom edge of viewport
+          bg.left * cellSize,
+          gl.canvas.height - (bg.top + bg.height) * cellSize,
+          bg.width * cellSize,
+          bg.height * cellSize
+        );
+        bgCurved.draw();
+        gl.disable(gl.SCISSOR_TEST);
+      } else {
+        bg.draw();
+      }
+
+      fg.draw();
     }
   }();
   return { stop, done };

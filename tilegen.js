@@ -15,25 +15,17 @@
 /** @typedef {import("./gltiles.js").Layer} Layer */
 /** @template TileID @typedef {import("./gltiles.js").TileSheet<TileID>} TileSheet */
 
-import { makeLayer } from './gltiles.js';
-
-/**
- * @param {WebGL2RenderingContext} gl
- * @param {Layer} baseLayer
- */
-export function makeCurvedLayer(gl, baseLayer) {
+/** @param {Layer} baseLayer */
+export function curvedLayerParams(baseLayer) {
   const { texture, cellSize, left, top, width, height } = baseLayer;
-
-  // TODO wrap draw, do scissor
-
-  return makeLayer(gl, {
+  return {
     texture,
     cellSize,
     left: left - 0.5,
     top: top - 0.5,
     width: width + 1,
     height: height + 1,
-  });
+  };
 }
 
 /**
