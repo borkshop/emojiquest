@@ -14,8 +14,16 @@ uniform ViewParams {
   vec4 nowhere;
 };
 
-uniform mat4 transform;
-uniform int stride;
+uniform LayerParams {
+  // defines layer origin and potentially transforms a layer relatively to
+  // other layers (scale, rotate, skew, etc)
+  mat4 transform;
+
+  // Implicit positioning system, where tiles are laid out as a dense grid
+  // indexed by gl_VertexID in row-major order starting at layer origin
+  // (defined by transform) and progressing in stride-siied rows of tiles.
+  int stride;
+};
 
 // Layer ordianl (1-based) within the texture atlas; a 0 value means a null
 // tile that will be culled (by having its position set to nowhere.
