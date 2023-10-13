@@ -42,8 +42,10 @@ export default async function makeTileRenderer(gl) {
   const { prog } = await compileProgram(gl, './gltiles.vert', './gltiles.frag');
 
   const viewParamsBlock = makeUniformBlock(gl, prog, 'ViewParams', 0);
+  const layerParamsBlock = makeUniformBlock(gl, prog, 'LayerParams', 1);
 
   viewParamsBlock.link(prog);
+  layerParamsBlock.link(prog);
 
   const viewParams = viewParamsBlock.makeBuffer();
 
@@ -62,8 +64,6 @@ export default async function makeTileRenderer(gl) {
   };
 
   const uni_sheet = mustGetUniform('sheet'); // sampler2D
-  const uni_transform = mustGetUniform('transform'); // mat4
-  const uni_stride = mustGetUniform('stride'); // uint
 
   const attr_spin = mustGetAttr('spin'); // float
   const attr_size = mustGetAttr('size'); // float
@@ -205,6 +205,13 @@ export default async function makeTileRenderer(gl) {
       left = 0, top = 0,
       width, height,
     }) {
+      const layerParams = layerParamsBlock.makeBuffer();
+      const transform = layerParams.getVar('transform').asFloatArray();
+      const stride = layerParams.getVar('stride');
+
+      stride.int = width;
+      mat4.fromTranslation(transform, [cellSize * left, cellSize * top, 0]);
+      layerParams.send();
 
       // TODO do we complect within or without?
       //   1. makeSparseLayer vs makeDenseLayer
@@ -284,15 +291,10 @@ export default async function makeTileRenderer(gl) {
           gl.useProgram(prog);
 
           viewParams.bind();
+          layerParams.bind();
 
           const texUnit = texCache.get(texture);
           gl.uniform1i(uni_sheet, texUnit);
-
-          gl.uniform1i(uni_stride, width);
-
-          const xform = new Float32Array(16);
-          mat4.fromTranslation(xform, [cellSize * left, cellSize * top, 0]);
-          gl.uniformMatrix4fv(uni_transform, false, xform);
 
           // TODO optional size buffer
           gl.vertexAttrib1f(attr_size, cellSize);
