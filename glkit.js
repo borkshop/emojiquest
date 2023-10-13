@@ -1,3 +1,17 @@
+function getHostLittleEndian() {
+  const testNumber = 0x12_34_56_78;
+  const testArray = new Uint32Array(1);
+  testArray[0] = testNumber;
+  const testView = new DataView(testArray.buffer);
+  if (testView.getUint32(0, true) == testNumber)
+    return true;
+  if (testView.getUint32(0, false) == testNumber)
+    return false;
+  throw new Error('failed to test host endianness');
+}
+
+const littleEndian = getHostLittleEndian();
+
 /**
  * @param {WebGL2RenderingContext} gl
  * @param {Array<string|{name: string, source: Promise<string>}>} sources
@@ -191,4 +205,203 @@ export function sizeToClient($canvas) {
     $canvas.width = clientWidth;
     $canvas.height = clientHeight;
   }
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {WebGLProgram} prog
+ * @param {string} name
+ * @param {number} binding
+ */
+export function makeUniformBlock(gl, prog, name, binding) {
+  const blockIndex = gl.getUniformBlockIndex(prog, name);
+  if (blockIndex == gl.INVALID_INDEX) throw new Error(`no such uniform block ${name}`);
+
+  const size = gl.getActiveUniformBlockParameter(prog, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+
+  const varIndex = [...gl.getActiveUniformBlockParameter(prog, blockIndex, gl.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES)];
+  const varInfo = varIndex.map(i => {
+    const info = gl.getActiveUniform(prog, i);
+    if (!info) throw new Error(`unable to get active uniform ${name}[${i}]`);
+    return info;
+  });
+  const varOffset = gl.getActiveUniforms(prog, varIndex, gl.UNIFORM_OFFSET);
+
+  return {
+    get name() { return name },
+    get index() { return blockIndex },
+    get binding() { return binding },
+    get size() { return size },
+
+    /** @param {WebGLProgram[]} progs */
+    link(...progs) {
+      for (const prog of progs)
+        gl.uniformBlockBinding(prog, blockIndex, binding);
+    },
+
+    makeBuffer() {
+      const ubo = gl.createBuffer();
+      const bufData = new ArrayBuffer(size);
+
+      return {
+        bind(index = binding) {
+          gl.bindBufferBase(gl.UNIFORM_BUFFER, index, ubo);
+        },
+
+        send() {
+          gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+          gl.bufferData(gl.UNIFORM_BUFFER, bufData, gl.DYNAMIC_DRAW);
+          gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+        },
+
+        *vars() {
+          for (const { name } of varInfo)
+            yield name;
+        },
+
+        /** @param {string} varName */
+        getVar(varName) {
+          const i = varInfo.findIndex(info => info.name == varName);
+          if (i < 0) throw new Error(`no such uniform ${name}.${varName}`)
+
+          const offset = varOffset[i];
+          const index = varIndex[i];
+          const { type, size } = varInfo[i];
+
+          const typeInfo = dataType(gl, type);
+          if (!typeInfo)
+            throw new Error(`unknown uniform variable type ${type} for ${name}.${varName}`);
+
+          const { name: typeName, ArrayType, elements, byteLength } = typeInfo;
+          const subView = new DataView(bufData, offset, byteLength * size);
+
+          return {
+            get blockName() { return name },
+            get name() { return varName },
+            get index() { return index },
+            get offset() { return offset },
+            get type() { return type },
+            get byteLength() { return byteLength * size },
+
+            /** @param {number} [i] */
+            asArray(i = 0) {
+              if (i < 0 || i >= size)
+                throw new Error(`index out of range for uniform variable ${name}.${varName}`);
+              return new ArrayType(bufData, offset + i * byteLength, elements);
+            },
+
+            /** @param {number} [i] */
+            asFloatArray(i = 0) {
+              if (i < 0 || i >= size)
+                throw new Error(`index out of range for uniform variable ${name}.${varName}`);
+              if (ArrayType != Float32Array)
+                throw new Error(`uniform variable ${name}.${varName} is ${typeName} not float-like`);
+              return new ArrayType(bufData, offset + i * byteLength, elements);
+            },
+
+            /** @param {number} [i] */
+            asIntArray(i = 0) {
+              if (i < 0 || i >= size)
+                throw new Error(`index out of range for uniform variable ${name}.${varName}`);
+              if (ArrayType != Int32Array)
+                throw new Error(`uniform variable ${name}.${varName} is ${typeName} not int-like`);
+              return new ArrayType(bufData, offset + i * byteLength, elements);
+            },
+
+            /** @param {number} [i] */
+            asUintArray(i = 0) {
+              if (i < 0 || i >= size)
+                throw new Error(`index out of range for uniform variable ${name}.${varName}`);
+              if (ArrayType != Uint32Array)
+                throw new Error(`uniform variable ${name}.${varName} is ${typeName} not uint-like`);
+              return new ArrayType(bufData, offset + i * byteLength, elements);
+            },
+
+            get float() { return subView.getFloat32(0, littleEndian) },
+            set float(v) { subView.setFloat32(0, v, littleEndian) },
+
+            get uint() { return subView.getUint32(0, littleEndian) },
+            set uint(v) { subView.setUint32(0, v, littleEndian) },
+
+            get int() { return subView.getInt32(0, littleEndian) },
+            set int(v) { subView.setInt32(0, v, littleEndian) },
+
+            get bool() { return subView.getUint32(0, littleEndian) == 0 ? false : true },
+            set bool(v) { subView.setUint32(0, v ? 1 : 0, littleEndian) },
+
+            send() {
+              gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+              gl.bufferSubData(gl.UNIFORM_BUFFER, offset, subView);
+              gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+            },
+
+          };
+        },
+      };
+    },
+
+  };
+}
+
+/** @typedef {ReturnType<makeUniformBlock>} UniformBlock */
+/** @typedef {ReturnType<UniformBlock["makeBuffer"]>} UniformBuffer */
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {number} dataType
+ */
+function dataTypeInfo(gl, dataType) {
+  // TODO differentiate name from component name?
+  switch (dataType) {
+    case gl.INT: return { name: 'int', ArrayType: Int32Array, shape: [1] };
+    case gl.INT_VEC2: return { name: 'ivec2', ArrayType: Int32Array, shape: [2] };
+    case gl.INT_VEC3: return { name: 'ivec3', ArrayType: Int32Array, shape: [3] };
+    case gl.INT_VEC4: return { name: 'ivec4', ArrayType: Int32Array, shape: [4] };
+
+    case gl.UNSIGNED_INT: return { name: 'uint', ArrayType: Uint32Array, shape: [1] };
+    case gl.UNSIGNED_INT_VEC2: return { name: 'uvec2', ArrayType: Uint32Array, shape: [2] };
+    case gl.UNSIGNED_INT_VEC3: return { name: 'uvec3', ArrayType: Uint32Array, shape: [3] };
+    case gl.UNSIGNED_INT_VEC4: return { name: 'uvec4', ArrayType: Uint32Array, shape: [4] };
+
+    case gl.BOOL: return { name: 'bool', ArrayType: Uint32Array, shape: [1] };
+    case gl.BOOL_VEC2: return { name: 'bvec2', ArrayType: Uint32Array, shape: [2] };
+    case gl.BOOL_VEC3: return { name: 'bvec3', ArrayType: Uint32Array, shape: [3] };
+    case gl.BOOL_VEC4: return { name: 'bvec4', ArrayType: Uint32Array, shape: [4] };
+
+    case gl.FLOAT: return { name: 'float', ArrayType: Float32Array, shape: [1] };
+    case gl.FLOAT_VEC2: return { name: 'vec2', ArrayType: Float32Array, shape: [2] };
+    case gl.FLOAT_VEC3: return { name: 'vec3', ArrayType: Float32Array, shape: [3] };
+    case gl.FLOAT_VEC4: return { name: 'vec4', ArrayType: Float32Array, shape: [4] };
+
+    case gl.FLOAT_MAT2: return { name: 'mat2', ArrayType: Float32Array, shape: [2, 2] };
+    case gl.FLOAT_MAT3: return { name: 'mat3', ArrayType: Float32Array, shape: [3, 3] };
+    case gl.FLOAT_MAT4: return { name: 'mat4', ArrayType: Float32Array, shape: [4, 4] };
+
+    case gl.FLOAT_MAT2x3: return { name: 'mat2x3', ArrayType: Float32Array, shape: [2, 3] };
+    case gl.FLOAT_MAT2x4: return { name: 'mat2x4', ArrayType: Float32Array, shape: [2, 4] };
+    case gl.FLOAT_MAT3x2: return { name: 'mat3x2', ArrayType: Float32Array, shape: [3, 2] };
+    case gl.FLOAT_MAT3x4: return { name: 'mat3x4', ArrayType: Float32Array, shape: [3, 4] };
+    case gl.FLOAT_MAT4x2: return { name: 'mat4x2', ArrayType: Float32Array, shape: [4, 3] };
+    case gl.FLOAT_MAT4x3: return { name: 'mat4x3', ArrayType: Float32Array, shape: [4, 3] };
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {number} dataType
+ */
+export function dataType(gl, dataType) {
+  const info = dataTypeInfo(gl, dataType);
+  if (!info) return null;
+  const elements = info.shape.reduce((a, b) => a * b);
+  const byteLength = info.ArrayType.BYTES_PER_ELEMENT * elements;
+
+  return {
+    ...info,
+    elements,
+    byteLength,
+  };
 }
