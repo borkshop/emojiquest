@@ -165,7 +165,10 @@ export default async function demo(opts) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+      // TODO: allow viewport zoom/pan?
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+      tileRend.setViewport();
+
       gl.clear(gl.COLOR_BUFFER_BIT);
 
       tileRend.draw(function*() {
