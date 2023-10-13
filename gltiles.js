@@ -1601,3 +1601,24 @@ function makeTextureUnitCache(gl, kind) {
 }
 
 /** @typedef {ReturnType<makeTextureUnitCache>} TextureUnitCache */
+
+// /**
+//  * @param {object} img
+//  * @param {number} img.width
+//  * @param {number} img.height
+//  * @param {Parameters<typeof URL.createObjectURL>[0]} img.src
+//  * @param {any[]} mess
+//  */
+// const logImage = ({ width, height, src }, ...mess) => {
+//   const url = URL.createObjectURL(src);
+//   console.group(...mess);
+//   console.log("%c+", [
+//     `font-size: 1px`,
+//     `color: transparent`,
+//     `padding: ${Math.floor(height / 2)}px ${Math.floor(width / 2)}px`,
+//     `line-height: ${height}px`,
+//     `background: url(${url})`,
+//     `background-size: ${width}px ${height}px`,
+//   ].join('; '));
+//   console.groupEnd();
+// };
