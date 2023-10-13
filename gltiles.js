@@ -7,6 +7,14 @@ import { compileProgram } from './glkit.js';
 // TODO per-tile scale support
 // TODO animation support (probably at least per-tile displacement driven externally)
 
+/**
+ * @typedef {object} Viewport
+ * @prop {number} left
+ * @prop {number} top
+ * @prop {number} width
+ * @prop {number} height
+ */
+
 /** @param {WebGL2RenderingContext} gl */
 export function compileTileProgram(gl) {
   // TODO how to afford customization for things like fragment shader effects?
@@ -42,35 +50,42 @@ export function makeTileRenderer(gl, prog) {
   const attr_size = mustGetAttr('size'); // float
   const attr_layerID = mustGetAttr('layerID'); // int
 
-  const perspective = mat4.identity(new Float32Array(16));
+  const perspective = new Float32Array(16);
   const texCache = makeTextureUnitCache(gl, gl.TEXTURE_2D_ARRAY);
 
+  gl.useProgram(prog);
+
+  mat4.identity(perspective);
+  gl.uniformMatrix4fv(uni_perspective, false, perspective);
+
+  // NOTE: this just needs to be set to any point outside of camera view, so
+  // that the vertex shader can use it to cull points
+  gl.uniform4f(uni_nowhere, -1, -1, -1, 0);
+
+  gl.useProgram(null);
+
   return {
-    /**
-     * @param {IterableIterator<Layer>} layers
-     * @param {object} [viewport]
-     * @param {number} [viewport.left]
-     * @param {number} [viewport.top]
-     * @param {number} [viewport.width]
-     * @param {number} [viewport.height]
-     */
-    draw(layers, {
+    /** @param {Partial<Viewport>} [viewport] */
+    setViewport({
       left = 0,
       top = 0,
       width = gl.drawingBufferWidth,
       height = gl.drawingBufferHeight
     } = {}) {
+      gl.useProgram(prog);
+
+      mat4.ortho(perspective, left, width, height, top, 0, Number.EPSILON);
+      gl.uniformMatrix4fv(uni_perspective, false, perspective);
+
+      gl.useProgram(null);
+    },
+
+    /** @param {IterableIterator<Layer>} layers */
+    draw(layers) {
       // TODO: why can't this persist across frames?
       texCache.clear();
 
       gl.useProgram(prog);
-
-      // NOTE: this just needs to be set to any point outside of camera view, so
-      // that the vertex shader can use it to cull points
-      gl.uniform4f(uni_nowhere, -1, -1, -1, 0);
-
-      mat4.ortho(perspective, left, width, height, top, 0, Number.EPSILON);
-      gl.uniformMatrix4fv(uni_perspective, false, perspective);
 
       // TODO at some point, it'll be worth it to cull layers that don't
       // intersect perspective, but for now we just use leave GL's vertex culling
@@ -85,6 +100,7 @@ export function makeTileRenderer(gl, prog) {
           layerID: attr_layerID,
         });
 
+      gl.useProgram(null);
     },
   };
 }
