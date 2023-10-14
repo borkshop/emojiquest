@@ -1,6 +1,10 @@
 // @ts-check
 
 import {
+  frameLoop,
+} from './glkit.js';
+
+import {
   compileTileProgram,
   makeTileRenderer,
   makeTileSheet,
@@ -134,13 +138,9 @@ export default async function demo(opts) {
   bgSQ.send();
   fg.send();
 
-  let running = true;
+  const { stop, frames } = frameLoop();
   const done = async function() {
-    for (
-      let t = await nextFrame(), lastT = t;
-      running;
-      lastT = t, t = await nextFrame()
-    ) {
+    for await (const _/*t*/ of frames) {
       // TODO animate things via const dt = lastT - t;
 
       gl.enable(gl.BLEND);
@@ -155,7 +155,7 @@ export default async function demo(opts) {
       }());
     }
   }();
-  return { stop() { running = false }, done };
+  return { stop, done };
 }
 
 function makeRandom(seed = 0xdead_beefn) {
@@ -166,9 +166,6 @@ function makeRandom(seed = 0xdead_beefn) {
   const random = () => Number(rand()) / 0x1_0000_0000;
   return { rand, randn, random };
 }
-
-/** @returns {Promise<number>} */
-const nextFrame = () => new Promise(resolve => requestAnimationFrame(t => resolve(t)))
 
 /** @param {HTMLCanvasElement} $canvas */
 function sizeToParent($canvas, update = () => { }) {

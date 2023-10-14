@@ -156,3 +156,29 @@ function* numberLines(w, lines) {
     yield `${n.toString().padStart(w)}: ${line} `;
   }
 }
+
+export function frameLoop() {
+  /** @type {null|((reason?: any) => void)} */
+  let cancel;
+  let stopped = false;
+  const $stopped = new Error('frame loop stopped');
+  return {
+    stop() {
+      stopped = true;
+      if (cancel) cancel($stopped);
+    },
+    frames: async function*() {
+      try {
+        while (!stopped) yield /** @type {Promise<DOMHighResTimeStamp>} */ (new Promise((resolve, reject) => {
+          const pending = requestAnimationFrame(resolve);
+          cancel = reason => {
+            cancelAnimationFrame(pending);
+            reject(reason);
+          };
+        }));
+      } catch (e) {
+        if (e !== $stopped) throw e;
+      }
+    }(),
+  };
+}
