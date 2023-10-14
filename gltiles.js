@@ -11,7 +11,6 @@ import {
 /** @typedef {import('./glkit.js').ArraySpecMap} ArraySpecMap */
 /** @template {ArraySpecMap} T @typedef {import('./glkit.js').arrayProps<T>} arrayProps */
 
-// TODO animation support (probably at least per-tile displacement driven externally)
 // TODO how to afford customization for things like fragment shader effects?
 
 /** @callback drawback
@@ -46,9 +45,11 @@ export default async function makeTileRenderer(gl) {
   const { prog } = await compileProgram(gl, './gltiles.vert', './gltiles.frag');
 
   const viewParamsBlock = makeUniformBlock(gl, prog, 'ViewParams', 0);
-  const layerParamsBlock = makeUniformBlock(gl, prog, 'LayerParams', 1);
+  const animParamsBlock = makeUniformBlock(gl, prog, 'AnimParams', 1);
+  const layerParamsBlock = makeUniformBlock(gl, prog, 'LayerParams', 2);
 
   viewParamsBlock.link(prog);
+  animParamsBlock.link(prog);
   layerParamsBlock.link(prog);
 
   /** @param {string} name */
@@ -84,10 +85,27 @@ export default async function makeTileRenderer(gl) {
 
   const attrTileSpec = {
     ArrayType: Uint16Array,
-    size: 1,
+    size: 2,
     gl: {
       attrib: mustGetAttr('layerID'), // int
       asInt: true,
+    },
+  };
+
+  // TODO better to combine posTo / anim into a struct array?
+  const attrPosToSpec = {
+    ArrayType: Float32Array,
+    size: 4,
+    gl: {
+      attrib: mustGetAttr('posTo'), // vec4: xy=offset, z=spin, w=scale
+    },
+  };
+
+  const attrAnimSpec = {
+    ArrayType: Float32Array,
+    size: 3,
+    gl: {
+      attrib: mustGetAttr('anim'), // vec3: x=start_time, y=duration, z=mode
     },
   };
 
@@ -95,12 +113,17 @@ export default async function makeTileRenderer(gl) {
 
   const texCache = makeTextureUnitCache(gl, gl.TEXTURE_2D_ARRAY);
 
-  return {
+  const noAnim = animParamsBlock.makeBuffer();
+  noAnim.send();
+
+  const tileRend = {
     texCache, // TODO reconsider
 
     /**
      * @param {object} params
      * @param {number} params.cellSize
+     * @param {AnimClock} [params.animClock]
+     * @param {number} [params.defaultAnimDuration]
      */
     makeView(params) {
       const viewParams = viewParamsBlock.makeBuffer();
@@ -116,12 +139,27 @@ export default async function makeTileRenderer(gl) {
       // that the vertex shader can use it to cull points
       nowhere.set([-1, -1, -1, 0]);
 
+      /** @typedef {object} Pan
+       * @prop {vec2} from
+       * @prop {vec2} to
+       * @prop {number} start
+       * @prop {number} duration
+       */
+
       let
+        {
+          defaultAnimDuration = 200,
+          animClock = null,
+        } = params,
+
         left = 0,
         top = 0,
         clientWidth = gl.drawingBufferWidth,
         clientHeight = gl.drawingBufferHeight,
-        dirty = true;
+        dirty = true,
+
+        /** @type {null|Pan} */
+        pan = null;
 
       const update = () => {
         const
@@ -135,10 +173,32 @@ export default async function makeTileRenderer(gl) {
         dirty = true;
       };
 
+      const animate = () => {
+        if (!animClock) return;
+
+        if (pan) {
+          const
+            { time } = animClock,
+            { from, to, start, duration } = pan,
+            p = (time - start) / duration;
+          [left, top] = p >= 1 ? to : vec2.lerp([left, top], from, to, p);
+          if (p >= 1) pan = null;
+        }
+
+        // TODO if (zoom)
+      };
+
       const view = {
+        get animClock() {
+          if (!animClock) throw new Error('view has no AnimClock set');
+          return animClock;
+        },
+        set animClock(ac) { animClock = ac },
+
         update() {
           clientWidth = gl.drawingBufferWidth;
           clientHeight = gl.drawingBufferHeight;
+          animate();
           update();
         },
 
@@ -208,29 +268,43 @@ export default async function makeTileRenderer(gl) {
 
         /**
          * @param {vec2} by
+         * @param {number} [duration]
          */
-        panBy(by) {
+        panBy(by, duration = defaultAnimDuration) {
           const [dx, dy] = by, { origin: [x, y] } = view
-          view.panTo([x + dx, y + dy]);
+          view.panTo([x + dx, y + dy], duration);
         },
 
         /**
          * @param {vec2} by
+         * @param {number} [duration]
          */
-        panByCell(by) {
+        panByCell(by, duration = defaultAnimDuration) {
           const [dx, dy] = by, { origin: [x, y], cellSize: size } = view
-          view.panTo([x + dx * size, y + dy * size]);
+          view.panTo([x + dx * size, y + dy * size], duration);
         },
 
         /**
          * @param {vec2} to
+         * @param {number} [duration]
          */
-        panTo(to) {
+        panTo(to, duration = defaultAnimDuration) {
           const [x, y] = to;
-          if (left != x || top != y) {
-            left = x, top = y;
-            update();
+
+          if (!animClock) {
+            if (left != x || top != y) {
+              left = x, top = y;
+              update();
+            }
+            return;
           }
+
+          pan = {
+            from: [left, top],
+            to: [x, y],
+            start: animClock.time,
+            duration,
+          };
         },
 
         /**
@@ -239,11 +313,13 @@ export default async function makeTileRenderer(gl) {
          * @param {vec2} [params.margin]
          * @param {vec2} [params.boundLower]
          * @param {vec2} [params.boundUpper]
+         * @param {number} [params.duration]
          */
         panToInclude(point, {
           margin = [1, 1],
           boundLower,
           boundUpper,
+          duration = defaultAnimDuration,
         } = {}) {
           const
             viewLeft = left,
@@ -285,8 +361,10 @@ export default async function makeTileRenderer(gl) {
             dy = Math.min(dy, boundUpper[1] - marginX + 1 - cellBottom);
           }
 
-          view.panTo([viewLeft + dx * size, viewTop + dy * size]);
+          view.panTo([viewLeft + dx * size, viewTop + dy * size], duration);
         },
+
+        // TODO zoomTo(size, duration)
 
         /** @param {() => void} fn */
         with(fn) {
@@ -296,6 +374,7 @@ export default async function makeTileRenderer(gl) {
             dirty = false;
           }
           viewParams.bind();
+          noAnim.bind();
           fn();
           gl.useProgram(null);
         },
@@ -357,6 +436,78 @@ export default async function makeTileRenderer(gl) {
       };
 
       return view;
+    },
+
+    makeAnimClock() {
+      const animParams = animParamsBlock.makeBuffer();
+      const animEnabled = animParams.getVar('anim_enabled');
+      const animTime = animParams.getVar('anim_time');
+
+      animEnabled.bool = true;
+      let dirty = true;
+
+      let lastExternalTime = NaN;
+
+      /** @typedef {object} After
+       * @prop {number} time
+       * @prop {(now: number) => void} then
+       */
+
+      /** @type {After[]} */
+      const afters = [];
+
+      /** @param {number} dt */
+      const advance = dt => {
+        const now = animTime.float + dt;
+        animTime.float = now;
+        dirty = true;
+        while (afters.length > 0 && now > afters[0].time)
+          afters.shift()?.then(now);
+      };
+
+      /** @type {AnimClock} */
+      const clock = {
+        bind() {
+          if (dirty) {
+            animParams.send();
+            dirty = false;
+          }
+          animParams.bind();
+        },
+        unbind() { noAnim.bind() },
+
+        get enabled() { return animEnabled.bool },
+        set enabled(b) { animEnabled.bool = b, dirty = true },
+
+        get time() { return animTime.float },
+
+        reset() {
+          lastExternalTime = NaN;
+          animTime.float = 0;
+        },
+
+        pause() { lastExternalTime = NaN },
+
+        update(externalTime) {
+          if (isNaN(lastExternalTime))
+            lastExternalTime = externalTime;
+          else if (externalTime > lastExternalTime) {
+            advance(externalTime - lastExternalTime);
+            lastExternalTime = externalTime;
+          }
+        },
+
+        afterDuration(dt) {
+          return clock.afterTime(animTime.float + dt);
+        },
+
+        afterTime(time) {
+          const i = search(afters.length, i => afters[i].time > time);
+          return new Promise(then => afters.splice(i, 0, { time, then }));
+        },
+
+      };
+      return clock;
     },
 
     /**
@@ -577,12 +728,16 @@ export default async function makeTileRenderer(gl) {
           if (dim in userData)
             throw new Error(`userData may not specify "${dim}"`);
 
+      // TODO support unanimated variant
+
       const layer = this.makeLayer({ stride: width, ...params });
       const data = makeDataFrame(gl, {
         ...userData,
         index: indexSpec,
         pos: attrPosSpec,
         tile: attrTileSpec,
+        anim: attrAnimSpec,
+        posTo: attrPosToSpec,
       }, width * height);
 
       /** @param {number} index */
@@ -596,7 +751,7 @@ export default async function makeTileRenderer(gl) {
           return [x, y];
         },
 
-        /** Reset all tile data to default (0 values) */
+        /** Reset all tile data to 0 values */
         clear() {
           data.recordClear(index);
           data.delElement(index);
@@ -633,15 +788,120 @@ export default async function makeTileRenderer(gl) {
 
         /** Tile texture Z index.
          *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
-        get layerID() { return data.array.tile[index] },
+        get layerID() { return data.array.tile[2 * index] },
         /** Setting a value of 0, the default, will cause this tile to not be drawn.
          * When initializing (setting to non-zero when prior value was 0),
          * a default 1.0 scale value will also be set if scale was 0. */
         set layerID(layerID) {
-          const init = layerID != 0 && data.array.tile[index] == 0;
-          data.array.tile[index] = layerID;
+          const init = layerID != 0 && data.array.tile[2 * index] == 0;
+          data.array.tile[2 * index] = layerID;
           if (init && data.array.pos[4 * index + 3] == 0) data.array.pos[4 * index + 3] = 1;
           if (layerID === 0) data.delElement(index); else data.addElement(index);
+          data.dirty = true;
+        },
+
+        /** Tile animation start time under an AnimTimer */
+        get animStart() { return data.array.anim[3 * index + 0] },
+        set animStart(time) {
+          data.array.anim[3 * index + 0] = time;
+          data.dirty = true;
+        },
+
+        /** Tile animation duration under an AnimTimer */
+        get animDuration() { return data.array.anim[3 * index + 1] },
+
+        /** Setting to 0 disables this tile's animation,
+         *  and resets animStart=0 and animMode='once'.
+         *
+         *  Setting to non-0 when previsouly 0 enables this tile's animation,
+         *  and copies default offset/spin/scale-to data from normal offset/spin/scale.
+         */
+        set animDuration(duration) {
+          const prior = data.array.anim[3 * index + 1];
+          data.array.anim[3 * index + 1] = duration;
+          if (duration == 0) {
+            data.array.anim.set([0, 0, 0], 3 * index);
+            data.array.posTo.set([0, 0, 0, 0], 4 * index);
+            data.array.tile[2 * index + 1] = 0;
+          } else if (prior == 0) {
+            const pos = data.array.pos.subarray(4 * index, 4 * index + 4);
+            data.array.posTo.set(pos, 4 * index);
+            data.array.tile[2 * index + 1] = data.array.tile[2 * index];
+          }
+          data.dirty = true;
+        },
+
+        /** Tile animation mode, defaults to "once".
+         *
+         * Animation progress is:
+         *     p = (time - animStart) / animDuration
+         * In other words:
+         * * starts after animStart time
+         * * normalized by animDuration
+         *
+         * The "once" mode of animation stop after p=1.0,
+         * while "loop" continues indefinitely,
+         * repeating the same from -> to animation again and again.
+         *
+         * Simmilarly the "loopback" mode continues indefinetly, but swaps from/to data directionality each time like:
+         * * [0.0, 1.0] from -> to
+         * * [1.0, 2.0] to -> from
+         * * [2.0, 3.0] from -> to
+         * * ... and so on
+         */
+        get animMode() {
+          const animCode = data.array.anim[3 * index + 2];
+          switch (animCode) {
+            case 0: return 'once';
+            case 1: return 'loop';
+            case 2: return 'loopback';
+            default: return 'invalid';
+          }
+        },
+
+        set animMode(mode) {
+          switch (mode) {
+            case 'once':
+              data.array.anim[3 * index + 2] = 0;
+              break;
+            case 'loop':
+              data.array.anim[3 * index + 2] = 1;
+              break;
+            case 'loopback':
+              data.array.anim[3 * index + 2] = 2;
+              break;
+            default: throw new Error('invalid animMode');
+          }
+          data.dirty = true;
+        },
+
+        get offsetTo() {
+          return [
+            data.array.posTo[4 * index + 0],
+            data.array.posTo[4 * index + 1],
+          ];
+        },
+        set offsetTo([ox, oy]) {
+          data.array.posTo[4 * index + 0] = ox;
+          data.array.posTo[4 * index + 1] = oy;
+          data.dirty = true;
+        },
+
+        get spinTo() { return data.array.posTo[4 * index + 2] },
+        set spinTo(turns) {
+          data.array.posTo[4 * index + 2] = turns;
+          data.dirty = true;
+        },
+
+        get scaleTo() { return data.array.posTo[4 * index + 3] },
+        set scaleTo(factor) {
+          data.array.posTo[4 * index + 3] = factor;
+          data.dirty = true;
+        },
+
+        get layerIDTo() { return data.array.tile[2 * index + 1] },
+        set layerIDTo(layerID) {
+          data.array.tile[2 * index + 1] = layerID;
           data.dirty = true;
         },
       });
@@ -729,6 +989,7 @@ export default async function makeTileRenderer(gl) {
      * @template {ArraySpecMap} UserData
      * @param {object} params
      * @param {WebGLTexture} params.texture
+     * @param {AnimClock} [params.animClock]
      * @param {number} [params.cellSize]
      * @param {number} [params.left]
      * @param {number} [params.top]
@@ -737,6 +998,7 @@ export default async function makeTileRenderer(gl) {
      */
     makeSparseLayer({
       capacity: initialCap = 64,
+      animClock: layerAnimClock,
       userData,
       ...params
     }) {
@@ -751,6 +1013,8 @@ export default async function makeTileRenderer(gl) {
         index: indexSpec,
         pos: attrPosSpec,
         tile: attrTileSpec,
+        anim: attrAnimSpec,
+        posTo: attrPosToSpec,
         used: {
           ArrayType: Uint8Array,
           size: 1 / 8,
@@ -810,6 +1074,21 @@ export default async function makeTileRenderer(gl) {
 
       /** @param {number} index */
       const ref = index => {
+        /** @type {null|AnimClock} */
+        let animClock = layerAnimClock || null;
+
+        /** @typedef {'once'|'loop'|'loopback'} AnimMode */
+
+        /** @param {AnimMode} mode */
+        const animModeToCode = mode => {
+          switch (mode) {
+            case 'once': return 0;
+            case 'loop': return 1;
+            case 'loopback': return 2;
+            default: throw new Error('invalid animMode');
+          }
+        };
+
         const tile = {
           get id() { return index + 1 },
           get index() { return index },
@@ -864,17 +1143,147 @@ export default async function makeTileRenderer(gl) {
 
           /** Tile texture Z index.
            *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
-          get layerID() { return data.array.tile[index] },
+          get layerID() { return data.array.tile[2 * index] },
           /** Setting a value of 0, the default, will cause this tile to not be drawn.
            * When initializing (setting to non-zero when prior value was 0),
            * a default 1.0 scale value will also be set if scale was 0. */
           set layerID(layerID) {
-            const init = layerID != 0 && data.array.tile[index] == 0;
-            data.array.tile[index] = layerID;
+            const init = layerID != 0 && data.array.tile[2 * index] == 0;
+            data.array.tile[2 * index] = layerID;
             if (init && data.array.pos[4 * index + 3] == 0) data.array.pos[4 * index + 3] = 1;
             if (layerID === 0) data.delElement(index); else data.addElement(index);
             data.dirty = true;
           },
+
+          afterAnim(clock = animClock) {
+            return tile.afterAnimRounds(clock, 1)
+          },
+
+          /** @param {number} rounds */
+          afterAnimRounds(clock = animClock, rounds) {
+            if (!clock) throw new Error('not bound to an AnimClock, most provide one to afterAnim');
+            const
+              animStart = data.array.anim[3 * index + 0],
+              animDuration = data.array.anim[3 * index + 1];
+            // TODO if we further indirect id -> index,
+            // then we may need to revalidate that mapping after promise reolves
+            return clock.afterTime(animStart + rounds * animDuration);
+          },
+
+          get animClock() { return animClock },
+          set animClock(clock) { animClock = clock },
+
+          /**
+           * @param {number} delay
+           * @param {number} duration
+           * @param {'once'|'loop'|'loopback'} mode
+           */
+          startAnim(duration, delay = 0, mode = 'once') {
+            if (duration <= 0) throw new Error('invalid duration');
+            if (!animClock) throw new Error('not bound to an AnimClock');
+            const time = animClock.time + delay;
+
+            data.array.anim[3 * index + 0] = time;
+            data.array.anim[3 * index + 1] = duration;
+            data.array.anim[3 * index + 2] = animModeToCode(mode);
+
+            const pos = data.array.pos.subarray(4 * index, 4 * index + 4);
+            data.array.posTo.set(pos, 4 * index);
+            data.array.tile[2 * index + 1] = data.array.tile[2 * index];
+            data.dirty = true;
+          },
+
+          /** Tile animation start time under an AnimTimer */
+          get animStart() { return data.array.anim[3 * index + 0] },
+          set animStart(time) {
+            data.array.anim[3 * index + 0] = time;
+            data.dirty = true;
+          },
+
+          /** Tile animation duration under an AnimTimer */
+          get animDuration() { return data.array.anim[3 * index + 1] },
+
+          /** Setting to 0 disables this tile's animation,
+           *  and resets animStart=0 and animMode='once'.
+           *
+           *  Setting to non-0 when previsouly 0 enables this tile's animation,
+           *  and copies default offset/spin/scale-to data from normal offset/spin/scale.
+           */
+          set animDuration(duration) {
+            const prior = data.array.anim[3 * index + 1];
+            data.array.anim[3 * index + 1] = duration;
+            if (duration == 0) {
+              data.array.anim.set([0, 0, 0], 3 * index);
+              data.array.posTo.set([0, 0, 0, 0], 4 * index);
+            } else if (prior == 0) {
+              const pos = data.array.pos.subarray(4 * index, 4 * index + 4);
+              data.array.posTo.set(pos, 4 * index);
+              data.array.tile[2 * index + 1] = data.array.tile[2 * index];
+            }
+            data.dirty = true;
+          },
+
+          /** Tile animation mode, defaults to "once".
+           *
+           * Animation progress is:
+           *     p = (time - animStart) / animDuration
+           * In other words:
+           * * starts after animStart time
+           * * normalized by animDuration
+           *
+           * The "once" mode of animation stop after p=1.0,
+           * while "loop" continues indefinitely,
+           * repeating the same from -> to animation again and again.
+           *
+           * Simmilarly the "loopback" mode continues indefinetly, but swaps from/to data directionality each time like:
+           * * [0.0, 1.0] from -> to
+           * * [1.0, 2.0] to -> from
+           * * [2.0, 3.0] from -> to
+           * * ... and so on
+           */
+          get animMode() {
+            const animCode = data.array.anim[3 * index + 2];
+            switch (animCode) {
+              case 0: return 'once';
+              case 1: return 'loop';
+              case 2: return 'loopback';
+              // @ts-ignore
+              default: return 'invalid';
+            }
+          },
+
+          /** @param {AnimMode} mode */
+          set animMode(mode) {
+            data.array.anim[3 * index + 2] = animModeToCode(mode);
+            data.dirty = true;
+          },
+
+          /** @returns {[x: number, y: number]} */
+          get xyTo() { return [data.array.posTo[4 * index + 0], data.array.posTo[4 * index + 1]] },
+          set xyTo([ox, oy]) {
+            data.array.posTo[4 * index + 0] = ox;
+            data.array.posTo[4 * index + 1] = oy;
+            data.dirty = true;
+          },
+
+          get spinTo() { return data.array.posTo[4 * index + 2] },
+          set spinTo(turns) {
+            data.array.posTo[4 * index + 2] = turns;
+            data.dirty = true;
+          },
+
+          get scaleTo() { return data.array.posTo[4 * index + 3] },
+          set scaleTo(factor) {
+            data.array.posTo[4 * index + 3] = factor;
+            data.dirty = true;
+          },
+
+          get layerIDTo() { return data.array.tile[2 * index + 1] },
+          set layerIDTo(layerID) {
+            data.array.tile[2 * index + 1] = layerID;
+            data.dirty = true;
+          },
+
         };
         return tile;
       };
@@ -908,6 +1317,11 @@ export default async function makeTileRenderer(gl) {
           if (validateID(id)) free(id - 1);
         },
 
+        get animClock() {
+          if (!layerAnimClock) throw new Error('no AnimClock bound to SparseLayer');
+          return layerAnimClock;
+        },
+
         *all() {
           for (let index = 0; index < length; index++)
             if (isUsed(index)) yield ref(index);
@@ -931,8 +1345,10 @@ export default async function makeTileRenderer(gl) {
         },
 
         draw() {
+          layerAnimClock?.bind();
           layer.bind();
           data.drawElements(gl.POINTS);
+          layerAnimClock?.unbind();
         },
 
         get array() {
@@ -946,7 +1362,20 @@ export default async function makeTileRenderer(gl) {
       );
     },
   };
+  return tileRend;
 }
+
+/** @typedef {object} AnimClock
+ * @prop {boolean} enabled
+ * @prop {number} time
+ * @prop {() => void} bind
+ * @prop {() => void} unbind
+ * @prop {() => void} reset
+ * @prop {() => void} pause
+ * @prop {(externalTime: number) => void} update
+ * @prop {(dt: number) => Promise<number>} afterDuration
+ * @prop {(t: number) => Promise<number>} afterTime
+ */
 
 /** @typedef {Awaited<ReturnType<makeTileRenderer>>} TileRenderer */
 /** @typedef {ReturnType<TileRenderer["makeView"]>} View */
@@ -966,6 +1395,20 @@ function passProperties(o, b, ...propNames) {
   const passPropDescs = bPropDescs.filter(([name]) => propNames.includes(/** @type {BK}*/(name)));
   const passPropMap = /** @type {{[k in BK]: PropertyDescriptor}} */ (Object.fromEntries(passPropDescs));
   return /** @type {O & Pick<B, BK>} */ (Object.defineProperties(o, passPropMap));
+}
+
+/**
+ * @param {number} n
+ * @param {(i: number) => boolean} where
+ */
+function search(n, where) {
+  let i = 0, j = n;
+  for (; i < j;) {
+    const h = Math.floor((i + j) / 2);
+    if (!where(h)) i = h + 1;
+    else j = h;
+  }
+  return i;
 }
 
 // TODO candidates for move into glkit.js

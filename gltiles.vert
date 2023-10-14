@@ -17,6 +17,12 @@ uniform ViewParams {
   vec4 nowhere;
 };
 
+uniform AnimParams {
+  bool anim_enabled;
+
+  float anim_time;
+};
+
 uniform LayerParams {
   // defines layer origin and potentially transforms a layer relatively to
   // other layers (scale, rotate, skew, etc)
@@ -37,12 +43,18 @@ uniform LayerParams {
 
 // Layer ordianl (1-based) within the texture atlas; a 0 value means a null
 // tile that will be culled (by having its position set to nowhere.
-in uint layerID;
+in uvec2 layerID;
 
-// Tile dosition data: xy = offset, z = spin, w = scale
+in vec3 anim; // x=start_time, y=duration, z=mode
+
+// Tile position data: xy = offset, z = spin, w = scale
 in vec4 pos;
+in vec4 posTo;
 
-out float sheetLayer;
+out vec2 fragAnim; // x=enabled, y=progress
+
+out vec2 sheetLayer;
+
 out mat3 tileTransform;
 
 const mat3 spinOffset = mat3(
@@ -58,9 +70,36 @@ void main(void) {
   xform[1].y *= size;
   xform[3].xy *= size;
 
-  vec2 offset = pos.xy;
-  float spin = pos.z;
-  float scale = pos.w;
+  vec4 posAt = pos;
+
+  if (anim_enabled && anim.y > 0.0) {
+    float progress = (anim_time - anim.x) / anim.y;
+    if (progress > 0.0) {
+      switch (int(anim.z)) {
+
+        case 1: // loop
+          progress = fract(progress);
+          break;
+
+        case 2: // loop-back
+          if (int(floor(progress)) % 2 == 1) {
+            progress = 1.0 - fract(progress);
+          } else {
+            progress = fract(progress);
+          }
+          break;
+
+        default:
+          progress = max(0.0, min(1.0, progress));
+      }
+      posAt = mix(posAt, posTo, progress);
+      fragAnim = vec2(1.0, progress);
+    }
+  }
+
+  vec2 offset = posAt.xy;
+  float spin = posAt.z;
+  float scale = posAt.w;
 
   if (scale <= 0.0 || int(layerID) == 0) {
     gl_Position = nowhere;
@@ -91,5 +130,5 @@ void main(void) {
 
   gl_PointSize = size * scale;
 
-  sheetLayer = float(layerID) - 1.0;
+  sheetLayer = vec2(layerID) - 1.0;
 }
