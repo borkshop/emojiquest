@@ -9,18 +9,47 @@
 </head>
 
 <body>
+
+  <div style="position: absolute; right: 0">
+
+  </div>
+
   <canvas id="world"></canvas>
+
   <script type="module">
     import demo from './gldemo.js';
 
     const $world = document.querySelector('canvas#world');
     if (!$world) throw new Error('unable to find world canvas');
 
+    let halt = true;
     let stop = () => { };
 
+    window.addEventListener('keypress', e => {
+      switch (e.key) {
+        case 'q':
+        case 'Q':
+          if (halt) {
+            run();
+          } else {
+            halt = true;
+            stop();
+          }
+          break;
+
+        case '.':
+          stop();
+          break;
+
+      }
+    });
+
     async function run() {
+      if (!halt) return;
+      halt = false;
       for (
-        let count = 0, backoff = 0, now = Date.now(), then = now; ;
+        let count = 0, backoff = 0, now = Date.now(), then = now;
+        !halt;
         then = now,
         backoff = Math.min(200, Math.pow(1.5, ++count))
       ) {
