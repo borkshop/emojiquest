@@ -182,3 +182,13 @@ export function frameLoop() {
     }(),
   };
 }
+
+/** @param {HTMLCanvasElement} $canvas */
+export function sizeToClient($canvas) {
+  const { clientWidth, clientHeight } = $canvas;
+  if ($canvas.width != clientWidth ||
+    $canvas.height != clientHeight) {
+    $canvas.width = clientWidth;
+    $canvas.height = clientHeight;
+  }
+}
