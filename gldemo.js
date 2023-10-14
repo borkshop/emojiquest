@@ -28,8 +28,13 @@ import {
  */
 
 import {
-  generateCurvedTiles,
   generateSimpleTiles,
+
+  generateCurvedTiles,
+  makeCurvedLayer,
+  updateCurvedLayer,
+  clippedBaseCellQuery,
+  extendedBaseCellQuery,
 } from './tilegen.js';
 
 /**
@@ -39,7 +44,8 @@ import {
  * @param {number} [opts.cellSize]
  * @param {number} [opts.worldWidth]
  * @param {number} [opts.worldHeight]
- * @param {boolean} [opts.showCurvyTiles]
+ * @param {boolean|(() => boolean)} [opts.showCurvyTiles]
+ * @param {boolean|(() => boolean)} [opts.clipCurvyTiles]
  */
 export default async function demo(opts) {
   const {
@@ -47,33 +53,18 @@ export default async function demo(opts) {
     tileSize = 256,
     cellSize = 64,
 
-    // TODO fix curvy tile layer, needs to have dims N+1 but be scissored to cut outer ring in half
     worldWidth = 5,
     worldHeight = 5,
     showCurvyTiles = true,
+    clipCurvyTiles = false,
   } = opts;
+  const shouldShowCurvyTiles = typeof showCurvyTiles == 'boolean' ? () => showCurvyTiles : showCurvyTiles;
+  const shouldClipCurvyTiles = typeof clipCurvyTiles == 'boolean' ? () => clipCurvyTiles : clipCurvyTiles;
 
   const gl = $world.getContext('webgl2');
   if (!gl) throw new Error('No GL For You!');
 
   const tileRend = makeTileRenderer(gl, await compileTileProgram(gl));
-
-  /**
-   * @param {TileSheet<number>} sheet
-   * @param {{x: number, y: number}} [offset]
-   * @returns {Layer}
-   */
-  const makeWorldLayer = ({ texture }, offset = { x: 0, y: 0 }) => {
-    const layer = makeLayer(gl, {
-      texture,
-      cellSize,
-      left: offset.x,
-      top: offset.y,
-      width: worldWidth,
-      height: worldHeight,
-    });
-    return layer;
-  };
 
   const landCurveTiles = makeTileSheet(gl, generateCurvedTiles({
     aFill: '#5c9e31', // land
@@ -88,9 +79,19 @@ export default async function demo(opts) {
     { glyph: '⛵' }
   ), { tileSize });
 
-  const bgSQ = makeWorldLayer(landCurveTiles);
-  const bg = makeWorldLayer(landCurveTiles, { x: -0.5, y: -0.5 });
-  const fg = makeWorldLayer(foreTiles);
+  const bg = makeLayer(gl, {
+    texture: landCurveTiles.texture,
+    cellSize,
+    width: worldWidth,
+    height: worldHeight,
+  });
+
+  const fg = makeLayer(gl, {
+    texture: foreTiles.texture,
+    cellSize,
+    width: worldWidth,
+    height: worldHeight,
+  });
 
   {
     const { randn, random } = makeRandom();
@@ -103,7 +104,7 @@ export default async function demo(opts) {
       isWater[i] = random() > 0.5 ? 1 : 0;
     for (let y = 0; y < bg.height; y++)
       for (let x = 0; x < bg.width; x++)
-        bgSQ.set(x, y, {
+        bg.set(x, y, {
           layerID: isWater[y * bg.width + x] ? water : land
         });
 
@@ -116,26 +117,20 @@ export default async function demo(opts) {
         fg.set(x, y, { layerID, spin });
       }
     }
-
-    // generate curved terrain layer
-    const stride = bg.width;
-    for (let y = 0; y < bg.height; y++) {
-      for (let x = 0; x < bg.width; x++) {
-        const nw = isWater[(y + 0) * stride + x + 0];
-        const ne = isWater[(y + 0) * stride + x + 1];
-        const sw = isWater[(y + 1) * stride + x + 0];
-        const se = isWater[(y + 1) * stride + x + 1];
-        const tileID = ((nw << 1 | ne) << 1 | se) << 1 | sw;
-        const layerID = landCurveTiles.getLayerID(tileID);
-        bg.set(x, y, { layerID });
-      }
-    }
   }
 
   // send layer data to gpu; NOTE this needs to be called going forward after any update
   bg.send();
-  bgSQ.send();
   fg.send();
+
+  let lastCurveClip = shouldClipCurvyTiles();
+
+  const bgCurved = makeCurvedLayer(gl, bg);
+  updateCurvedLayer(bgCurved, landCurveTiles,
+    lastCurveClip
+      ? clippedBaseCellQuery(bg, landCurveTiles)
+      : extendedBaseCellQuery(bg, landCurveTiles));
+  bgCurved.send();
 
   const { stop, frames } = frameLoop();
   const done = async function() {
@@ -144,6 +139,16 @@ export default async function demo(opts) {
 
       sizeToClient($world);
 
+      const nowCurveClip = shouldClipCurvyTiles();
+      if (lastCurveClip != nowCurveClip) {
+        lastCurveClip = nowCurveClip;
+        updateCurvedLayer(bgCurved, landCurveTiles,
+          shouldClipCurvyTiles()
+            ? clippedBaseCellQuery(bg, landCurveTiles)
+            : extendedBaseCellQuery(bg, landCurveTiles));
+        bgCurved.send();
+      }
+
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -151,9 +156,23 @@ export default async function demo(opts) {
       gl.clear(gl.COLOR_BUFFER_BIT);
 
       tileRend.draw(function*() {
-        yield showCurvyTiles ? bg : bgSQ;
+        if (shouldShowCurvyTiles()) {
+          gl.enable(gl.SCISSOR_TEST);
+          gl.scissor(
+            // NOTE: lower left corner, with 0 counting up from bottom edge of viewport
+            bg.left * cellSize,
+            gl.canvas.height - (bg.top + bg.height) * cellSize,
+            bg.width * cellSize,
+            bg.height * cellSize
+          );
+          yield bgCurved;
+          gl.disable(gl.SCISSOR_TEST);
+        } else {
+          yield bg;
+        }
         yield fg;
       }());
+
     }
   }();
   return { stop, done };
