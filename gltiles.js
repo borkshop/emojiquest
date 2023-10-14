@@ -232,6 +232,8 @@ export function makeLayer(gl, {
   const index = makeElementIndex(gl, cap);
 
   return {
+    get texture() { return texture },
+    get cellSize() { return cellSize },
     get left() { return left },
     get top() { return top },
     get width() { return width },
@@ -256,6 +258,19 @@ export function makeLayer(gl, {
       spinData[id] = spin;
       if (layerID === 0) index.delete(id);
       else index.add(id);
+    },
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     */
+    get(x, y) {
+      if (x < 0 || y < 0 || x >= width || y >= height)
+        throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
+      const id = Math.floor(y - top) * width + Math.floor(x - left);
+      const layerID = tileData[id];
+      const spin = spinData[id];
+      return { layerID, spin };
     },
 
     send() {

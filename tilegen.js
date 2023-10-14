@@ -12,6 +12,76 @@
  * @returns {void}
  */
 
+/** @typedef {import("./gltiles.js").Layer} Layer */
+/** @template TileID @typedef {import("./gltiles.js").TileSheet<TileID>} TileSheet */
+
+import { makeLayer } from './gltiles.js';
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {Layer} baseLayer
+ */
+export function makeCurvedLayer(gl, baseLayer) {
+  const { texture, cellSize, left, top, width, height } = baseLayer;
+
+  // TODO wrap draw, do scissor
+
+  return makeLayer(gl, {
+    texture,
+    cellSize,
+    left: left - 0.5,
+    top: top - 0.5,
+    width: width + 1,
+    height: height + 1,
+  });
+}
+
+/**
+ * @param {Layer} layer
+ * @param {TileSheet<number>} tiles
+ * @param {(x: number, y: number) => 0|1} isBaseCell
+ */
+export function updateCurvedLayer(layer, tiles, isBaseCell) {
+  for (let y = 0; y < layer.height; y++) {
+    for (let x = 0; x < layer.width; x++) {
+      const nw = isBaseCell(x - 1, y - 1);
+      const ne = isBaseCell(x + 0, y - 1);
+      const sw = isBaseCell(x - 1, y + 0);
+      const se = isBaseCell(x + 0, y + 0);
+      const tileID = ((nw << 1 | ne) << 1 | se) << 1 | sw;
+      const layerID = tiles.getLayerID(tileID);
+      layer.set(x, y, { layerID });
+    }
+  }
+}
+
+/**
+ * @param {Layer} layer
+ * @param {TileSheet<number>} tiles
+ * @returns {(x: number, y: number) => 0|1}
+ */
+export function extendedBaseCellQuery(layer, tiles) {
+  const filled = tiles.getLayerID(0b1111);
+  return (x, y) => layer.get(
+    Math.max(0, Math.min(layer.width - 1, x)),
+    Math.max(0, Math.min(layer.height - 1, y)),
+  ).layerID == filled ? 1 : 0;
+}
+
+/**
+ * @param {Layer} layer
+ * @param {TileSheet<number>} tiles
+ * @returns {(x: number, y: number) => 0|1}
+ */
+export function clippedBaseCellQuery(layer, tiles) {
+  const filled = tiles.getLayerID(0b1111);
+  return (x, y) => {
+    if (x < 0 || x >= layer.width) return 0;
+    if (y < 0 || y >= layer.height) return 0;
+    return layer.get(x, y).layerID == filled ? 1 : 0;
+  };
+}
+
 /** Generates 16 curved-tile drawback with 4-bit numeric ids from 0b0000 to 0b1111.
  *
  * These tile are suitable to be centered on the corner vertices of a binary
