@@ -11,6 +11,17 @@
 
   <div style="position: absolute; right: 0">
 
+    <div title="Foreground tile set">
+      <select id="fore_tiles">
+        <option>1️⃣ 2️⃣ 3️⃣ 4️⃣</option>
+        <option selected>🧚 🍵 🫖 ⛵</option>
+        <option>🐦 🔥 🐦‍🔥</option>
+        <option>🏳️ 🌈 🏳️‍🌈</option>
+        <option value"   ă">PUA 0-3</option>
+        <option>@ o $ B</option>
+      </select>
+    </div>
+
     <div
       title="Key[C] Whether to draw using a derived 'curved tile' layer whose cells are computed at the 4-corners of the base land-vs-water layer">
       <input id="show_curves" type="checkbox" checked />
@@ -66,7 +77,11 @@
     const $worldHeight = document.querySelector('#world_height');
     if (!$worldHeight) throw new Error('unable to find #world_height');
 
+    const $foreTiles = document.querySelector('#fore_tiles');
+    if (!$foreTiles) throw new Error('unable to find #fore_tiles');
+
     $cellSize.addEventListener('change', () => {stop()});
+    $foreTiles.addEventListener('change', () => {stop()});
 
     window.addEventListener('keypress', e => {
       switch (e.key) {
@@ -146,6 +161,8 @@
           await new Promise(resolve => setTimeout(resolve, wait));
         count = 0;
 
+        const foreTiles = $foreTiles.value.trim().split(/\s+/).map(glyph => ({glyph}));
+
         let done;
         ({stop, done} = await demo({
           $world,
@@ -158,6 +175,7 @@
           showCurvyTiles() {return $showCurves.checked},
           clipCurvyTiles() {return !$extendCurves.checked},
 
+          foreTiles,
         }));
         await done;
       }
