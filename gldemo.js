@@ -2,6 +2,7 @@
 
 import {
   frameLoop,
+  sizeToClient,
 } from './glkit.js';
 
 import {
@@ -54,8 +55,6 @@ export default async function demo(opts) {
 
   const gl = $world.getContext('webgl2');
   if (!gl) throw new Error('No GL For You!');
-
-  sizeToParent($world);
 
   const tileRend = makeTileRenderer(gl, await compileTileProgram(gl));
 
@@ -143,6 +142,8 @@ export default async function demo(opts) {
     for await (const _/*t*/ of frames) {
       // TODO animate things via const dt = lastT - t;
 
+      sizeToClient($world);
+
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -165,19 +166,4 @@ function makeRandom(seed = 0xdead_beefn) {
   const randn = n => rand() % n;
   const random = () => Number(rand()) / 0x1_0000_0000;
   return { rand, randn, random };
-}
-
-/** @param {HTMLCanvasElement} $canvas */
-function sizeToParent($canvas, update = () => { }) {
-  const $cont = $canvas.parentElement;
-  if ($cont) {
-    const resize = () => {
-      const { clientWidth, clientHeight, } = $cont;
-      $canvas.width = clientWidth;
-      $canvas.height = clientHeight;
-      update();
-    };
-    $cont.ownerDocument.defaultView?.addEventListener('resize', () => resize());
-    resize();
-  }
 }
