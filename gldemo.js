@@ -134,25 +134,28 @@ export default async function demo(opts) {
   bgSQ.send();
   fg.send();
 
-  // forever draw loop
-  for (
-    let t = await nextFrame(), lastT = t; ;
-    lastT = t, t = await nextFrame()
-  ) {
-    // TODO animate things via const dt = lastT - t;
+  let running = true;
+  const done = async function() {
+    for (
+      let t = await nextFrame(), lastT = t;
+      running;
+      lastT = t, t = await nextFrame()
+    ) {
+      // TODO animate things via const dt = lastT - t;
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.clear(gl.COLOR_BUFFER_BIT);
 
-    tileRend.draw(function*() {
-      yield showCurvyTiles ? bg : bgSQ;
-      yield fg;
-    }());
-  }
-
+      tileRend.draw(function*() {
+        yield showCurvyTiles ? bg : bgSQ;
+        yield fg;
+      }());
+    }
+  }();
+  return { stop() { running = false }, done };
 }
 
 function makeRandom(seed = 0xdead_beefn) {

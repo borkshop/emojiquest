@@ -16,17 +16,36 @@
     const $world = document.querySelector('canvas#world');
     if (!$world) throw new Error('unable to find world canvas');
 
-    await demo({
-      $world,
-      cellSize: 100,
-      tileSize: 256,
+    let stop = () => { };
 
-      worldWidth: 8,
-      worldHeight: 8,
-      showCurvyTiles: true,
+    async function run() {
+      for (
+        let count = 0, backoff = 0, now = Date.now(), then = now; ;
+        then = now,
+        backoff = Math.min(200, Math.pow(1.5, ++count))
+      ) {
+        const since = now - then;
+        const wait = backoff - since;
+        if (wait > 0)
+          await new Promise(resolve => setTimeout(resolve, wait));
+        count = 0;
 
-    });
-    throw new Error('unexpected demo loop exit');
+        let done;
+        ({stop, done} = await demo({
+          $world,
+          cellSize: 100,
+          tileSize: 256,
+
+          worldWidth: 8,
+          worldHeight: 8,
+          showCurvyTiles: true,
+
+        }));
+        await done;
+      }
+    }
+
+    run();
   </script>
 </body>
 
