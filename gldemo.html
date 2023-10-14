@@ -23,6 +23,21 @@
       <label for="extend_curves">Extend Tile Curves</label>
     </div>
 
+    <div title="Key[- +] Size of each world tile in pixels">
+      <label for="cell_size">Cell Size</label>
+      <input id="cell_size" value="100" type="number" min="2" max="256" step="2" />
+    </div>
+
+    <div title="Key[A D] World width in cells">
+      <label for="world_width">World Width</label>
+      <input id="world_width" value="8" type="number" min="1" max="2048" step="1" />
+    </div>
+
+    <div title="Key[W S] World height in cells">
+      <label for="world_height">World Height</label>
+      <input id="world_height" value="8" type="number" min="1" max="2048" step="1" />
+    </div>
+
   </div>
 
   <canvas id="world" style="width: 100%; height: 100%"></canvas>
@@ -41,6 +56,17 @@
 
     const $extendCurves = document.querySelector('#extend_curves');
     if (!$extendCurves) throw new Error('unable to find #extend_curves');
+
+    const $cellSize = document.querySelector('#cell_size');
+    if (!$cellSize) throw new Error('unable to find #cell_size');
+
+    const $worldWidth = document.querySelector('#world_width');
+    if (!$worldWidth) throw new Error('unable to find #world_width');
+
+    const $worldHeight = document.querySelector('#world_height');
+    if (!$worldHeight) throw new Error('unable to find #world_height');
+
+    $cellSize.addEventListener('change', () => {stop()});
 
     window.addEventListener('keypress', e => {
       switch (e.key) {
@@ -68,6 +94,40 @@
           $extendCurves.checked = !$extendCurves.checked;
           break;
 
+        case '+':
+          $cellSize.stepUp();
+          stop();
+          break;
+
+        case '-':
+          $cellSize.stepDown();
+          stop();
+          break;
+
+        case 'a':
+        case 'A':
+          $worldWidth.stepDown();
+          stop();
+          break;
+
+        case 'd':
+        case 'D':
+          $worldWidth.stepUp();
+          stop();
+          break;
+
+        case 's':
+        case 'S':
+          $worldHeight.stepDown();
+          stop();
+          break;
+
+        case 'w':
+        case 'W':
+          $worldHeight.stepUp();
+          stop();
+          break;
+
       }
     });
 
@@ -89,11 +149,11 @@
         let done;
         ({stop, done} = await demo({
           $world,
-          cellSize: 100,
+          cellSize: $cellSize.valueAsNumber,
           tileSize: 256,
 
-          worldWidth: 8,
-          worldHeight: 8,
+          worldWidth: $worldWidth.valueAsNumber,
+          worldHeight: $worldHeight.valueAsNumber,
 
           showCurvyTiles() {return $showCurves.checked},
           clipCurvyTiles() {return !$extendCurves.checked},

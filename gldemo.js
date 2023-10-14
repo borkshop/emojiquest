@@ -94,14 +94,16 @@ export default async function demo(opts) {
   });
 
   {
-    const { randn, random } = makeRandom();
+    const { rand: seeder } = makeRandom();
 
     // generate terrain
-    const land = landCurveTiles.getLayerID(0b0000);
-    const water = landCurveTiles.getLayerID(0b1111);
+    const { random: randWater } = makeRandom(seeder());
     const isWater = new Uint8Array(bg.width * bg.height);
     for (let i = 0; i < isWater.length; i++)
-      isWater[i] = random() > 0.5 ? 1 : 0;
+      isWater[i] = randWater() > 0.5 ? 1 : 0;
+
+    const land = landCurveTiles.getLayerID(0b0000);
+    const water = landCurveTiles.getLayerID(0b1111);
     for (let y = 0; y < bg.height; y++)
       for (let x = 0; x < bg.width; x++)
         bg.set(x, y, {
@@ -109,14 +111,19 @@ export default async function demo(opts) {
         });
 
     // place fore objects
+    const { randn: randTile } = makeRandom(seeder());
+    const { random: randSpin } = makeRandom(seeder());
     for (let y = 0; y < fg.height; y++) {
       for (let x = 0; x < fg.width; x++) {
-        const tileID = Number(randn(2n * BigInt(foreTiles.size)));
-        const layerID = foreTiles.getLayerID(tileID);
-        const spin = random();
-        fg.set(x, y, { layerID, spin });
+        const tileID = Number(randTile(2n * BigInt(foreTiles.size)));
+        if (tileID < foreTiles.size)
+          fg.set(x, y, {
+            layerID: foreTiles.getLayerID(tileID),
+            spin: randSpin(),
+          });
       }
     }
+
   }
 
   // send layer data to gpu; NOTE this needs to be called going forward after any update
