@@ -1,6 +1,7 @@
 // @ts-check
 
 import { mat4 } from 'gl-matrix';
+import { vec2 } from 'gl-matrix';
 
 import {
   compileProgram,
@@ -182,7 +183,105 @@ export default async function makeTileRenderer(gl) {
       };
     },
 
+    /** Creates a minimal base tile layer.
+     * Caller is fully responsible for sending data to the layer buffers.
+     * Primarly intended to be used internally to implement specific layer data schemes.
+     *
+     * When stride is non-zero, each tile has an implicit x/y position relative to left/top.
+     *
+     * @param {object} params
+     * @param {WebGLTexture} params.texture
+     * @param {number} params.cellSize
+     * @param {number} [params.left]
+     * @param {number} [params.top]
+     * @param {number} [params.stride]
+     */
+    makeLayer(params) {
+      const layerParams = layerParamsBlock.makeBuffer();
+      const transform = layerParams.getVar('transform').asFloatArray();
+      const cellSize = layerParams.getVar('cellSize');
+      const stride = layerParams.getVar('stride');
+      let paramsDirty = true;
+      if (params.stride !== undefined)
+        stride.int = params.stride;
+
+      {
+        const {
+          cellSize: size,
+          left = 0, top = 0,
+        } = params;
+
+        cellSize.float = size;
+        const x = size * left;
+        const y = size * top;
+        mat4.fromTranslation(transform, [x, y, 0]);
+      }
+
+      const spinBuffer = gl.createBuffer();
+      if (!spinBuffer)
+        throw new Error('must create layer spin buffer');
+
+      const tileBuffer = gl.createBuffer();
+      if (!tileBuffer)
+        throw new Error('must create layer tile buffer');
+
+      const { texture } = params;
+
+      return {
+        get texture() { return texture },
+        // TODO set texture()
+
+        get cellSize() { return cellSize.float },
+        // TODO set cellSize()
+
+        get left() {
+          const [x, _] = vec2.transformMat4([0, 0], [0, 0], transform);
+          return x / cellSize.float;
+        },
+        // TODO set left()
+
+        get top() {
+          const [_, y] = vec2.transformMat4([0, 0], [0, 0], transform);
+          return y / cellSize.float;
+        },
+        // TODO set top()
+
+        get stride() { return stride.int },
+        set stride(w) {
+          if (w != stride.int) {
+            stride.int = w;
+            paramsDirty = true;
+          }
+        },
+
+        // TODO moveTo(left, top)
+
+        get spinBuffer() { return spinBuffer },
+        get tileBuffer() { return tileBuffer },
+
+        bind() {
+          if (paramsDirty) {
+            layerParams.send();
+            paramsDirty = false;
+          }
+          layerParams.bind();
+
+          gl.uniform1i(uniSheet, texCache.get(texture));
+        },
+      };
+    },
+
+    // TODO more variants:
+    // - probably worth to make animation attributes optional;
+    //   e.g. unanimated dense layer for static backgrounds
+    // - not sure if worth to provie spinless / scaleless / offsetless variants
+
     /**
+     * Creates a dense cellular tile layer,
+     * where tiles are implicitly positioned along a dense grid from layer origin,
+     * suppoting at most 1 tile per cell,
+     * and fast constant time "tiles at location" query.
+     *
      * @param {object} params
      * @param {WebGLTexture} params.texture
      * @param {number} params.cellSize
@@ -191,51 +290,20 @@ export default async function makeTileRenderer(gl) {
      * @param {number} params.width
      * @param {number} params.height
      */
-    makeLayer({
-      texture,
-      cellSize: givenCellSize,
-      left = 0, top = 0,
-      width, height,
-    }) {
-      const layerParams = layerParamsBlock.makeBuffer();
-      const transform = layerParams.getVar('transform').asFloatArray();
-      const cellSize = layerParams.getVar('cellSize');
-      const stride = layerParams.getVar('stride');
+    makeDenseLayer({ width, height, ...params }) {
+      const layer = this.makeLayer({ stride: width, ...params });
 
-      cellSize.float = givenCellSize;
-      stride.int = width;
-
-      mat4.fromTranslation(transform, [givenCellSize * left, givenCellSize * top, 0]);
-      layerParams.send();
-
-      // TODO do we complect within or without?
-      //   1. makeSparseLayer vs makeDenseLayer
-      //   2. sans/with spin
-      //   3. sans/with scale
-      //   4. sans/with animation (for each of loc, spin, scale, id)
-
-      // TODO further indirection between layer and gpu buffers allowing:
-      // - N chunks of the same logical layer to be packed into M < N buffers
-      // - N layer(s) to be fragmented into M > N buffers
-      // - sub-region invalidation to avoid recopying old data / only copy new data
-
-      // NOTE: we can also choose to interleave/pack data into a single buffer if desired
-      const spinBuffer = gl.createBuffer();
-      const tileBuffer = gl.createBuffer();
-
-      const cap = width * height;
       let dirty = true;
+      let cap = width * height;
       const spinData = new Float32Array(cap);
       const tileData = new Uint16Array(cap);
       const index = makeElementIndex(gl, cap);
 
-      return {
-        get texture() { return texture },
-        get cellSize() { return cellSize.float },
-        get left() { return left },
-        get top() { return top },
+      return passProperties({
         get width() { return width },
         get height() { return height },
+
+        // TODO resize(w, h)
 
         clear() {
           spinData.fill(0);
@@ -244,40 +312,60 @@ export default async function makeTileRenderer(gl) {
           dirty = true;
         },
 
-        /**
+        /** Returns a cell reference given cell absolute x/y position,
+         * or null if out of bounds.
+         *
          * @param {number} x
          * @param {number} y
-         * @param {{layerID: number, spin?: number}} data
          */
-        set(x, y, { layerID, spin = 0 }) {
-          if (x < 0 || y < 0 || x >= width || y >= height)
-            throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
-          const id = Math.floor(y - top) * width + Math.floor(x - left);
-          tileData[id] = layerID;
-          spinData[id] = spin;
-          if (layerID === 0) index.delete(id);
-          else index.add(id);
-          dirty = true;
-        },
+        absAt(x, y) { return this.at(x - layer.left, y - layer.top) },
 
-        /**
+        /** Returns a cell reference given cell x/y offsets (relative to left/top),
+         * or null if out of bounds.
+         *
          * @param {number} x
          * @param {number} y
          */
-        get(x, y) {
-          if (x < 0 || y < 0 || x >= width || y >= height)
-            throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
-          const id = Math.floor(y - top) * width + Math.floor(x - left);
-          const layerID = tileData[id];
-          const spin = spinData[id];
-          return { layerID, spin };
+        at(x, y) {
+          if (x < 0 || y < 0 || x >= width || y >= height) return null;
+          const id = Math.floor(y) * width + Math.floor(x);
+          return {
+            get id() { return id },
+            get x() { return x },
+            get y() { return y },
+
+            /** Reset all tile data to default (0 values) */
+            clear() {
+              spinData[id] = 0;
+              tileData[id] = 0;
+              index.delete(id);
+              dirty = true;
+            },
+
+            /** Tile rotation in units of full turns */
+            get spin() { return spinData[id] },
+            set spin(turns) {
+              spinData[id] = turns;
+              dirty = true;
+            },
+
+            /** Tile texture Z index.
+             *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
+            get layerID() { return tileData[id] },
+            /** Setting a value of 0, the default, will cause this tile to not be drawn. */
+            set layerID(layerID) {
+              tileData[id] = layerID;
+              if (layerID === 0) index.delete(id); else index.add(id);
+              dirty = true;
+            },
+          };
         },
 
         send() {
-          gl.bindBuffer(gl.ARRAY_BUFFER, spinBuffer);
+          gl.bindBuffer(gl.ARRAY_BUFFER, layer.spinBuffer);
           gl.bufferData(gl.ARRAY_BUFFER, spinData, gl.STATIC_DRAW);
 
-          gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
+          gl.bindBuffer(gl.ARRAY_BUFFER, layer.tileBuffer);
           gl.bufferData(gl.ARRAY_BUFFER, tileData, gl.STATIC_DRAW);
 
           gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -289,18 +377,15 @@ export default async function makeTileRenderer(gl) {
         bind() {
           if (dirty) this.send();
           viewParams.bind();
-          layerParams.bind();
-
-          const texUnit = texCache.get(texture);
-          gl.uniform1i(uniSheet, texUnit);
+          layer.bind();
 
           // TODO spin optional
           gl.enableVertexAttribArray(attrSpin);
-          gl.bindBuffer(gl.ARRAY_BUFFER, spinBuffer);
+          gl.bindBuffer(gl.ARRAY_BUFFER, layer.spinBuffer);
           gl.vertexAttribPointer(attrSpin, 1, gl.FLOAT, false, 0, 0);
 
           gl.enableVertexAttribArray(attrLayerID);
-          gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
+          gl.bindBuffer(gl.ARRAY_BUFFER, layer.tileBuffer);
           gl.vertexAttribIPointer(attrLayerID, 1, gl.UNSIGNED_SHORT, 0, 0);
 
           gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -317,15 +402,29 @@ export default async function makeTileRenderer(gl) {
 
           gl.useProgram(null);
         },
-
-      };
+      }, layer, 'texture', 'cellSize', 'left', 'top');
     },
 
   };
 }
 
 /** @typedef {Awaited<ReturnType<makeTileRenderer>>} TileRenderer */
-/** @typedef {ReturnType<TileRenderer["makeLayer"]>} Layer */
+/** @typedef {ReturnType<TileRenderer["makeLayer"]>} BaseLayer */
+/** @typedef {ReturnType<TileRenderer["makeDenseLayer"]>} DenseLayer */
+
+/**
+ * @template B, O
+ * @template {keyof B} BK
+ * @param {O} o
+ * @param {B} b
+ * @param {Array<BK>} propNames
+ */
+function passProperties(o, b, ...propNames) {
+  const bPropDescs = Object.entries(Object.getOwnPropertyDescriptors(b));
+  const passPropDescs = bPropDescs.filter(([name]) => propNames.includes(/** @type {BK}*/(name)));
+  const passPropMap = /** @type {{[k in BK]: PropertyDescriptor}} */ (Object.fromEntries(passPropDescs));
+  return /** @type {O & Pick<B, BK>} */ (Object.defineProperties(o, passPropMap));
+}
 
 // TODO candidates for move into glkit.js
 

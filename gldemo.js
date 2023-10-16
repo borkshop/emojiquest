@@ -8,7 +8,7 @@ import {
 import makeTileRenderer from './gltiles.js';
 /** @template T @typedef {import("./gltiles.js").tileable<T>} tileable */
 /** @template T @typedef {import("./gltiles.js").TileSheet<T>} TileSheet */
-/** @typedef {import("./gltiles.js").Layer} Layer */
+/** @typedef {import("./gltiles.js").DenseLayer} DenseLayer */
 
 /** @callback layback
  * @param {TileSheet<number>} tileSheet
@@ -78,20 +78,20 @@ export default async function runDemo(opts) {
 
   const foreTiles = tiles.makeSheet(generateSimpleTiles(...foreTileSpecs), { tileSize });
 
-  const bg = tiles.makeLayer({
+  const bg = tiles.makeDenseLayer({
     texture: landCurveTiles.texture,
     cellSize,
     width: worldWidth,
     height: worldHeight,
   });
 
-  const fg = tiles.makeLayer({
+  const fg = tiles.makeDenseLayer({
     texture: foreTiles.texture,
     cellSize,
     width: worldWidth,
     height: worldHeight,
   });
-  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
+  const bgCurved = tiles.makeDenseLayer(curvedLayerParams(bg));
 
   let lastCurveClip = shouldClipCurvyTiles();
 
@@ -106,23 +106,28 @@ export default async function runDemo(opts) {
 
     const land = landCurveTiles.getLayerID(0b0000);
     const water = landCurveTiles.getLayerID(0b1111);
-    for (let y = 0; y < bg.height; y++)
-      for (let x = 0; x < bg.width; x++)
-        bg.set(x, y, {
-          layerID: isWater[y * bg.width + x] ? water : land
-        });
+    for (let y = 0; y < bg.height; y++) {
+      for (let x = 0; x < bg.width; x++) {
+        const cell = bg.at(x, y);
+        if (!cell) continue;
+        cell.layerID = isWater[y * bg.width + x] ? water : land;
+      }
+    }
 
     // place fore objects
     const { randn: randTile } = makeRandom(seeder());
     const { random: randSpin } = makeRandom(seeder());
     for (let y = 0; y < fg.height; y++) {
       for (let x = 0; x < fg.width; x++) {
+        const cell = fg.at(x, y);
+        if (!cell) continue;
         const tileID = Number(randTile(2n * BigInt(foreTiles.size)));
-        if (tileID < foreTiles.size)
-          fg.set(x, y, {
-            layerID: foreTiles.getLayerID(tileID),
-            spin: randSpin(),
-          });
+        if (tileID < foreTiles.size) {
+          cell.layerID = foreTiles.getLayerID(tileID);
+          cell.spin = randSpin();
+        } else {
+          cell.clear();
+        }
       }
     }
 
