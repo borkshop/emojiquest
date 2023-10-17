@@ -44,7 +44,7 @@ import {
  * @param {boolean|(() => boolean)} [opts.clipCurvyTiles]
  * @param {TileSpec[]} [opts.foreTiles]
  */
-export default async function demo(opts) {
+export default async function runDemo(opts) {
   const {
     $world,
     tileSize = 256,
@@ -91,8 +91,11 @@ export default async function demo(opts) {
     width: worldWidth,
     height: worldHeight,
   });
+  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
 
-  {
+  let lastCurveClip = shouldClipCurvyTiles();
+
+  const generateWorld = () => {
     const { rand: seeder } = makeRandom();
 
     // generate terrain
@@ -123,15 +126,13 @@ export default async function demo(opts) {
       }
     }
 
-  }
+    updateCurvedLayer(bgCurved, landCurveTiles,
+      lastCurveClip
+        ? clippedBaseCellQuery(bg, landCurveTiles)
+        : extendedBaseCellQuery(bg, landCurveTiles));
 
-  let lastCurveClip = shouldClipCurvyTiles();
-
-  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
-  updateCurvedLayer(bgCurved, landCurveTiles,
-    lastCurveClip
-      ? clippedBaseCellQuery(bg, landCurveTiles)
-      : extendedBaseCellQuery(bg, landCurveTiles));
+  };
+  generateWorld();
 
   const { stop, frames } = frameLoop(gl);
   const done = async function() {
@@ -182,7 +183,10 @@ export default async function demo(opts) {
       fg.draw();
     }
   }();
-  return { stop, done };
+  return {
+    stop,
+    done,
+  };
 }
 
 function makeRandom(seed = 0xdead_beefn) {
