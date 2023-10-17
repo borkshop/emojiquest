@@ -17,7 +17,7 @@
 
 /** @param {Layer} baseLayer */
 export function curvedLayerParams(baseLayer) {
-  const { texture, cellSize, left, top, width, height } = baseLayer;
+  const { texture, cellSize, origin: [left, top], width, height } = baseLayer;
   return {
     texture,
     cellSize,

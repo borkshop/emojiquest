@@ -1,6 +1,7 @@
 // @ts-check
 
 import { mat4 } from 'gl-matrix';
+import { vec2 } from 'gl-matrix';
 
 import {
   compileProgram,
@@ -201,7 +202,7 @@ export default async function makeTileRenderer(gl) {
     makeLayer({
       texture,
       cellSize: givenCellSize,
-      left = 0, top = 0,
+      left: givenLeft = 0, top: givenTop = 0,
       width, height,
     }) {
       const layerParams = layerParamsBlock.makeBuffer();
@@ -212,7 +213,7 @@ export default async function makeTileRenderer(gl) {
       cellSize.float = givenCellSize;
       stride.int = width;
 
-      mat4.fromTranslation(transform, [givenCellSize * left, givenCellSize * top, 0]);
+      mat4.fromTranslation(transform, [givenCellSize * givenLeft, givenCellSize * givenTop, 0]);
 
       // TODO do we complect within or without?
       //   1. makeSparseLayer vs makeDenseLayer
@@ -235,7 +236,7 @@ export default async function makeTileRenderer(gl) {
       let tileData = new Uint16Array(cap);
       const index = makeElementIndex(gl, cap);
 
-      return {
+      const self = {
         get texture() { return texture },
         set texture(tex) { texture = tex },
 
@@ -247,8 +248,19 @@ export default async function makeTileRenderer(gl) {
           paramsDirty = true;
         },
 
-        get left() { return left },
-        get top() { return top },
+        /** @returns {[x: number, y: number]} */
+        get origin() {
+          const [x, y] = vec2.transformMat4([0, 0], [0, 0], transform);
+          const size = cellSize.float;
+          return [x / size, y / size];
+        },
+        set origin([left, top]) {
+          const size = cellSize.float;
+          const x = left * size;
+          const y = top * size;
+          mat4.fromTranslation(transform, [x, y, 0]);
+          paramsDirty = true;
+        },
 
         get width() { return width },
         get height() { return height },
@@ -285,7 +297,7 @@ export default async function makeTileRenderer(gl) {
         set(x, y, { layerID, spin = 0 }) {
           if (x < 0 || y < 0 || x >= width || y >= height)
             throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
-          const id = Math.floor(y - top) * width + Math.floor(x - left);
+          const id = Math.floor(y) * width + Math.floor(x);
           tileData[id] = layerID;
           spinData[id] = spin;
           if (layerID === 0) index.delete(id);
@@ -300,7 +312,7 @@ export default async function makeTileRenderer(gl) {
         get(x, y) {
           if (x < 0 || y < 0 || x >= width || y >= height)
             throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
-          const id = Math.floor(y - top) * width + Math.floor(x - left);
+          const id = Math.floor(y) * width + Math.floor(x);
           const layerID = tileData[id];
           const spin = spinData[id];
           return { layerID, spin };
@@ -354,6 +366,7 @@ export default async function makeTileRenderer(gl) {
         },
 
       };
+      return self;
     },
 
     // TODO more variants:

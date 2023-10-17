@@ -166,13 +166,15 @@ export default async function runDemo(opts) {
       // intersect perspective, but for now we just use leave GL's vertex culling
 
       if (shouldShowCurvyTiles()) {
+        const [left, top] = bg.origin;
+        const { width, height } = bg;
         gl.enable(gl.SCISSOR_TEST);
         gl.scissor(
           // NOTE: lower left corner, with 0 counting up from bottom edge of viewport
-          bg.left * cellSize,
-          gl.canvas.height - (bg.top + bg.height) * cellSize,
-          bg.width * cellSize,
-          bg.height * cellSize
+          left * cellSize,
+          gl.canvas.height - (top + height) * cellSize,
+          width * cellSize,
+          height * cellSize
         );
         bgCurved.draw();
         gl.disable(gl.SCISSOR_TEST);
@@ -200,6 +202,19 @@ export default async function runDemo(opts) {
       fg.resize(w, h);
       bgCurved.resize(w + 1, h + 1);
       generateWorld();
+    },
+
+    /** @param {number} dx @param {number} dy */
+    moveWorldBy(dx, dy) {
+      const [left, top] = bg.origin;
+      this.moveWorldTo(left + dx, top + dy);
+    },
+
+    /** @param {number} x @param {number} y */
+    moveWorldTo(x, y) {
+      bg.origin = [x, y];
+      fg.origin = [x, y];
+      bgCurved.origin = [x - 0.5, y - 0.5];
     },
 
     stop,
