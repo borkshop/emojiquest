@@ -229,10 +229,10 @@ export default async function makeTileRenderer(gl) {
       const spinBuffer = gl.createBuffer();
       const tileBuffer = gl.createBuffer();
 
-      const cap = width * height;
+      let cap = width * height;
       let dirty = true, paramsDirty = true;
-      const spinData = new Float32Array(cap);
-      const tileData = new Uint16Array(cap);
+      let spinData = new Float32Array(cap);
+      let tileData = new Uint16Array(cap);
       const index = makeElementIndex(gl, cap);
 
       return {
@@ -249,8 +249,26 @@ export default async function makeTileRenderer(gl) {
 
         get left() { return left },
         get top() { return top },
+
         get width() { return width },
         get height() { return height },
+
+        /** @param {number} w @param {number} h */
+        resize(w, h) {
+          stride.int = w;
+          paramsDirty = true;
+          if (w != width || h != height) {
+            width = w, height = h, cap = w * h;
+            spinData = new Float32Array(cap);
+            tileData = new Uint16Array(cap);
+            index.resize(cap, false);
+          } else {
+            spinData.fill(0);
+            tileData.fill(0);
+            index.clear();
+          }
+          dirty = true;
+        },
 
         clear() {
           spinData.fill(0);
@@ -356,27 +374,18 @@ export default async function makeTileRenderer(gl) {
  * @param {number} cap
  */
 export function makeElementIndex(gl, cap) {
-  const elements =
-    cap <= 256
-      ? new Uint8Array(cap)
-      : cap <= 256 * 256
-        ? new Uint16Array(cap)
-        : cap <= 256 * 256 * 256 * 256
-          ? new Uint32Array(cap)
-          : null;
-  if (elements == null)
+  /** @param {number} cap */
+  function makeElementArray(cap) {
+    if (cap <= 256)
+      return new Uint8Array(cap);
+    if (cap <= 256 * 256)
+      return new Uint16Array(cap);
+    if (cap <= 256 * 256 * 256 * 256)
+      return new Uint32Array(cap);
     throw new Error(`unsupported element index capacity: ${cap}`);
+  }
 
-  const glType =
-    elements.BYTES_PER_ELEMENT == 1
-      ? gl.UNSIGNED_BYTE
-      : elements.BYTES_PER_ELEMENT == 2
-        ? gl.UNSIGNED_SHORT
-        : (elements.BYTES_PER_ELEMENT == 4 && gl.getExtension('OES_element_index_uint'))
-          ? gl.UNSIGNED_INT
-          : null;
-  if (glType == null)
-    throw new Error(`unsupported index element byte size: ${elements.BYTES_PER_ELEMENT}`);
+  let elements = makeElementArray(cap);
 
   let length = 0;
   const buffer = gl.createBuffer();
@@ -396,12 +405,38 @@ export function makeElementIndex(gl, cap) {
     return lo;
   }
 
-  return {
+  const self = {
     *[Symbol.iterator]() {
       for (let i = 0; i < length; i++) yield elements[i];
     },
 
+    get glType() {
+      switch (elements.BYTES_PER_ELEMENT) {
+        case 1: return gl.UNSIGNED_BYTE;
+        case 2: return gl.UNSIGNED_SHORT;
+        case 4:
+          if (!gl.getExtension('OES_element_index_uint'))
+            throw new Error('uint element indices are unavailable');
+          return gl.UNSIGNED_INT;
+        default:
+          throw new Error(`unsupported index element byte size: ${elements.BYTES_PER_ELEMENT}`);
+      }
+    },
+
     get length() { return length },
+
+    /** @param {number} n */
+    resize(n, copy = true) {
+      cap = n;
+      if (copy) {
+        const oldElements = elements;
+        elements = makeElementArray(n);
+        elements.set(oldElements);
+      } else {
+        elements = makeElementArray(n);
+        length = 0;
+      }
+    },
 
     send() {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
@@ -411,7 +446,7 @@ export function makeElementIndex(gl, cap) {
 
     draw() {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-      gl.drawElements(gl.POINTS, length, glType, 0);
+      gl.drawElements(gl.POINTS, length, self.glType, 0);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     },
 
@@ -444,6 +479,7 @@ export function makeElementIndex(gl, cap) {
     },
 
   };
+  return self;
 }
 
 /** @typedef {ReturnType<makeElementIndex>} ElementIndex */
