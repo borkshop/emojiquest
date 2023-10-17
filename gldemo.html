@@ -113,7 +113,8 @@
     if (!$foreTiles) throw new Error('unable to find #fore_tiles');
 
     const updateCellSize = () => {
-      demo?.stop();
+      if (demo)
+        demo.cellSize = $cellSize.valueAsNumber;
     };
     const updateWorldSize = () => {
       demo?.stop();

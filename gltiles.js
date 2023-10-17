@@ -213,7 +213,6 @@ export default async function makeTileRenderer(gl) {
       stride.int = width;
 
       mat4.fromTranslation(transform, [givenCellSize * left, givenCellSize * top, 0]);
-      layerParams.send();
 
       // TODO do we complect within or without?
       //   1. makeSparseLayer vs makeDenseLayer
@@ -231,14 +230,23 @@ export default async function makeTileRenderer(gl) {
       const tileBuffer = gl.createBuffer();
 
       const cap = width * height;
-      let dirty = true;
+      let dirty = true, paramsDirty = true;
       const spinData = new Float32Array(cap);
       const tileData = new Uint16Array(cap);
       const index = makeElementIndex(gl, cap);
 
       return {
         get texture() { return texture },
+        set texture(tex) { texture = tex },
+
         get cellSize() { return cellSize.float },
+        set cellSize(size) {
+          const factor = size / cellSize.float;
+          transform[12] *= factor, transform[13] *= factor;
+          cellSize.float = size;
+          paramsDirty = true;
+        },
+
         get left() { return left },
         get top() { return top },
         get width() { return width },
@@ -295,6 +303,10 @@ export default async function makeTileRenderer(gl) {
 
         bind() {
           if (dirty) this.send();
+          if (paramsDirty) {
+            layerParams.send();
+            paramsDirty = false;
+          }
           viewParams.bind();
           layerParams.bind();
 
@@ -325,6 +337,11 @@ export default async function makeTileRenderer(gl) {
 
       };
     },
+
+    // TODO more variants:
+    // - probably worth to make animation attributes optional;
+    //   e.g. unanimated dense layer for static backgrounds
+    // - not sure if worth to provie spinless / scaleless / offsetless variants
 
   };
 }
