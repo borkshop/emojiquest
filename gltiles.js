@@ -225,14 +225,19 @@ export default async function makeTileRenderer(gl) {
       if (!tileBuffer)
         throw new Error('must create layer tile buffer');
 
-      const { texture } = params;
+      let { texture } = params;
 
       return {
         get texture() { return texture },
-        // TODO set texture()
+        set texture(tex) { texture = tex },
 
         get cellSize() { return cellSize.float },
-        // TODO set cellSize()
+        set cellSize(size) {
+          const factor = size / cellSize.float;
+          transform[12] *= factor, transform[13] *= factor;
+          cellSize.float = size;
+          paramsDirty = true;
+        },
 
         get left() {
           const [x, _] = vec2.transformMat4([0, 0], [0, 0], transform);

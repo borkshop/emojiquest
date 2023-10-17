@@ -45,7 +45,7 @@ import {
  * @param {TileSpec[]} [opts.foreTiles]
  */
 export default async function runDemo(opts) {
-  const {
+  let {
     $world,
     tileSize = 256,
     cellSize = 64,
@@ -188,6 +188,14 @@ export default async function runDemo(opts) {
     }
   }();
   return {
+    get cellSize() { return cellSize },
+    set cellSize(size) {
+      cellSize = size;
+      bg.cellSize = size;
+      fg.cellSize = size;
+      bgCurved.cellSize = size;
+    },
+
     stop,
     done,
   };
