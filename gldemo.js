@@ -44,7 +44,7 @@ import {
  * @param {boolean|(() => boolean)} [opts.clipCurvyTiles]
  * @param {TileSpec[]} [opts.foreTiles]
  */
-export default async function demo(opts) {
+export default async function runDemo(opts) {
   const {
     $world,
     tileSize = 256,
@@ -91,8 +91,11 @@ export default async function demo(opts) {
     width: worldWidth,
     height: worldHeight,
   });
+  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
 
-  {
+  let lastCurveClip = shouldClipCurvyTiles();
+
+  const generateWorld = () => {
     const { rand: seeder } = makeRandom();
 
     // generate terrain
@@ -123,20 +126,18 @@ export default async function demo(opts) {
       }
     }
 
-  }
+    updateCurvedLayer(bgCurved, landCurveTiles,
+      lastCurveClip
+        ? clippedBaseCellQuery(bg, landCurveTiles)
+        : extendedBaseCellQuery(bg, landCurveTiles));
 
-  // send layer data to gpu; NOTE this needs to be called going forward after any update
-  bg.send();
-  fg.send();
+    // send layer data to gpu; NOTE this needs to be called going forward after any update
+    bg.send();
+    fg.send();
+    bgCurved.send();
 
-  let lastCurveClip = shouldClipCurvyTiles();
-
-  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
-  updateCurvedLayer(bgCurved, landCurveTiles,
-    lastCurveClip
-      ? clippedBaseCellQuery(bg, landCurveTiles)
-      : extendedBaseCellQuery(bg, landCurveTiles));
-  bgCurved.send();
+  };
+  generateWorld();
 
   const { stop, frames } = frameLoop();
   const done = async function() {
@@ -188,7 +189,10 @@ export default async function demo(opts) {
       fg.draw();
     }
   }();
-  return { stop, done };
+  return {
+    stop,
+    done,
+  };
 }
 
 function makeRandom(seed = 0xdead_beefn) {
