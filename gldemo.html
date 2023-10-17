@@ -85,7 +85,10 @@
         demo.cellSize = $cellSize.valueAsNumber;
     };
     const updateWorldSize = () => {
-      demo?.stop();
+      demo?.resizeWorld(
+        $worldWidth.valueAsNumber,
+        $worldHeight.valueAsNumber,
+      );
     };
 
     $cellSize.addEventListener('change', updateCellSize);

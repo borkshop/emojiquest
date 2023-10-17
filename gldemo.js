@@ -196,6 +196,16 @@ export default async function runDemo(opts) {
       bgCurved.cellSize = size;
     },
 
+    /** @param {number} w @param {number} h */
+    resizeWorld(w, h) {
+      worldWidth = w;
+      worldHeight = h;
+      bg.resize(w, h);
+      fg.resize(w, h);
+      bgCurved.resize(w + 1, h + 1);
+      generateWorld();
+    },
+
     stop,
     done,
   };

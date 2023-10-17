@@ -300,15 +300,29 @@ export default async function makeTileRenderer(gl) {
 
       let dirty = true;
       let cap = width * height;
-      const spinData = new Float32Array(cap);
-      const tileData = new Uint16Array(cap);
+      let spinData = new Float32Array(cap);
+      let tileData = new Uint16Array(cap);
       const index = makeElementIndex(gl, cap);
 
       return passProperties({
         get width() { return width },
         get height() { return height },
 
-        // TODO resize(w, h)
+        /** @param {number} w @param {number} h */
+        resize(w, h) {
+          layer.stride = w;
+          if (w != width || h != height) {
+            width = w, height = h, cap = w * h;
+            spinData = new Float32Array(cap);
+            tileData = new Uint16Array(cap);
+            index.resize(cap, false);
+          } else {
+            spinData.fill(0);
+            tileData.fill(0);
+            index.clear();
+          }
+          dirty = true;
+        },
 
         clear() {
           spinData.fill(0);
@@ -449,7 +463,7 @@ export function makeElementIndex(gl, cap) {
     throw new Error(`unsupported element index capacity: ${cap}`);
   }
 
-  const elements = makeElementArray(cap);
+  let elements = makeElementArray(cap);
   let length = 0;
   const buffer = gl.createBuffer();
   if (!buffer)
@@ -473,6 +487,19 @@ export function makeElementIndex(gl, cap) {
   return {
     *[Symbol.iterator]() {
       for (let i = 0; i < length; i++) yield elements[i];
+    },
+
+    /** @param {number} n */
+    resize(n, copy = true) {
+      cap = n;
+      if (copy) {
+        const oldElements = elements;
+        elements = makeElementArray(n);
+        elements.set(oldElements);
+      } else {
+        elements = makeElementArray(n);
+        length = 0;
+      }
     },
 
     get glType() {
