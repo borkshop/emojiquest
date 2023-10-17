@@ -311,7 +311,9 @@ export default async function makeTileRenderer(gl) {
 
           this.bind();
 
-          index.draw();
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.buffer);
+          gl.drawElements(gl.POINTS, index.length, index.glType, 0);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
           gl.useProgram(null);
         },
@@ -332,30 +334,22 @@ export default async function makeTileRenderer(gl) {
  * @param {number} cap
  */
 export function makeElementIndex(gl, cap) {
-  const elements =
-    cap <= 256
-      ? new Uint8Array(cap)
-      : cap <= 256 * 256
-        ? new Uint16Array(cap)
-        : cap <= 256 * 256 * 256 * 256
-          ? new Uint32Array(cap)
-          : null;
-  if (elements == null)
+  /** @param {number} cap */
+  function makeElementArray(cap) {
+    if (cap <= 256)
+      return new Uint8Array(cap);
+    if (cap <= 256 * 256)
+      return new Uint16Array(cap);
+    if (cap <= 256 * 256 * 256 * 256)
+      return new Uint32Array(cap);
     throw new Error(`unsupported element index capacity: ${cap}`);
+  }
 
-  const glType =
-    elements.BYTES_PER_ELEMENT == 1
-      ? gl.UNSIGNED_BYTE
-      : elements.BYTES_PER_ELEMENT == 2
-        ? gl.UNSIGNED_SHORT
-        : (elements.BYTES_PER_ELEMENT == 4 && gl.getExtension('OES_element_index_uint'))
-          ? gl.UNSIGNED_INT
-          : null;
-  if (glType == null)
-    throw new Error(`unsupported index element byte size: ${elements.BYTES_PER_ELEMENT}`);
-
+  const elements = makeElementArray(cap);
   let length = 0;
   const buffer = gl.createBuffer();
+  if (!buffer)
+    throw new Error('failed to create element index buffer');
 
   /** @param {number} id */
   const find = id => {
@@ -377,17 +371,24 @@ export function makeElementIndex(gl, cap) {
       for (let i = 0; i < length; i++) yield elements[i];
     },
 
+    get glType() {
+      switch (elements.BYTES_PER_ELEMENT) {
+        case 1: return gl.UNSIGNED_BYTE;
+        case 2: return gl.UNSIGNED_SHORT;
+        case 4:
+          if (!gl.getExtension('OES_element_index_uint'))
+            throw new Error('uint element indices are unavailable');
+          return gl.UNSIGNED_INT;
+        default:
+          throw new Error(`unsupported index element byte size: ${elements.BYTES_PER_ELEMENT}`);
+      }
+    },
     get length() { return length },
+    get buffer() { return buffer },
 
     send() {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, elements.buffer, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    },
-
-    draw() {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-      gl.drawElements(gl.POINTS, length, glType, 0);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, elements, gl.STATIC_DRAW);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     },
 
