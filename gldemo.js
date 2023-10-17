@@ -206,6 +206,18 @@ export default async function runDemo(opts) {
       generateWorld();
     },
 
+    /** @param {number} dx @param {number} dy */
+    moveWorldBy(dx, dy) {
+      this.moveWorldTo(bg.left + dx, bg.top + dy);
+    },
+
+    /** @param {number} x @param {number} y */
+    moveWorldTo(x, y) {
+      bg.moveTo(x, y);
+      fg.moveTo(x, y);
+      bgCurved.moveTo(x - 0.5, y - 0.5);
+    },
+
     stop,
     done,
   };

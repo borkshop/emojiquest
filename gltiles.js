@@ -243,13 +243,10 @@ export default async function makeTileRenderer(gl) {
           const [x, _] = vec2.transformMat4([0, 0], [0, 0], transform);
           return x / cellSize.float;
         },
-        // TODO set left()
-
         get top() {
           const [_, y] = vec2.transformMat4([0, 0], [0, 0], transform);
           return y / cellSize.float;
         },
-        // TODO set top()
 
         get stride() { return stride.int },
         set stride(w) {
@@ -259,7 +256,14 @@ export default async function makeTileRenderer(gl) {
           }
         },
 
-        // TODO moveTo(left, top)
+        /** @param {number} left @param {number} top */
+        moveTo(left, top) {
+          const size = cellSize.float;
+          const x = left * size;
+          const y = top * size;
+          mat4.fromTranslation(transform, [x, y, 0]);
+          paramsDirty = true;
+        },
 
         get spinBuffer() { return spinBuffer },
         get tileBuffer() { return tileBuffer },
@@ -421,7 +425,7 @@ export default async function makeTileRenderer(gl) {
 
           gl.useProgram(null);
         },
-      }, layer, 'texture', 'cellSize', 'left', 'top');
+      }, layer, 'texture', 'cellSize', 'left', 'top', 'moveTo');
     },
 
   };

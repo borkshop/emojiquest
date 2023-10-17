@@ -154,6 +154,22 @@
           updateWorldSize();
           break;
 
+        // NOTE this is here only to provide a test path for layer movement,
+        //      the more normative thing to do here would be to transalte the perspective,
+        //      not every world layer transform
+        case 'h':
+          demo?.moveWorldBy(-1, 0);
+          break;
+        case 'j':
+          demo?.moveWorldBy(0, 1);
+          break;
+        case 'k':
+          demo?.moveWorldBy(0, -1);
+          break;
+        case 'l':
+          demo?.moveWorldBy(1, 0);
+          break;
+
       }
     });
 
