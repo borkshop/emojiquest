@@ -125,10 +125,6 @@ export default async function demo(opts) {
 
   }
 
-  // send layer data to gpu; NOTE this needs to be called going forward after any update
-  bg.send();
-  fg.send();
-
   let lastCurveClip = shouldClipCurvyTiles();
 
   const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
@@ -136,7 +132,6 @@ export default async function demo(opts) {
     lastCurveClip
       ? clippedBaseCellQuery(bg, landCurveTiles)
       : extendedBaseCellQuery(bg, landCurveTiles));
-  bgCurved.send();
 
   const { stop, frames } = frameLoop(gl);
   const done = async function() {
@@ -152,7 +147,6 @@ export default async function demo(opts) {
           shouldClipCurvyTiles()
             ? clippedBaseCellQuery(bg, landCurveTiles)
             : extendedBaseCellQuery(bg, landCurveTiles));
-        bgCurved.send();
       }
 
       gl.enable(gl.BLEND);
