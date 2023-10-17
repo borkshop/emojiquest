@@ -224,6 +224,7 @@ export default async function makeTileRenderer(gl) {
       const tileBuffer = gl.createBuffer();
 
       const cap = width * height;
+      let dirty = true;
       const spinData = new Float32Array(cap);
       const tileData = new Uint16Array(cap);
       const index = makeElementIndex(gl, cap);
@@ -240,6 +241,7 @@ export default async function makeTileRenderer(gl) {
           spinData.fill(0);
           tileData.fill(0);
           index.clear();
+          dirty = true;
         },
 
         /**
@@ -255,6 +257,7 @@ export default async function makeTileRenderer(gl) {
           spinData[id] = spin;
           if (layerID === 0) index.delete(id);
           else index.add(id);
+          dirty = true;
         },
 
         /**
@@ -280,11 +283,11 @@ export default async function makeTileRenderer(gl) {
           gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
           index.send();
+          dirty = false;
         },
 
-        draw() {
-          gl.useProgram(prog);
-
+        bind() {
+          if (dirty) this.send();
           viewParams.bind();
           layerParams.bind();
 
@@ -301,6 +304,12 @@ export default async function makeTileRenderer(gl) {
           gl.vertexAttribIPointer(attrLayerID, 1, gl.UNSIGNED_SHORT, 0, 0);
 
           gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        },
+
+        draw() {
+          gl.useProgram(prog);
+
+          this.bind();
 
           index.draw();
 

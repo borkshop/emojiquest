@@ -130,12 +130,6 @@ export default async function runDemo(opts) {
       lastCurveClip
         ? clippedBaseCellQuery(bg, landCurveTiles)
         : extendedBaseCellQuery(bg, landCurveTiles));
-
-    // send layer data to gpu; NOTE this needs to be called going forward after any update
-    bg.send();
-    fg.send();
-    bgCurved.send();
-
   };
   generateWorld();
 
@@ -153,7 +147,6 @@ export default async function runDemo(opts) {
           shouldClipCurvyTiles()
             ? clippedBaseCellQuery(bg, landCurveTiles)
             : extendedBaseCellQuery(bg, landCurveTiles));
-        bgCurved.send();
       }
 
       gl.enable(gl.BLEND);
