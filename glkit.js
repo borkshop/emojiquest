@@ -391,6 +391,31 @@ function dataTypeInfo(gl, dataType) {
 
 /**
  * @param {WebGL2RenderingContext} gl
+ * @param {(
+ * | Float32ArrayConstructor
+ * | Uint32ArrayConstructor
+ * | Uint16ArrayConstructor
+ * | Uint8ArrayConstructor
+ * | Int32ArrayConstructor
+ * | Int16ArrayConstructor
+ * | Int8ArrayConstructor
+ * )} cons
+ */
+export function arrayElementType(gl, cons) {
+  switch (cons) {
+    case Float32Array: return gl.FLOAT;
+    case Uint32Array: return gl.UNSIGNED_INT;
+    case Uint16Array: return gl.UNSIGNED_SHORT;
+    case Uint8Array: return gl.UNSIGNED_BYTE;
+    case Int32Array: return gl.INT;
+    case Int16Array: return gl.SHORT;
+    case Int8Array: return gl.BYTE;
+    default: throw new Error(`unsupported array constructor ${cons.name}`);
+  }
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
  * @param {number} dataType
  */
 export function dataType(gl, dataType) {
@@ -398,10 +423,12 @@ export function dataType(gl, dataType) {
   if (!info) return null;
   const elements = info.shape.reduce((a, b) => a * b);
   const byteLength = info.ArrayType.BYTES_PER_ELEMENT * elements;
+  const elementType = arrayElementType(gl, info.ArrayType);
 
   return {
     ...info,
     elements,
     byteLength,
+    elementType,
   };
 }

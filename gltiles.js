@@ -6,6 +6,7 @@ import { vec2 } from 'gl-matrix';
 import {
   compileProgram,
   makeUniformBlock,
+  arrayElementType as glArrayElementType,
 } from './glkit.js';
 
 // TODO per-tile scale support
@@ -64,10 +65,24 @@ export default async function makeTileRenderer(gl) {
     return loc;
   };
 
-  const uniSheet = mustGetUniform('sheet'); // sampler2D
+  const attrSpinSpec = {
+    ArrayType: Float32Array,
+    size: 1,
+    gl: {
+      attrib: mustGetAttr('spin'), // float
+    },
+  };
 
-  const attrSpin = mustGetAttr('spin'); // float
-  const attrLayerID = mustGetAttr('layerID'); // int
+  const attrTileSpec = {
+    ArrayType: Uint16Array,
+    size: 1,
+    gl: {
+      attrib: mustGetAttr('layerID'), // int
+      asInt: true,
+    },
+  };
+
+  const uniSheet = mustGetUniform('sheet'); // sampler2D
 
   const perspectiveUniform = viewParams.getVar('perspective');
   const perspective = perspectiveUniform.asFloatArray();
@@ -217,14 +232,6 @@ export default async function makeTileRenderer(gl) {
         mat4.fromTranslation(transform, [x, y, 0]);
       }
 
-      const spinBuffer = gl.createBuffer();
-      if (!spinBuffer)
-        throw new Error('must create layer spin buffer');
-
-      const tileBuffer = gl.createBuffer();
-      if (!tileBuffer)
-        throw new Error('must create layer tile buffer');
-
       let { texture } = params;
 
       return {
@@ -265,9 +272,6 @@ export default async function makeTileRenderer(gl) {
           paramsDirty = true;
         },
 
-        get spinBuffer() { return spinBuffer },
-        get tileBuffer() { return tileBuffer },
-
         bind() {
           if (paramsDirty) {
             layerParams.send();
@@ -301,38 +305,27 @@ export default async function makeTileRenderer(gl) {
      */
     makeDenseLayer({ width, height, ...params }) {
       const layer = this.makeLayer({ stride: width, ...params });
+      const data = makeGLArrays(gl, {
+        spin: attrSpinSpec,
+        tile: attrTileSpec,
+        index: {
+          ArrayType: Uint16Array, // TODO bring back varyign type
+          size: 1,
+          gl: {
+            elements: true,
+          },
+        },
+      }, width * height);
 
-      let dirty = true;
-      let cap = width * height;
-      let spinData = new Float32Array(cap);
-      let tileData = new Uint16Array(cap);
-      const index = makeElementIndex(gl, cap);
-
-      return passProperties({
+      const self = {
         get width() { return width },
         get height() { return height },
 
         /** @param {number} w @param {number} h */
         resize(w, h) {
+          data.resize(w * h, false);
           layer.stride = w;
-          if (w != width || h != height) {
-            width = w, height = h, cap = w * h;
-            spinData = new Float32Array(cap);
-            tileData = new Uint16Array(cap);
-            index.resize(cap, false);
-          } else {
-            spinData.fill(0);
-            tileData.fill(0);
-            index.clear();
-          }
-          dirty = true;
-        },
-
-        clear() {
-          spinData.fill(0);
-          tileData.fill(0);
-          index.clear();
-          dirty = true;
+          width = w, height = h;
         },
 
         /** Returns a cell reference given cell absolute x/y position,
@@ -359,75 +352,48 @@ export default async function makeTileRenderer(gl) {
 
             /** Reset all tile data to default (0 values) */
             clear() {
-              spinData[id] = 0;
-              tileData[id] = 0;
-              index.delete(id);
-              dirty = true;
+              data.spin[id] = 0;
+              data.tile[id] = 0;
+              data.delElement(id);
+              data.dirty = true;
             },
 
             /** Tile rotation in units of full turns */
-            get spin() { return spinData[id] },
+            get spin() { return data.spin[id] },
             set spin(turns) {
-              spinData[id] = turns;
-              dirty = true;
+              data.spin[id] = turns;
+              data.dirty = true;
             },
 
             /** Tile texture Z index.
              *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
-            get layerID() { return tileData[id] },
+            get layerID() { return data.tile[id] },
             /** Setting a value of 0, the default, will cause this tile to not be drawn. */
             set layerID(layerID) {
-              tileData[id] = layerID;
-              if (layerID === 0) index.delete(id); else index.add(id);
-              dirty = true;
+              data.tile[id] = layerID;
+              if (layerID === 0) data.delElement(id); else data.addElement(id);
+              data.dirty = true;
             },
           };
         },
 
-        send() {
-          gl.bindBuffer(gl.ARRAY_BUFFER, layer.spinBuffer);
-          gl.bufferData(gl.ARRAY_BUFFER, spinData, gl.STATIC_DRAW);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, layer.tileBuffer);
-          gl.bufferData(gl.ARRAY_BUFFER, tileData, gl.STATIC_DRAW);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-          index.send();
-          dirty = false;
-        },
-
-        bind() {
-          if (dirty) this.send();
-          viewParams.bind();
-          layer.bind();
-
-          // TODO spin optional
-          gl.enableVertexAttribArray(attrSpin);
-          gl.bindBuffer(gl.ARRAY_BUFFER, layer.spinBuffer);
-          gl.vertexAttribPointer(attrSpin, 1, gl.FLOAT, false, 0, 0);
-
-          gl.enableVertexAttribArray(attrLayerID);
-          gl.bindBuffer(gl.ARRAY_BUFFER, layer.tileBuffer);
-          gl.vertexAttribIPointer(attrLayerID, 1, gl.UNSIGNED_SHORT, 0, 0);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        },
+        clear() { data.clear() },
 
         draw() {
           gl.useProgram(prog);
-
-          this.bind();
-
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.buffer);
-          gl.drawElements(gl.POINTS, index.length, index.glType, 0);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-
+          viewParams.bind();
+          layer.bind();
+          data.drawElements(gl.POINTS);
           gl.useProgram(null);
         },
-      }, layer, 'texture', 'cellSize', 'left', 'top', 'moveTo');
-    },
+      };
 
+      return passProperties(self, layer,
+        'texture',
+        'cellSize',
+        'left', 'top', 'moveTo',
+      );
+    },
   };
 }
 
@@ -450,115 +416,6 @@ function passProperties(o, b, ...propNames) {
 }
 
 // TODO candidates for move into glkit.js
-
-/**
- * @param {WebGL2RenderingContext} gl
- * @param {number} cap
- */
-export function makeElementIndex(gl, cap) {
-  /** @param {number} cap */
-  function makeElementArray(cap) {
-    if (cap <= 256)
-      return new Uint8Array(cap);
-    if (cap <= 256 * 256)
-      return new Uint16Array(cap);
-    if (cap <= 256 * 256 * 256 * 256)
-      return new Uint32Array(cap);
-    throw new Error(`unsupported element index capacity: ${cap}`);
-  }
-
-  let elements = makeElementArray(cap);
-  let length = 0;
-  const buffer = gl.createBuffer();
-  if (!buffer)
-    throw new Error('failed to create element index buffer');
-
-  /** @param {number} id */
-  const find = id => {
-    let lo = 0, hi = length;
-    let sanity = elements.length;
-    while (lo < hi) {
-      if (--sanity < 0) throw new Error('find loop exeeded iteration budget');
-      const mid = Math.floor(lo / 2 + hi / 2);
-      const q = elements[mid];
-      if (q === id) return mid;
-      else if (q < id) lo = mid + 1;
-      else if (q > id) hi = mid;
-    }
-    return lo;
-  }
-
-  return {
-    *[Symbol.iterator]() {
-      for (let i = 0; i < length; i++) yield elements[i];
-    },
-
-    /** @param {number} n */
-    resize(n, copy = true) {
-      cap = n;
-      if (copy) {
-        const oldElements = elements;
-        elements = makeElementArray(n);
-        elements.set(oldElements);
-      } else {
-        elements = makeElementArray(n);
-        length = 0;
-      }
-    },
-
-    get glType() {
-      switch (elements.BYTES_PER_ELEMENT) {
-        case 1: return gl.UNSIGNED_BYTE;
-        case 2: return gl.UNSIGNED_SHORT;
-        case 4:
-          if (!gl.getExtension('OES_element_index_uint'))
-            throw new Error('uint element indices are unavailable');
-          return gl.UNSIGNED_INT;
-        default:
-          throw new Error(`unsupported index element byte size: ${elements.BYTES_PER_ELEMENT}`);
-      }
-    },
-    get length() { return length },
-    get buffer() { return buffer },
-
-    send() {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, elements, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    },
-
-    clear() {
-      elements.fill(0);
-      length = 0;
-    },
-
-    // TODO has(id)
-
-    /** @param {number} id */
-    add(id) {
-      const eli = find(id);
-      if (eli < length && elements[eli] === id) return;
-      if (length === elements.length) throw new Error('element index full');
-      if (eli > length + 1) throw new Error('inconceivable find result index');
-      if (eli < length)
-        elements.copyWithin(eli + 1, eli, length);
-      length++;
-      elements[eli] = id;
-    },
-
-    /** @param {number} id */
-    delete(id) {
-      const eli = find(id);
-      if (eli < length && elements[eli] === id) {
-        elements.copyWithin(eli, eli + 1);
-        length--;
-      }
-    },
-
-  };
-}
-
-/** @typedef {ReturnType<makeElementIndex>} ElementIndex */
 
 /**
  * @param {WebGL2RenderingContext} gl
@@ -591,3 +448,291 @@ function makeTextureUnitCache(gl, kind) {
 }
 
 /** @typedef {ReturnType<makeTextureUnitCache>} TextureUnitCache */
+
+/** @typedef {object} GLAttribSpec
+ * @prop {number} attrib
+ * @prop {number} [type]
+ * @prop {WebGLBuffer} [buffer]
+ * @prop {number} [usage]
+ * @prop {boolean} [normalized]
+ * @prop {boolean} [asInt]
+ */
+
+/** @typedef {object} GLElementsSpec
+ * @prop {true} elements
+ * @prop {number} [type]
+ * @prop {WebGLBuffer} [buffer]
+ * @prop {number} [usage]
+ */
+
+/** @typedef {object} ArraySpec
+ * @prop {(
+ * | Float32ArrayConstructor
+ * | Uint32ArrayConstructor
+ * | Uint16ArrayConstructor
+ * | Uint8ArrayConstructor
+ * | Int32ArrayConstructor
+ * | Int16ArrayConstructor
+ * | Int8ArrayConstructor
+ * )} ArrayType
+ * @prop {number} size
+ * @prop {GLAttribSpec|GLElementsSpec} [gl]
+ */
+
+/** @template T @typedef {(
+ * T extends Float32ArrayConstructor ? Float32Array :
+ * T extends Uint32ArrayConstructor ? Uint32Array :
+ * T extends Uint16ArrayConstructor ? Uint16Array :
+ * T extends Uint8ArrayConstructor ? Uint8Array :
+ * T extends Int32ArrayConstructor ? Int32Array :
+ * T extends Int16ArrayConstructor ? Int16Array :
+ * T extends Int8ArrayConstructor ? Int8Array :
+ * never
+ * )} constructedArray
+ */
+
+/** @template {{[name: string]: ArraySpec}} T
+ * @typedef {{
+ *   [Name in keyof T]: constructedArray<T[Name]["ArrayType"]>
+ * }} dataProps */
+
+/** Creates a simple backing data store for an array,
+ * where each attribute is mapped to a single array.
+ *
+ * @template {{[name: string]: ArraySpec}} T
+ * @param {WebGL2RenderingContext} gl
+ * @param {T} typeMap
+ * @param {number} [initialCapacity]
+ */
+function makeGLArrays(gl, typeMap, initialCapacity = 8) {
+
+  // TODO restore elements array varying type
+  // /** @param {number} cap */
+  // function makeElementArray(cap) {
+  //   if (cap <= 256)
+  //     return new Uint8Array(cap);
+  //   if (cap <= 256 * 256)
+  //     return new Uint16Array(cap);
+  //   if (cap <= 256 * 256 * 256 * 256)
+  //     return new Uint32Array(cap);
+  //   throw new Error(`unsupported element index capacity: ${cap}`);
+  // }
+
+  // TODO support per-array dirty, ideeally with regions for subdata copy
+  let dirty = true;
+
+  let cap = initialCapacity;
+
+  let elementsIndex = -1;
+  let elementsLength = 0;
+
+  const names = Object.keys(typeMap);
+  const specs = Object.values(typeMap);
+  const argl = specs.map(
+    /** @returns {null|Required<Exclude<ArraySpec["gl"], undefined>>} */
+    ({ ArrayType, size, gl: glSpec }, i) => {
+      if (!glSpec) return null;
+
+      // TODO support just-in-time buffer (re)creation and the ability to delete buffers
+
+      if ('attrib' in glSpec) {
+        const {
+          attrib,
+          type = glArrayElementType(gl, ArrayType),
+          buffer = gl.createBuffer(),
+          usage = gl.STATIC_DRAW,
+          normalized = false,
+          asInt = false,
+        } = glSpec;
+        if (!buffer) throw new Error(`must create vertex buffer for "${names[i]}"`);
+        return {
+          attrib,
+          type,
+          buffer,
+          usage,
+          normalized,
+          asInt,
+        };
+      } else if (glSpec.elements) {
+        if (size != 1)
+          throw new Error(`elements size must be 1`);
+        if (elementsIndex != -1)
+          throw new Error('multiple element arrays are unsupported');
+        elementsIndex = i;
+        const {
+          type = glArrayElementType(gl, ArrayType),
+          buffer = gl.createBuffer(),
+          usage = gl.STATIC_DRAW,
+        } = glSpec;
+        if (!buffer) throw new Error(`must create element buffer for "${names[i]}"`);
+        return {
+          elements: true,
+          type,
+          buffer,
+          usage,
+        };
+      } else throw new Error(`invalid gl spec for "${names[i]}"`);
+    });
+  const data = specs.map(({ ArrayType, size }) =>
+    new ArrayType(Math.ceil(cap * size)));
+
+  const self = {
+    get capacity() { return cap },
+
+    get dirty() { return dirty },
+    set dirty(d) { dirty = d },
+
+    /** @param {number} n */
+    resize(n, copy = true) {
+      if (n != cap) {
+        cap = n;
+        for (let i = 0; i < data.length; i++) {
+          const { ArrayType, size } = specs[i];
+          const now = new ArrayType(Math.ceil(cap * size));
+          if (copy) now.set(data[i].subarray(0, now.length));
+          data[i] = now;
+        }
+        if (!copy) elementsLength = 0;
+        dirty = true;
+      } else if (!copy) {
+        for (const ar of data) ar.fill(0);
+        elementsLength = 0;
+        dirty = true;
+      }
+    },
+
+    // TODO compact() ?
+
+    /** @param {number} needed */
+    prune(needed) {
+      let newCap = initialCapacity;
+      // TODO clever maths to compute needed without a loop
+      while (newCap < needed)
+        newCap = newCap < 1024 ? 2 * newCap : newCap + newCap / 4;
+      if (newCap < cap) self.resize(newCap);
+    },
+
+    grow(needed = cap + 1) {
+      let newCap = cap;
+      while (newCap < needed)
+        newCap = newCap < 1024 ? 2 * newCap : newCap + newCap / 4;
+      self.resize(newCap);
+    },
+
+    clear() {
+      for (const ar of data) ar.fill(0);
+      elementsLength = 0;
+      dirty = true;
+    },
+
+    send() {
+      for (let i = 0; i < data.length; i++) {
+        const igl = argl[i];
+        if (!igl) continue;
+        const { buffer, usage } = igl;
+        if ('attrib' in igl) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.bufferData(gl.ARRAY_BUFFER, data[i], usage);
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        } else if (igl.elements) {
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data[i], usage);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        }
+      }
+      dirty = false;
+    },
+
+    bind() {
+      if (dirty) self.send();
+
+      for (let i = 0; i < data.length; i++) {
+        const igl = argl[i];
+        if (!igl) continue;
+
+        if ('attrib' in igl) {
+          const { buffer, attrib, type, asInt, normalized } = igl;
+          const { size } = specs[i];
+          const stride = 0;
+          const offset = 0;
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          if (asInt) {
+            gl.vertexAttribIPointer(attrib, Math.ceil(size), type, stride, offset);
+          } else {
+            gl.vertexAttribPointer(attrib, Math.ceil(size), type, normalized, stride, offset);
+          }
+          gl.enableVertexAttribArray(attrib);
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        }
+      }
+    },
+
+    /** @param {number} id */
+    findElement(id) {
+      if (elementsIndex == -1)
+        throw new Error('no elements index array defined');
+      const elements = data[elementsIndex];
+      let lo = 0, hi = elementsLength;
+      let sanity = cap;
+      while (lo < hi) {
+        if (--sanity < 0) throw new Error('find loop exeeded iteration budget');
+        const mid = Math.floor(lo / 2 + hi / 2);
+        const q = elements[mid];
+        if (q === id) return mid;
+        else if (q < id) lo = mid + 1;
+        else if (q > id) hi = mid;
+      }
+      return lo;
+    },
+
+    /** @param {number} id */
+    addElement(id) {
+      if (elementsIndex == -1)
+        throw new Error('no elements index array defined');
+      const elements = data[elementsIndex];
+      const eli = self.findElement(id);
+      if (eli < elementsLength && elements[eli] === id) return;
+      if (elementsLength === cap) throw new Error('element index full');
+      if (eli > elementsLength + 1) throw new Error('inconceivable find result index');
+      if (eli < elementsLength)
+        elements.copyWithin(eli + 1, eli, elementsLength);
+      elementsLength++;
+      elements[eli] = id;
+    },
+
+    /** @param {number} id */
+    delElement(id) {
+      if (elementsIndex == -1)
+        throw new Error('no elements index array defined');
+      const elements = data[elementsIndex];
+      const eli = self.findElement(id);
+      if (eli < elementsLength && elements[eli] === id) {
+        elements.copyWithin(eli, eli + 1);
+        elementsLength--;
+      }
+    },
+
+    // TODO hasElement(id)
+
+    /** @param {number} mode */
+    drawElements(mode) {
+      const elGl = argl[elementsIndex];
+      if (elementsIndex == -1 || !elGl)
+        throw new Error('no elements index array defined');
+
+      self.bind();
+
+      const { buffer, type } = elGl;
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+      gl.drawElements(mode, elementsLength, type, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    },
+
+  };
+
+  return /** @type {typeof self & dataProps<T>} */(
+    Object.defineProperties(self, Object.fromEntries(
+      names.map((name, i) => [name, { get: () => data[i] }])
+    ))
+  );
+}
