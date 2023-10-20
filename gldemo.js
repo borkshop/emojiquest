@@ -85,11 +85,9 @@ export default async function runDemo(opts) {
     height: worldHeight,
   });
 
-  const fg = tiles.makeDenseLayer({
+  const fg = tiles.makeSparseLayer({
     texture: foreTiles.texture,
     cellSize,
-    width: worldWidth,
-    height: worldHeight,
   });
   const bgCurved = tiles.makeDenseLayer(curvedLayerParams(bg));
 
@@ -115,21 +113,30 @@ export default async function runDemo(opts) {
     }
 
     // place fore objects
+    /** @type {Set<number>} */
+    const newIDs = new Set();
+    let lastID = -1;
+    fg.clear();
     const { randn: randTile } = makeRandom(seeder());
     const { random: randSpin } = makeRandom(seeder());
-    for (let y = 0; y < fg.height; y++) {
-      for (let x = 0; x < fg.width; x++) {
-        const cell = fg.at(x, y);
-        if (!cell) continue;
+    genFG: for (let y = 0; y < bg.height; y++) {
+      for (let x = 0; x < bg.width; x++) {
         const tileID = Number(randTile(2n * BigInt(foreTiles.size)));
         if (tileID < foreTiles.size) {
-          cell.layerID = foreTiles.getLayerID(tileID);
-          cell.spin = randSpin();
-        } else {
-          cell.clear();
+          const tile = fg.createRef();
+          if (newIDs.has(tile.id)) {
+            console.warn(`fg dupe tile id last:${lastID} new:${tile.id}`, { ...tile });
+            break genFG;
+          }
+          newIDs.add(tile.id);
+          tile.xy = [x, y];
+          tile.spin = randSpin();
+          tile.layerID = foreTiles.getLayerID(tileID);
+          lastID = tile.id;
         }
       }
     }
+    fg.prune();
 
     updateCurvedLayer(bgCurved, landCurveTiles,
       lastCurveClip
@@ -201,7 +208,6 @@ export default async function runDemo(opts) {
       worldWidth = w;
       worldHeight = h;
       bg.resize(w, h);
-      fg.resize(w, h);
       bgCurved.resize(w + 1, h + 1);
       generateWorld();
     },
