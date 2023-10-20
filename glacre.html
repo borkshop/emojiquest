@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8" />
+
+<head>
+
+  <title>GL Acre Demo</title>
+
+  <link rel="stylesheet" type="text/css" href="index.css" />
+
+  <meta name="viewport"
+    content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+
+</head>
+
+<body>
+
+  <div style="position: absolute; right: 0">
+    <!-- TDOO UI elements go here -->
+  </div>
+
+  <canvas id="world" style="width: 100%; height: 100%"></canvas>
+
+  <script type="module">
+    import runAcre from './glacre.js';
+
+    const $world = document.querySelector('canvas#world');
+    if (!$world) throw new Error('unable to find world canvas');
+
+    const acre = await runAcre({
+      $world,
+
+      worldWidth: 256,
+      worldHeight: 256,
+
+      cellSize: 16,
+    });
+
+    acre.scribble(scratch => {
+      const ctx = scratch.getContext('2d');
+      if (!ctx) throw new Error('must have scribble context');
+
+      fillGlyph(ctx, '😺', Math.floor(scratch.height * 4 / 5), 'sans')
+    });
+
+    // TODO evolve this into mouse color picker/inspection/interaction
+    for (const x of [
+      Math.floor(acre.width / 2),
+    ])
+      for (const y of [
+        Math.floor(acre.height / 2),
+      ]) {
+        const p = acre.at(x, y);
+        console.log(`@${x},${y}: rgba:${p?.rgba} rgbaf:${p?.rgbaf}`)
+      }
+
+    const zoomStep = 0.1;
+    const zoomIn = 1 + zoomStep;
+    const zoomOut = 1 / zoomIn;
+
+    window.addEventListener('keypress', e => {
+      switch (e.key) {
+
+        case '+':
+          acre.view.zoom(zoomIn);
+          break;
+
+        case '-':
+          acre.view.zoom(zoomOut);
+          break;
+
+        case 'a':
+        case 'A':
+          acre.view.pan(-1, 0);
+          break;
+
+        case 'd':
+        case 'D':
+          acre.view.pan(1, 0);
+          break;
+
+        case 's':
+        case 'S':
+          acre.view.pan(0, 1);
+          break;
+
+        case 'w':
+        case 'W':
+          acre.view.pan(0, -1);
+          break;
+
+      }
+    });
+    await acre.done;
+
+    // TODO utilities ripped out of tilegen.js ; reconcile
+
+    function fillGlyph(ctx, text, fontSize, fontName) {
+      ctx.textBaseline = 'bottom';
+      adjustFont(ctx, text, fontSize, fontName);
+
+      const {width, height} = ctx.canvas;
+
+      const {
+        actualBoundingBoxLeft,
+        actualBoundingBoxRight,
+        actualBoundingBoxDescent,
+        actualBoundingBoxAscent,
+      } = ctx.measureText(text),
+        actualWidth = Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight),
+        actualHeight = Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent),
+        widthRem = width - actualWidth,
+        heightRem = height - actualHeight;
+
+      ctx.fillStyle = 'black';
+      ctx.fillText(text, Math.floor(widthRem / 2), height - Math.floor(heightRem / 2));
+    }
+
+    function adjustFont(ctx, text, fontSize, fontName) {
+      for (let adjust = 0; adjust <= fontSize; adjust++) {
+        if (adjust == fontSize)
+          throw new Error(`unable to find a usable font adjustment for fontSize:${fontSize}`);
+        ctx.font = `${fontSize - adjust}px ${fontName}`;
+        const {
+          actualBoundingBoxLeft,
+          actualBoundingBoxRight,
+          actualBoundingBoxDescent,
+          actualBoundingBoxAscent,
+        } = ctx.measureText(text),
+          actualWidth = Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight),
+          actualHeight = Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent);
+        if (actualHeight < fontSize && actualWidth < fontSize) break;
+      }
+    }
+
+  </script>
+
+</body>
