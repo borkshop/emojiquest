@@ -396,6 +396,7 @@ function dataTypeInfo(gl, dataType) {
  * | Uint32ArrayConstructor
  * | Uint16ArrayConstructor
  * | Uint8ArrayConstructor
+ * | Uint8ClampedArrayConstructor
  * | Int32ArrayConstructor
  * | Int16ArrayConstructor
  * | Int8ArrayConstructor
@@ -407,6 +408,7 @@ export function arrayElementType(gl, cons) {
     case Uint32Array: return gl.UNSIGNED_INT;
     case Uint16Array: return gl.UNSIGNED_SHORT;
     case Uint8Array: return gl.UNSIGNED_BYTE;
+    case Uint8ClampedArray: return gl.UNSIGNED_BYTE;
     case Int32Array: return gl.INT;
     case Int16Array: return gl.SHORT;
     case Int8Array: return gl.BYTE;
@@ -455,6 +457,7 @@ export function dataType(gl, dataType) {
  * | Uint32ArrayConstructor
  * | Uint16ArrayConstructor
  * | Uint8ArrayConstructor
+ * | Uint8ClampedArrayConstructor
  * | Int32ArrayConstructor
  * | Int16ArrayConstructor
  * | Int8ArrayConstructor
@@ -468,6 +471,7 @@ export function dataType(gl, dataType) {
  * T extends Uint32ArrayConstructor ? Uint32Array :
  * T extends Uint16ArrayConstructor ? Uint16Array :
  * T extends Uint8ArrayConstructor ? Uint8Array :
+ * T extends Uint8ClampedArrayConstructor ? Uint8ClampedArray :
  * T extends Int32ArrayConstructor ? Int32Array :
  * T extends Int16ArrayConstructor ? Int16Array :
  * T extends Int8ArrayConstructor ? Int8Array :
