@@ -10,7 +10,7 @@ import * as xorbig from './xorbig.js';
 import makeTileRenderer from './gltiles.js';
 /** @template T @typedef {import("./gltiles.js").tileable<T>} tileable */
 /** @template T @typedef {import("./gltiles.js").TileSheet<T>} TileSheet */
-/** @typedef {import("./gltiles.js").Layer} Layer */
+/** @typedef {import("./gltiles.js").DenseLayer} DenseLayer */
 
 /** @callback layback
  * @param {TileSheet<number>} tileSheet
@@ -86,18 +86,18 @@ export default async function runDemo(opts) {
 
   const foreTiles = tiles.makeSheet(generateSimpleTiles(...foreTileSpecs), { tileSize });
 
-  const bg = tiles.makeLayer({
+  const bg = tiles.makeDenseLayer({
     texture: landCurveTiles.texture,
     width: worldWidth,
     height: worldHeight,
   });
 
-  const fg = tiles.makeLayer({
+  const fg = tiles.makeDenseLayer({
     texture: foreTiles.texture,
     width: worldWidth,
     height: worldHeight,
   });
-  const bgCurved = tiles.makeLayer(curvedLayerParams(bg));
+  const bgCurved = tiles.makeDenseLayer(curvedLayerParams(bg));
 
   let lastCurveClip = shouldClipCurvyTiles();
 
@@ -129,9 +129,9 @@ export default async function runDemo(opts) {
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        bg.set(x, y, {
-          layerID: genTerrain(x, y),
-        });
+        const cell = bg.at(x, y);
+        if (!cell) continue;
+        cell.layerID = genTerrain(x, y);
       }
     }
 
@@ -140,12 +140,15 @@ export default async function runDemo(opts) {
     const { random: randSpin } = makeRandom();
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
+        const cell = fg.at(x, y);
+        if (!cell) continue;
         const tileID = randTile() % (2 * foreTiles.size);
-        if (tileID < foreTiles.size)
-          fg.set(x, y, {
-            layerID: foreTiles.getLayerID(tileID),
-            spin: randSpin(),
-          });
+        if (tileID < foreTiles.size) {
+          cell.layerID = foreTiles.getLayerID(tileID);
+          cell.spin = randSpin();
+        } else {
+          cell.clear();
+        }
       }
     }
 

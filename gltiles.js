@@ -6,7 +6,10 @@ import { vec2 } from 'gl-matrix';
 import {
   compileProgram,
   makeUniformBlock,
+  makeDataFrame,
 } from './glkit.js';
+/** @typedef {import('./glkit.js').ArraySpecMap} ArraySpecMap */
+/** @template {ArraySpecMap} T @typedef {import('./glkit.js').arrayProps<T>} arrayProps */
 
 // TODO per-tile scale support
 // TODO animation support (probably at least per-tile displacement driven externally)
@@ -63,10 +66,33 @@ export default async function makeTileRenderer(gl) {
     return loc;
   };
 
-  const uniSheet = mustGetUniform('sheet'); // sampler2D
+  const indexSpec = {
+    ArrayType: Uint16Array, // TODO bring back varying type
+    size: 1,
+    clear: null, // implemented directly using delElement
+    gl: {
+      elements: true,
+    },
+  };
 
-  const attrSpin = mustGetAttr('spin'); // float
-  const attrLayerID = mustGetAttr('layerID'); // int
+  const attrSpinSpec = {
+    ArrayType: Float32Array,
+    size: 1,
+    gl: {
+      attrib: mustGetAttr('spin'), // float
+    },
+  };
+
+  const attrTileSpec = {
+    ArrayType: Uint16Array,
+    size: 1,
+    gl: {
+      attrib: mustGetAttr('layerID'), // int
+      asInt: true,
+    },
+  };
+
+  const uniSheet = mustGetUniform('sheet'); // sampler2D
 
   const texCache = makeTextureUnitCache(gl, gl.TEXTURE_2D_ARRAY);
 
@@ -442,53 +468,45 @@ export default async function makeTileRenderer(gl) {
       };
     },
 
-    /**
+    /** Creates a minimal base tile layer.
+     * Caller is fully responsible for sending data to the layer buffers.
+     * Primarly intended to be used internally to implement specific layer data schemes.
+     *
+     * When stride is non-zero, each tile has an implicit x/y position relative to left/top.
+     *
      * @param {object} params
      * @param {WebGLTexture} params.texture
      * @param {number} [params.cellSize]
      * @param {number} [params.left]
      * @param {number} [params.top]
-     * @param {number} params.width
-     * @param {number} params.height
+     * @param {number} [params.stride]
      */
-    makeLayer({
-      texture,
-      cellSize: givenCellSize = 0,
-      left: givenLeft = 0, top: givenTop = 0,
-      width, height,
-    }) {
+    makeLayer(params) {
       const layerParams = layerParamsBlock.makeBuffer();
       const transform = layerParams.getVar('transform').asFloatArray();
       const cellSize = layerParams.getVar('cellSize');
       const stride = layerParams.getVar('stride');
+      let paramsDirty = true;
+      if (params.stride !== undefined)
+        stride.int = params.stride;
 
-      cellSize.float = givenCellSize;
-      stride.int = width;
+      {
+        const {
+          cellSize: size = 0,
+          left = 0, top = 0,
+        } = params;
 
-      mat4.fromTranslation(transform, [givenLeft, givenTop, 0]);
+        cellSize.float = size;
+        mat4.fromTranslation(transform, [left, top, 0]);
+      }
 
-      // TODO do we complect within or without?
-      //   1. makeSparseLayer vs makeDenseLayer
-      //   2. sans/with spin
-      //   3. sans/with scale
-      //   4. sans/with animation (for each of loc, spin, scale, id)
+      let { texture } = params;
 
-      // TODO further indirection between layer and gpu buffers allowing:
-      // - N chunks of the same logical layer to be packed into M < N buffers
-      // - N layer(s) to be fragmented into M > N buffers
-      // - sub-region invalidation to avoid recopying old data / only copy new data
+      return {
+        deleteBuffers() {
+          layerParams.delete();
+        },
 
-      // NOTE: we can also choose to interleave/pack data into a single buffer if desired
-      const spinBuffer = gl.createBuffer();
-      const tileBuffer = gl.createBuffer();
-
-      let cap = width * height;
-      let dirty = true, paramsDirty = true;
-      let spinData = new Float32Array(cap);
-      let tileData = new Uint16Array(cap);
-      const index = makeElementIndex(gl, cap);
-
-      const self = {
         get texture() { return texture },
         set texture(tex) { texture = tex },
 
@@ -496,6 +514,14 @@ export default async function makeTileRenderer(gl) {
         set cellSize(size) {
           cellSize.float = size;
           paramsDirty = true;
+        },
+
+        get stride() { return stride.int },
+        set stride(w) {
+          if (w != stride.int) {
+            stride.int = w;
+            paramsDirty = true;
+          }
         },
 
         /** @returns {[x: number, y: number]} */
@@ -508,105 +534,17 @@ export default async function makeTileRenderer(gl) {
           paramsDirty = true;
         },
 
-        get width() { return width },
-        get height() { return height },
-
-        /** @param {number} w @param {number} h */
-        resize(w, h) {
-          stride.int = w;
-          paramsDirty = true;
-          if (w != width || h != height) {
-            width = w, height = h, cap = w * h;
-            spinData = new Float32Array(cap);
-            tileData = new Uint16Array(cap);
-            index.resize(cap, false);
-          } else {
-            spinData.fill(0);
-            tileData.fill(0);
-            index.clear();
-          }
-          dirty = true;
-        },
-
-        clear() {
-          spinData.fill(0);
-          tileData.fill(0);
-          index.clear();
-          dirty = true;
-        },
-
-        /**
-         * @param {number} x
-         * @param {number} y
-         * @param {{layerID: number, spin?: number}} data
-         */
-        set(x, y, { layerID, spin = 0 }) {
-          if (x < 0 || y < 0 || x >= width || y >= height)
-            throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
-          const id = Math.floor(y) * width + Math.floor(x);
-          tileData[id] = layerID;
-          spinData[id] = spin;
-          if (layerID === 0) index.delete(id);
-          else index.add(id);
-          dirty = true;
-        },
-
-        /**
-         * @param {number} x
-         * @param {number} y
-         */
-        get(x, y) {
-          if (x < 0 || y < 0 || x >= width || y >= height)
-            throw new Error(`point: ${JSON.stringify({ x, y })} outside of layer bounds: ${JSON.stringify({ width, height })}`);
-          const id = Math.floor(y) * width + Math.floor(x);
-          const layerID = tileData[id];
-          const spin = spinData[id];
-          return { layerID, spin };
-        },
-
-        send() {
-          gl.bindBuffer(gl.ARRAY_BUFFER, spinBuffer);
-          gl.bufferData(gl.ARRAY_BUFFER, spinData, gl.STATIC_DRAW);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
-          gl.bufferData(gl.ARRAY_BUFFER, tileData, gl.STATIC_DRAW);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-          index.send();
-          dirty = false;
-        },
-
         bind() {
-          if (dirty) this.send();
           if (paramsDirty) {
             layerParams.send();
             paramsDirty = false;
           }
           layerParams.bind();
 
-          const texUnit = texCache.get(texture);
-          gl.uniform1i(uniSheet, texUnit);
-
-          // TODO spin optional
-          gl.enableVertexAttribArray(attrSpin);
-          gl.bindBuffer(gl.ARRAY_BUFFER, spinBuffer);
-          gl.vertexAttribPointer(attrSpin, 1, gl.FLOAT, false, 0, 0);
-
-          gl.enableVertexAttribArray(attrLayerID);
-          gl.bindBuffer(gl.ARRAY_BUFFER, tileBuffer);
-          gl.vertexAttribIPointer(attrLayerID, 1, gl.UNSIGNED_SHORT, 0, 0);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        },
-
-        draw() {
-          this.bind();
-          index.draw();
+          gl.uniform1i(uniSheet, texCache.get(texture));
         },
 
       };
-      return self;
     },
 
     // TODO more variants:
@@ -614,129 +552,166 @@ export default async function makeTileRenderer(gl) {
     //   e.g. unanimated dense layer for static backgrounds
     // - not sure if worth to provie spinless / scaleless / offsetless variants
 
+    /**
+     * Creates a dense cellular tile layer,
+     * where tiles are implicitly positioned along a dense grid from layer origin,
+     * suppoting at most 1 tile per cell,
+     * and fast constant time "tiles at location" query.
+     *
+     * @template {ArraySpecMap} UserData
+     * @param {object} params
+     * @param {WebGLTexture} params.texture
+     * @param {number} [params.cellSize]
+     * @param {number} [params.left]
+     * @param {number} [params.top]
+     * @param {number} params.width
+     * @param {number} params.height
+     * @param {UserData} [params.userData]
+     */
+    makeDenseLayer({
+      width, height,
+      userData,
+      ...params
+    }) {
+      if (userData)
+        for (const dim of ['spin', 'tile', 'used', 'index'])
+          if (dim in userData)
+            throw new Error(`userData may not specify "${dim}"`);
+
+      const layer = this.makeLayer({ stride: width, ...params });
+      const data = makeDataFrame(gl, {
+        ...userData,
+        index: indexSpec,
+        spin: attrSpinSpec,
+        tile: attrTileSpec,
+      }, width * height);
+
+      /** @param {number} index */
+      const ref = index => ({
+        get id() { return index + 1 },
+        get index() { return index },
+
+        /** @returns {[x: number, y: number]} */
+        get xy() {
+          const x = index % width, y = (index - x) / width;
+          return [x, y];
+        },
+
+        /** Reset all tile data to default (0 values) */
+        clear() {
+          data.recordClear(index);
+          data.delElement(index);
+          data.dirty = true;
+        },
+
+        /** Tile rotation in units of full turns */
+        get spin() { return data.array.spin[index] },
+        set spin(turns) {
+          data.array.spin[index] = turns;
+          data.dirty = true;
+        },
+
+        /** Tile texture Z index.
+         *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
+        get layerID() { return data.array.tile[index] },
+        /** Setting a value of 0, the default, will cause this tile to not be drawn. */
+        set layerID(layerID) {
+          data.array.tile[index] = layerID;
+          if (layerID === 0) data.delElement(index); else data.addElement(index);
+          data.dirty = true;
+        },
+      });
+
+      const self = {
+        deleteBuffers() {
+          layer.deleteBuffers();
+          data.deleteBuffers();
+        },
+
+        get width() { return width },
+        get height() { return height },
+
+        /** @param {number} w @param {number} h */
+        resize(w, h) {
+          data.resize(w * h, false);
+          layer.stride = w;
+          width = w, height = h;
+        },
+
+        /** @param {number} x @param {number} y */
+        contains(x, y) {
+          const [left, top] = layer.origin;
+          if (x < left) return false;
+          if (y < top) return false;
+          if (x >= left + width) return false;
+          if (y >= top + height) return false;
+          return true;
+        },
+
+        /** Returns a cell reference given cell absolute x/y position,
+         * or null if out of bounds.
+         *
+         * @param {number} x
+         * @param {number} y
+         */
+        absAt(x, y) {
+          const [left, top] = layer.origin;
+          return self.at(x - left, y - top)
+        },
+
+        /** Returns a cell reference given cell x/y offsets (relative to left/top),
+         * or null if out of bounds.
+         *
+         * @param {number} x
+         * @param {number} y
+         */
+        at(x, y) {
+          if (x < 0 || y < 0 || x >= width || y >= height) return null;
+          const index = Math.floor(y) * width + Math.floor(x);
+          return ref(index);
+        },
+
+        // TODO better to passProperties(self, data. 'clear') ?
+        clear() { data.clear() },
+
+        draw() {
+          layer.bind();
+          data.drawElements(gl.POINTS);
+        },
+
+        get array() {
+          return /** @type {typeof data["array"] & arrayProps<UserData>} */ (data.array)
+        },
+
+      };
+
+      return passProperties(self,
+        layer, 'texture', 'cellSize', 'origin',
+      );
+    },
   };
 }
 
 /** @typedef {Awaited<ReturnType<makeTileRenderer>>} TileRenderer */
 /** @typedef {ReturnType<TileRenderer["makeView"]>} View */
-/** @typedef {ReturnType<TileRenderer["makeLayer"]>} Layer */
-
-// TODO candidates for move into glkit.js
+/** @typedef {ReturnType<TileRenderer["makeLayer"]>} BaseLayer */
+/** @typedef {ReturnType<TileRenderer["makeDenseLayer"]>} DenseLayer */
 
 /**
- * @param {WebGL2RenderingContext} gl
- * @param {number} cap
+ * @template B, O
+ * @template {keyof B} BK
+ * @param {O} o
+ * @param {B} b
+ * @param {Array<BK>} propNames
  */
-export function makeElementIndex(gl, cap) {
-  /** @param {number} cap */
-  function makeElementArray(cap) {
-    if (cap <= 256)
-      return new Uint8Array(cap);
-    if (cap <= 256 * 256)
-      return new Uint16Array(cap);
-    if (cap <= 256 * 256 * 256 * 256)
-      return new Uint32Array(cap);
-    throw new Error(`unsupported element index capacity: ${cap}`);
-  }
-
-  let elements = makeElementArray(cap);
-
-  let length = 0;
-  const buffer = gl.createBuffer();
-
-  /** @param {number} id */
-  const find = id => {
-    let lo = 0, hi = length;
-    let sanity = elements.length;
-    while (lo < hi) {
-      if (--sanity < 0) throw new Error('find loop exeeded iteration budget');
-      const mid = Math.floor(lo / 2 + hi / 2);
-      const q = elements[mid];
-      if (q === id) return mid;
-      else if (q < id) lo = mid + 1;
-      else if (q > id) hi = mid;
-    }
-    return lo;
-  }
-
-  const self = {
-    *[Symbol.iterator]() {
-      for (let i = 0; i < length; i++) yield elements[i];
-    },
-
-    get glType() {
-      switch (elements.BYTES_PER_ELEMENT) {
-        case 1: return gl.UNSIGNED_BYTE;
-        case 2: return gl.UNSIGNED_SHORT;
-        case 4:
-          if (!gl.getExtension('OES_element_index_uint'))
-            throw new Error('uint element indices are unavailable');
-          return gl.UNSIGNED_INT;
-        default:
-          throw new Error(`unsupported index element byte size: ${elements.BYTES_PER_ELEMENT}`);
-      }
-    },
-
-    get length() { return length },
-
-    /** @param {number} n */
-    resize(n, copy = true) {
-      cap = n;
-      if (copy) {
-        const oldElements = elements;
-        elements = makeElementArray(n);
-        elements.set(oldElements);
-      } else {
-        elements = makeElementArray(n);
-        length = 0;
-      }
-    },
-
-    send() {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, elements.buffer, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    },
-
-    draw() {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-      gl.drawElements(gl.POINTS, length, self.glType, 0);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    },
-
-    clear() {
-      elements.fill(0);
-      length = 0;
-    },
-
-    // TODO has(id)
-
-    /** @param {number} id */
-    add(id) {
-      const eli = find(id);
-      if (eli < length && elements[eli] === id) return;
-      if (length === elements.length) throw new Error('element index full');
-      if (eli > length + 1) throw new Error('inconceivable find result index');
-      if (eli < length)
-        elements.copyWithin(eli + 1, eli, length);
-      length++;
-      elements[eli] = id;
-    },
-
-    /** @param {number} id */
-    delete(id) {
-      const eli = find(id);
-      if (eli < length && elements[eli] === id) {
-        elements.copyWithin(eli, eli + 1);
-        length--;
-      }
-    },
-
-  };
-  return self;
+function passProperties(o, b, ...propNames) {
+  const bPropDescs = Object.entries(Object.getOwnPropertyDescriptors(b));
+  const passPropDescs = bPropDescs.filter(([name]) => propNames.includes(/** @type {BK}*/(name)));
+  const passPropMap = /** @type {{[k in BK]: PropertyDescriptor}} */ (Object.fromEntries(passPropDescs));
+  return /** @type {O & Pick<B, BK>} */ (Object.defineProperties(o, passPropMap));
 }
 
-/** @typedef {ReturnType<makeElementIndex>} ElementIndex */
+// TODO candidates for move into glkit.js
 
 /**
  * @param {WebGL2RenderingContext} gl

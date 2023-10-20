@@ -10,12 +10,26 @@ export { default as drawSimpleTile } from './simple_tiles.js';
  * @returns {void}
  */
 
-/** @typedef {import("./gltiles.js").Layer} Layer */
 /** @template TileID @typedef {import("./gltiles.js").TileSheet<TileID>} TileSheet */
 
-/** @param {Layer} baseLayer */
-export function curvedLayerParams(baseLayer) {
-  const { texture, cellSize, origin: [left, top], width, height } = baseLayer;
+/**
+ * @typedef {object} Layer
+ * @prop {WebGLTexture} texture
+ * @prop {number} cellSize
+ * @prop {[x: number, y: number]} origin
+ * @prop {number} width
+ * @prop {number} height
+ * @prop {(x: number, y: number) => LayerCell|null} at
+ */
+
+/**
+ * @typedef {object} LayerCell
+ * @prop {number} layerID
+ */
+
+/** @param {Layer} layer */
+export function curvedLayerParams(layer) {
+  const { texture, cellSize, origin: [left, top], width, height } = layer;
   return {
     texture,
     cellSize,
@@ -34,13 +48,14 @@ export function curvedLayerParams(baseLayer) {
 export function updateCurvedLayer(layer, tiles, isBaseCell) {
   for (let y = 0; y < layer.height; y++) {
     for (let x = 0; x < layer.width; x++) {
+      const cell = layer.at(x, y);
+      if (!cell) continue;
       const nw = isBaseCell(x - 1, y - 1);
       const ne = isBaseCell(x + 0, y - 1);
       const sw = isBaseCell(x - 1, y + 0);
       const se = isBaseCell(x + 0, y + 0);
       const tileID = ((nw << 1 | ne) << 1 | se) << 1 | sw;
-      const layerID = tiles.getLayerID(tileID);
-      layer.set(x, y, { layerID });
+      cell.layerID = tiles.getLayerID(tileID);
     }
   }
 }
@@ -52,10 +67,10 @@ export function updateCurvedLayer(layer, tiles, isBaseCell) {
  */
 export function extendedBaseCellQuery(layer, tiles) {
   const filled = tiles.getLayerID(0b1111);
-  return (x, y) => layer.get(
+  return (x, y) => layer.at(
     Math.max(0, Math.min(layer.width - 1, x)),
     Math.max(0, Math.min(layer.height - 1, y)),
-  ).layerID == filled ? 1 : 0;
+  )?.layerID == filled ? 1 : 0;
 }
 
 /**
@@ -65,11 +80,7 @@ export function extendedBaseCellQuery(layer, tiles) {
  */
 export function clippedBaseCellQuery(layer, tiles) {
   const filled = tiles.getLayerID(0b1111);
-  return (x, y) => {
-    if (x < 0 || x >= layer.width) return 0;
-    if (y < 0 || y >= layer.height) return 0;
-    return layer.get(x, y).layerID == filled ? 1 : 0;
-  };
+  return (x, y) => layer.at(x, y)?.layerID == filled ? 1 : 0;
 }
 
 /** Generates 16 curved-tile drawback with 4-bit numeric ids from 0b0000 to 0b1111.

@@ -418,6 +418,33 @@ function dataTypeInfo(gl, dataType) {
 
 /**
  * @param {WebGL2RenderingContext} gl
+ * @param {(
+ * | Float32ArrayConstructor
+ * | Uint32ArrayConstructor
+ * | Uint16ArrayConstructor
+ * | Uint8ArrayConstructor
+ * | Uint8ClampedArrayConstructor
+ * | Int32ArrayConstructor
+ * | Int16ArrayConstructor
+ * | Int8ArrayConstructor
+ * )} cons
+ */
+export function arrayElementType(gl, cons) {
+  switch (cons) {
+    case Float32Array: return gl.FLOAT;
+    case Uint32Array: return gl.UNSIGNED_INT;
+    case Uint16Array: return gl.UNSIGNED_SHORT;
+    case Uint8Array: return gl.UNSIGNED_BYTE;
+    case Uint8ClampedArray: return gl.UNSIGNED_BYTE;
+    case Int32Array: return gl.INT;
+    case Int16Array: return gl.SHORT;
+    case Int8Array: return gl.BYTE;
+    default: throw new Error(`unsupported array constructor ${cons.name}`);
+  }
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
  * @param {number} dataType
  */
 export function dataType(gl, dataType) {
@@ -425,10 +452,384 @@ export function dataType(gl, dataType) {
   if (!info) return null;
   const elements = info.shape.reduce((a, b) => a * b);
   const byteLength = info.ArrayType.BYTES_PER_ELEMENT * elements;
+  const elementType = arrayElementType(gl, info.ArrayType);
 
   return {
     ...info,
     elements,
     byteLength,
+    elementType,
   };
+}
+
+/** @typedef {object} GLAttribSpec
+ * @prop {number} attrib
+ * @prop {number} [type]
+ * @prop {WebGLBuffer|null} [buffer]
+ * @prop {number} [usage]
+ * @prop {boolean} [normalized]
+ * @prop {boolean} [asInt]
+ */
+
+/** @typedef {object} GLElementsSpec
+ * @prop {boolean} elements
+ * @prop {number} [type]
+ * @prop {WebGLBuffer|null} [buffer]
+ * @prop {number} [usage]
+ */
+
+/** @typedef {(
+ * | Float32Array
+ * | Uint32Array
+ * | Uint16Array
+ * | Uint8Array
+ * | Uint8ClampedArray
+ * | Int32Array
+ * | Int16Array
+ * | Int8Array
+ * )} TypedArray
+ */
+
+/** @typedef {object} ArraySpec
+ * @prop {(
+ * | Float32ArrayConstructor
+ * | Uint32ArrayConstructor
+ * | Uint16ArrayConstructor
+ * | Uint8ArrayConstructor
+ * | Uint8ClampedArrayConstructor
+ * | Int32ArrayConstructor
+ * | Int16ArrayConstructor
+ * | Int8ArrayConstructor
+ * )} ArrayType
+ * @prop {number} size
+ * @prop {null|((id: number, dat: TypedArray) => void)} [clear]
+ * @prop {GLAttribSpec|GLElementsSpec} [gl]
+ */
+
+/** @template T @typedef {(
+ * T extends Float32ArrayConstructor ? Float32Array :
+ * T extends Uint32ArrayConstructor ? Uint32Array :
+ * T extends Uint16ArrayConstructor ? Uint16Array :
+ * T extends Uint8ArrayConstructor ? Uint8Array :
+ * T extends Uint8ClampedArrayConstructor ? Uint8ClampedArray :
+ * T extends Int32ArrayConstructor ? Int32Array :
+ * T extends Int16ArrayConstructor ? Int16Array :
+ * T extends Int8ArrayConstructor ? Int8Array :
+ * never
+ * )} constructedArray
+ */
+
+/** @template {ArraySpecMap} T
+ * @typedef {{
+ *   [Name in keyof T]: constructedArray<T[Name]["ArrayType"]>
+ * }} arrayProps */
+
+/** @typedef {{[name: string]: ArraySpec}} ArraySpecMap */
+
+/** Creates a set of aligned data arrays,
+ * some of which may be copied into GL buffers,
+ * bound to GL vertex attributes,
+ * and used to index GL element drawing.
+ *
+ * @template {{[name: string]: ArraySpec}} T
+ * @param {WebGL2RenderingContext} gl
+ * @param {T} typeMap
+ * @param {number} [initialCapacity]
+ */
+export function makeDataFrame(gl, typeMap, initialCapacity = 8) {
+
+  // TODO restore elements array varying type
+  // /** @param {number} cap */
+  // function makeElementArray(cap) {
+  //   if (cap <= 256)
+  //     return new Uint8Array(cap);
+  //   if (cap <= 256 * 256)
+  //     return new Uint16Array(cap);
+  //   if (cap <= 256 * 256 * 256 * 256)
+  //     return new Uint32Array(cap);
+  //   throw new Error(`unsupported element index capacity: ${cap}`);
+  // }
+
+  // TODO support per-array dirty, ideeally with regions for subdata copy
+  let dirty = true;
+
+  let cap = initialCapacity;
+
+  let elementsIndex = -1;
+  let elementsLength = 0;
+
+  const names = Object.keys(typeMap);
+  const specs = Object.values(typeMap);
+  const argl = specs.map(
+    /** @returns {null|Required<Exclude<ArraySpec["gl"], undefined>>} */
+    ({ ArrayType, size, gl: glSpec }, i) => {
+      if (!glSpec) return null;
+
+      // TODO support just-in-time buffer (re)creation and the ability to delete buffers
+
+      if ('attrib' in glSpec) {
+        const {
+          attrib,
+          type = arrayElementType(gl, ArrayType),
+          buffer = null,
+          usage = gl.STATIC_DRAW,
+          normalized = false,
+          asInt = false,
+        } = glSpec;
+        return {
+          attrib,
+          type,
+          buffer,
+          usage,
+          normalized,
+          asInt,
+        };
+      } else if (glSpec.elements) {
+        if (size != 1)
+          throw new Error(`elements size must be 1`);
+        if (elementsIndex != -1)
+          throw new Error('multiple element arrays are unsupported');
+        elementsIndex = i;
+        const {
+          type = arrayElementType(gl, ArrayType),
+          buffer = null,
+          usage = gl.STATIC_DRAW,
+        } = glSpec;
+        return {
+          elements: true,
+          type,
+          buffer,
+          usage,
+        };
+      } else throw new Error(`invalid gl spec for "${names[i]}"`);
+    });
+  const data = specs.map(({ ArrayType, size }) =>
+    new ArrayType(Math.ceil(cap * size)));
+
+  const self = {
+    deleteBuffers() {
+      for (let i = 0; i < data.length; i++) {
+        const igl = argl[i];
+        if (igl) {
+          const { buffer } = igl;
+          if (buffer) {
+            gl.deleteBuffer(buffer);
+            igl.buffer = null;
+          }
+        }
+      }
+    },
+
+    get capacity() { return cap },
+
+    get dirty() { return dirty },
+    set dirty(d) { dirty = d },
+
+    /** @param {number} n */
+    resize(n, copy = true) {
+      if (n != cap) {
+        cap = n;
+        for (let i = 0; i < data.length; i++) {
+          const { ArrayType, size } = specs[i];
+          const now = new ArrayType(Math.ceil(cap * size));
+          if (copy) now.set(data[i].subarray(0, now.length));
+          data[i] = now;
+        }
+        if (!copy) elementsLength = 0;
+        dirty = true;
+      } else if (!copy) {
+        for (const ar of data) ar.fill(0);
+        elementsLength = 0;
+        dirty = true;
+      }
+    },
+
+    // TODO compact() ?
+
+    /** @param {number} needed */
+    prune(needed) {
+      let newCap = initialCapacity;
+      // TODO clever maths to compute needed without a loop
+      while (newCap < needed)
+        newCap = newCap < 1024 ? 2 * newCap : newCap + newCap / 4;
+      if (newCap < cap) self.resize(newCap);
+    },
+
+    grow(needed = cap + 1) {
+      let newCap = cap;
+      while (newCap < needed)
+        newCap = newCap < 1024 ? 2 * newCap : newCap + newCap / 4;
+      self.resize(newCap);
+    },
+
+    clear() {
+      for (const ar of data) ar.fill(0);
+      elementsLength = 0;
+      dirty = true;
+    },
+
+    send() {
+      for (let i = 0; i < data.length; i++) {
+        const igl = argl[i];
+        if (!igl) continue;
+        let { buffer, usage } = igl;
+        if (!buffer) {
+          buffer = gl.createBuffer();
+          igl.buffer = buffer;
+        }
+        if (!buffer) throw new Error(`must create buffer for "${names[i]}"`);
+
+        if ('attrib' in igl) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.bufferData(gl.ARRAY_BUFFER, data[i], usage);
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        } else if (igl.elements) {
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data[i], usage);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        }
+      }
+      dirty = false;
+    },
+
+    bind() {
+      if (dirty) self.send();
+
+      for (let i = 0; i < data.length; i++) {
+        const igl = argl[i];
+        if (!igl) continue;
+
+        if ('attrib' in igl) {
+          const { buffer, attrib, type, asInt, normalized } = igl;
+          const { size } = specs[i];
+          if (buffer) {
+            const stride = 0;
+            const offset = 0;
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            if (asInt) {
+              gl.vertexAttribIPointer(attrib, Math.ceil(size), type, stride, offset);
+            } else {
+              gl.vertexAttribPointer(attrib, Math.ceil(size), type, normalized, stride, offset);
+            }
+            gl.enableVertexAttribArray(attrib);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+          } else {
+            gl.disableVertexAttribArray(attrib);
+          }
+        }
+      }
+    },
+
+    unbind() {
+      for (let i = 0; i < data.length; i++) {
+        const igl = argl[i];
+        if (!igl) continue;
+
+        if ('attrib' in igl) {
+          const { attrib } = igl;
+          gl.disableVertexAttribArray(attrib);
+        }
+      }
+    },
+
+    /** @param {number} id */
+    findElement(id) {
+      if (elementsIndex == -1)
+        throw new Error('no elements index array defined');
+      const elements = data[elementsIndex];
+      let lo = 0, hi = elementsLength;
+      let sanity = cap;
+      while (lo < hi) {
+        if (--sanity < 0) throw new Error('find loop exeeded iteration budget');
+        const mid = Math.floor(lo / 2 + hi / 2);
+        const q = elements[mid];
+        if (q === id) return mid;
+        else if (q < id) lo = mid + 1;
+        else if (q > id) hi = mid;
+      }
+      return lo;
+    },
+
+    /** @param {number} id */
+    addElement(id) {
+      if (elementsIndex == -1)
+        throw new Error('no elements index array defined');
+      const elements = data[elementsIndex];
+      const eli = self.findElement(id);
+      if (eli < elementsLength && elements[eli] === id) return;
+      if (elementsLength === cap) throw new Error('element index full');
+      if (eli > elementsLength + 1) throw new Error('inconceivable find result index');
+      if (eli < elementsLength)
+        elements.copyWithin(eli + 1, eli, elementsLength);
+      elementsLength++;
+      elements[eli] = id;
+      dirty = true;
+    },
+
+    /** @param {number} id */
+    delElement(id) {
+      if (elementsIndex == -1)
+        throw new Error('no elements index array defined');
+      const elements = data[elementsIndex];
+      const eli = self.findElement(id);
+      if (eli < elementsLength && elements[eli] === id) {
+        elements.copyWithin(eli, eli + 1, elementsLength);
+        elementsLength--;
+        elements[elementsLength] = 0;
+      }
+      dirty = true;
+    },
+
+    // TODO hasElement(id)
+
+    /** @param {number} mode */
+    drawElements(mode) {
+      const elGl = argl[elementsIndex];
+      if (elementsIndex == -1 || !elGl)
+        throw new Error('no elements index array defined');
+
+      self.bind();
+
+      const { buffer, type } = elGl;
+      if (!buffer)
+        throw new Error('no elements index buffer created');
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+      gl.drawElements(mode, elementsLength, type, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+      self.unbind();
+    },
+
+    /** @param {number} mode */
+    drawArrays(mode, length = cap) {
+      self.bind();
+
+      gl.drawArrays(mode, 0, length);
+
+      self.unbind();
+    },
+
+    /** @param {number} id */
+    recordClear(id) {
+      for (let i = 0; i < specs.length; i++) {
+        const { size, clear } = specs[i];
+        const dat = data[i];
+        if (clear) clear(id, dat); // specific clear routine
+        else if (clear === null || size < 1) continue;
+        else {
+          for (let offset = id * size, j = 0; j < size; offset++, j++)
+            dat[offset] = 0;
+        }
+      }
+      dirty = true;
+    },
+
+    /** @type {arrayProps<T>} */
+    array: Object.create({}, Object.fromEntries(
+      names.map((name, i) => [name, { get: () => data[i] }])
+    )),
+
+  };
+
+  return self;
 }
