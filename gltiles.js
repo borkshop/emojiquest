@@ -713,6 +713,238 @@ export default async function makeTileRenderer(gl) {
         layer, 'texture', 'cellSize', 'origin',
       );
     },
+
+    /**
+     * Creates a sparse tile layer,
+     * where each tile is positioned explicitly from layer origin,
+     * and allowing for any number of overlapping tiles.
+     *
+     * There is now (explicit) limit to tile count,
+     * as the underlying data arrays will be grown as necessary.
+     *
+     * TODO provide a spatial index (optional?); for now point queries are not supported
+     *
+     * TODO explicit Z order: for now overlapping tiles stack in creation order
+     *
+     * @template {ArraySpecMap} UserData
+     * @param {object} params
+     * @param {WebGLTexture} params.texture
+     * @param {number} [params.cellSize]
+     * @param {number} [params.left]
+     * @param {number} [params.top]
+     * @param {number} [params.capacity]
+     * @param {UserData} [params.userData]
+     */
+    makeSparseLayer({
+      capacity: initialCap = 64,
+      userData,
+      ...params
+    }) {
+      if (userData)
+        for (const dim of ['pos', 'tile', 'used', 'index'])
+          if (dim in userData)
+            throw new Error(`userData may not specify "${dim}"`);
+
+      const layer = this.makeLayer(params);
+      const data = makeDataFrame(gl, {
+        ...userData,
+        index: indexSpec,
+        pos: attrPosSpec,
+        tile: attrTileSpec,
+        used: {
+          ArrayType: Uint8Array,
+          size: 1 / 8,
+        },
+      }, initialCap);
+
+      // TODO support drawing sorted by Z order?
+
+      let length = 0;
+
+      /** @param {number} index */
+      const isUsed = index => {
+        const usedEl = Math.floor(index / 8);
+        const usedBit = index % 8;
+        const mask = 1 << usedBit;
+        return (data.array.used[usedEl] & mask) == 0 ? false : true;
+      };
+
+      /** @param {number} index */
+      const free = index => {
+        data.delElement(index);
+
+        const usedEl = Math.floor(index / 8);
+        const usedBit = index % 8;
+        const mask = 1 << usedBit;
+        data.array.used[usedEl] &= 0xff & ~mask;
+
+        data.recordClear(index);
+      };
+
+      const alloc = () => {
+        for (let usedEl = 0; usedEl < data.array.used.length; usedEl++) {
+          const usedVal = data.array.used[usedEl];
+          if (usedVal == 0xff) continue;
+          for (let usedBit = 0, index = usedEl * 8; usedBit < 8 && index < length; usedBit++, index++) {
+            const mask = 1 << usedBit;
+            if ((usedVal & mask) != 0) continue;
+            data.array.used[usedEl] = usedVal | mask;
+            return index;
+          }
+        }
+        while (length >= data.capacity) data.grow();
+        const index = length++;
+        const usedEl = Math.floor(index / 8);
+        data.array.used[usedEl] |= 1 << index % 8;
+        return index;
+      };
+
+      /** @param {number} id */
+      const validateID = id => {
+        if (id < 1) return false;
+        if (Math.floor(id) != id) return false;
+        const index = id - 1;
+        const alloced = index < length;
+        return alloced && isUsed(index);
+      };
+
+      /** @param {number} index */
+      const ref = index => {
+        const tile = {
+          get id() { return index + 1 },
+          get index() { return index },
+
+          /** Reset all tile data to 0 values */
+          clear() {
+            data.recordClear(index);
+            data.delElement(index);
+            data.dirty = true;
+          },
+
+          free() { free(index) },
+
+          /** @returns {[x: number, y: number]} */
+          get xy() {
+            return [data.array.pos[4 * index + 0], data.array.pos[4 * index + 1]]
+          },
+          set xy([x, y]) {
+            data.array.pos[4 * index + 0] = x;
+            data.array.pos[4 * index + 1] = y;
+            data.dirty = true;
+          },
+
+          /** @returns {[x: number, y: number]} */
+          get absXY() {
+            const [left, top] = layer.origin;
+            return [
+              left + data.array.pos[4 * index + 0],
+              top + data.array.pos[4 * index + 1],
+            ];
+          },
+          set absXY([x, y]) {
+            const [left, top] = layer.origin;
+            data.array.pos[4 * index + 0] = x - left;
+            data.array.pos[4 * index + 1] = y - top;
+            data.dirty = true;
+          },
+
+          /** Tile rotation in units of full turns */
+          get spin() { return data.array.pos[4 * index + 2] },
+          set spin(turns) {
+            data.array.pos[4 * index + 2] = turns;
+            data.dirty = true;
+          },
+
+          /** Tile scale factor */
+          get scale() { return data.array.pos[4 * index + 3] },
+          set scale(factor) {
+            data.array.pos[4 * index + 3] = factor;
+            data.dirty = true;
+          },
+
+          /** Tile texture Z index.
+           *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
+          get layerID() { return data.array.tile[index] },
+          /** Setting a value of 0, the default, will cause this tile to not be drawn.
+           * When initializing (setting to non-zero when prior value was 0),
+           * a default 1.0 scale value will also be set if scale was 0. */
+          set layerID(layerID) {
+            const init = layerID != 0 && data.array.tile[index] == 0;
+            data.array.tile[index] = layerID;
+            if (init && data.array.pos[4 * index + 3] == 0) data.array.pos[4 * index + 3] = 1;
+            if (layerID === 0) data.delElement(index); else data.addElement(index);
+            data.dirty = true;
+          },
+        };
+        return tile;
+      };
+
+      const self = {
+        deleteBuffers() {
+          layer.deleteBuffers();
+          data.deleteBuffers();
+        },
+
+        clear() {
+          data.clear();
+          length = 0;
+        },
+        prune() {
+          data.prune(length);
+        },
+
+        create() {
+          const index = alloc();
+          return index + 1;
+        },
+
+        createRef() {
+          const index = alloc();
+          return ref(index);
+        },
+
+        /** @param {number} id */
+        free(id) {
+          if (validateID(id)) free(id - 1);
+        },
+
+        *all() {
+          for (let index = 0; index < length; index++)
+            if (isUsed(index)) yield ref(index);
+        },
+
+        /** @param {number} id @returns {[x: number, y: number]} */
+        getXY(id) {
+          if (!validateID(id)) return [NaN, NaN];
+          const index = id - 1;
+          return [
+            data.array.pos[4 * index + 0],
+            data.array.pos[4 * index + 1]
+          ];
+        },
+
+        /** @param {number} id */
+        ref(id) {
+          if (!validateID(id)) return null;
+          const index = id - 1;
+          return ref(index);
+        },
+
+        draw() {
+          layer.bind();
+          data.drawElements(gl.POINTS);
+        },
+
+        get array() {
+          return /** @type {typeof data["array"] & arrayProps<UserData>} */ (data.array)
+        },
+
+      };
+
+      return passProperties(self,
+        layer, 'texture', 'cellSize', 'origin',
+      );
+    },
   };
 }
 
@@ -720,6 +952,7 @@ export default async function makeTileRenderer(gl) {
 /** @typedef {ReturnType<TileRenderer["makeView"]>} View */
 /** @typedef {ReturnType<TileRenderer["makeLayer"]>} BaseLayer */
 /** @typedef {ReturnType<TileRenderer["makeDenseLayer"]>} DenseLayer */
+/** @typedef {ReturnType<TileRenderer["makeSparseLayer"]>} SparseLayer */
 
 /**
  * @template B, O
