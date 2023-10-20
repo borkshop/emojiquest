@@ -422,12 +422,193 @@ export default async function makeTileRenderer(gl) {
         'left', 'top', 'moveTo',
       );
     },
+
+    /**
+     * Creates a sparse tile layer,
+     * where each tile is positioned explicitly from layer origin,
+     * and allowing for any number of overlapping tiles.
+     *
+     * There is now (explicit) limit to tile count,
+     * as the underlying data arrays will be grown as necessary.
+     *
+     * TODO provide a spatial index (optional?); for now point queries are not supported
+     *
+     * TODO explicit Z order: for now overlapping tiles stack in creation order
+     *
+     * @param {object} params
+     * @param {WebGLTexture} params.texture
+     * @param {number} params.cellSize
+     * @param {number} [params.left]
+     * @param {number} [params.top]
+     * @param {number} [params.capacity]
+     */
+    makeSparseLayer({ capacity: initialCap = 64, ...params }) {
+      const layer = this.makeLayer(params);
+      const data = makeGLArrays(gl, {
+        pos: attrPosSpec,
+        tile: attrTileSpec,
+        used: {
+          ArrayType: Uint8Array,
+          size: 1 / 8,
+        },
+        index: {
+          ArrayType: Uint16Array, // TODO bring back varyign type
+          size: 1,
+          gl: {
+            elements: true,
+          },
+        },
+      }, initialCap);
+
+      // TODO support drawing sorted by Z order?
+
+      let length = 0;
+
+      /** @param {number} id */
+      const isUsed = id =>
+        (data.used[Math.floor(id / 8)] & (1 << (id % 8))) == 0 ? false : true;
+
+      /** @param {number} id */
+      const free = id =>
+        data.used[Math.floor(id / 8)] &= 0xff & (0 << (id % 8));
+
+      const alloc = () => {
+        for (let usedEl = 0; usedEl < data.used.length; usedEl++) {
+          const usedVal = data.used[usedEl];
+          if (usedVal == 0xff) continue;
+          for (let usedBit = 0, id = usedEl * 8; usedBit < 8 && id < length; usedBit++, id++) {
+            const mask = 1 << usedBit;
+            if ((usedVal & mask) != 0) continue;
+            data.used[usedEl] = usedVal | mask;
+            return id;
+          }
+        }
+        while (length >= data.capacity) data.grow();
+        const id = length++;
+        const usedEl = Math.floor(id / 8);
+        data.used[usedEl] |= 1 << id % 8;
+        return id;
+      };
+
+      const self = {
+        clear() {
+          data.clear();
+          length = 0;
+        },
+        prune() {
+          data.prune(length);
+        },
+
+        create: alloc,
+
+        createRef() {
+          const id = alloc();
+          const ref = self.ref(id);
+          if (!ref)
+            throw new Error(`inconceivable: must have created ref id:${id}`);
+          return ref;
+        },
+
+        /** @param {number} id */
+        ref(id) {
+          if (id >= length || !isUsed(id)) return null;
+
+          return {
+            get id() { return id },
+
+            /** Reset all tile data to 0 values */
+            clear() {
+              data.pos[4 * id + 0] = 0;
+              data.pos[4 * id + 1] = 0;
+              data.pos[4 * id + 2] = 0;
+              data.pos[4 * id + 3] = 0;
+              data.tile[id] = 0;
+              data.delElement(id);
+              data.dirty = true;
+            },
+
+            free() {
+              this.clear();
+              free(id);
+            },
+
+            /** Tile X offset from layer origin */
+            get x() { return data.pos[4 * id + 0] },
+            set x(x) {
+              data.pos[4 * id + 0] = x;
+              data.dirty = true;
+            },
+
+            /** Tile Y offset from layer origin */
+            get y() { return data.pos[4 * id + 1] },
+            set y(y) {
+              data.pos[4 * id + 1] = y;
+              data.dirty = true;
+            },
+
+            get xy() {
+              return /** @type {[x: number, y: number]} */ (
+                [data.pos[4 * id + 0], data.pos[4 * id + 1]])
+            },
+            set xy([x, y]) {
+              data.pos[4 * id + 0] = x;
+              data.pos[4 * id + 1] = y;
+              data.dirty = true;
+
+            },
+
+            /** Tile rotation in units of full turns */
+            get spin() { return data.pos[4 * id + 2] },
+            set spin(turns) {
+              data.pos[4 * id + 2] = turns;
+              data.dirty = true;
+            },
+
+            /** Tile scale factor */
+            get scale() { return data.pos[4 * id + 3] },
+            set scale(factor) {
+              data.pos[4 * id + 3] = factor;
+              data.dirty = true;
+            },
+
+            /** Tile texture Z index.
+             *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
+            get layerID() { return data.tile[id] },
+            /** Setting a value of 0, the default, will cause this tile to not be drawn.
+             * When initializing (setting to non-zero when prior value was 0),
+             * a default 1.0 scale value will also be set if scale was 0. */
+            set layerID(layerID) {
+              const init = layerID != 0 && data.tile[id] == 0;
+              data.tile[id] = layerID;
+              if (init && data.pos[4 * id + 3] == 0) data.pos[4 * id + 3] = 1;
+              if (layerID === 0) data.delElement(id); else data.addElement(id);
+              data.dirty = true;
+            },
+          };
+        },
+
+        draw() {
+          gl.useProgram(prog);
+          viewParams.bind();
+          layer.bind();
+          data.drawElements(gl.POINTS);
+          gl.useProgram(null);
+        },
+      };
+
+      return passProperties(self, layer,
+        'texture',
+        'cellSize',
+        'left', 'top', 'moveTo',
+      );
+    },
   };
 }
 
 /** @typedef {Awaited<ReturnType<makeTileRenderer>>} TileRenderer */
 /** @typedef {ReturnType<TileRenderer["makeLayer"]>} BaseLayer */
 /** @typedef {ReturnType<TileRenderer["makeDenseLayer"]>} DenseLayer */
+/** @typedef {ReturnType<TileRenderer["makeSparseLayer"]>} SparseLayer */
 
 /**
  * @template B, O
