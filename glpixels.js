@@ -55,6 +55,32 @@ export default async function makeRenderer(gl, options = {}) {
       mat4.identity(perspective);
       params.send();
 
+      let atX = 0, atY = 0, width = 0, height = 0, preferWidth = true, aspect = 0;
+
+      const update = () => {
+        if (width == 0 || height == 0) return;
+
+        if (aspect != 0) {
+          const a = width / height;
+          if (a != aspect) {
+            if (preferWidth) height = width / aspect;
+            else width = aspect * height;
+          }
+        }
+
+        const left = atX - width / 2;
+        const top = atY - height / 2;
+
+        mat4.ortho(perspective,
+          cellSize * left,
+          cellSize * width,
+          cellSize * height,
+          cellSize * top,
+          0, Number.EPSILON);
+
+        perspectiveUniform.send();
+      };
+
       return {
         /** @param {() => void} fn */
         with(fn) {
@@ -67,15 +93,48 @@ export default async function makeRenderer(gl, options = {}) {
         get cellSize() { return cellSize },
         // TODO set cellSize() ?
 
-        /** @param {Viewport} viewport */
-        setRect({ left, top, width, height }) {
-          mat4.ortho(perspective,
-            cellSize * left,
-            cellSize * width,
-            cellSize * height,
-            cellSize * top,
-            0, Number.EPSILON);
-          perspectiveUniform.send();
+        /** @returns {[x: number, y: number]} */
+        get at() { return [atX, atY] },
+        set at([x, y]) {
+          if (atX != x || atY != y) {
+            atX = x, atY = y;
+            update();
+          }
+        },
+
+        /** @returns {[w: number, h: number]} */
+        get size() { return [width, height] },
+        set size([w, h]) {
+          if (width != w || height != h) {
+            width = w, height = h;
+            update();
+          }
+        },
+
+        get aspect() { return aspect },
+        set aspect(ratio) {
+          if (aspect != ratio) {
+            aspect = ratio;
+            update();
+          }
+        },
+
+        get width() { return width },
+        set width(w) {
+          if (width != w) {
+            width = w;
+            preferWidth = true;
+            update();
+          }
+        },
+
+        get height() { return height },
+        set height(h) {
+          if (height != h) {
+            height = h;
+            preferWidth = false;
+            update();
+          }
         },
 
         /** @param {number} dx @param {number} dy */

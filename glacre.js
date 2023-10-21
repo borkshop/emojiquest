@@ -38,17 +38,14 @@ export default async function runDemo(opts) {
   });
 
   const view = pixRend.makeViewport(cellSize);
-  view.setRect({
-    left: 0,
-    top: 0,
-    width: worldWidth,
-    height: worldHeight,
-  });
+  view.at = [worldWidth / 2, worldHeight / 2];
+  view.size = [worldWidth, worldHeight];
 
   const { stop, frames } = frameLoop();
   const done = async function() {
     for await (const _/*t*/ of frames) {
       sizeToClient($world);
+      view.aspect = gl.drawingBufferWidth / gl.drawingBufferHeight;
 
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
