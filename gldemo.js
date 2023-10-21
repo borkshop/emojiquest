@@ -74,6 +74,9 @@ export default async function runDemo(opts) {
   if (!gl) throw new Error('No GL For You!');
 
   const tiles = await makeTileRenderer(gl);
+  const view = tiles.makeView({
+    cellSize,
+  });
 
   const landCurveTiles = tiles.makeSheet(generateCurvedTiles({
     aFill: '#5c9e31', // land
@@ -85,14 +88,12 @@ export default async function runDemo(opts) {
 
   const bg = tiles.makeLayer({
     texture: landCurveTiles.texture,
-    cellSize,
     width: worldWidth,
     height: worldHeight,
   });
 
   const fg = tiles.makeLayer({
     texture: foreTiles.texture,
-    cellSize,
     width: worldWidth,
     height: worldHeight,
   });
@@ -162,6 +163,7 @@ export default async function runDemo(opts) {
       // TODO animate things via const dt = lastT - t;
 
       sizeToClient($world);
+      view.update();
 
       const nowCurveClip = shouldClipCurvyTiles();
       if (lastCurveClip != nowCurveClip) {
@@ -177,44 +179,39 @@ export default async function runDemo(opts) {
 
       // TODO: allow viewport zoom/pan?
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-      tiles.setViewport();
 
       gl.clear(gl.COLOR_BUFFER_BIT);
 
       // TODO: why can't this persist across frames?
       tiles.texCache.clear();
 
-      // TODO at some point, it'll be worth it to cull layers that don't
-      // intersect perspective, but for now we just use leave GL's vertex culling
+      view.with(() => {
+        // TODO at some point, it'll be worth it to cull layers that don't
+        // intersect perspective, but for now we just use leave GL's vertex culling
 
-      if (shouldShowCurvyTiles()) {
-        const [left, top] = bg.origin;
-        const { width, height } = bg;
-        gl.enable(gl.SCISSOR_TEST);
-        gl.scissor(
-          // NOTE: lower left corner, with 0 counting up from bottom edge of viewport
-          left * cellSize,
-          gl.canvas.height - (top + height) * cellSize,
-          width * cellSize,
-          height * cellSize
-        );
-        bgCurved.draw();
-        gl.disable(gl.SCISSOR_TEST);
-      } else {
-        bg.draw();
-      }
+        if (shouldShowCurvyTiles()) {
+          const
+            { origin: [left, top], width, height } = bg,
+            [viewLeft, viewTop, viewWidth, viewHeight] = view.projectRect(left, top, width, height),
+            // convert to bottom-up gl screen space, view client space counts down from top
+            glTop = gl.drawingBufferHeight - (viewTop + viewHeight);
+          gl.enable(gl.SCISSOR_TEST);
+          gl.scissor(viewLeft, glTop, viewWidth, viewHeight);
+          bgCurved.draw();
+          gl.disable(gl.SCISSOR_TEST);
+        } else {
+          bg.draw();
+        }
 
-      fg.draw();
+        fg.draw();
+      });
     }
   }();
   return {
-    get cellSize() { return cellSize },
-    set cellSize(size) {
-      cellSize = size;
-      bg.cellSize = size;
-      fg.cellSize = size;
-      bgCurved.cellSize = size;
-    },
+    get view() { return view },
+
+    get cellSize() { return view.cellSize },
+    set cellSize(size) { view.cellSize = size },
 
     /** @param {number} w @param {number} h */
     resizeWorld(w, h) {

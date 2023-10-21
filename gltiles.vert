@@ -9,6 +9,9 @@ uniform ViewParams {
   // viewport defining transormf matrix over layer pixel space
   mat4 perspective;
 
+  // default pixel size for normal layers
+  float viewCellSize;
+
   // nowhere is used to cull null cells (layerID=0), should be set to a
   // scissored or out of viewport position
   vec4 nowhere;
@@ -46,7 +49,7 @@ const mat3 spinOffset = mat3(
 );
 
 void main(void) {
-  float size = cellSize;
+  float size = cellSize == 0.0 ? viewCellSize : cellSize;
   mat4 xform = transform;
   xform[0].x *= size;
   xform[1].y *= size;

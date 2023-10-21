@@ -49,8 +49,6 @@ export default async function makeTileRenderer(gl) {
   viewParamsBlock.link(prog);
   layerParamsBlock.link(prog);
 
-  const viewParams = viewParamsBlock.makeBuffer();
-
   /** @param {string} name */
   const mustGetUniform = name => {
     const loc = gl.getUniformLocation(prog, name);
@@ -70,32 +68,270 @@ export default async function makeTileRenderer(gl) {
   const attrSpin = mustGetAttr('spin'); // float
   const attrLayerID = mustGetAttr('layerID'); // int
 
-  const perspectiveUniform = viewParams.getVar('perspective');
-  const perspective = perspectiveUniform.asFloatArray();
-  const nowhere = viewParams.getVar('nowhere').asFloatArray();
-
   const texCache = makeTextureUnitCache(gl, gl.TEXTURE_2D_ARRAY);
-
-  mat4.identity(perspective);
-
-  // NOTE: this just needs to be set to any point outside of camera view, so
-  // that the vertex shader can use it to cull points
-  nowhere.set([-1, -1, -1, 0]);
-
-  viewParams.send();
 
   return {
     texCache, // TODO reconsider
 
-    /** @param {Partial<Viewport>} [viewport] */
-    setViewport({
-      left = 0,
-      top = 0,
-      width = gl.drawingBufferWidth,
-      height = gl.drawingBufferHeight
-    } = {}) {
-      mat4.ortho(perspective, left, width, height, top, 0, Number.EPSILON);
-      perspectiveUniform.send();
+    /**
+     * @param {object} params
+     * @param {number} params.cellSize
+     */
+    makeView(params) {
+      const viewParams = viewParamsBlock.makeBuffer();
+      const perspective = viewParams.getVar('perspective').asFloatArray();
+      const nowhere = viewParams.getVar('nowhere').asFloatArray();
+      const cellSize = viewParams.getVar('viewCellSize');
+      cellSize.float = params.cellSize;
+      const inverse = mat4.create();
+
+      mat4.identity(perspective);
+
+      // NOTE: this just needs to be set to any point outside of camera view, so
+      // that the vertex shader can use it to cull points
+      nowhere.set([-1, -1, -1, 0]);
+
+      let
+        left = 0,
+        top = 0,
+        clientWidth = gl.drawingBufferWidth,
+        clientHeight = gl.drawingBufferHeight,
+        dirty = true;
+
+      const update = () => {
+        const
+          right = left + clientWidth,
+          bottom = top + clientHeight;
+        mat4.ortho(perspective,
+          left, right,
+          bottom, top,
+          0, Number.EPSILON);
+        mat4.invert(inverse, perspective);
+        dirty = true;
+      };
+
+      const view = {
+        update() {
+          clientWidth = gl.drawingBufferWidth;
+          clientHeight = gl.drawingBufferHeight;
+          update();
+        },
+
+        /** @return {[x: number, y: number]} */
+        get origin() { return [left, top] },
+        set origin([x, y]) {
+          if (left != x || top != y) {
+            left = x, top = y;
+            update();
+          }
+        },
+
+        /** @return {[x: number, y: number]} */
+        get cellOrigin() {
+          const size = cellSize.float;
+          return [left / size, top / size];
+        },
+        set cellOrigin([cellX, cellY]) {
+          const size = cellSize.float,
+            x = cellX * size, y = cellY * size;
+          if (left != x || top != y) {
+            left = x, top = y;
+            update();
+          }
+        },
+
+        /** @return {[x: number, y: number]} */
+        get cellOriginTo() {
+          const size = cellSize.float;
+          const [x, y] = pan ? pan.to : [left, top];
+          return [x / size, y / size];
+        },
+
+        /** @return {[w: number, h: number]} */
+        get clientSize() { return [clientWidth, clientHeight] },
+        set clientSize([w, h]) {
+          if (clientWidth != w || clientHeight != h) {
+            clientWidth = w, clientHeight = h;
+            update();
+          }
+        },
+
+        get cellSize() { return cellSize.float },
+        set cellSize(size) {
+          const origin = view.cellOrigin;
+          cellSize.float = size;
+          view.cellOrigin = origin;
+        },
+
+        /** @param {vec2} cellXY */
+        containsCell([cx, cy]) {
+          const
+            size = cellSize.float,
+            cellLeft = Math.ceil(left / size),
+            cellTop = Math.ceil(top / size),
+            cellWidth = Math.floor(clientWidth / size),
+            cellHeight = Math.floor(clientHeight / size),
+            cellRight = cellLeft + cellWidth,
+            cellBottom = cellTop + cellHeight;
+          return (
+            cx >= cellLeft &&
+            cx < cellRight &&
+            cy >= cellTop &&
+            cy < cellBottom
+          );
+        },
+
+        /**
+         * @param {vec2} by
+         */
+        panBy(by) {
+          const [dx, dy] = by, { origin: [x, y] } = view
+          view.panTo([x + dx, y + dy]);
+        },
+
+        /**
+         * @param {vec2} by
+         */
+        panByCell(by) {
+          const [dx, dy] = by, { origin: [x, y], cellSize: size } = view
+          view.panTo([x + dx * size, y + dy * size]);
+        },
+
+        /**
+         * @param {vec2} to
+         */
+        panTo(to) {
+          const [x, y] = to;
+          if (left != x || top != y) {
+            left = x, top = y;
+            update();
+          }
+        },
+
+        /**
+         * @param {vec2} point
+         * @param {object} [params]
+         * @param {vec2} [params.margin]
+         * @param {vec2} [params.boundLower]
+         * @param {vec2} [params.boundUpper]
+         */
+        panToInclude(point, {
+          margin = [1, 1],
+          boundLower,
+          boundUpper,
+        } = {}) {
+          const
+            viewLeft = left,
+            viewTop = top,
+
+            size = cellSize.float,
+            cellLeft = Math.ceil(viewLeft / size),
+            cellTop = Math.ceil(viewTop / size),
+            cellWidth = Math.floor(clientWidth / size),
+            cellHeight = Math.floor(clientHeight / size),
+            cellRight = cellLeft + cellWidth,
+            cellBottom = cellTop + cellHeight,
+
+            marginX = Math.max(1, Math.min(Math.floor(cellWidth / 2) - 1, margin[0])),
+            marginY = Math.max(1, Math.min(Math.floor(cellHeight / 2) - 1, margin[1])),
+
+            borderLeft = cellLeft + marginX,
+            borderRight = cellRight - marginX,
+            borderTop = cellTop + marginY,
+            borderBottom = cellBottom - marginY,
+
+            [x, y] = point;
+
+          let dx = 0, dy = 0;
+
+          if (x < borderLeft) dx = x - borderLeft;
+          else if (x + 1 > borderRight) dx = x + 1 - borderRight;
+
+          if (y < borderTop) dy = y - borderTop;
+          else if (y + 1 > borderBottom) dy = y + 1 - borderBottom;
+
+          if (boundLower) {
+            dx = Math.max(dx, boundLower[0] - marginX + 1 - cellLeft);
+            dy = Math.max(dy, boundLower[1] - marginX + 1 - cellTop);
+          }
+
+          if (boundUpper) {
+            dx = Math.min(dx, boundUpper[0] - marginX + 1 - cellRight);
+            dy = Math.min(dy, boundUpper[1] - marginX + 1 - cellBottom);
+          }
+
+          view.panTo([viewLeft + dx * size, viewTop + dy * size]);
+        },
+
+        /** @param {() => void} fn */
+        with(fn) {
+          gl.useProgram(prog);
+          if (dirty) {
+            viewParams.send();
+            dirty = false;
+          }
+          viewParams.bind();
+          fn();
+          gl.useProgram(null);
+        },
+
+        /** NOTE clientXY counts down from top, not up from bottom
+         *
+         * @param {number} cellX
+         * @param {number} cellY
+         * @returns {[clientX: number, clientY: number]}
+         */
+        project(cellX, cellY) {
+          const
+            size = cellSize.float,
+            viewX = cellX * size,
+            viewY = cellY * size,
+            [clipX, clipY] = vec2.transformMat4([0, 0], [viewX, viewY], perspective),
+            clientX = (clipX + 1.0) * clientWidth / 2.0,
+            clientY = (1.0 - clipY) * clientHeight / 2.0;
+          return [clientX, clientY];
+        },
+
+        /** NOTE clientXY counts down from top, not up from bottom
+         *
+         * @param {number} cellX
+         * @param {number} cellY
+         * @param {number} cellWidth
+         * @param {number} cellHeight
+         * @returns {[clientX: number, clientY: number, clientW: number, clientH: number]}
+         */
+        projectRect(cellX, cellY, cellWidth, cellHeight) {
+          const
+            size = cellSize.float,
+            viewX = cellX * size,
+            viewY = cellY * size,
+            viewW = cellWidth * size,
+            viewH = cellHeight * size,
+            [clipX, clipY] = vec2.transformMat4([0, 0], [viewX, viewY], perspective),
+            clientX = (clipX + 1.0) * clientWidth / 2.0,
+            clientY = (1.0 - clipY) * clientHeight / 2.0;
+          return [clientX, clientY, viewW, viewH];
+        },
+
+        /**
+         * @param {number} clientX
+         * @param {number} clientY
+         * @returns {[cellX: number, cellY: number]}
+         */
+        reverseProject(clientX, clientY) {
+          const
+            size = cellSize.float,
+            clipX = 2.0 * clientX / clientWidth - 1.0,
+            clipY = 1.0 - 2.0 * clientY / clientHeight,
+            [viewX, viewY] = vec2.transformMat4([0, 0], [clipX, clipY], inverse),
+            cellX = viewX / size,
+            cellY = viewY / size;
+          return [cellX, cellY];
+        },
+
+      };
+
+      return view;
     },
 
     /**
@@ -209,7 +445,7 @@ export default async function makeTileRenderer(gl) {
     /**
      * @param {object} params
      * @param {WebGLTexture} params.texture
-     * @param {number} params.cellSize
+     * @param {number} [params.cellSize]
      * @param {number} [params.left]
      * @param {number} [params.top]
      * @param {number} params.width
@@ -217,7 +453,7 @@ export default async function makeTileRenderer(gl) {
      */
     makeLayer({
       texture,
-      cellSize: givenCellSize,
+      cellSize: givenCellSize = 0,
       left: givenLeft = 0, top: givenTop = 0,
       width, height,
     }) {
@@ -347,7 +583,6 @@ export default async function makeTileRenderer(gl) {
             layerParams.send();
             paramsDirty = false;
           }
-          viewParams.bind();
           layerParams.bind();
 
           const texUnit = texCache.get(texture);
@@ -366,13 +601,8 @@ export default async function makeTileRenderer(gl) {
         },
 
         draw() {
-          gl.useProgram(prog);
-
           this.bind();
-
           index.draw();
-
-          gl.useProgram(null);
         },
 
       };
@@ -388,6 +618,7 @@ export default async function makeTileRenderer(gl) {
 }
 
 /** @typedef {Awaited<ReturnType<makeTileRenderer>>} TileRenderer */
+/** @typedef {ReturnType<TileRenderer["makeView"]>} View */
 /** @typedef {ReturnType<TileRenderer["makeLayer"]>} Layer */
 
 // TODO candidates for move into glkit.js
