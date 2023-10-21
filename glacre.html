@@ -16,7 +16,8 @@
 <body>
 
   <div style="position: absolute; right: 0">
-    <!-- TDOO UI elements go here -->
+    <div id="picker">
+    </div>
   </div>
 
   <canvas id="world" style="width: 100%; height: 100%"></canvas>
@@ -26,6 +27,9 @@
 
     const $world = document.querySelector('canvas#world');
     if (!$world) throw new Error('unable to find world canvas');
+
+    const $picker = document.querySelector('#picker');
+    if (!$picker) throw new Error('unable to find picker element');
 
     const acre = await runAcre({
       $world,
@@ -43,20 +47,21 @@
       fillGlyph(ctx, '😺', Math.floor(scratch.height * 4 / 5), 'sans')
     });
 
-    // TODO evolve this into mouse color picker/inspection/interaction
-    for (const x of [
-      Math.floor(acre.width / 2),
-    ])
-      for (const y of [
-        Math.floor(acre.height / 2),
-      ]) {
-        const p = acre.at(x, y);
-        console.log(`@${x},${y}: rgba:${p?.rgba} rgbaf:${p?.rgbaf}`)
-      }
-
     const zoomStep = 0.1;
     const zoomIn = 1 + zoomStep;
     const zoomOut = 1 / zoomIn;
+
+    $world.addEventListener('mousemove', e => {
+      const {clientX, clientY} = e;
+
+      // TODO map point into cell space then query:
+      // const p = acre.at(x, y);
+      // console.log(`@${x},${y}: rgba:${p?.rgba} rgbaf:${p?.rgbaf}`)
+
+      picker.innerText = `<${clientX},${clientY}>`;
+
+      // TODO cursort state for editing
+    });
 
     window.addEventListener('keypress', e => {
       switch (e.key) {
