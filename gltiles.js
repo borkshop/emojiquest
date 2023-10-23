@@ -23,6 +23,7 @@ import {
  * @prop {WebGLTexture} texture
  * @prop {number} size
  * @prop {(id: TileID) => number} getLayerID
+ * @prop {(id: number) => TileID|undefined} getTileID
  */
 
 /**
@@ -122,6 +123,8 @@ export default async function makeTileRenderer(gl) {
 
       /** @type {Map<TileID, number>} */
       const index = new Map();
+      /** @type {Map<number, TileID>} */
+      const revIndex = new Map();
 
       /** @type {drawback[]} */
       const draws = [];
@@ -142,6 +145,7 @@ export default async function makeTileRenderer(gl) {
 
         const layer = index.size;
         index.set(id, layer);
+        revIndex.set(layer, id);
         draws.push(draw);
       }
       if (!fin && !tilesIter.next().done)
@@ -187,10 +191,18 @@ export default async function makeTileRenderer(gl) {
       return {
         get texture() { return texture },
         get size() { return size },
-        getLayerID(id) {
-          const i = index.get(id);
-          return i === undefined ? 0 : i + 1;
+
+        getLayerID(tileID) {
+          const layerIndex = index.get(tileID);
+          return layerIndex === undefined ? 0 : layerIndex + 1;
         },
+
+        getTileID(layerID) {
+          if (layerID == 0) return undefined;
+          const layerIndex = layerID - 1;
+          return revIndex.get(layerIndex);
+        },
+
       };
     },
 
