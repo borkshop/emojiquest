@@ -11,16 +11,17 @@ export async function compileProgram(gl, ...sources) {
   //      This is purported best practice, so DO NOT factor out a compileShader() utility.
   //      See <https://developer.mozilla.org/en-US/docs/Web/API/KHR_parallel_shader_compile>
 
-  const shaders = await Promise.all(sources
-    .map(ent => (typeof ent == 'string' ? {
-      name: ent,
-      source: fetch(ent).then(res => res.text())
-    } : ent))
-    .map(async ({ name, source }) => {
+  const reSources = sources.map(ent => (typeof ent == 'string' ? {
+    name: ent,
+    source: fetch(ent).then(res => res.text())
+  } : ent));
+
+  const shaders = await Promise.all(
+    reSources.map(async ({ name, source }) => {
       const shader = createShader(gl, name);
       gl.shaderSource(shader, await source);
       gl.compileShader(shader);
-      return { name, shader }
+      return { name, shader };
     }));
 
   for (const { shader } of shaders)
@@ -35,7 +36,14 @@ export async function compileProgram(gl, ...sources) {
         .map(({ name, shader }) => getShaderCompileError(gl, shader, name))
     ].join('\n\n')}`);
 
-  return prog;
+  return {
+    prog,
+    sources: new Map(await Promise.all(
+      reSources.map(async ({ name, source }) =>
+        /** @type {[name: string, source: string]} */
+        ([name, await source])
+      ))),
+  };
 }
 
 /** @typedef {object} shaderSpec

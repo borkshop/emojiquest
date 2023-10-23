@@ -36,7 +36,7 @@ import { compileProgram } from './glkit.js';
 
 /** @param {WebGL2RenderingContext} gl */
 export default async function makeTileRenderer(gl) {
-  const prog = await compileProgram(gl, './gltiles.vert', './gltiles.frag');
+  const { prog } = await compileProgram(gl, './gltiles.vert', './gltiles.frag');
 
   /** @param {string} name */
   const mustGetUniform = name => {
