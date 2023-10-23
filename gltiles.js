@@ -23,7 +23,7 @@ import { compileProgram } from './glkit.js';
 
 /**
  * @template TileID
- * @typedef {Iterator<{id: TileID, draw: drawback}|[id: TileID, draw: drawback]>} tileable
+ * @typedef {Iterable<{id: TileID, draw: drawback}|[id: TileID, draw: drawback]>} tileable
  */
 
 /**
@@ -123,9 +123,14 @@ export default async function makeTileRenderer(gl) {
       /** @type {drawback[]} */
       const draws = [];
 
+      const tilesIter = tiles[Symbol.iterator]();
+      let fin = false;
       while (index.size < maxLayers) {
-        const res = tiles.next();
-        if (res.done) break;
+        const res = tilesIter.next();
+        if (res.done) {
+          fin = true;
+          break;
+        }
         const { value } = res;
         const [id, draw] = Array.isArray(value) ? value : [value.id, value.draw];
 
@@ -136,6 +141,8 @@ export default async function makeTileRenderer(gl) {
         index.set(id, layer);
         draws.push(draw);
       }
+      if (!fin && !tilesIter.next().done)
+        throw new Error(`tileset larger than maximum ${maxLayers}`);
 
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 
