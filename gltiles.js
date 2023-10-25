@@ -697,10 +697,168 @@ export default async function makeTileRenderer(gl) {
       };
     },
 
-    // TODO more variants:
-    // - probably worth to make animation attributes optional;
-    //   e.g. unanimated dense layer for static backgrounds
-    // - not sure if worth to provie spinless / scaleless / offsetless variants
+    // TODO would be nice to share code between layer variant implementations, especially record accessors
+
+    /**
+     * Creates a dense cellular tile layer,
+     * where tiles are implicitly positioned along a dense grid from layer origin,
+     * suppoting at most 1 tile per cell,
+     * and fast constant time "tiles at location" query.
+     * Does not support animation.
+     *
+     * @template {ArraySpecMap} UserData
+     * @param {object} params
+     * @param {WebGLTexture} params.texture
+     * @param {number} [params.cellSize]
+     * @param {number} [params.left]
+     * @param {number} [params.top]
+     * @param {number} params.width
+     * @param {number} params.height
+     * @param {UserData} [params.userData]
+     */
+    makeStaticLayer({
+      width, height,
+      userData,
+      ...params
+    }) {
+      if (userData)
+        for (const dim of ['pos', 'tile', 'used', 'index'])
+          if (dim in userData)
+            throw new Error(`userData may not specify "${dim}"`);
+
+      const layer = this.makeLayer({ stride: width, ...params });
+      const data = makeDataFrame(gl, {
+        ...userData,
+        pos: attrPosSpec,
+        tile: attrTileSpec,
+      }, width * height);
+
+      /** @param {number} index */
+      const ref = index => ({
+        get id() { return index + 1 },
+        get index() { return index },
+
+        /** @returns {[x: number, y: number]} */
+        get xy() {
+          const x = index % width, y = (index - x) / width;
+          return [x, y];
+        },
+
+        /** Reset all tile data to 0 values */
+        clear() {
+          data.recordClear(index);
+          data.dirty = true;
+        },
+
+        /** Tile XY offset from cell center
+         * @returns {[x: number, y: number]} */
+        get offset() {
+          return [
+            data.array.pos[4 * index + 0],
+            data.array.pos[4 * index + 1],
+          ];
+        },
+        set offset([ox, oy]) {
+          data.array.pos[4 * index + 0] = ox;
+          data.array.pos[4 * index + 1] = oy;
+          data.dirty = true;
+        },
+
+        /** Tile rotation in units of full turns */
+        get spin() { return data.array.pos[4 * index + 2] },
+        set spin(turns) {
+          data.array.pos[4 * index + 2] = turns;
+          data.dirty = true;
+        },
+
+        /** Tile scale factor */
+        get scale() { return data.array.pos[4 * index + 3] },
+        set scale(factor) {
+          data.array.pos[4 * index + 3] = factor;
+          data.dirty = true;
+        },
+
+        /** Tile texture Z index.
+         *  FIXME "layer" id is perhaps a bad name since we're inside a Layer object anyhow. */
+        get layerID() { return data.array.tile[2 * index] },
+        /** Setting a value of 0, the default, will cause this tile to not be drawn.
+         * When initializing (setting to non-zero when prior value was 0),
+         * a default 1.0 scale value will also be set if scale was 0. */
+        set layerID(layerID) {
+          const init = layerID != 0 && data.array.tile[2 * index] == 0;
+          data.array.tile[2 * index] = layerID;
+          if (init && data.array.pos[4 * index + 3] == 0) data.array.pos[4 * index + 3] = 1;
+          data.dirty = true;
+        },
+      });
+
+      const self = {
+        deleteBuffers() {
+          layer.deleteBuffers();
+          data.deleteBuffers();
+        },
+
+        get width() { return width },
+        get height() { return height },
+
+        /** @param {number} w @param {number} h */
+        resize(w, h) {
+          data.resize(w * h, false);
+          layer.stride = w;
+          width = w, height = h;
+        },
+
+        /** @param {number} x @param {number} y */
+        contains(x, y) {
+          const [left, top] = layer.origin;
+          if (x < left) return false;
+          if (y < top) return false;
+          if (x >= left + width) return false;
+          if (y >= top + height) return false;
+          return true;
+        },
+
+        /** Returns a cell reference given cell absolute x/y position,
+         * or null if out of bounds.
+         *
+         * @param {number} x
+         * @param {number} y
+         */
+        absAt(x, y) {
+          const [left, top] = layer.origin;
+          return self.at(x - left, y - top)
+        },
+
+        /** Returns a cell reference given cell x/y offsets (relative to left/top),
+         * or null if out of bounds.
+         *
+         * @param {number} x
+         * @param {number} y
+         */
+        at(x, y) {
+          if (x < 0 || y < 0 || x >= width || y >= height) return null;
+          const index = Math.floor(y) * width + Math.floor(x);
+          return ref(index);
+        },
+
+        // TODO better to passProperties(self, data. 'clear') ?
+        clear() { data.clear() },
+
+        draw() {
+          layer.bind();
+          data.drawArrays(gl.POINTS);
+        },
+
+        get array() {
+          return /** @type {typeof data["array"] & arrayProps<UserData>} */ (data.array)
+        },
+
+      };
+
+      return passProperties(self,
+        layer, 'texture', 'cellSize', 'origin',
+      );
+    },
 
     /**
      * Creates a dense cellular tile layer,
@@ -727,8 +885,6 @@ export default async function makeTileRenderer(gl) {
         for (const dim of ['pos', 'tile', 'used', 'index'])
           if (dim in userData)
             throw new Error(`userData may not specify "${dim}"`);
-
-      // TODO support unanimated variant
 
       const layer = this.makeLayer({ stride: width, ...params });
       const data = makeDataFrame(gl, {
@@ -1380,6 +1536,7 @@ export default async function makeTileRenderer(gl) {
 /** @typedef {Awaited<ReturnType<makeTileRenderer>>} TileRenderer */
 /** @typedef {ReturnType<TileRenderer["makeView"]>} View */
 /** @typedef {ReturnType<TileRenderer["makeLayer"]>} BaseLayer */
+/** @typedef {ReturnType<TileRenderer["makeStaticLayer"]>} StaticLayer */
 /** @typedef {ReturnType<TileRenderer["makeDenseLayer"]>} DenseLayer */
 /** @typedef {ReturnType<TileRenderer["makeSparseLayer"]>} SparseLayer */
 

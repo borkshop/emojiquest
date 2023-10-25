@@ -86,7 +86,7 @@ export default async function runDemo(opts) {
 
   const foreTiles = tiles.makeSheet(generateSimpleTiles(...foreTileSpecs), { tileSize });
 
-  const bg = tiles.makeDenseLayer({
+  const bg = tiles.makeStaticLayer({
     texture: landCurveTiles.texture,
     width: worldWidth,
     height: worldHeight,
@@ -95,7 +95,7 @@ export default async function runDemo(opts) {
   const fg = tiles.makeSparseLayer({
     texture: foreTiles.texture,
   });
-  const bgCurved = tiles.makeDenseLayer(curvedLayerParams(bg));
+  const bgCurved = tiles.makeStaticLayer(curvedLayerParams(bg));
 
   let lastCurveClip = shouldClipCurvyTiles();
 
