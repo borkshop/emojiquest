@@ -98,19 +98,28 @@ export default async function runDemo(opts) {
   const generateWorld = () => {
     const { rand: seeder } = makeRandom();
 
-    // generate terrain
-    const { random: randWater } = makeRandom(seeder());
-    const isWater = new Uint8Array(bg.width * bg.height);
-    for (let i = 0; i < isWater.length; i++)
-      isWater[i] = randWater() > 0.5 ? 1 : 0;
-
     const land = landCurveTiles.getLayerID(0b0000);
     const water = landCurveTiles.getLayerID(0b1111);
-    for (let y = 0; y < bg.height; y++)
-      for (let x = 0; x < bg.width; x++)
+
+    // generate terrain
+    const genTerrain = ( /** @returns {(x: number, y: number) => number} */ () => {
+
+      // pure random scatter ; TODO better procgen
+      const { random: randWater } = makeRandom(seeder());
+      const isWater = new Uint8Array(bg.width * bg.height);
+      for (let i = 0; i < isWater.length; i++)
+        isWater[i] = randWater() > 0.5 ? 1 : 0;
+
+      return (x, y) => isWater[y * bg.width + x] ? water : land;
+    })();
+
+    for (let y = 0; y < bg.height; y++) {
+      for (let x = 0; x < bg.width; x++) {
         bg.set(x, y, {
-          layerID: isWater[y * bg.width + x] ? water : land
+          layerID: genTerrain(x, y),
         });
+      }
+    }
 
     // place fore objects
     const { randn: randTile } = makeRandom(seeder());
