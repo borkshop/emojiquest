@@ -833,8 +833,40 @@ export default async function runDemo(opts) {
           note: dlaNote,
         });
 
+        // TODO fiil swiss cheese holes
+        // for (let x = regionLeft + 1; x < regionRight - 1; x++) {
+        //   for (let y = regionTop + 1; y < regionBottom - 1; y++) {
+        //     const i = width * y + x;
+        //
+        //     if (isLand[i]) continue;
+        //
+        //     // console.log(x, y,
+        //     //   isLand[i],
+        //     //   isLand[width * y + (x - 1)],
+        //     //   isLand[width * y + (x + 1)],
+        //     //   isLand[width * (y - 1) + x],
+        //     //   isLand[width * (y + 1) + x],
+        //     // );
+        //
+        //     // if (!isLand[width * y + (x - 1)]) continue;
+        //     // if (!isLand[width * y + (x + 1)]) continue;
+        //     // if (!isLand[width * (y - 1) + x]) continue;
+        //     // if (!isLand[width * (y + 1) + x]) continue;
+        //
+        //     // isLand[i] = 1;
+        //
+        //   }
+        // }
+
         haveLandCount = isLand.reduce((a, b) => a + b);
       }
+
+      // console.log(
+      //   haveLandCount,
+      //   goalLandCount,
+      //   haveLandCount / goalLandCount,
+      //   haveLandCount / (width * height),
+      // );
 
       return (x, y) => isLand[y * width + x] ? land : water;
     })();
