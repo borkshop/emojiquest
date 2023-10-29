@@ -1,11 +1,9 @@
-/** @typedef {object} tileSpec
- * @prop {string} [glyph]
- * @prop {string} [glyphStyle]
- * @prop {number} [param.glyphHeight]
- * @prop {string} [param.glyphFont]
- * @prop {string} [fill]
- * @prop {{size: number, style: string}} [border]
- */
+// @ts-check
+
+import drawSimpleTile from './simple_tiles.js';
+/** @typedef {import("./simple_tiles.js").SimpleTile} SimpleTile */
+
+export { default as drawSimpleTile } from './simple_tiles.js';
 
 /** @callback drawback
  * @param {OffscreenCanvasRenderingContext2D} ctx
@@ -206,86 +204,14 @@ export function* generateCurvedTiles({
   yield { id: 0b1010, draw: corner(aFill, bFill, { x: 0, y: 0 }, { x: 1, y: 1 }) };
 }
 
-/** @param {tileSpec[]} tiles */
+/**
+ * @param {SimpleTile[]} tiles
+ * @returns {Generator<{id: number, draw: drawback}>}
+ */
 export function* generateSimpleTiles(...tiles) {
-  // TODO hoist this out and spread over multiple sheets if necessary
-
   let id = 0;
-  for (const {
-    glyph,
-    glyphStyle = 'black',
-    glyphHeight = 0.9,
-    glyphFont = 'sans',
-    fill,
-    border,
-  } of tiles) yield {
-    id: id++,
-    /** @param {OffscreenCanvasRenderingContext2D} ctx */
-    draw(ctx) {
-      const tileSize = ctx.canvas.width;
-
-      if (fill) {
-        ctx.fillStyle = fill;
-        ctx.fillRect(0, 0, tileSize, tileSize);
-      }
-
-      if (border) {
-        const { size, style } = border;
-        ctx.lineWidth = size;
-        ctx.strokeStyle = style;
-        ctx.strokeRect(size / 2, size / 2, tileSize - size, tileSize - size);
-      }
-
-      if (glyph) {
-        let text = glyph;
-        ctx.textBaseline = 'bottom';
-
-        const fontSize = tileSize * glyphHeight;
-        for (let adjust = 0; adjust <= fontSize; adjust++) {
-          if (adjust == fontSize)
-            throw new Error(`unable to find a usable font adjustment for fontSize:${fontSize}`);
-          ctx.font = `${fontSize - adjust}px ${glyphFont}`;
-
-          const {
-            actualBoundingBoxLeft,
-            actualBoundingBoxRight,
-            actualBoundingBoxDescent,
-            actualBoundingBoxAscent,
-          } = ctx.measureText(text),
-            actualWidth = Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight),
-            actualHeight = Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent);
-
-          if (actualWidth === 0) {
-            console.warn(`tile glyph "${Array.from(glyph)
-              .map(c => {
-                const code = c.codePointAt(0) || 0;
-                // TODO less aggressive quoting, do the ascii thing
-                return `\\u${code.toString(16).toUpperCase()}`;
-              })
-              .join('')}" is unsupported`);
-            text = '�';
-            // TODO support fallback chain of tile specs
-            continue;
-          }
-
-          if (actualHeight < fontSize && actualWidth < fontSize) break;
-        }
-
-        const {
-          actualBoundingBoxLeft,
-          actualBoundingBoxRight,
-          actualBoundingBoxDescent,
-          actualBoundingBoxAscent,
-        } = ctx.measureText(text),
-          actualWidth = Math.abs(actualBoundingBoxLeft) + Math.abs(actualBoundingBoxRight),
-          actualHeight = Math.abs(actualBoundingBoxAscent) + Math.abs(actualBoundingBoxDescent),
-          widthRem = tileSize - actualWidth,
-          heightRem = tileSize - actualHeight;
-
-        ctx.fillStyle = glyphStyle;
-        ctx.fillText(text, Math.floor(widthRem / 2), tileSize - Math.floor(heightRem / 2));
-      }
-
-    }
-  };
+  for (const tile of tiles) {
+    yield { id, draw(ctx) { drawSimpleTile(tile, ctx) } };
+    id++;
+  }
 }

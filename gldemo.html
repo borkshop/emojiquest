@@ -220,7 +220,7 @@
           await new Promise(resolve => setTimeout(resolve, wait));
         count = 0;
 
-        const foreTiles = $foreTiles.value.trim().split(/\s+/).map(glyph => ({glyph}));
+        const foreTiles = $foreTiles.value.trim().split(/\s+/).map(text => ({text}));
 
         demo = await runDemo({
           $world,

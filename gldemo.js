@@ -31,7 +31,7 @@ import {
   clippedBaseCellQuery,
   extendedBaseCellQuery,
 } from './tilegen.js';
-/** @typedef {import("./tilegen.js").tileSpec} TileSpec */
+/** @typedef {import("./tilegen.js").SimpleTile} SimpleTile */
 
 /**
  * @param {object} opts
@@ -42,7 +42,7 @@ import {
  * @param {number} [opts.worldHeight]
  * @param {boolean|(() => boolean)} [opts.showCurvyTiles]
  * @param {boolean|(() => boolean)} [opts.clipCurvyTiles]
- * @param {TileSpec[]} [opts.foreTiles]
+ * @param {SimpleTile[]} [opts.foreTiles]
  */
 export default async function runDemo(opts) {
   let {
@@ -56,10 +56,10 @@ export default async function runDemo(opts) {
     clipCurvyTiles = false,
 
     foreTiles: foreTileSpecs = [
-      { glyph: '1️⃣' }, // buttons 1-4
-      { glyph: '2️⃣' },
-      { glyph: '3️⃣' },
-      { glyph: '4️⃣' },
+      { text: '1️⃣' }, // buttons 1-4
+      { text: '2️⃣' },
+      { text: '3️⃣' },
+      { text: '4️⃣' },
     ],
   } = opts;
   const shouldShowCurvyTiles = typeof showCurvyTiles == 'boolean' ? () => showCurvyTiles : showCurvyTiles;
