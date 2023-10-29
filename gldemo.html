@@ -11,7 +11,7 @@
 
   <div class="panel controlPanel">
 
-    <details open>
+    <details>
       <summary>World Params</summary>
 
       <div title="Foreground tile set">
@@ -23,18 +23,6 @@
           <option value"   ă">PUA 0-3</option>
           <option>@ o $ B</option>
         </select>
-      </div>
-
-      <div
-        title="Key[C] Whether to draw using a derived 'curved tile' layer whose cells are computed at the 4-corners of the base land-vs-water layer">
-        <input id="show_curves" type="checkbox" checked />
-        <label for="show_curves">Use Curved Tiles</label>
-      </div>
-
-      <div
-        title="Key[X] Whether tile curves should extend past edge of world, or clip as if surrounded by land on all sides">
-        <input id="extend_curves" type="checkbox" checked />
-        <label for="extend_curves">Extend Tile Curves</label>
       </div>
 
       <div title="Key[- +] Size of each world tile in pixels">
@@ -94,12 +82,6 @@
     let halt = true;
     let demo = null;
 
-    const $showCurves = document.querySelector('#show_curves');
-    if (!$showCurves) throw new Error('unable to find #show_curves');
-
-    const $extendCurves = document.querySelector('#extend_curves');
-    if (!$extendCurves) throw new Error('unable to find #extend_curves');
-
     const $cellSize = document.querySelector('#cell_size');
     if (!$cellSize) throw new Error('unable to find #cell_size');
 
@@ -140,16 +122,6 @@
 
         case '.':
           demo?.stop();
-          break;
-
-        case 'c':
-        case 'C':
-          $showCurves.checked = !$showCurves.checked;
-          break;
-
-        case 'x':
-        case 'X':
-          $extendCurves.checked = !$extendCurves.checked;
           break;
 
         case '+':
@@ -230,9 +202,6 @@
           worldWidth: $worldWidth.valueAsNumber,
           worldHeight: $worldHeight.valueAsNumber,
           seed: new Date(now).toLocaleDateString(),
-
-          showCurvyTiles() {return $showCurves.checked},
-          clipCurvyTiles() {return !$extendCurves.checked},
 
           foreTiles,
         });
