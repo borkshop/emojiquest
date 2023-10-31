@@ -46,6 +46,11 @@ const mat3 spinOffset = mat3(
 );
 
 void main(void) {
+  float size = cellSize;
+  mat4 xform = transform;
+  xform[0].x *= size;
+  xform[1].y *= size;
+  xform[3].xy *= size;
 
   if (int(layerID) == 0) {
     gl_Position = nowhere;
@@ -58,11 +63,7 @@ void main(void) {
   );
   loc += 0.5;
 
-  gl_Position = perspective * transform * vec4(
-    loc * cellSize, // x, y
-    0.0, // z
-    1.0  // w
-  );
+  gl_Position = perspective * xform * vec4(loc, 0.0, 1.0);
 
   float theta = spin * TAU;
   float cost = cos(theta);
@@ -74,7 +75,7 @@ void main(void) {
     vec3(0.0, 0.0, 1.0)
   ) * inverse(spinOffset);
 
-  gl_PointSize = cellSize;
+  gl_PointSize = size;
 
   sheetLayer = float(layerID) - 1.0;
 }

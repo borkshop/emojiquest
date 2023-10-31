@@ -229,7 +229,7 @@ export default async function makeTileRenderer(gl) {
       cellSize.float = givenCellSize;
       stride.int = width;
 
-      mat4.fromTranslation(transform, [givenCellSize * givenLeft, givenCellSize * givenTop, 0]);
+      mat4.fromTranslation(transform, [givenLeft, givenTop, 0]);
 
       // TODO do we complect within or without?
       //   1. makeSparseLayer vs makeDenseLayer
@@ -258,22 +258,16 @@ export default async function makeTileRenderer(gl) {
 
         get cellSize() { return cellSize.float },
         set cellSize(size) {
-          const factor = size / cellSize.float;
-          transform[12] *= factor, transform[13] *= factor;
           cellSize.float = size;
           paramsDirty = true;
         },
 
         /** @returns {[x: number, y: number]} */
         get origin() {
-          const [x, y] = vec2.transformMat4([0, 0], [0, 0], transform);
-          const size = cellSize.float;
-          return [x / size, y / size];
+          return /** @type {[x: number, y: number]} */ (
+            vec2.transformMat4([0, 0], [0, 0], transform));
         },
-        set origin([left, top]) {
-          const size = cellSize.float;
-          const x = left * size;
-          const y = top * size;
+        set origin([x, y]) {
           mat4.fromTranslation(transform, [x, y, 0]);
           paramsDirty = true;
         },
