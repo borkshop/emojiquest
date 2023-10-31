@@ -9,6 +9,7 @@
  * | SimpleTileFill
  * | SimpleTileText
  * | SimpleTileRect
+ * | SimpleTileArc
  * )} SimpleTileKind */
 
 /** @typedef {(
@@ -37,6 +38,19 @@
 
 /** @typedef {object} SimpleTileRect
  * @prop {"border"|Rect} rect
+ * @prop {SimpleMetric} [lineWidth]
+ * @prop {string} [stroke]
+ * @prop {string} [fill]
+ */
+
+/** @typedef {object} SimpleTileArc
+ * @prop {object} arc
+ * @prop {SimpleMetric} [arc.x]
+ * @prop {SimpleMetric} [arc.y]
+ * @prop {SimpleMetric} arc.radius
+ * @prop {number} [arc.startAngle]
+ * @prop {number} [arc.endAngle]
+ * @prop {boolean} [arc.counterclockwise]
  * @prop {SimpleMetric} [lineWidth]
  * @prop {string} [stroke]
  * @prop {string} [fill]
@@ -71,6 +85,34 @@ function drawSimpleTileKind(tile, ctx) {
       const h = resolveSimpleMetric(rect.h, tileSize, ctx);
       ctx.rect(x, y, w, h);
     }
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.lineWidth = lineWidth ? resolveSimpleMetric(lineWidth, tileSize, ctx) : 1;
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+    }
+  }
+
+  else if ('arc' in tile) {
+    const { canvas: { width: tileSize } } = ctx;
+    const { arc, lineWidth, stroke, fill } = tile;
+    const x = arc.x
+      ? resolveSimpleMetric(arc.x, tileSize, ctx)
+      : tileSize / 2;
+    const y = arc.y
+      ? resolveSimpleMetric(arc.y, tileSize, ctx)
+      : tileSize / 2;
+    const r = resolveSimpleMetric(arc.radius, tileSize, ctx);
+    const {
+      startAngle = 0,
+      endAngle = 2 * Math.PI,
+      counterclockwise = false
+    } = arc;
+    ctx.beginPath();
+    ctx.arc(x, y, r, startAngle, endAngle, counterclockwise);
     if (fill) {
       ctx.fillStyle = fill;
       ctx.fill();
