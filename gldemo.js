@@ -232,6 +232,13 @@ export default async function runDemo(opts) {
       height: { prop: 0.8 },
     });
 
+    /** @param {string} color */
+    const targetTile = color => [
+      // like ◎ but more control
+      { arc: { radius: { prop: 1 / 5 } }, stroke: color, lineWidth: { prop: 0.05 } },
+      { arc: { radius: { prop: 1 / 3 } }, stroke: color, lineWidth: { prop: 0.05 } },
+    ];
+
     yield ['hover', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'blue' }];
     yield ['active', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'red' }];
     yield ['move', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'yellow' }];
@@ -245,6 +252,12 @@ export default async function runDemo(opts) {
       yield [`moveMe${suffix}`, [
         { arc: { radius: { prop: 2 / 5 } }, stroke: color, lineWidth: { prop: 0.05 } },
       ]];
+
+    yield ['target', targetTile('#555')];
+    yield ['targetHover', targetTile('#55a')];
+    yield ['targetHoverPulse', targetTile('#5af')];
+    yield ['targetActive', targetTile('#f55')];
+    yield ['targetActivePulse', targetTile('#fa5')];
 
     for (const { action, text } of [
       { action: 'play', text: '▶' },
@@ -564,6 +577,30 @@ export default async function runDemo(opts) {
 
   /** @type {Partial<CellUIHandler>} */
   const playUIHandler = {
+    /* TODO for longer term goal setting / path finding
+    mouseEvent({ type, clientX, clientY }) {
+      switch (type) {
+        case 'click':
+          if (priorMode != 'targetActive') {
+            cellUI.cursorMode = 'targetActive';
+            cellUI.cursorAt = [fx, fy];
+          } else if (priorAt[0] == fx && priorAt[1] == fy) {
+            console.log('TODO move to', priorAt);
+            cellUI.cursorMode = '';
+          } else {
+            cellUI.cursorAt = [fx, fy];
+          }
+          break;
+
+        case 'mousemove':
+          if (!priorMode || cellUI.cursorMode == 'targetHover') {
+            cellUI.cursorMode = 'targetHover';
+            cellUI.cursorAt = [fx, fy];
+          }
+          // TODO evaluate and indicated move feasibility
+          break;
+      }
+    }, */
   };
 
   /** @type {null|((t: number) => void)} */
