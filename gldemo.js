@@ -840,6 +840,7 @@ export default async function runDemo(opts) {
         note(x, y, `note${depth}`);
     }
 
+    // TODO depth based water color
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const cell = bg.at(x, y);
@@ -915,6 +916,7 @@ export default async function runDemo(opts) {
 
     fg.prune();
 
+    // TODO general curved tile set support for more terrain types like colored water depth
     updateCurvedLayer(bgCurved, landCurveTiles,
       lastCurveClip
         ? clippedBaseCellQuery(bg, landCurveTiles)
