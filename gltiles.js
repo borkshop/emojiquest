@@ -169,7 +169,11 @@ export default async function makeTileRenderer(gl) {
           gl.TEXTURE_2D_ARRAY, 0,
           0, 0, layer,
           tileSize, tileSize, 1,
-          gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+          gl.RGBA, gl.UNSIGNED_BYTE,
+          // NOTE safari on ios 16 does not support directly ripping from a canvas... ios 17 does tho...
+          canvas.transferToImageBitmap(),
+          // canvas,
+        );
       });
 
       gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
