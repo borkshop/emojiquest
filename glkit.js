@@ -165,7 +165,8 @@ function* numberLines(w, lines) {
   }
 }
 
-export function frameLoop() {
+/** @param {WebGL2RenderingContext} gl */
+export function frameLoop(gl) {
   /** @type {null|((reason?: any) => void)} */
   let cancel;
   let stopped = false;
@@ -178,7 +179,13 @@ export function frameLoop() {
     frames: async function*() {
       try {
         while (!stopped) yield /** @type {Promise<DOMHighResTimeStamp>} */ (new Promise((resolve, reject) => {
-          const pending = requestAnimationFrame(resolve);
+          const pending = requestAnimationFrame(time => {
+            const glErrorCode = gl.getError();
+            if (glErrorCode != gl.NO_ERROR)
+              reject(new Error(`webgl error code ${glErrorCode}`));
+            else resolve(time);
+          });
+
           cancel = reason => {
             cancelAnimationFrame(pending);
             reject(reason);

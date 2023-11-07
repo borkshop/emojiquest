@@ -138,7 +138,7 @@ export default async function demo(opts) {
       : extendedBaseCellQuery(bg, landCurveTiles));
   bgCurved.send();
 
-  const { stop, frames } = frameLoop();
+  const { stop, frames } = frameLoop(gl);
   const done = async function() {
     for await (const _/*t*/ of frames) {
       // TODO animate things via const dt = lastT - t;
