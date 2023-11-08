@@ -1728,6 +1728,10 @@ function makeCellUI({
           ArrayType: Uint8Array,
           size: 1,
         },
+        stashXY: {
+          ArrayType: Float32Array,
+          size: 3,
+        },
       },
     }),
 
@@ -1745,7 +1749,181 @@ function makeCellUI({
     cursorAt = [0, 0],
 
     /** @type {null|number} */
-    cursorHoverID = null;
+    cursorHoverID = null,
+
+    showTouchNotes = false,
+
+    // bare touch point data, collected since first touchstart
+    // TODO this could be an even more lightweight core dataframe like glkit.DataFrame
+    /** @type {number[]} */
+    touchIDs = [],
+    /** @type {number[]} */
+    touchCursorIDs = [],
+    touchTimes = new Uint32Array(0), // stride 3, 3 times per touch
+    touchPoints = new Float32Array(0), // stride 6, 3 xy points per touch
+    touchRange = new Float32Array(0), // stride 4, 2 xy points per touch
+
+    // gesture recognition data, resets after handling (...in final touchend?)
+    touchCount = 0,
+    touchCountMax = 0,
+    touchAnyMove = false
+    ;
+
+  /** @param {number} touchID */
+  const findTouch = touchID => {
+    for (let i = 0; i < touchIDs.length; i++)
+      if (touchIDs[i] === touchID) return i;
+    return -1;
+  };
+
+  const reuseTouch = () => {
+    for (let i = 0; i < touchIDs.length; i++)
+      if (touchIDs[i] === 0) return i;
+    return -1;
+  };
+
+  const allocTouch = () => {
+    const i = touchIDs.length;
+    let alloc = touchIDs.length ? touchIDs.length : 2;
+    while (alloc <= i) alloc *= 2;
+    if (alloc > touchIDs.length) {
+      // TODO better way to grow native array?
+      while (touchIDs.length < alloc) touchIDs.push(0);
+      while (touchCursorIDs.length < alloc) touchCursorIDs.push(0);
+      const newTimes = new Uint32Array(3 * alloc);
+      const newPoints = new Float32Array(6 * alloc);
+      const newRange = new Float32Array(4 * alloc);
+      newTimes.set(touchTimes);
+      newPoints.set(touchPoints);
+      newRange.set(touchRange);
+      touchTimes = newTimes;
+      touchPoints = newPoints;
+      touchRange = newRange;
+    }
+    return i;
+  };
+
+  /** @param {number} touchID */
+  const getTouch = touchID => {
+    let i = findTouch(touchID);
+    if (i < 0) {
+      i = reuseTouch();
+      if (i < 0) i = allocTouch();
+      touchIDs[i] = touchID;
+      touchCountMax = Math.max(touchCountMax, ++touchCount);
+    }
+    return i;
+  };
+
+  /** @param {number} i */
+  const freeTouch = i => {
+    touchIDs[i] = 0;
+    --touchCount;
+  };
+
+  const resetGesture = () => {
+    touchIDs.fill(0);
+    touchTimes.fill(0);
+    touchPoints.fill(0);
+    touchRange.fill(0);
+    touchCount = 0;
+    touchCountMax = 0;
+    touchAnyMove = false;
+  };
+
+  const gestureType = () => {
+    if (touchCountMax <= 3)
+      return `${touchAnyMove ? 'swipe' : 'tap'}-${touchCountMax}`;
+
+    // TODO should tap recognition be loosened to "range stayed inside one action"?
+    //      i.e. start *move end all inside one cell
+
+    // TODO fancier things like twist/pinch/...
+
+    return 'unknown';
+  };
+
+  /** @param {number} i @param {number} t @param {number} x @param {number} y */
+  const startTouchPoint = (i, t, x, y) => {
+    const ti = 3 * i;
+    const pi = 6 * i;
+    const ri = 4 * i;
+    touchTimes[ti + 0] = t;
+    touchTimes[ti + 1] = t;
+    touchTimes[ti + 2] = t;
+    touchPoints[pi + 0] = x, touchPoints[pi + 1] = y;
+    touchPoints[pi + 2] = x, touchPoints[pi + 3] = y;
+    touchPoints[pi + 4] = x, touchPoints[pi + 5] = y;
+    touchRange[ri + 0] = x, touchRange[ri + 1] = y;
+    touchRange[ri + 2] = x, touchRange[ri + 3] = y;
+  };
+
+  /** @param {number} i @param {number} t @param {number} x @param {number} y */
+  const updateTouchPoint = (i, t, x, y) => {
+    const ti = 3 * i;
+    const pi = 6 * i;
+    const ri = 4 * i;
+    touchTimes[ti + 1] = touchTimes[ti + 2];
+    touchTimes[ti + 2] = t;
+    touchPoints[pi + 2] = touchPoints[pi + 4], touchPoints[pi + 3] = touchPoints[pi + 5];
+    touchPoints[pi + 4] = x, touchPoints[pi + 5] = y;
+    touchRange[ri + 0] = Math.min(x, touchRange[ri + 0]), touchRange[ri + 1] = Math.min(y, touchRange[ri + 1]);
+    touchRange[ri + 2] = Math.max(x, touchRange[ri + 2]), touchRange[ri + 3] = Math.max(y, touchRange[ri + 3]);
+    if (!touchAnyMove) {
+      // TODO tolerance, based on underlying event radiusXY?
+      if (touchPoints[pi + 0] != x || touchPoints[pi + 1] != y) touchAnyMove = true;
+    }
+  };
+
+  /** @param {number} i */
+  const refTouch = i => ({
+    get index() { return i },
+
+    get duration() {
+      const ti = 3 * i;
+      return touchTimes[ti + 2] - touchTimes[ti + 0];
+    },
+
+    /** @returns {[x: number, y: number]} */
+    get at() {
+      const pi = 6 * i;
+      return [touchPoints[pi + 4], touchPoints[pi + 5]];
+    },
+
+    /** @returns {[x: number, y: number]} */
+    get startAt() {
+      const pi = 6 * i;
+      return [touchPoints[pi + 0], touchPoints[pi + 1]];
+    },
+
+    get dt() {
+      const ti = 3 * i;
+      return touchTimes[ti + 2] - touchTimes[ti + 1];
+    },
+
+    /** @returns {[x: number, y: number]} */
+    get dxy() {
+      const pi = 6 * i;
+      return [
+        touchPoints[pi + 4] - touchPoints[pi + 2],
+        touchPoints[pi + 5] - touchPoints[pi + 3]
+      ];
+    },
+
+    /** @returns {[x1: number, y1: number, x2: number, y2: number]} */
+    get range() {
+      const ri = 4 * i;
+      return [
+        touchRange[ri + 0], touchRange[ri + 1], // min
+        touchRange[ri + 2], touchRange[ri + 3], // max
+      ];
+    },
+
+    get cursorID() { return touchCursorIDs[i]; },
+    set cursorID(id) { touchCursorIDs[i] = id },
+
+  });
+  /** @typedef {ReturnType<refTouch>} Touch */
 
   /** @param {SparseTile} tile */
   const extendRef = tile => {
@@ -2006,7 +2184,13 @@ function makeCellUI({
       $el.addEventListener('click', cellUI.handleMouseEvent);
       $el.addEventListener('mousemove', cellUI.handleMouseEvent);
 
-      // TODO touch events
+      if (window.TouchEvent !== undefined) {
+        $el.addEventListener('touchstart', cellUI.handleTouchEvent);
+        $el.addEventListener('touchend', cellUI.handleTouchEvent);
+        $el.addEventListener('touchmove', cellUI.handleTouchEvent);
+        $el.addEventListener('touchcancel', cellUI.handleTouchEvent);
+      }
+
       // TODO pointer events
     },
 
@@ -2017,6 +2201,13 @@ function makeCellUI({
 
       $el.removeEventListener('click', cellUI.handleMouseEvent);
       $el.removeEventListener('mousemove', cellUI.handleMouseEvent);
+
+      if (window.TouchEvent !== undefined) {
+        $el.removeEventListener('touchstart', cellUI.handleTouchEvent);
+        $el.removeEventListener('touchend', cellUI.handleTouchEvent);
+        $el.removeEventListener('touchmove', cellUI.handleTouchEvent);
+        $el.removeEventListener('touchcancel', cellUI.handleTouchEvent);
+      }
     },
 
     /** @param {KeyboardEvent} e */
@@ -2036,6 +2227,143 @@ function makeCellUI({
           } else handleKeyEvent(e);
           break;
       }
+    },
+
+    /** @param {TouchEvent} e */
+    handleTouchEvent(e) {
+      const
+        now = Date.now(),
+        { type, changedTouches } = e;
+      e.preventDefault(); // no mouse emulation
+
+      /** @type {Touch[]}) */
+      const touches = [];
+
+      for (const { identifier, clientX, clientY } of changedTouches) {
+        const touch = refTouch(getTouch(identifier));
+        touches.push(touch);
+        const { index } = touch;
+
+        let uiTile = uiLayer.ref(touch.cursorID);
+
+        switch (type) {
+          case 'touchstart':
+            if (showTouchNotes && !uiTile) {
+              const [cellX, cellY] = view.reverseProject(clientX, clientY);
+              uiTile = uiLayer.createRef();
+              touch.cursorID = uiTile.id;
+              uiTile.layerID = cursorTiles.getLayerID(`note${index}`);
+              uiTile.xy = [cellX - 0.5, cellY - 0.5];
+            }
+            startTouchPoint(index, now, clientX, clientY);
+            break;
+
+          case 'touchmove':
+            if (uiTile) {
+              const [cellX, cellY] = view.reverseProject(clientX, clientY);
+              uiTile.xy = [cellX - 0.5, cellY - 0.5];
+            }
+            updateTouchPoint(index, now, clientX, clientY);
+            break;
+
+          case 'touchend':
+          case 'touchcancel':
+            if (uiTile) {
+              const [cellX, cellY] = view.reverseProject(clientX, clientY);
+              uiTile.xy = [cellX - 0.5, cellY - 0.5];
+            }
+            updateTouchPoint(index, now, clientX, clientY);
+            if (showTouchNotes && uiTile) {
+              uiTile.startAnim(200);
+              uiTile.scaleTo = 0;
+              uiTile.afterAnim().then(() => {
+                if (uiTile) {
+                  uiTile.animDuration = 0;
+                  uiTile.scale = 0;
+                  uiTile.free();
+                }
+              });
+            }
+            break;
+        }
+      }
+
+      let freeTouches = false;
+      let gestureEventType = type;
+      if (type == 'touchend' || type == 'touchcancel') {
+        freeTouches = true;
+        if (touchCount - touches.length < 1)
+          gestureEventType = 'gestureend';
+      }
+
+      // TODO maybe split out a handler interface around this
+      switch (gestureType()) {
+
+        case 'tap-1':
+          if (gestureEventType == 'gestureend') {
+            const touch = touches[0];
+            for (const tile of actionsAt(...view.reverseProject(...touch.startAt))) {
+              invoke(tile.action, 'touch', tile);
+              break;
+            }
+          }
+          break;
+
+        case 'swipe-1': {
+          const cur = cursorID && uiLayer.ref(cursorID);
+          if (cur && cellUI.cursorMode != '') {
+            const stashEl = uiLayer.array.stashXY.subarray(3 * cur.index, 3 * cur.index + 3);
+            if (!stashEl[2]) {
+              const { xy } = cur;
+              stashEl[0] = xy[0], stashEl[1] = xy[1], stashEl[2] = 1;
+            }
+            switch (gestureEventType) {
+
+              case 'touchmove':
+                const { cellSize } = view;
+                const touch = touches[0];
+                const xy = cur.xy;
+                const [dx, dy] = touch.dxy;
+                xy[0] += dx / cellSize, xy[1] += dy / cellSize;
+                cur.xy = cur.xyTo = xy;
+                xy[0] = Math.floor(xy[0] + 0.5), xy[1] = Math.floor(xy[1] + 0.5);
+                let any = false;
+                for (const tile of actionsAt(...xy)) {
+                  cellUI.cursorHover = tile.id;
+                  any = true;
+                  break;
+                }
+                if (!any) cellUI.cursorHover = null;
+                break;
+
+              case 'gestureend':
+                if (cursorHoverID) {
+                  const tile = cellUI.refTile(cursorHoverID);
+                  if (tile?.action) invoke(tile.action, 'touch', tile);
+                  cellUI.cursorHover = null;
+                }
+                if (stashEl[2]) {
+                  cur.animDuration = 0;
+                  cur.startAnim(100);
+                  cur.xyTo = [stashEl[0], stashEl[1]]; // XXX fix type noise
+                  cur.afterAnim().then(() => {
+                    cur.xy = cur.xyTo;
+                    applyCursorPulse(cur);
+                  });
+
+                  stashEl[2] = 0;
+                }
+                break;
+
+            }
+          }
+        } break;
+
+      }
+
+      if (freeTouches)
+        for (const touch of touches) freeTouch(touch.index);
+      if (touchCount < 1) resetGesture();
     },
 
     /** @param {MouseEvent} e */
