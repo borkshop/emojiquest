@@ -98,6 +98,14 @@ const actorTypes = {
   },
 };
 
+// 🗻
+// ⛰️
+// 🏔️
+// 🌲
+// 🌳
+// 🎄
+// 🎋
+
 /**
  * @param {object} opts
  * @param {HTMLCanvasElement} opts.$world
