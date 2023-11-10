@@ -43,6 +43,11 @@ import {
 } from './tilegen.js';
 /** @typedef {import("./tilegen.js").SimpleTile} SimpleTile */
 
+import {
+  makeBSP,
+  dla,
+} from './procgen.js';
+
 /** @typedef {(
  * | {turn: number}
  * | {halt: string}
@@ -271,7 +276,7 @@ export default async function runDemo(opts) {
     yield ['start', { arc: { radius: { prop: 1 / 9 } }, stroke: 'red', lineWidth: { prop: 0.05 } }];
     yield ['part', { arc: { radius: { prop: 1 / 9 } }, stroke: 'yellow', lineWidth: { prop: 0.025 } }];
 
-    for (let n = 1; n <= 9; n++)
+    for (let n = 0; n <= 9; n++)
       yield [`note${n}`, glyphTile(`${n}`)];
 
   }
@@ -689,14 +694,98 @@ export default async function runDemo(opts) {
 
     // generate terrain
     const genTerrain = ( /** @returns {(x: number, y: number) => number} */ () => {
+      const { width, height } = bg;
 
-      // pure random scatter ; TODO better procgen
-      const { random: randWater } = makeRandom();
-      const isWater = new Uint8Array(width * height);
-      for (let i = 0; i < isWater.length; i++)
-        isWater[i] = randWater() > 0.5 ? 1 : 0;
+      const isLand = new Uint8Array(width * height);
 
-      return (x, y) => isWater[y * width + x] ? water : land;
+      const regionDescendUnder = 0.9;
+      const skipAreaUnder = 0.3;
+      const goalLandRatio = 0.2;
+      const regionDensity = 0.25;
+
+      // BSP -> (maybe) DLA
+
+      const goalLandCount = goalLandRatio * width * height;
+      let haveLandCount = 0;
+
+      const { note: dlaNote } = makeNoteLayer();
+
+      const { random: randDescend } = makeRandom();
+      const { random: randSplit } = makeRandom();
+      for (const region of makeBSP({
+        width, height,
+        random: randSplit,
+        minSize: 4,
+      })) {
+        if (haveLandCount > goalLandCount) break;
+
+        const {
+          left: regionLeft, top: regionTop,
+          right: regionRight, bottom: regionBottom,
+          width: regionWidth, height: regionHeight,
+        } = region;
+
+        const regionArea = region.width * region.height;
+        const goalRemain = goalLandCount - haveLandCount;
+        const areaRatio = regionArea / goalRemain;
+
+        if (!region.isLeaf) {
+          const regionRand = randDescend();
+          const areaScore = Math.abs(areaRatio - 1.0);
+          const regionScore = Math.pow(regionRand, areaScore / region.depth);
+          if (regionScore < regionDescendUnder) {
+            region.descend();
+            continue;
+          }
+        } else if (region.depth > 1) {
+          const areaRand = randDescend();
+          const areaScore = Math.pow(areaRand, 1 / areaRatio);
+          if (areaScore < skipAreaUnder) continue;
+        }
+
+        const { random: dlaRandom, randomBigint: dlaRand } = makeRandom()
+
+        // seed
+        // TODO this probably would simplify using mat2/vec2 maths
+        const seedRange = [
+          0.25, 0.75, // X range
+          0.25, 0.75, // Y range
+        ];
+        const
+          sx = regionLeft + Math.floor(regionWidth * (seedRange[0] + (seedRange[1] - seedRange[0]) * dlaRandom())),
+          sy = regionTop + Math.floor(regionHeight * (seedRange[2] + (seedRange[3] - seedRange[2]) * dlaRandom()));
+        isLand[width * sy + sx] = 1;
+
+        dla({
+          left: regionLeft, top: regionTop,
+          width: regionWidth, height: regionHeight,
+          hitLimit: Math.min(
+            goalLandCount - haveLandCount,
+            regionDensity * regionWidth * regionHeight,
+          ),
+          random: dlaRandom,
+          rand: dlaRand,
+          *all() {
+            for (let i = 0; i < isLand.length; i++) {
+              if (isLand[i]) {
+                const x = i % width, y = Math.floor(i / width);
+                if (x < regionLeft) continue;
+                if (y < regionTop) continue;
+                if (x >= regionRight) continue;
+                if (y >= regionBottom) continue;
+                yield { x, y };
+              }
+            }
+          },
+          test: (x, y) => isLand[y * width + x] ? true : false,
+          set: (x, y) => isLand[y * width + x] = 1,
+          note: dlaNote,
+        });
+
+        haveLandCount = isLand.reduce((a, b) => a + b);
+      }
+
+      return (x, y) => isLand[y * width + x] ? land : water;
     })();
 
     // compute height/depth map ; TODO land is flat for now
