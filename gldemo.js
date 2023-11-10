@@ -5,6 +5,8 @@ import {
   sizeToClient,
 } from './glkit.js';
 
+import * as xorbig from './xorbig.js';
+
 import makeTileRenderer from './gltiles.js';
 /** @template T @typedef {import("./gltiles.js").tileable<T>} tileable */
 /** @template T @typedef {import("./gltiles.js").TileSheet<T>} TileSheet */
@@ -43,6 +45,7 @@ import {
  * @param {boolean|(() => boolean)} [opts.showCurvyTiles]
  * @param {boolean|(() => boolean)} [opts.clipCurvyTiles]
  * @param {SimpleTile[]} [opts.foreTiles]
+ * @param {Parameters<xorbig.generateRandoms>[0]} [opts.seed]
  */
 export default async function runDemo(opts) {
   let {
@@ -54,6 +57,8 @@ export default async function runDemo(opts) {
     worldHeight = 5,
     showCurvyTiles = true,
     clipCurvyTiles = false,
+
+    seed = 0xdead_beefn,
 
     foreTiles: foreTileSpecs = [
       { text: '1️⃣' }, // buttons 1-4
@@ -95,26 +100,34 @@ export default async function runDemo(opts) {
 
   let lastCurveClip = shouldClipCurvyTiles();
 
-  const generateWorld = () => {
-    const { rand: seeder } = makeRandom();
+  /** @param {Parameters<xorbig.generateRandoms>[0]} seed */
+  const generateWorld = seed => {
+    const
+      randoms = xorbig.generateRandoms(seed),
+      makeRandom = () => {
+        const res = randoms.next();
+        if (res.done) throw new Error('inconceivable: exhausted xorbig stream');
+        return res.value;
+      },
 
-    const land = landCurveTiles.getLayerID(0b0000);
-    const water = landCurveTiles.getLayerID(0b1111);
+      { width, height } = bg,
+      land = landCurveTiles.getLayerID(0b0000),
+      water = landCurveTiles.getLayerID(0b1111);
 
     // generate terrain
     const genTerrain = ( /** @returns {(x: number, y: number) => number} */ () => {
 
       // pure random scatter ; TODO better procgen
-      const { random: randWater } = makeRandom(seeder());
-      const isWater = new Uint8Array(bg.width * bg.height);
+      const { random: randWater } = makeRandom();
+      const isWater = new Uint8Array(width * height);
       for (let i = 0; i < isWater.length; i++)
         isWater[i] = randWater() > 0.5 ? 1 : 0;
 
-      return (x, y) => isWater[y * bg.width + x] ? water : land;
+      return (x, y) => isWater[y * width + x] ? water : land;
     })();
 
-    for (let y = 0; y < bg.height; y++) {
-      for (let x = 0; x < bg.width; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         bg.set(x, y, {
           layerID: genTerrain(x, y),
         });
@@ -122,11 +135,11 @@ export default async function runDemo(opts) {
     }
 
     // place fore objects
-    const { randn: randTile } = makeRandom(seeder());
-    const { random: randSpin } = makeRandom(seeder());
-    for (let y = 0; y < fg.height; y++) {
-      for (let x = 0; x < fg.width; x++) {
-        const tileID = Number(randTile(2n * BigInt(foreTiles.size)));
+    const { randomInt: randTile } = makeRandom();
+    const { random: randSpin } = makeRandom();
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const tileID = randTile() % (2 * foreTiles.size);
         if (tileID < foreTiles.size)
           fg.set(x, y, {
             layerID: foreTiles.getLayerID(tileID),
@@ -141,7 +154,7 @@ export default async function runDemo(opts) {
         : extendedBaseCellQuery(bg, landCurveTiles));
 
   };
-  generateWorld();
+  generateWorld(seed);
 
   const { stop, frames } = frameLoop(gl);
   const done = async function() {
@@ -210,7 +223,7 @@ export default async function runDemo(opts) {
       bg.resize(w, h);
       fg.resize(w, h);
       bgCurved.resize(w + 1, h + 1);
-      generateWorld();
+      generateWorld(seed);
     },
 
     /** @param {number} dx @param {number} dy */
@@ -229,13 +242,4 @@ export default async function runDemo(opts) {
     stop,
     done,
   };
-}
-
-function makeRandom(seed = 0xdead_beefn) {
-  let randState = seed;
-  const rand = () => (randState = randState * 6364136223846793005n + 1442695040888963407n) >> 17n & 0xffff_ffffn;
-  /** @param {bigint} n */
-  const randn = n => rand() % n;
-  const random = () => Number(rand()) / 0x1_0000_0000;
-  return { rand, randn, random };
 }

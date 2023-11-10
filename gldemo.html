@@ -229,6 +229,7 @@
 
           worldWidth: $worldWidth.valueAsNumber,
           worldHeight: $worldHeight.valueAsNumber,
+          seed: new Date(now).toLocaleDateString(),
 
           showCurvyTiles() {return $showCurves.checked},
           clipCurvyTiles() {return !$extendCurves.checked},
