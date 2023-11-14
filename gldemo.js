@@ -2283,6 +2283,7 @@ function makeCellUI({
         $el.addEventListener('touchcancel', cellUI.handleTouchEvent);
       }
 
+      // TODO wheel events
       // TODO pointer events
     },
 
