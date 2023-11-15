@@ -571,12 +571,18 @@ export default async function runDemo(opts) {
     });
   };
 
+  const logDialog = makeSingletonDialog({
+    id: 'demo_debug_log',
+    makeDialog,
+    query(selector) { return $world.ownerDocument.querySelector(selector) },
+  });
   const cellUI = makeCellUI({
     tileRend: tiles,
     view,
     tiles: cursorTiles,
     handle: pauseUIHandler,
     invoke: (action, mode, tile) => self.invokeCursorAction(action, mode, tile),
+    log: (...stuff) => logDialog.main.innerText = stuff.map(x => typeof x == 'string' ? x : JSON.stringify(x)).join(' '),
   });
   cellUI.addEventListeners($world);
   view.animClock = cellUI.animClock;
@@ -1710,12 +1716,14 @@ function makeSingletonDialog({
  * @param {TileSheet<string>} params.tiles
  * @param {(action: number, mode: 'mouse'|'key'|'touch', tile: UITile|null) => void} [params.invoke]
  * @param {Partial<CellUIHandler>} [params.handle]
+ * @param {(...stuff: any[]) => void} [params.log]
  */
 function makeCellUI({
   tileRend,
   view,
   tiles: cursorTiles, // TODO provide default / maybe only accept spec? or if dynamci sheet, just setend given...
   invoke = () => { },
+  log: _log = () => { },
   handle: {
     mouseEvent: handleMouseEvent = () => { },
     keyEvent: handleKeyEvent = () => { },
