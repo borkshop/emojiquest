@@ -1006,12 +1006,13 @@ export default async function runDemo(opts) {
   /** @type {[x: number, y: number]} */
   const pendingMoveAt = [0, 0];
 
-  /** @param {MoveInput} moveIn */
-  const resolveMoveInput = (moveIn/*, mode */) => {
+  /** @param {MoveInput} moveIn @param {string} mode */
+  const resolveMoveInput = (moveIn, mode) => {
     if (pendingMoveInput == null) return false;
     pendingMoveInput(moveIn);
     pendingMoveInput = null;
     cellUI.cursorMode = '';
+    lastPromptMode = mode;
     clearMyActions();
     return true;
   };
@@ -1023,12 +1024,14 @@ export default async function runDemo(opts) {
     return new Promise(resolve => pendingMoveInput = resolve);
   };
 
+  let lastPromptMode = 'mouse';
 
   const showMePrompt = () => {
     cellUI.cursorMode = 'moveMe';
     cellUI.cursorAt = pendingMoveAt;
     const [x, y] = pendingMoveAt;
     updateMyActions([
+      // TODO adapt tiles based on lastPromptMode-ality
       { xy: [x, y - 1], action: Action.MoveUp, tileID: 'moveUp' },
       { xy: [x + 1, y], action: Action.MoveRight, tileID: 'moveRight' },
       { xy: [x, y + 1], action: Action.MoveDown, tileID: 'moveDown' },
@@ -1583,10 +1586,10 @@ export default async function runDemo(opts) {
 
     /**
      * @param {number} action
-     * @param {string} _mode
+     * @param {string} mode
      * @param {UITile|null} _tile
      */
-    async invokeCursorAction(action, _mode, _tile) {
+    async invokeCursorAction(action, mode, _tile) {
       switch (action) {
 
         case Action.Help:
@@ -1604,23 +1607,23 @@ export default async function runDemo(opts) {
           break;
 
         case Action.MoveUp:
-          resolveMoveInput([0, -1]);
+          resolveMoveInput([0, -1], mode);
           break;
 
         case Action.MoveRight:
-          resolveMoveInput([1, 0]);
+          resolveMoveInput([1, 0], mode);
           break;
 
         case Action.MoveDown:
-          resolveMoveInput([0, 1]);
+          resolveMoveInput([0, 1], mode);
           break;
 
         case Action.MoveLeft:
-          resolveMoveInput([-1, 0]);
+          resolveMoveInput([-1, 0], mode);
           break;
 
         case Action.MoveStay:
-          resolveMoveInput([0, 0]);
+          resolveMoveInput([0, 0], mode);
           break;
 
         default:
