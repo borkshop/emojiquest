@@ -44,6 +44,7 @@ import {
 /**
  * @param {object} opts
  * @param {HTMLCanvasElement} opts.$world
+ * @param {() => HTMLElement} [opts.makeDialog]
  * @param {number} [opts.tileSize]
  * @param {number} [opts.cellSize]
  * @param {number} [opts.worldWidth]
@@ -56,6 +57,12 @@ import {
 export default async function runDemo(opts) {
   let {
     $world,
+    makeDialog = () => {
+      const $el = $world.ownerDocument.createElement('div');
+      $world.parentNode?.appendChild($el);
+      return $el;
+    },
+
     tileSize = 256,
     cellSize = 64,
 
@@ -138,6 +145,49 @@ export default async function runDemo(opts) {
   });
   const bgCurved = tiles.makeStaticLayer(curvedLayerParams(bg));
 
+  /** @param {number} x @param {number} y */
+  const worldAt = (x, y) => {
+    x = Math.floor(x), y = Math.floor(y);
+    const bgTile = bg.absAt(x, y);
+    if (bgTile == null) return null;
+    return {
+      get back() { return bgTile },
+      *fore() {
+        for (const tile of fg.all()) {
+          const { layerID, absXY: [foreX, foreY] } = tile;
+          if (foreX == x && foreY == y) {
+            yield Object.assign(tile, {
+              tileID: foreTiles.getTileID(layerID),
+            });
+          }
+        }
+      },
+    };
+  };
+
+  const inspectorDialog = makeSingletonDialog({
+    id: 'demo_inspector',
+    makeDialog,
+    query: selector => $world.ownerDocument.querySelector(selector),
+    createThen($dialog) {
+      // TODO hacking against index.css's full-width opinions
+      $dialog.style.left = 'initial';
+      console.log($dialog);
+    },
+    closeThen: () => {
+      $world.focus();
+      cellUI.cursorMode = '';
+    },
+  });
+
+  /** @param {[x: number, y: number]} cellXY */
+  const updateInspector = ([cellX, cellY]) => {
+    const cell = worldAt(cellX, cellY);
+    inspectorDialog.main.innerHTML = cell
+      ? objectTable(cell.back, ...cell.fore())
+      : `@${Math.floor(cellX)}, ${Math.floor(cellY)}`;
+  };
+
   /** @type {Partial<CellUIHandler>} */
   const uiHandler = {
     keyEvent({ type, key }) {
@@ -156,6 +206,34 @@ export default async function runDemo(opts) {
               showLayer.fg = !showLayer.fg;
               break;
 
+          }
+          break;
+      }
+    },
+
+    mouseEvent({ type, clientX, clientY }) {
+      const
+        [cellX, cellY] = view.reverseProject(clientX, clientY),
+        fx = Math.floor(cellX),
+        fy = Math.floor(cellY),
+        {
+          cursorMode: priorMode,
+          cursorAt: priorAt,
+        } = cellUI;
+      switch (type) {
+        case 'click':
+          cellUI.cursorMode = priorMode == 'active' ? 'hover' : 'active';
+          if (priorAt[0] != fx || priorAt[1] != fy) {
+            cellUI.cursorAt = [fx, fy];
+            updateInspector([cellX, cellY]);
+          }
+          break;
+        case 'mousemove':
+          if (priorMode == 'active') return;
+          if (priorAt[0] != fx || priorAt[1] != fy) {
+            cellUI.cursorAt = [fx, fy];
+            cellUI.cursorMode = 'hover';
+            updateInspector([cellX, cellY]);
           }
           break;
       }
@@ -330,6 +408,56 @@ export default async function runDemo(opts) {
   $world.focus();
 
   return self;
+}
+
+/** @param {object} params
+ * @param {string} params.id
+ * @param {() => HTMLElement} params.makeDialog
+ * @param {(selector: string) => HTMLElement|null} params.query
+ * @param {($dialog: HTMLElement) => void} [params.createThen]
+ * @param {() => void} [params.closeThen]
+ */
+function makeSingletonDialog({
+  id,
+  makeDialog,
+  query,
+  createThen = () => { },
+  closeThen = () => { },
+}) {
+  const diag = {
+    get isOpen() { return !!query(`#${id}`) },
+
+    get dialog() {
+      let $dialog = query(`#${id}`);
+      if (!$dialog) {
+        $dialog = makeDialog();
+        $dialog.id = id;
+        const $close = $dialog.appendChild($dialog.ownerDocument.createElement('button'));
+        $close.style.float = 'right';
+        $close.innerText = 'X';
+        $close.addEventListener('click', () => diag.close());
+        createThen($dialog);
+      }
+      return $dialog;
+    },
+
+    get main() {
+      const $dialog = diag.dialog;
+      let $main = $dialog.querySelector('main');
+      if (!$main) {
+        $main = $dialog.ownerDocument.createElement('main');
+        $dialog.appendChild($main);
+      }
+      return $main;
+    },
+
+    close() {
+      const $dialog = query(`#${id}`);
+      if ($dialog) $dialog.parentNode?.removeChild($dialog);
+      closeThen();
+    },
+  };
+  return diag;
 }
 
 /** @typedef {SparseTile & {
@@ -703,3 +831,29 @@ function makeCellUI({
 }
 
 /** @typedef {ReturnType<makeCellUI>} CellUI  */
+
+/** @param {{[key: string]: any}[]} os */
+function objectTable(...os) {
+  /** @type {Set<string>} */
+  const keys = new Set();
+  for (const o of os)
+    for (const [key, value] of Object.entries(o))
+      if (typeof value != 'function')
+        keys.add(key);
+
+  // TODO transpose wen?
+  // return `<table>
+  //   <thead><tr>${Array.from(keys).map(key =>
+  //   `<th>${key}</th>`).join('')}</tr></thead>
+  //   <tbody>${os.map(o =>
+  //     `<tr>${Array.from(keys).map(key =>
+  //       `<td>${JSON.stringify(o[key])}</td>`).join('')
+  //     }</tr>`).join('\n')}</tbody>
+  // </table>`;
+
+  return `<table>${Array.from(keys).map(key =>
+    `<tr><td>${key}</td>${os.map(o =>
+      `<td>${JSON.stringify(o[key])}</td>`).join('\n')
+    }</tr>`
+  ).join('')}</table>`;
+}

@@ -71,9 +71,7 @@
 
     window.addEventListener('unhandledrejection', ({reason}) =>
       addEntry(`unhandled rejection: ${reason}`));
-  </script>
 
-  <script type="module">
     import runDemo from './gldemo.js';
 
     const $world = document.querySelector('canvas#world');
@@ -196,6 +194,7 @@
 
         demo = await runDemo({
           $world,
+          makeDialog: makeDialogPanel,
           cellSize: $cellSize.valueAsNumber,
           tileSize: 256,
 
