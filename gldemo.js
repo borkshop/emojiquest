@@ -5,9 +5,13 @@ import {
   sizeToClient,
 } from './glkit.js';
 
+import makeMortonMap from './mortish.js';
+/** @typedef {import("./mortish.js").MortonMap} MortonMap */
+
 import * as xorbig from './xorbig.js';
 
 import makeTileRenderer from './gltiles.js';
+/** @typedef {import("./gltiles.js").AnimClock} AnimClock */
 /** @typedef {import("./gltiles.js").TileRenderer} TileRenderer */
 /** @typedef {import("./gltiles.js").View} TileView */
 /** @template T @typedef {import("./gltiles.js").tileable<T>} tileable */
@@ -29,8 +33,6 @@ import makeTileRenderer from './gltiles.js';
  */
 
 import {
-  generateSimpleTiles,
-
   generateCurvedTiles,
   curvedLayerParams,
   updateCurvedLayer,
@@ -40,6 +42,56 @@ import {
   drawSimpleTile,
 } from './tilegen.js';
 /** @typedef {import("./tilegen.js").SimpleTile} SimpleTile */
+
+/** @typedef {(
+ * | {turn: number}
+ * | {halt: string}
+ * )} GameState */
+
+const actorTypes = {
+  deer: {
+    tile: { text: '🦌' },
+    move: {
+      land: true,
+      water: [false, false, false, false],
+    },
+  },
+  bear: {
+    tile: { text: '🐻' },
+    move: {
+      land: true,
+      water: [true, false, false, false],
+    },
+  },
+  teapot: {
+    tile: { text: '🫖' },
+    move: {
+      land: true,
+      water: [true, true, false, false],
+    },
+  },
+  canoe: {
+    tile: { text: '🛶' },
+    move: {
+      land: false,
+      water: [true, true, true, false],
+    },
+  },
+  boat: {
+    tile: { text: '⛵' },
+    move: {
+      land: false,
+      water: [false, true, true, true],
+    },
+  },
+  fairy: {
+    tile: { text: '🧚' },
+    move: {
+      land: true,
+      water: [true, true, true, true],
+    },
+  },
+};
 
 /**
  * @param {object} opts
@@ -51,7 +103,8 @@ import {
  * @param {number} [opts.worldHeight]
  * @param {boolean} [opts.showCurvyTiles]
  * @param {boolean} [opts.clipCurvyTiles]
- * @param {SimpleTile[]} [opts.foreTiles]
+ * @param {(state: GameState) => void} [opts.onState]
+ * @param {boolean} [opts.startPlaying]
  * @param {Parameters<xorbig.generateRandoms>[0]} [opts.seed]
  */
 export default async function runDemo(opts) {
@@ -71,14 +124,10 @@ export default async function runDemo(opts) {
     showCurvyTiles = true,
     clipCurvyTiles = false,
 
+    startPlaying = false,
     seed = 0xdead_beefn,
 
-    foreTiles: foreTileSpecs = [
-      { text: '1️⃣' }, // buttons 1-4
-      { text: '2️⃣' },
-      { text: '3️⃣' },
-      { text: '4️⃣' },
-    ],
+    onState = () => { },
   } = opts;
 
   const helpDialog = makeSingletonDialog({
@@ -91,7 +140,61 @@ export default async function runDemo(opts) {
   const showLayer = {
     bgCurved: showCurvyTiles ? (clipCurvyTiles ? 2 : 1) : 0,
     fg: true,
+    notes: 0,
   };
+
+  const gameLogDialog = makeSingletonDialog({
+    id: 'demo_game_log',
+    makeDialog,
+    query: selector => $world.ownerDocument.querySelector(selector),
+    closeThen: () => $world.focus(),
+  });
+
+  const gameFormat = makeFormatter(obj => {
+    if ('tile' in obj) {
+      let { tile: desc, ...rest } = obj;
+
+      if ('id' in rest) {
+        let id;
+        ({ id, ...rest } = rest);
+        desc += `#${id}`;
+      }
+
+      if ('x' in rest && 'y' in rest) {
+        let x, y;
+        ({ x, y, ...rest } = rest);
+        desc += ` @<${x},${y}>`;
+      }
+
+      const trail = JSON.stringify(rest);
+      if (trail != '{}') {
+        desc += ` ${trail}`;
+      }
+
+      return desc;
+    }
+
+    return JSON.stringify(obj);
+  });
+
+  const gameLogLimit = 5;
+
+  /** @param {number} turn @param {string} mess @param {any[]} refs */
+  const gameLogSink = (turn, mess, ...refs) => {
+    console.log(`[Turn_${turn}] ${mess}`, ...refs);
+
+    const $entries = gameLogDialog.main;
+    const $entry = $entries.appendChild($entries.ownerDocument.createElement('div'));
+    $entry.innerText = gameFormat(mess, ...refs);
+    while ($entries.childNodes.length > gameLogLimit) {
+      const { firstChild } = $entries;
+      if (!firstChild) break;
+      $entries.removeChild(firstChild);
+    }
+  };
+
+  /** @param {string} mess @param {any[]} refs */
+  let gameLog = (mess, ...refs) => gameLogSink(NaN, mess, ...refs);
 
   const gl = $world.getContext('webgl2');
   if (!gl) throw new Error('No GL For You!');
@@ -103,6 +206,7 @@ export default async function runDemo(opts) {
     cellSize,
     defaultAnimDuration: userAnimTime,
   });
+  const initCellSize = view.cellSize;
 
   /** @returns {Generator<[id: string, spec: SimpleTile]>} */
   function* generateCursorTiles() {
@@ -117,6 +221,43 @@ export default async function runDemo(opts) {
 
     yield ['hover', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'blue' }];
     yield ['active', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'red' }];
+    yield ['move', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'yellow' }];
+    yield ['goal', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'green' }];
+
+    for (const { suffix, color } of [
+      { suffix: '', color: '#555' },
+      { suffix: 'Hover', color: '#55a' },
+      { suffix: 'HoverPulse', color: '#5af' },
+    ])
+      yield [`moveMe${suffix}`, [
+        { arc: { radius: { prop: 2 / 5 } }, stroke: color, lineWidth: { prop: 0.05 } },
+      ]];
+
+    for (const { action, text } of [
+      { action: 'play', text: '▶' },
+      { action: 'pause', text: '⏸' },
+    ]) for (const { suffix, color } of [
+      { suffix: '', color: '#555' },
+      { suffix: 'Pulse', color: '#5a5' },
+      { suffix: 'Hover', color: '#55a' },
+      { suffix: 'HoverPulse', color: '#5af' },
+    ]) yield [`${action}${suffix}`, glyphTile(text, color)];
+
+    for (const { action, text } of [
+      { action: 'moveLeft', text: '⇦' },
+      { action: 'moveUp', text: '⇧' },
+      { action: 'moveRight', text: '⇨' },
+      { action: 'moveDown', text: '⇩' },
+    ]) for (const { suffix, color } of [
+      { suffix: '', color: '#555' },
+      { suffix: 'Pulse', color: '#a55' },
+      { suffix: 'Hover', color: '#a5a' },
+      { suffix: 'HoverPulse', color: '#f5f' },
+    ]) yield [`${action}${suffix}`, [
+      { text, color: `${color}4`, font: 'monospace', height: { prop: 1.0 } },
+    ]];
+    // TODO restore key tiles
+    // { text: key, color, font: 'bolder monospace', height: { prop: 0.4 } },
 
     for (const { action, text } of [
       { action: 'help', text: '?' },
@@ -144,7 +285,53 @@ export default async function runDemo(opts) {
 
   const Action = {
     Help: 1,
+    PlayPause: 2,
+
+    MoveUp: 20,
+    MoveRight: 21,
+    MoveDown: 22,
+    MoveLeft: 23,
+    MoveStay: 24,
   };
+
+  /** @type {Map<number, string>} */
+  const ActionKeys = new Map([
+    [Action.MoveUp, 'w'],
+    [Action.MoveLeft, 'a'],
+    [Action.MoveDown, 's'],
+    [Action.MoveRight, 'd'],
+    // TODO multi keys? case insensitive.
+  ]);
+
+  const Kind = {
+    // fg layer userData.kind constants
+
+    /// element 0 is a bitfield
+    // User controlled
+    User: 0x01,
+
+    // TODO could add other kind element fields for enumerated types and such
+  };
+
+  const Move = {
+    StateMask: 0x30,
+    Defined: 0x10,
+    Proced: 0x20,
+    Done: 0x30,
+
+    ActionMask: 0x0f,
+    Stay: 0x00,
+    Nope: 0x01,
+    Move: 0x02,
+    Boop: 0x03,
+    Dead: 0x04,
+  };
+
+  const Goal = {
+    Defined: 0x01,
+  };
+
+  const gameAnim = tiles.makeAnimClock();
 
   const landCurveTiles = tiles.makeSheet(generateCurvedTiles({
     aFill: '#5c9e31', // land
@@ -152,7 +339,13 @@ export default async function runDemo(opts) {
     // gridLineStyle: 'red',
   }), { tileSize });
 
-  const foreTiles = tiles.makeSheet(generateSimpleTiles(...foreTileSpecs), { tileSize });
+  const foreTiles = tiles.makeSheet(
+    // TODO other fore tiles like items?
+    Object.entries(actorTypes).map(([id, { tile }]) => ({
+      id,
+      draw(ctx) { drawSimpleTile(tile, ctx) },
+    })),
+    { tileSize });
 
   const bg = tiles.makeStaticLayer({
     texture: landCurveTiles.texture,
@@ -162,9 +355,34 @@ export default async function runDemo(opts) {
 
   const fg = tiles.makeSparseLayer({
     texture: foreTiles.texture,
+    animClock: gameAnim,
+    userData: {
+      kind: {
+        ArrayType: Uint8Array,
+        size: 1,
+      },
+      move: {
+        ArrayType: Int8Array,
+        size: 3,
+      },
+      goal: {
+        ArrayType: Uint16Array,
+        size: 3,
+      },
+    },
   });
   const bgCurved = tiles.makeStaticLayer(curvedLayerParams(bg));
 
+  /** @param {number} id */
+  const gameLogFGRef = id => {
+    const ref = fg.ref(id);
+    if (!ref) return { id };
+    const { xy: [x, y], layerID } = ref;
+    const tile = foreTiles.getTileID(layerID);
+    return { id, tile, x, y, };
+  };
+
+  /** @param {number} x @param {number} y */
   /** @param {number} x @param {number} y */
   const worldAt = (x, y) => {
     x = Math.floor(x), y = Math.floor(y);
@@ -174,10 +392,21 @@ export default async function runDemo(opts) {
       get back() { return bgTile },
       *fore() {
         for (const tile of fg.all()) {
-          const { layerID, absXY: [foreX, foreY] } = tile;
+          const { index, layerID, absXY: [foreX, foreY] } = tile;
           if (foreX == x && foreY == y) {
+            const kind = [...fg.array.kind.subarray(1 * index, 1 * index + 1)];
+            const move = [...fg.array.move.subarray(3 * index, 3 * index + 3)];
+            const goal = [...fg.array.goal.subarray(3 * index, 3 * index + 3)];
+            const [moveFlags, ...moveXY] = move;
+            const [goalFlags, ...goalXY] = goal;
             yield Object.assign(tile, {
               tileID: foreTiles.getTileID(layerID),
+              kind: kind.map(x => toHex(x)),
+              user: kind[0] & Kind.User ? true : false,
+              moveFlags: toHex(moveFlags),
+              move: moveFlags & Move.Defined ? moveXY : null,
+              goalFlags: toHex(goalFlags, 4),
+              goal: goalFlags & Goal.Defined ? goalXY : null,
             });
           }
         }
@@ -206,10 +435,32 @@ export default async function runDemo(opts) {
     inspectorDialog.main.innerHTML = cell
       ? objectTable(cell.back, ...cell.fore())
       : `@${Math.floor(cellX)}, ${Math.floor(cellY)}`;
+
+    for (const _ of cellUI.prune()) { }
+    if (cell) {
+      for (const fore of cell.fore()) {
+        const { xy, move, goal } = fore;
+        if (move) {
+          const [x, y] = xy;
+          const [mx, my] = move;
+          cellUI.mark(x + mx, y + my, {
+            tileID: 'move',
+            animDuration: 300,
+          });
+        }
+        if (goal) {
+          const [gx, gy] = goal;
+          cellUI.mark(gx, gy, {
+            tileID: 'goal',
+            animDuration: 500,
+          });
+        }
+      }
+    }
   };
 
   /** @type {Partial<CellUIHandler>} */
-  const uiHandler = {
+  const pauseUIHandler = {
     keyEvent({ type, key }) {
       switch (type) {
         case 'keyup':
@@ -224,6 +475,43 @@ export default async function runDemo(opts) {
             case 'f':
             case 'F':
               showLayer.fg = !showLayer.fg;
+              break;
+
+            case 'n':
+            case 'N':
+              showLayer.notes = (showLayer.notes + 1) % (notes.length + 1);
+              break;
+
+            case '0':
+              if (view.cellSize < initCellSize) {
+                view.cellSize = initCellSize
+                view.panToInclude(pendingMoveAt);
+              } else {
+                const [clientWidth, clientHeight] = view.clientSize;
+                view.cellSize = Math.max(2,
+                  Math.floor(clientWidth / worldWidth),
+                  Math.floor(clientHeight / worldHeight));
+                view.panTo([0, 0]);
+              }
+              break;
+            case '-':
+              view.cellSize = Math.max(2, view.cellSize - 2);
+              break;
+            case '+':
+              view.cellSize = Math.min(256, view.cellSize + 2);
+              break;
+
+            case 'h':
+              view.panByCell([-1, 0]);
+              break;
+            case 'j':
+              view.panByCell([0, 1]);
+              break;
+            case 'k':
+              view.panByCell([0, -1]);
+              break;
+            case 'l':
+              view.panByCell([1, 0]);
               break;
 
           }
@@ -261,11 +549,28 @@ export default async function runDemo(opts) {
     },
   };
 
+  /** @type {Partial<CellUIHandler>} */
+  const playUIHandler = {
+  };
+
+  /** @type {null|((t: number) => void)} */
+  let pendingFrame = null;
+
+  const afterNextFrame = () => {
+    return new Promise(resolve => {
+      const prior = pendingFrame;
+      pendingFrame = t => {
+        if (prior) prior(t);
+        resolve(t);
+      };
+    });
+  };
+
   const cellUI = makeCellUI({
     tileRend: tiles,
     view,
     tiles: cursorTiles,
-    handle: uiHandler,
+    handle: pauseUIHandler,
     invoke: (action, mode, tile) => self.invokeCursorAction(action, mode, tile),
   });
   cellUI.addEventListeners($world);
@@ -312,10 +617,64 @@ export default async function runDemo(opts) {
     buttonSpecs.push({ id: helpButton.id, viewX: 0, viewY: -1 });
   }
 
+  /** @type {SparseLayer[]} */
+  const notes = [];
+
+  const makeNoteLayer = () => {
+    const layer = tiles.makeSparseLayer({
+      texture: cursorTiles.texture,
+    });
+    notes.push(layer);
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {string} tileID
+     */
+    const note = (x, y, tileID) => {
+      const layerID = cursorTiles.getLayerID(tileID);
+      if (!layerID) throw new Error(`invalid note tile "${tileID}"`);
+      const tile = layer.createRef();
+      tile.xy = [x, y];
+      tile.layerID = layerID;
+    };
+
+    return { layer, note };
+  };
+
   let lastCurveClip = clipCurvyTiles;
+
+  const landDepth = 4;
+  const depth = makeWeightMap(bg.width, bg.height);
+
+  /** @type {Array<Set<string>>} */
+  const depthActors = new Array(landDepth + 1);
+  for (let i = 0; i < depthActors.length; i++) depthActors[i] = new Set();
+  for (const [actorID, { move: { land, water } }] of Object.entries(actorTypes)) {
+    if (land) depthActors[landDepth].add(actorID);
+    for (let i = 0; i < water.length; i++)
+      if (water[i]) depthActors[landDepth - 1 - i].add(actorID);
+  }
+
+  /** @param {number} x @param {number} y */
+  const iterMoves = function*(x, y) {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const
+          td = Math.abs(dx) + Math.abs(dy),
+          atx = x + dx,
+          aty = y + dy;
+        if (td == 1 && bg.contains(atx, aty))
+          yield /** @type {[x: number, y: number]} */ ([atx, aty]);
+      }
+    }
+  };
 
   /** @param {Parameters<xorbig.generateRandoms>[0]} seed */
   const generateWorld = seed => {
+    for (const layer of notes) layer.deleteBuffers();
+    notes.length = 0;
+
     const
       randoms = xorbig.generateRandoms(seed),
       makeRandom = () => {
@@ -340,6 +699,44 @@ export default async function runDemo(opts) {
       return (x, y) => isWater[y * width + x] ? water : land;
     })();
 
+    // compute height/depth map ; TODO land is flat for now
+    depth.update(function*() {
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const layerID = genTerrain(x, y);
+          switch (layerID) {
+            case land:
+              yield [x, y, landDepth]
+              break;
+
+            case water:
+              break;
+
+            default:
+              console.warn('unknown terrain depth', { x, y, tile: landCurveTiles.getTileID(layerID) });
+              break;
+          }
+        }
+      }
+    }());
+
+    const iterDepth = function*() {
+      const W = depth.weight;
+      let x = 0, y = 0, i = 0;
+      while (i < W.length) {
+        const depth = W[i];
+        yield { x, y, i, depth };
+        i++, x++;
+        if (x >= width) x -= width, y++;
+      }
+    };
+
+    {
+      const { note } = makeNoteLayer();
+      for (const { x, y, depth } of iterDepth())
+        note(x, y, `note${depth}`);
+    }
+
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const cell = bg.at(x, y);
@@ -349,43 +746,585 @@ export default async function runDemo(opts) {
     }
 
     // place fore objects
-    const { randomInt: randTile } = makeRandom();
-    const { random: randSpin } = makeRandom();
-    /** @type {Set<number>} */
-    const newIDs = new Set();
-    let lastID = -1;
     fg.clear();
-    genFG: for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const tileID = randTile() % (2 * foreTiles.size);
-        if (tileID < foreTiles.size) {
-          const tile = fg.createRef();
-          if (newIDs.has(tile.id)) {
-            console.warn(`fg dupe tile id last:${lastID} new:${tile.id}`, { ...tile });
-            break genFG;
+
+    const occ = makeMortonMap();
+
+    const generateActors = function*() {
+      const { random: randTile } = makeRandom();
+      for (const { x, y, depth } of iterDepth()) {
+        const actorIDs = depthActors[depth];
+        const actorChoice = choose(actorIDs, { random: randTile });
+        if (!actorChoice) continue;
+
+        const {
+          item: actorID,
+          score: actorScore,
+          count: actorChoiceCount,
+        } = actorChoice;
+
+        // avoid placing any tiles next to each other
+        let neighbors = 0;
+        for (const [atx, aty] of iterMoves(x, y)) {
+          const at = occ.at(atx, aty);
+          if (at.count == 0) continue;
+          for (const atID of at) {
+            const atTileID = foreTiles.getTileID(fg.ref(atID)?.layerID || NaN);
+            if (atTileID !== undefined && atTileID != actorID) {
+              neighbors++;
+              break;
+            }
           }
-          newIDs.add(tile.id);
-          tile.xy = [x, y];
-          tile.spin = randSpin();
-          tile.layerID = foreTiles.getLayerID(tileID);
-          lastID = tile.id;
         }
+        if (neighbors > 0) continue;
+
+        // for every candidate tile that may be placed here,
+        // there's an equal chance to just not place anything
+        if (Math.pow(randTile(), 1 / actorChoiceCount) > actorScore) continue;
+
+        const layerID = foreTiles.getLayerID(actorID);
+        if (!layerID) throw new Error(`missing actor #${actorID} fore tile`);
+        const tile = fg.createRef();
+        tile.xy = [x, y];
+        tile.layerID = layerID;
+        occ.at(x, y).add(tile.id);
+        yield tile.id;
+      }
+    };
+
+    {
+      // NOTE this is mostly an obsolete test/debug audit
+      /** @type {Set<number>} */
+      const newIDs = new Set();
+      let lastID = -1;
+      for (const id of generateActors()) {
+        if (newIDs.has(id)) {
+          console.warn(`fg dupe id:${id} lastID:${lastID}`);
+          break;
+        }
+        newIDs.add(id);
+        lastID = id;
+
+        const ref = fg.ref(id);
+        if (!ref) throw new Error(`refless new actor id:${id}`);
       }
     }
+
     fg.prune();
 
     updateCurvedLayer(bgCurved, landCurveTiles,
       lastCurveClip
         ? clippedBaseCellQuery(bg, landCurveTiles)
         : extendedBaseCellQuery(bg, landCurveTiles));
-
   };
-  generateWorld(seed);
 
-  const { stop, frames } = frameLoop(gl);
-  const done = async function() {
+  /** @param {MortonMap} mm */
+  const ensurePlayer = mm => {
+    let playerID = -1, playerIndex = -1, playerScore = -1;
+    for (const { id, index, xy } of fg.all()) {
+      if (fg.array.kind[1 * index] & Kind.User) return id;
+
+      let free = 0;
+      for (const [atx, aty] of iterMoves(...xy))
+        if (mm.at(atx, aty).count == 0) free++;
+
+      if (free > playerScore) {
+        playerID = id;
+        playerIndex = index;
+        playerScore = free;
+      }
+    }
+
+    fg.array.kind[1 * playerIndex] = Kind.User;
+    gameLog('player is %o', gameLogFGRef(playerID));
+
+    return playerID;
+  };
+
+  const resetMoves = () => {
+    const { array: { move: moveData, goal: goalData } } = fg;
+    for (const { index } of fg.all()) {
+      const
+        moveEl = moveData.subarray(3 * index, 3 * index + 3),
+        goalEl = goalData.subarray(3 * index, 3 * index + 3);
+      moveEl.fill(0);
+      goalEl.fill(0);
+    }
+  };
+
+  const chooseMoves = async function*() {
+    const
+      { width, height } = bg,
+      { array: {
+        kind: kindData,
+        move: moveData,
+        goal: goalData,
+      } } = fg,
+      amp = Math.floor(Math.min(width, height) / 2),
+      scratch = makeWeightMap(width, height);
+
+    for (const tile of fg.all()) {
+      const
+        { id, index, xy } = tile,
+        kind = kindData[1 * index],
+        moveEl = moveData.subarray(3 * index, 3 * index + 3),
+        goalEl = goalData.subarray(3 * index, 3 * index + 3),
+        moveFlags = moveEl[0],
+        state = moveFlags & Move.StateMask;
+      if (state != 0) continue;
+
+      if ((kind & Kind.User) != 0) {
+        await promptMove(tile, moveEl);
+      } else {
+        const { layerID } = tile;
+        const subjectID = foreTiles.getTileID(layerID);
+        if (subjectID === undefined) continue;
+
+        scratch.update(function*() {
+          for (const { id: candID, xy: [x, y], layerID } of fg.all()) {
+            if (candID == id) continue;
+            const objectID = foreTiles.getTileID(layerID);
+            if (objectID === undefined) continue;
+            if (objectID === subjectID) continue;
+
+            yield [x, y, amp];
+          }
+        }());
+
+        const move = scratch.choose(...xy);
+        if (move) {
+          const goal = scratch.chase(move.x, move.y);
+          moveEl.set([Move.Defined, move.dx, move.dy]);
+          goalEl.set([Goal.Defined, ...goal]);
+        }
+      }
+
+      yield { id, tile, moveEl, goalEl };
+    }
+  };
+
+  /** @typedef {[dx: number, dy: number]} MoveInput */
+
+  /** @type {null|((moveIn: MoveInput) => void)} */
+  let pendingMoveInput = null;
+
+  /** @type {[x: number, y: number]} */
+  const pendingMoveAt = [0, 0];
+
+  /** @param {MoveInput} moveIn */
+  const resolveMoveInput = (moveIn/*, mode */) => {
+    if (pendingMoveInput == null) return false;
+    pendingMoveInput(moveIn);
+    pendingMoveInput = null;
+    cellUI.cursorMode = '';
+    clearMyActions();
+    return true;
+  };
+
+  /** @param {[x: number, y: number]} at @returns {Promise<MoveInput>} */
+  const moveInput = ([atX, atY]) => {
+    pendingMoveAt[0] = atX, pendingMoveAt[1] = atY;
+    showMePrompt();
+    return new Promise(resolve => pendingMoveInput = resolve);
+  };
+
+
+  const showMePrompt = () => {
+    cellUI.cursorMode = 'moveMe';
+    cellUI.cursorAt = pendingMoveAt;
+    const [x, y] = pendingMoveAt;
+    updateMyActions([
+      { xy: [x, y - 1], action: Action.MoveUp, tileID: 'moveUp' },
+      { xy: [x + 1, y], action: Action.MoveRight, tileID: 'moveRight' },
+      { xy: [x, y + 1], action: Action.MoveDown, tileID: 'moveDown' },
+      { xy: [x - 1, y], action: Action.MoveLeft, tileID: 'moveLeft' },
+    ]);
+  };
+
+  /**
+   * @param {SparseTile} tile
+   * @param {Int8Array} moveEl
+   */
+  const promptMove = async (tile, moveEl) => {
+    ensureViewContains(tile.id);
+    const [dx, dy] = await moveInput(tile.xy);
+    moveEl[0] = Move.Defined;
+    moveEl[1] = dx;
+    moveEl[2] = dy;
+  };
+
+  /**
+   * @param {object} params
+   * @param {MortonMap} params.mm
+   * @param {number} params.id
+   * @param {SparseTile} [params.tile]
+   * @param {Int8Array} [params.moveEl]
+   */
+  const procMove = params => {
+    const { id, tile = fg.ref(id) } = params;
+    if (!tile) throw new Error('must have tile');
+
+    const
+      { array: { move: moveData } } = fg,
+      { index, xy: [x, y] } = tile,
+      {
+        mm,
+        moveEl = moveData.subarray(3 * index, 3 * index + 3),
+      } = params,
+      [moveFlags, mx, my] = moveEl,
+      state = moveFlags & Move.StateMask;
+
+    if (state != Move.Defined) return false;
+
+    if (mx == 0 && my == 0) {
+      moveEl[0] = Move.Stay | Move.Proced;
+      return true;
+    }
+
+    const tx = x + mx, ty = my + y;
+    /** @type {null|ReturnType<fg["ref"]>} */
+    let targ = null;
+    for (const tid of mm.at(tx, ty)) {
+      targ = fg.ref(tid);
+      if (!targ) throw new Error(`missing target id ${tid} @<${tx}, ${ty}>`);
+      break;
+    }
+
+    const subjectID = foreTiles.getTileID(tile.layerID);
+    if (subjectID == undefined) throw new Error(`no tile for actor tile id ${id} @<${x}, ${y}>`);
+
+    if (!targ) {
+      const targDepth = depth.at(tx, ty);
+      if (targDepth === undefined || !depthActors[targDepth].has(subjectID)) {
+        moveEl[0] = Move.Nope | Move.Proced;
+        return true;
+      }
+
+      moveEl[0] = Move.Move | Move.Proced;
+      mm.at(tx, ty).add(id);
+      mm.at(x, y).del(id);
+      return true;
+    }
+
+    let canBoop = true;
+    const
+      { id: tid, index: targIndex, layerID: targLayerID } = targ,
+      targMove = moveData.subarray(3 * targIndex, 3 * targIndex + 3),
+      tMoveFlags = targMove[0],
+      tState = tMoveFlags & Move.StateMask;
+    switch (tMoveFlags & Move.ActionMask) {
+      case Move.Move:
+        canBoop = tState != Move.Proced; // concurrent move glances
+        break;
+
+      case Move.Boop:
+        canBoop = tState != Move.Proced; // concurrent boop glances
+        break;
+
+      case Move.Dead: // lost to another booper
+        canBoop = false;
+        break;
+
+      case Move.Stay:
+      case Move.Nope:
+      default:
+    }
+
+    if (!canBoop) {
+      moveEl[0] = Move.Nope | Move.Proced;
+      return true;
+    }
+
+    const objectID = foreTiles.getTileID(targLayerID);
+    if (objectID == undefined)
+      throw new Error(`missing target tile for id ${tid} @<${tx}, ${ty}>`);
+
+    // TODO other interaction outcomes than "death to all others"
+    if (subjectID !== objectID) {
+      if (fg.array.kind[index] & Kind.User && fg.array.kind[targIndex] & Kind.User) {
+        moveEl[0] = Move.Nope | Move.Proced;
+      } else {
+        const canSee = view.containsCell([x, y]) || view.containsCell([tx, ty]);
+        if (canSee)
+          gameLog('%o kills %o', gameLogFGRef(id), gameLogFGRef(tid));
+        moveEl[0] = Move.Boop | Move.Proced;
+        targMove[0] = Move.Dead | Move.Proced;
+      }
+    } else {
+      if (fg.array.kind[index] & Kind.User) {
+        if (fg.array.kind[targIndex] & Kind.User) {
+          moveEl[0] = Move.Nope | Move.Proced;
+        } else {
+          fg.array.kind[targIndex] |= Kind.User;
+          gameLog('user takes control of %o', gameLogFGRef(tid));
+          moveEl[0] = Move.Boop | Move.Proced;
+        }
+      } else {
+        moveEl[0] = Move.Nope | Move.Proced;
+      }
+    }
+    return true;
+  };
+
+  /** @param {number} animTime */
+  const animateMoves = async animTime => {
+    const { array: { move: moveData } } = fg;
+    let any = false;
+    for (const tile of fg.all()) {
+      const
+        { index, xy: [x, y] } = tile,
+        [moveFlags, mx, my] = moveData.subarray(3 * index, 3 * index + 3),
+        state = moveFlags & Move.StateMask,
+        action = moveFlags & Move.ActionMask;
+      if (state != Move.Proced) continue;
+
+      if (action == Move.Stay) {
+        // stay by shrinking 10%
+        tile.startAnim(animTime);
+        tile.scaleTo = tile.scale * 0.9;
+      }
+
+      else if (action == Move.Nope) {
+        // nope by trible shaking: there and back thrice, but only 1/8th of the way
+        tile.startAnim(animTime / 6, 0, 'loopback');
+        tile.xyTo = [x + mx / 8, y + my / 8];
+      }
+
+      else if (action == Move.Move) {
+        // just lol move there, nothing to see here
+        tile.startAnim(animTime);
+        tile.xyTo = [x + mx, my + y];
+      }
+
+      else if (action == Move.Boop) {
+        // boop by moving half way there and back
+        tile.startAnim(animTime / 2, 0, 'loopback');
+        tile.xyTo = [x + mx / 2, y + my / 2];
+      }
+
+      else if (action == Move.Dead) {
+        // die by shrinking away, but only take half move time, and coordinated to start at boop apex
+        tile.startAnim(animTime / 2, animTime / 2, 'once');
+        tile.scaleTo = 0;
+        // TODO fade tile to null ( or skull? )
+        // TODO would be nice to have option to anmiate mirror flip
+      }
+
+      else continue;
+
+      any = true;
+    }
+    return any
+      ? fg.animClock.afterDuration(animTime)
+      : fg.animClock.time;
+  };
+
+  /** @param {MortonMap} mm */
+  const finishMoves = (mm) => {
+    const { array: { move: moveData } } = fg;
+
+    for (const tile of fg.all()) {
+      const
+        { id, index, xy: [x, y] } = tile,
+        [moveFlags, mx, my] = moveData.subarray(3 * index, 3 * index + 3),
+        state = moveFlags & Move.StateMask,
+        action = moveFlags & Move.ActionMask;
+      if (state != Move.Proced) continue;
+
+      const isUser = !!(fg.array.kind[1 * index] & Kind.User);
+
+      moveData[3 * index] = action | Move.Done;
+
+      if (action == Move.Stay) {
+        tile.animDuration = 0;
+      }
+
+      else if (action == Move.Nope) {
+        tile.animDuration = 0;
+      }
+
+      else if (action == Move.Move) {
+        tile.xy = [x + mx, my + y];
+        tile.animDuration = 0;
+      }
+
+      else if (action == Move.Boop) {
+        tile.animDuration = 0;
+      }
+
+      else if (action == Move.Dead) {
+        if (isUser) gameLog('RIP user %o', gameLogFGRef(id));
+        mm.at(x, y).del(id);
+        tile.free();
+      }
+
+      else
+        console.warn('unsure how to finish move', { id, loc: [x, y], action });
+    }
+  };
+
+  let playing = false;
+  let playButtonID = NaN;
+  {
+    const playButton = cellUI.createTile('play', Action.PlayPause);
+    playButtonID = playButton.id;
+    playButton.actionKey = ' ';
+
+    if (startPlaying)
+      afterNextFrame().then(() =>
+        self.invokeCursorAction(Action.PlayPause, 'mouse' /** TODO isDesktop ? 'mouse' : 'touch' */, null));
+    buttonSpecs.push({ id: playButton.id, viewX: -1, viewY: -1 });
+  }
+
+  /** @type {number[]} */
+  const myActionIDs = [];
+
+  /** @typedef {object} MyAction
+   * @prop {[x: number, y: number]} xy
+   * @prop {number} action
+   * @prop {string} [actionKey]
+   * @prop {string} tileID
+   */
+
+  /** @param {Iterable<MyAction>} actions */
+  const updateMyActions = actions => {
+    let i = 0;
+    for (const {
+      xy, tileID, action,
+      actionKey = ActionKeys.get(action),
+    } of actions) {
+      const priorID = i < myActionIDs.length ? myActionIDs[i] : NaN;
+      if (!isNaN(priorID)) {
+        const act = cellUI.refTile(priorID);
+        if (act) {
+          act.layerID = cursorTiles.getLayerID(tileID);
+          act.action = action;
+          act.actionKey = actionKey || '';
+          act.xy = xy;
+          continue;
+        }
+      }
+      const act = cellUI.createTile(tileID, action);
+      act.xy = xy;
+      act.actionKey = actionKey || '';
+      if (i < myActionIDs.length) myActionIDs[i] = act.id;
+      else myActionIDs.push(act.id);
+      i++;
+    }
+    while (i < myActionIDs.length) {
+      const dedID = myActionIDs.pop();
+      if (dedID != undefined) cellUI.refTile(dedID)?.free();
+    }
+  };
+
+  const clearMyActions = () => {
+    for (const dedID of myActionIDs)
+      cellUI.refTile(dedID)?.free();
+  };
+
+  /** @param {number} id */
+  const ensureViewContains = id => {
+    const tile = fg.ref(id);
+    if (!tile) return;
+    const {
+      origin: [worldLeft, worldTop],
+      width: worldWidth,
+      height: worldHeight,
+    } = bg;
+    view.panToInclude(tile.xy, {
+      margin: [3, 3],
+      boundLower: [worldLeft, worldTop],
+      boundUpper: [worldLeft + worldWidth, worldTop + worldHeight],
+    });
+  };
+
+  /** @param {AnimClock} gameAnim */
+  const gameLoop = async gameAnim => {
+    const userAnimTime = 400;
+
+    await afterNextFrame();
+
+    gameAnim.reset();
+
+    let turn = 0;
+    gameLog = (mess, ...refs) => gameLogSink(turn, mess, ...refs);
+
+    const mm = makeMortonMap();
+    const updateMM = () => {
+      mm.clear();
+      for (const { id, xy: [x, y] } of fg.all())
+        mm.at(x, y).add(id);
+    };
+
+    generateWorld(seed);
+
+    updateMM();
+    ensureViewContains(ensurePlayer(mm));
+
+    let moveAnimTime = userAnimTime;
+    let spin = 0;
+    while (true /** TODO game halt condition check */) {
+      if (spin > 0) {
+        const backoff = Math.pow(2, spin);
+        if (backoff >= userAnimTime) {
+          onState({ halt: 'idle' });
+          return true;
+        }
+        await gameAnim.afterDuration(backoff);
+      } else await gameAnim.afterDuration(1);
+
+      const turnStart = gameAnim.time;
+
+      turn++;
+      onState({ turn });
+
+      updateMM(); // TODO this probably doesn't need cleared between turns, but caution...
+      ensureViewContains(ensurePlayer(mm));
+
+      resetMoves();
+      for await (const move of chooseMoves()) {
+        const
+          { tile: { index, xy } } = move,
+          isUser = !!(fg.array.kind[1 * index] & Kind.User);
+        if (!procMove({ mm, ...move })) continue;
+        if (view.containsCell(xy))
+          await animateMoves(
+            moveAnimTime = isUser
+              ? userAnimTime
+              : Math.max(10, moveAnimTime * 0.8)
+          );
+        finishMoves(mm);
+      }
+
+      const turnEnd = gameAnim.time;
+      const turnTime = turnEnd - turnStart;
+
+      if (turnTime < moveAnimTime) spin++;
+      else spin = 0;
+    }
+  };
+
+  const { stop: stopFrameLoop, frames } = frameLoop(gl);
+
+  const drawLoop = async () => {
     for await (const t of frames) {
       cellUI.animClock.update(t);
+      if (playing) gameAnim.update(t);
+
+      if (pendingFrame) {
+        pendingFrame(t);
+        pendingFrame = null;
+      }
+
+      if (playing && (
+        !self.gameDone ||
+        await Promise.race([
+          self.gameDone,
+          Promise.resolve(false),
+        ]))) {
+        self.playing = false;
+        self.gameDone = null;
+      }
 
       sizeToClient($world);
       view.update();
@@ -432,16 +1371,38 @@ export default async function runDemo(opts) {
         if (showLayer.fg) fg.draw();
 
         cellUI.draw();
+        if (showLayer.notes) {
+          const i = showLayer.notes - 1;
+          const layer = notes[i];
+          layer?.draw();
+        }
       });
     }
-  }();
+  };
 
-  const helpContent = () => `<table>
+  const helpContent = () => self.playing ? `
+    <p>
+      Play proceeds one entity at a time.
+      Input for player player controlled entities may be provided by:
+      <tt>W A S D</tt> movement keys, clicking adjacent arrow action tiles, or with (TODO) touch input.
+    </p>
+
+    <p>Press <tt>?</tt> to open/close this help screen.</p>
+
+    <p>Press <tt>&lt;Space&gt;</tt> to pause the game.
+      While paused, various game aspects may be inspected or changed.
+      See its <tt>?</tt> help screen for details.
+    </p>
+    ` :
+    `<table>
       <thead>
         <tr><th colspan="2" align="center">Keymap</th></tr>
         <tr><th>Key</th><th>Description</th></tr>
       </thead>
       <tbody>
+
+        <tr><td><tt>&lt;Space&gt;</tt></td><td>
+          Play / pause game simulation; when paused, mouse may be used to inspect tiles.</td></tr>
 
         <tr><td><tt>C</tt></td><td>
           Toggle curved layer mode: off, on with edge extendion, on sans edge extension.</td></tr>
@@ -451,6 +1412,23 @@ export default async function runDemo(opts) {
 
         <tr><td><tt>N</tt></td><td>
           Cycle through note layer visibility; note layers may be used for things like terrain depth/height or procgen feedback.</td></tr>
+
+        <tr><td>
+          <tt>-</tt>
+          <tt>+</tt>
+        </td><td>
+          Decrease / increase view cell size.</td></tr>
+
+        <tr><td><tt>0</tt></td><td>
+          Zoom viewport out to fit entire world, or back in to initial size.</td></tr>
+
+        <tr><td>
+          <tt>H</tt>
+          <tt>J</tt>
+          <tt>K</tt>
+          <tt>L</tt>
+        </td><td>
+          Vi-style arrows to pan viewport.</td></tr>
 
         <tr><td><tt>?</tt></td><td>
           Open/close (this) help dialog.</td></tr>
@@ -465,6 +1443,22 @@ export default async function runDemo(opts) {
 `;
 
   const self = {
+    get playing() { return playing },
+    set playing(p) {
+      playing = p;
+
+      if (playing && !self.gameDone)
+        self.gameDone = gameLoop(gameAnim);
+      if (!playing) gameAnim.pause();
+
+      cellUI.handle = playing ? playUIHandler : pauseUIHandler;
+      if (playing) inspectorDialog.close();
+      if (playing && pendingMoveInput) showMePrompt();
+
+      const tile = cellUI.refTile(playButtonID);
+      if (tile) tile.layerID = cursorTiles.getLayerID(playing ? 'pause' : 'play');
+    },
+
     get view() { return view },
 
     get cellSize() { return view.cellSize },
@@ -509,14 +1503,47 @@ export default async function runDemo(opts) {
           }
           break;
 
+        case Action.PlayPause:
+          self.playing = !self.playing;
+          if (helpDialog.isOpen) helpDialog.main.innerHTML = helpContent();
+          break;
+
+        case Action.MoveUp:
+          resolveMoveInput([0, -1]);
+          break;
+
+        case Action.MoveRight:
+          resolveMoveInput([1, 0]);
+          break;
+
+        case Action.MoveDown:
+          resolveMoveInput([0, 1]);
+          break;
+
+        case Action.MoveLeft:
+          resolveMoveInput([-1, 0]);
+          break;
+
+        case Action.MoveStay:
+          resolveMoveInput([0, 0]);
+          break;
+
         default:
           console.warn('unknown cursor action', action);
       }
     },
 
-    stop,
-    done: done.finally(() =>
+    /** @type {null|Promise<boolean>} */
+    gameDone: playing ? gameLoop(gameAnim) : null,
+
+    stop: stopFrameLoop,
+    done: drawLoop().finally(() =>
       cellUI.removeEventListeners($world)),
+
+    restart() {
+      self.gameDone = gameLoop(gameAnim);
+      self.playing = true;
+    },
   };
 
   if ($world.tabIndex < 0) $world.tabIndex = 0;
@@ -947,6 +1974,136 @@ function makeCellUI({
 
 /** @typedef {ReturnType<makeCellUI>} CellUI  */
 
+/**
+ * @param {number} width
+ * @param {number} height
+ */
+function makeWeightMap(width, height) {
+  const weight = new Int16Array(width * height);
+
+  /** @type {Array<number>} */
+  const q = [];
+
+  const reset = () => {
+    weight.fill(0);
+    q.length = 0;
+  };
+
+  /** @param {number} x @param {number} y @param {number} v */
+  const raise = (x, y, v) => {
+    const i = width * y + x;
+    if (Math.abs(v) > Math.abs(weight[i])) {
+      weight[i] = v;
+      if (Math.abs(v) > 1) q.unshift(i);
+    }
+  };
+
+  const flood = () => {
+    let sanity = width * height * q.length;
+    while (q.length) {
+      if (sanity-- < 0) throw new Error('flood ran out of sanity');
+
+      const i = q.shift();
+      if (i === undefined) continue;
+
+      const u = weight[i], v = u - Math.sign(u);
+      const x = i % width, y = Math.floor(i / width);
+
+      for (const [x2, y2] of [
+        [x - 1, y],
+        [x + 1, y],
+        [x, y - 1],
+        [x, y + 1],
+      ])
+        if (x2 >= 0 && x2 < width && y2 >= 0 && y2 < height)
+          raise(x2, y2, v);
+    }
+  };
+
+  /** @param {number} x @param {number} y */
+  const at = (x, y) => {
+    const i = width * y + x;
+    return i >= 0 && i < weight.length ? weight[i] : undefined;
+  };
+
+  /** @param {number} x @param {number} y */
+  const moves = function*(x, y) {
+    for (const [dx, dy] of [
+      [-1, 0],
+      [+1, 0],
+      [0, -1],
+      [0, +1],
+    ]) {
+      const x2 = x + dx;
+      const y2 = y + dy;
+      if (x2 >= 0 && x2 < width && y2 >= 0 && y2 < height) {
+        const weight = at(x2, y2);
+        if (weight !== undefined) yield {
+          dx, dy,
+          x: x2, y: y2,
+          weight,
+        };
+      }
+    }
+  };
+
+  /** @param {number} x @param {number} y */
+  const choose = (x, y, rand = () => 1.0) => {
+    const current = at(x, y);
+    if (current === undefined) return null;
+    const it = moves(x, y);
+    let res = it.next();
+    if (res.done) return null;
+    let choice = res.value, score = rand();
+    while (true) {
+      res = it.next();
+      if (res.done) break;
+      const alt = res.value;
+      if (alt.weight > choice.weight) {
+        choice = alt;
+      } else if (alt.weight == choice.weight) {
+        const altScore = rand();
+        if (altScore > score)
+          choice = alt, score = altScore;
+      }
+    }
+    if (current >= choice.weight) return null;
+    return choice;
+  };
+
+  return {
+    get width() { return width },
+    get height() { return height },
+    get weight() { return weight },
+    at,
+
+    /** @param {IterableIterator<[x: number, y: number, v: number]>} pointValues */
+    update(pointValues) {
+      reset();
+      for (const [x, y, v] of pointValues)
+        raise(x, y, v);
+      flood();
+    },
+
+    moves,
+    choose,
+
+    /** @param {number} x @param {number} y
+     * @returns {[x: number, y: number]} */
+    chase(x, y, rand = () => 1.0) {
+      let move = choose(x, y, rand);
+      let sanity = width * height;
+      while (move) {
+        if (--sanity < 0) throw new Error('chase ran out of sanity');
+        ({ x, y } = move);
+        move = choose(x, y, rand);
+      }
+      return [x, y];
+    },
+
+  };
+}
+
 /** @param {{[key: string]: any}[]} os */
 function objectTable(...os) {
   /** @type {Set<string>} */
@@ -971,4 +2128,71 @@ function objectTable(...os) {
       `<td>${JSON.stringify(o[key])}</td>`).join('\n')
     }</tr>`
   ).join('')}</table>`;
+}
+
+/** @param {number} x */
+function toHex(x, w = 2) {
+  return `0x${x.toString(16).padStart(w, '0')}`;
+}
+
+/** @template T
+ * @param {Iterable<T>} items
+ * @param {object} [params]
+ * @param {() => number} [params.random]
+ * @param {(value: T, index: number) => number} [params.weight]
+ */
+function choose(items, { random = Math.random, weight = () => 1 }) {
+  /** @type {T|undefined} */
+  let choice = undefined;
+  let best = NaN;
+  let count = 0;
+  for (const item of items) {
+    const score = Math.pow(random(), 1 / weight(item, count));
+    if (choice === undefined || score > best)
+      choice = item, best = score;
+    count++;
+  }
+  return choice === undefined ? undefined
+    : { score: best, item: choice, count };
+}
+
+/** @param {(obj: any) => string} formatObject */
+function makeFormatter(formatObject = JSON.stringify) {
+  /** @param {string} str @param {any[]} args */
+  return (str, ...args) => {
+    let i = 0;
+    str = str.replace(/\%([soOdif])/g,
+      (_match, code) => {
+        // TODO precision and width padding support
+        const arg = args[i++];
+        if (arg === undefined) return '';
+        switch (code) {
+          case 's': return `${arg}`;
+
+          case 'o':
+          case 'O':
+            return formatObject(arg);
+
+          case 'f': {
+            const n = Number(arg);
+            return `${n}`;
+          }
+
+          case 'd':
+          case 'i': {
+            const n = Number(arg);
+            return `${isNaN(n) ? 0 : Math.floor(n)}`;
+          }
+
+          default:
+            i--;
+            return '';
+        }
+      });
+
+    if (i < args.length)
+      str += args.slice(i).map(x => `${x}`).join(' ');
+
+    return str;
+  };
 }
