@@ -81,6 +81,13 @@ export default async function runDemo(opts) {
     ],
   } = opts;
 
+  const helpDialog = makeSingletonDialog({
+    id: 'demo_help_dialog',
+    makeDialog,
+    query: selector => $world.ownerDocument.querySelector(selector),
+    closeThen: () => $world.focus(),
+  });
+
   const showLayer = {
     bgCurved: showCurvyTiles ? (clipCurvyTiles ? 2 : 1) : 0,
     fg: true,
@@ -111,6 +118,15 @@ export default async function runDemo(opts) {
     yield ['hover', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'blue' }];
     yield ['active', { rect: 'border', lineWidth: { prop: 0.05 }, stroke: 'red' }];
 
+    for (const { action, text } of [
+      { action: 'help', text: '?' },
+    ]) for (const { suffix, color } of [
+      { suffix: '', color: '#555' },
+      { suffix: 'Pulse', color: '#5a5' },
+      { suffix: 'Hover', color: '#55a' },
+      { suffix: 'HoverPulse', color: '#5af' },
+    ]) yield [`${action}${suffix}`, glyphTile(text, color)];
+
     yield ['start', { arc: { radius: { prop: 1 / 9 } }, stroke: 'red', lineWidth: { prop: 0.05 } }];
     yield ['part', { arc: { radius: { prop: 1 / 9 } }, stroke: 'yellow', lineWidth: { prop: 0.025 } }];
 
@@ -125,6 +141,10 @@ export default async function runDemo(opts) {
     })),
     { tileSize }
   );
+
+  const Action = {
+    Help: 1,
+  };
 
   const landCurveTiles = tiles.makeSheet(generateCurvedTiles({
     aFill: '#5c9e31', // land
@@ -212,6 +232,7 @@ export default async function runDemo(opts) {
     },
 
     mouseEvent({ type, clientX, clientY }) {
+      if (helpDialog.isOpen) return;
       const
         [cellX, cellY] = view.reverseProject(clientX, clientY),
         fx = Math.floor(cellX),
@@ -245,9 +266,51 @@ export default async function runDemo(opts) {
     view,
     tiles: cursorTiles,
     handle: uiHandler,
+    invoke: (action, mode, tile) => self.invokeCursorAction(action, mode, tile),
   });
   cellUI.addEventListeners($world);
   view.animClock = cellUI.animClock;
+
+  /** @typedef {object} ButtonSpec
+   * @prop {number} id
+   * @prop {number} viewX
+   * @prop {number} viewY
+   */
+
+  /** @type {ButtonSpec[]} */
+  const buttonSpecs = [];
+
+  const ensureButtonsInView = () => {
+    const {
+      cellSize,
+      clientSize: [clientWidth, clientHeight],
+      cellOriginTo: [cellLeft, cellTop]
+    } = view,
+      cellWidth = Math.floor(clientWidth / cellSize),
+      cellHeight = Math.floor(clientHeight / cellSize),
+      left = Math.round(cellLeft * 1000) / 1000,
+      top = Math.round(cellTop * 1000) / 1000;
+
+    for (const { id, viewX, viewY } of buttonSpecs) {
+      const tile = cellUI.refTile(id);
+      if (!tile) continue;
+
+      const
+        wantX = left + (viewX < 0 ? cellWidth + viewX : viewX),
+        wantY = top + (viewY < 0 ? cellHeight + viewY : viewY),
+        { animDuration } = tile,
+        xy = animDuration > 0 ? tile.xyTo : tile.xy,
+        [x, y] = xy;
+      if (x != wantX || y != wantY) tile.xy = [wantX, wantY];
+    }
+  };
+
+  {
+    const helpButton = cellUI.createTile('help', Action.Help);
+    helpButton.actionKey = '?';
+    // TODO option to show help initially?
+    buttonSpecs.push({ id: helpButton.id, viewX: 0, viewY: -1 });
+  }
 
   let lastCurveClip = clipCurvyTiles;
 
@@ -326,6 +389,7 @@ export default async function runDemo(opts) {
 
       sizeToClient($world);
       view.update();
+      ensureButtonsInView();
 
       const nowCurveClip = clipCurvyTiles;
       if (lastCurveClip != nowCurveClip) {
@@ -371,6 +435,35 @@ export default async function runDemo(opts) {
       });
     }
   }();
+
+  const helpContent = () => `<table>
+      <thead>
+        <tr><th colspan="2" align="center">Keymap</th></tr>
+        <tr><th>Key</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+
+        <tr><td><tt>C</tt></td><td>
+          Toggle curved layer mode: off, on with edge extendion, on sans edge extension.</td></tr>
+
+        <tr><td><tt>F</tt></td><td>
+          Toggle foreground layer visibility.</td></tr>
+
+        <tr><td><tt>N</tt></td><td>
+          Cycle through note layer visibility; note layers may be used for things like terrain depth/height or procgen feedback.</td></tr>
+
+        <tr><td><tt>?</tt></td><td>
+          Open/close (this) help dialog.</td></tr>
+
+      </tbody>
+    </table>
+
+    <br />
+    <p>
+    May also use the mosue to inspect cells: hover and click to pin; disabled when help screen is shown.
+    </p>
+`;
+
   const self = {
     get view() { return view },
 
@@ -397,6 +490,28 @@ export default async function runDemo(opts) {
       bg.origin = [x, y];
       fg.origin = [x, y];
       bgCurved.origin = [x - 0.5, y - 0.5];
+    },
+
+    /**
+     * @param {number} action
+     * @param {string} _mode
+     * @param {UITile|null} _tile
+     */
+    async invokeCursorAction(action, _mode, _tile) {
+      switch (action) {
+
+        case Action.Help:
+          if (helpDialog.isOpen) helpDialog.close();
+          else {
+            cellUI.cursorMode = '';
+            inspectorDialog.close();
+            helpDialog.main.innerHTML = helpContent();
+          }
+          break;
+
+        default:
+          console.warn('unknown cursor action', action);
+      }
     },
 
     stop,
