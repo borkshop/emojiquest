@@ -1633,6 +1633,8 @@ export default async function runDemo(opts) {
       self.gameDone = gameLoop(gameAnim);
       self.playing = true;
     },
+
+    at: worldAt,
   };
 
   if ($world.tabIndex < 0) $world.tabIndex = 0;
