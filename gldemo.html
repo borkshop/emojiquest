@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" type="text/css" href="index.css" />
+  <meta name="viewport"
+    content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+
+  <title>Cube</title>
+</head>
+
+<body>
+
+  <canvas id="world" style="width: 100%; height: 100%"></canvas>
+
+  <script type="module">
+    const makeDialogPanel = () => {
+      const $panel = document.createElement('div');
+      $panel.className = 'dialog panel';
+
+      // TODO reconcile these hacks against index.css
+      $panel.style.textIndent = '0em';
+      $panel.style.padding = '1.4em 1em';
+
+      $world.parentNode.insertBefore($panel, $world);
+      return $panel;
+    };
+
+    const addEntry = mess => {
+      const $world = document.querySelector('#world');
+      if ($world) makeDialogPanel().innerText = mess;
+      else alert(mess);
+    };
+
+    window.addEventListener('error', ({message, filename, lineno, colno}) => {
+      addEntry(`uncaught: ${message} @${filename}:${lineno}:${colno}`);
+      return true;
+    });
+
+    window.addEventListener('unhandledrejection', ({reason}) =>
+      addEntry(`unhandled rejection: ${reason}`));
+
+    import runDemo from './gldemo.js';
+
+    const $world = document.querySelector('canvas#world');
+    if (!$world) throw new Error('unable to find world canvas');
+
+    let halt = true;
+    let demo = null;
+
+    async function run() {
+      if (!halt) return;
+      halt = false;
+      for (
+        let count = 0, backoff = 0, now = Date.now(), then = now;
+        !halt;
+        then = now,
+        backoff = Math.min(200, Math.pow(1.5, ++count))
+      ) {
+        const since = now - then;
+        const wait = backoff - since;
+        if (wait > 0)
+          await new Promise(resolve => setTimeout(resolve, wait));
+        count = 0;
+
+        demo = await runDemo({
+          $world,
+          makeDialog: makeDialogPanel,
+          cellSize: 64,
+          tileSize: 256,
+
+          worldWidth: 9 * 3,
+          worldHeight: 9 * 3,
+          startPlaying: true,
+          seed: new Date(now).toLocaleDateString(),
+        });
+        await demo.done;
+      }
+    }
+
+    // NOTE: do NOT await this call, or it hides failures
+    run();
+  </script>
+</body>
+
+</html>
