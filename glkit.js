@@ -390,10 +390,10 @@ function dataTypeInfo(gl, dataType) {
     case gl.UNSIGNED_INT_VEC3: return { name: 'uvec3', ArrayType: Uint32Array, shape: [3] };
     case gl.UNSIGNED_INT_VEC4: return { name: 'uvec4', ArrayType: Uint32Array, shape: [4] };
 
-    case gl.BOOL: return { name: 'bool', ArrayType: Uint32Array, shape: [1] };
-    case gl.BOOL_VEC2: return { name: 'bvec2', ArrayType: Uint32Array, shape: [2] };
-    case gl.BOOL_VEC3: return { name: 'bvec3', ArrayType: Uint32Array, shape: [3] };
-    case gl.BOOL_VEC4: return { name: 'bvec4', ArrayType: Uint32Array, shape: [4] };
+    case gl.BOOL: return { name: 'bool', ArrayType: Uint8Array, shape: [1] };
+    case gl.BOOL_VEC2: return { name: 'bvec2', ArrayType: Uint8Array, shape: [2] };
+    case gl.BOOL_VEC3: return { name: 'bvec3', ArrayType: Uint8Array, shape: [3] };
+    case gl.BOOL_VEC4: return { name: 'bvec4', ArrayType: Uint8Array, shape: [4] };
 
     case gl.FLOAT: return { name: 'float', ArrayType: Float32Array, shape: [1] };
     case gl.FLOAT_VEC2: return { name: 'vec2', ArrayType: Float32Array, shape: [2] };
@@ -564,8 +564,6 @@ export function makeDataFrame(gl, typeMap, initialCapacity = 8) {
     /** @returns {null|Required<Exclude<ArraySpec["gl"], undefined>>} */
     ({ ArrayType, size, gl: glSpec }, i) => {
       if (!glSpec) return null;
-
-      // TODO support just-in-time buffer (re)creation and the ability to delete buffers
 
       if ('attrib' in glSpec) {
         const {
