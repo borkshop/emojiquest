@@ -296,8 +296,89 @@ export const MonotonicIndex = Object.freeze(makeIndex({
   },
 }));
 
+/**
+ * @typedef {object} XYTopology
+ * @prop {(x: number, y: number) => number} resize
+ * @prop {(x: number, y: number) => number} at
+ * @prop {($index: number) => number} getX
+ * @prop {($index: number) => number} getY
+ * @prop {($index: number) => [x: number, y: number]} getXY
+ */
+
+/** @param {{width: number}|{height: number}|XYTopology} [shape] */
+export function makeXYIndex(shape = { width: 0 }) {
+  // TODO accept relative origin
+
+  const topo = (/** @returns {XYTopology} */ () => {
+    if ('width' in shape) {
+      let { width } = shape;
+      return {
+        at(x, y) {
+          if (x >= width) return NaN;
+          return y * width + x;
+        },
+        resize(x, y) {
+          width = x;
+          return x * y;
+        },
+        getX($index) { return $index % width },
+        getY($index) { return Math.floor($index / width) },
+        getXY($index) { return [$index % width, Math.floor($index / width)] },
+      };
+    }
+
+    if ('height' in shape) {
+      let { height } = shape;
+      return {
+        at(x, y) {
+          if (y >= height) return NaN;
+          return x * height + y;
+        },
+        resize(x, y) {
+          height = y;
+          return x * y;
+        },
+        getX($index) { return Math.floor($index / height) },
+        getY($index) { return $index % height },
+        getXY($index) { return [Math.floor($index / height), $index % height] },
+      };
+    }
+
+    return shape;
+  })();
+
+  return Object.freeze(makeIndex({
+    /** @param {[x: number, y: number]} at */
+    refToIndex(at) {
+      const [x, y] = at;
+      const $index = (x < 0 || y < 0) ? NaN : topo.at(x, y);
+      return $index;
+    },
+    resize(upto) {
+      return typeof upto == 'number' ? upto : topo.resize(...upto);
+    },
+  }, {
+    $x: {
+      enumerable: true,
+      /** @this {ThatElement} */
+      get() { return topo.getX(this.$index) },
+    },
+    $y: {
+      enumerable: true,
+      /** @this {ThatElement} */
+      get() { return topo.getY(this.$index) },
+    },
+    $xy: {
+      enumerable: true,
+      /** @this {ThatElement} */
+      get() { return topo.getXY(this.$index) },
+    },
+  }));
+}
+
+
 // TODO other index types like
-// xy xyz ...
+// xyz
 // external identifier (map based?)
 
 // TODO is there a stdlib version of this type function?
@@ -389,7 +470,7 @@ export function makeDataFrame(
       const newLength = index.resize(upto);
       length = newLength;
       for (let i = 0; i < aspects.length; i++)
-        aspects[i].resize(newLength);
+        aspects[i].resize(length);
     },
 
     /** @param {IndexRef} ref */

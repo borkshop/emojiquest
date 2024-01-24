@@ -5,6 +5,7 @@ import test from 'ava';
 import {
   makeDataFrame,
   MonotonicIndex,
+  makeXYIndex,
 } from './dataframe.js';
 
 function getHostLittleEndian() {
@@ -623,6 +624,85 @@ test('monotonic dataframe indexing', t => {
   t.is(df.ref(4)?.$index, 3);
   t.is(df.ref(5)?.$index, undefined);
   // TODO after resize? use dat?
+});
+
+test('xy spatial dataframe', t => {
+  const df = makeDataFrame(makeXYIndex(), { dat: 'uint8' }, [2, 2]);
+
+  for (const at of /** @type {[x: number, y: number][]} */ ([
+    [-1, 0],
+    [0, -1],
+    [-1, -1],
+    [2, 1],
+    [1, 2],
+    [2, 2],
+  ])) t.is(df.ref(at)?.$index, undefined, `expected ${at} to be undefined`);
+
+  for (const [i, x, y] of /** @type {[i: number, x: number, y: number][]} */ ([
+    [0, 0, 0],
+    [1, 1, 0],
+    [2, 0, 1],
+    [3, 1, 1],
+  ])) {
+    const ref = df.ref([x, y]);
+    t.is(ref?.$index, i);
+    t.is(ref?.$x, x);
+    t.is(ref?.$y, y);
+    t.deepEqual(ref?.$xy, [x, y]);
+  }
+
+  for (const [x, y, d] of /** @type {[i: number, x: number, y: number][]} */ ([
+    [0, 0, 7],
+    [1, 0, 14],
+    [0, 1, 21],
+    [1, 1, 28],
+  ])) {
+    const ref = df.ref([x, y]);
+    if (!t.truthy(ref, `must have ref @${[x, y]}`) || !ref) continue;
+    t.deepEqual(ref.$xy, [x, y]);
+    ref.dat = d;
+
+    const aref = df.aspects.dat.ref([x, y]);
+    if (!t.truthy(aref, `must have ref @${[x, y]}`) || !aref) continue;
+    t.deepEqual(aref.$xy, [x, y]);
+    t.is(aref.value, d);
+  }
+
+  t.deepEqual(copiedFrom(df), [
+    { $x: 0, $y: 0, $xy: [0, 0], dat: 7 },
+    { $x: 1, $y: 0, $xy: [1, 0], dat: 14 },
+    { $x: 0, $y: 1, $xy: [0, 1], dat: 21 },
+    { $x: 1, $y: 1, $xy: [1, 1], dat: 28 },
+  ]);
+
+  t.deepEqual(copiedFrom(df.aspects.dat), [
+    { $x: 0, $y: 0, $xy: [0, 0], value: 7 },
+    { $x: 1, $y: 0, $xy: [1, 0], value: 14 },
+    { $x: 0, $y: 1, $xy: [0, 1], value: 21 },
+    { $x: 1, $y: 1, $xy: [1, 1], value: 28 },
+  ]);
+
+  df.resize([3, 2]);
+  t.is(df.length, 6);
+  t.deepEqual(copiedFrom(df), [
+    { $x: 0, $y: 0, $xy: [0, 0], dat: 7 },
+    { $x: 1, $y: 0, $xy: [1, 0], dat: 14 },
+    { $x: 2, $y: 0, $xy: [2, 0], dat: 0 },
+    { $x: 0, $y: 1, $xy: [0, 1], dat: 21 },
+    { $x: 1, $y: 1, $xy: [1, 1], dat: 28 },
+    { $x: 2, $y: 1, $xy: [2, 1], dat: 0 },
+  ]);
+
+  df.resize([2, 3]);
+  t.is(df.length, 6);
+  t.deepEqual(copiedFrom(df), [
+    { $x: 0, $y: 0, $xy: [0, 0], dat: 7 },
+    { $x: 1, $y: 0, $xy: [1, 0], dat: 14 },
+    { $x: 0, $y: 1, $xy: [0, 1], dat: 21 },
+    { $x: 1, $y: 1, $xy: [1, 1], dat: 28 },
+    { $x: 0, $y: 2, $xy: [0, 2], dat: 0 },
+    { $x: 1, $y: 2, $xy: [1, 2], dat: 0 },
+  ]);
 });
 
 /** @template T, U
