@@ -1,5 +1,19 @@
 // @ts-check
 
+/* TODO
+ * - $used logic for indexes similar to how SparseAspect works,
+ *   but for pre-allocated frames, and with reuse
+ * - sub-frames ; basically a hashmap A:B join but B is sub-ordinally
+ *   indexed similar to SparseAspect
+ * - foreign frame reference aspect
+ * - peer frames ; basically a nat join a A:B:C:...
+ * - datatypes
+ *   - datetime
+ *   - arbitrary value Map<$index, V>
+ *   - custom vector/matrix type that has named accessors like .x .xy .xyz etc
+ * - multi-* aspects
+ */
+
 /** Specifies a DataFrame aspect, defaulting to dense storage.
  * Aspect data is allocated optimally for batch processing, especially of dense aspects;
  * this comes at the cost (runtime and api complexity) of transactional access (to/across each index position).
