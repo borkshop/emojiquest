@@ -883,6 +883,118 @@ export function makeSparseAspect(name, element, initialLength = 0) {
   return self;
 }
 
+/** @typedef {object} GLAttribSpec
+ * @prop {number} attrib
+ * @prop {boolean} [normalized]
+ * @prop {boolean} [asInt]
+ */
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {AspectCore} aspect
+ * @param {object} [options]
+ * @param {number} [options.target]
+ * @param {number} [options.usage]
+ * @param {{[name: string]: GLAttribSpec}} [options.attribMap]
+ */
+export function makeWebGLAspect(gl, aspect, {
+  target = gl.ARRAY_BUFFER,
+  usage = gl.STATIC_DRAW,
+  attribMap = {},
+} = {}) {
+  const aspectFields = Array.from(aspect.fieldInfo());
+  const attribEntries = Object.entries(attribMap);
+
+  if (target == gl.ELEMENT_ARRAY_BUFFER && aspectFields.length > 1)
+    throw new Error('element array buffer only supports mapping a single field');
+
+  if (target != gl.ARRAY_BUFFER && attribEntries.length > 0)
+    throw new Error('attribute mapping is only supported for ARRAY_BUFFER targets');
+
+  const { byteStride } = aspect;
+  if (attribEntries.length > 0 && byteStride > 255)
+    throw new Error('aspect byteStride may not exceed 255 fo ARRAY_BUFFER attrib targets');
+
+  const aspectFieldMap = Object.fromEntries(aspectFields.map(field => [field.name, field]));
+  const attribs = attribEntries.map(
+    ([name, { attrib, normalized = false, asInt = false }]) => {
+      const field = aspectFieldMap[name];
+      if (!field)
+        throw new Error(`no such aspect field "${name}"`);
+      const { type: fieldType, byteOffset, shape } = field;
+      const size = Math.ceil(typeof shape == 'number' ? shape : shape[0] * shape[1]);
+      const glType = scalarGLType(gl, fieldType);
+      return {
+        attrib,
+        normalized,
+        asInt,
+        glType,
+        size,
+        byteOffset,
+      };
+    });
+
+  /** @type {WebGLBuffer|null} */
+  let buffer = null;
+
+  return {
+    delete() {
+      if (buffer) {
+        gl.deleteBuffer(buffer);
+        buffer = null;
+      }
+    },
+
+    send() {
+      if (!buffer) buffer = gl.createBuffer()
+      if (!buffer) throw new Error(`unable to create webgl buffer for DataFrame aspect "${aspect.name}"`);
+      gl.bindBuffer(target, buffer)
+      gl.bufferData(target, aspect.buffer, usage);
+      gl.bindBuffer(target, null)
+    },
+
+    // TODO recv() for copying data back from gpu
+
+    bind() {
+      gl.bindBuffer(target, buffer)
+      for (const { attrib, glType, size, normalized, asInt, byteOffset } of attribs) {
+        gl.enableVertexAttribArray(attrib);
+        if (asInt) {
+          gl.vertexAttribIPointer(attrib, size, glType, byteStride, byteOffset);
+        } else {
+          gl.vertexAttribPointer(attrib, size, glType, normalized, byteStride, byteOffset);
+        }
+      }
+      gl.bindBuffer(target, null)
+    },
+
+    unbind() {
+      for (const { attrib } of attribs)
+        gl.disableVertexAttribArray(attrib);
+    },
+
+  };
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {Scalar} scalar
+ */
+export function scalarGLType(gl, scalar) {
+  switch (scalar) {
+    case 'float32': return gl.FLOAT;
+    case 'uint32': return gl.UNSIGNED_INT;
+    case 'uint16': return gl.UNSIGNED_SHORT;
+    case 'uint8':
+    case 'uint8Clamped': return gl.UNSIGNED_BYTE;
+    case 'int32': return gl.INT;
+    case 'int16': return gl.SHORT;
+    case 'int8': return gl.BYTE;
+    case 'bool': return gl.BOOL;
+    default: unreachable(scalar);
+  }
+}
+
 /**
  * @param {string} name
  * @param {Element} element
