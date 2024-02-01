@@ -550,16 +550,18 @@ export function makeDataFrame(
   };
 }
 
-/** @typedef {object} AspectCore
- * @prop {string} name
- * @prop {ArrayBuffer} buffer
- * @prop {number} byteLength
- * @prop {number} byteStride
- * @prop {number} length
- * @prop {() => void} clear
- * @prop {(newLength: number, remap: () => Iterable<RemapEntry>) => void} resize
- * @prop {() => Iterable<FieldInfo>} fieldInfo
- */
+/** @typedef { {
+ *   buffer: ArrayBuffer,
+ *   byteStride: number,
+ * } } Buffer */
+
+/** @typedef { Buffer & {
+ *   name: string,
+ *   length: number,
+ *   clear: () => void,
+ *   resize: (newLength: number, remap: () => Iterable<RemapEntry>) => void,
+ *   fieldInfo: () => Iterable<FieldInfo>,
+ * } } AspectCore */
 
 /** @template {Element} E
  * @template {PropertyDescriptorMap} IndexPropMap
@@ -590,14 +592,9 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
   if (typeof element != 'string' && typeof element != 'object')
     throw new Error('invalid aspect element spec');
 
-  const
-    byteStride = elementByteLength(element),
-    elementDescriptor = makeElementDescriptor(name, element, () => buffer, byteStride),
-    propMap = makeWrappedDescriptorMap(name, element, () => buffer, byteStride);
-
   let
     length = initialLength,
-    buffer = new ArrayBuffer(initialLength * byteStride);
+    buffer = new ArrayBuffer(initialLength * elementByteLength(element));
 
   /** @param {number} $index */
   const get = $index => {
@@ -619,11 +616,11 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
     return Object.seal($ref);
   };
 
-  return {
+  /** @type {DenseAspect<E, IndexRef, IndexPropMap>} */
+  const self = {
     get name() { return name },
     get buffer() { return buffer },
-    get byteLength() { return length * byteStride },
-    get byteStride() { return byteStride },
+    get byteStride() { return elementByteLength(element) },
     get length() { return length },
     get elementDescriptor() { return elementDescriptor },
     fieldInfo: () => elementFieldInfo(element),
@@ -634,6 +631,7 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
     },
 
     resize(newLength, remap) {
+      const { byteStride } = self;
       const newBuffer = new ArrayBuffer(byteStride * newLength);
 
       const nu8 = new Uint8Array(newBuffer);
@@ -659,6 +657,12 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
 
     [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
   };
+
+  const
+    elementDescriptor = makeElementDescriptor(name, element, self),
+    propMap = makeWrappedDescriptorMap(name, element, self);
+
+  return self;
 }
 
 /** @typedef {ThatElement & {
@@ -690,14 +694,9 @@ export function makeSparseAspect(name, element, initialLength = 0) {
   if (typeof element != 'string' && typeof element != 'object')
     throw new Error('invalid aspect element spec');
 
-  const
-    byteStride = elementByteLength(element),
-    innerDescriptor = makeElementDescriptor(name, element, () => buffer, byteStride),
-    propMap = makeWrappedDescriptorMap(name, element, () => buffer, byteStride);
-
   let
     length = 0,
-    buffer = new ArrayBuffer(initialLength * byteStride),
+    buffer = new ArrayBuffer(initialLength * elementByteLength(element)),
 
     used = makeBitVector(initialLength),
     /** @type Map<number, number> */
@@ -715,6 +714,7 @@ export function makeSparseAspect(name, element, initialLength = 0) {
   };
 
   const alloc = () => {
+    const { byteStride } = self;
     const $index = length++;
 
     let capacity = buffer.byteLength / byteStride;
@@ -815,11 +815,11 @@ export function makeSparseAspect(name, element, initialLength = 0) {
     },
   };
 
-  return {
+  /** @type {SparseAspect<E>} */
+  const self = {
     get name() { return name },
     get buffer() { return buffer },
-    get byteStride() { return byteStride },
-    get byteLength() { return length * byteStride },
+    get byteStride() { return elementByteLength(element) },
     get length() { return length },
     get elementDescriptor() { return outerDescriptor },
     fieldInfo: () => elementFieldInfo(element),
@@ -875,28 +875,33 @@ export function makeSparseAspect(name, element, initialLength = 0) {
     all: () => iterateCursor(ref(-1), () => length),
 
   };
+
+  const
+    innerDescriptor = makeElementDescriptor(name, element, self),
+    propMap = makeWrappedDescriptorMap(name, element, self);
+
+  return self;
 }
 
 /**
  * @param {string} name
  * @param {Element} element
- * @param {() => ArrayBuffer} getBuffer
- * @param {number} [byteStride]
+ * @param {Buffer} buf
  */
-function makeElementDescriptor(name, element, getBuffer, byteStride = elementByteLength(element)) {
+function makeElementDescriptor(name, element, buf) {
   if (typeof element == 'string') {
     const type = scalarType(element);
     const shape = componentShape(element);
     if (typeof shape == 'number' && shape == 1)
-      return makeScalarDescriptor(`${name}$`, type, getBuffer, byteStride);
+      return makeScalarDescriptor(`${name}$`, type, buf);
     element = { array: type, shape };
   }
 
   if ('array' in element)
-    return makeArrayDescriptor(`${name}@`, element, getBuffer, byteStride);
+    return makeArrayDescriptor(`${name}@`, element, buf);
 
   else if ('struct' in element)
-    return makeStruct(`${name}.`, element, getBuffer, byteStride).compoundDescriptor;
+    return makeStruct(`${name}.`, element, buf).compoundDescriptor;
 
   else unreachable(element);
 }
@@ -904,29 +909,28 @@ function makeElementDescriptor(name, element, getBuffer, byteStride = elementByt
 /**
  * @param {string} name
  * @param {Element} element
- * @param {() => ArrayBuffer} getBuffer
- * @param {number} [byteStride]
+ * @param {Buffer} buf
  * @returns {PropertyDescriptorMap}
  * TODO map each value types more narrowly
  */
-function makeWrappedDescriptorMap(name, element, getBuffer, byteStride = elementByteLength(element)) {
+function makeWrappedDescriptorMap(name, element, buf) {
   if (typeof element == 'string') {
     const type = scalarType(element);
     const shape = componentShape(element);
     if (typeof shape == 'number' && shape == 1)
       return {
-        value: makeScalarDescriptor(`${name}$`, type, getBuffer, byteStride),
+        value: makeScalarDescriptor(`${name}$`, type, buf),
       };
     element = { array: type, shape };
   }
 
   if ('array' in element)
     return {
-      value: makeArrayDescriptor(`${name}@`, element, getBuffer, byteStride),
+      value: makeArrayDescriptor(`${name}@`, element, buf),
     };
 
   if ('struct' in element)
-    return makeStruct(`${name}.`, element, getBuffer, byteStride).propMap;
+    return makeStruct(`${name}.`, element, buf).propMap;
 
   else unreachable(element);
 }
@@ -934,33 +938,32 @@ function makeWrappedDescriptorMap(name, element, getBuffer, byteStride = element
 /**
  * @param {string} name
  * @param {Scalar} type
- * @param {() => ArrayBuffer} getBuffer
- * @param {number} [byteStride]
+ * @param {Buffer} buf
  */
-function makeScalarDescriptor(name, type, getBuffer, byteStride = componentByteLength(type)) {
-  const { propMap: { value } } = makeStruct(name, { struct: { value: type } }, getBuffer, byteStride);
+function makeScalarDescriptor(name, type, buf) {
+  const { propMap: { value } } = makeStruct(name, { struct: { value: type } }, buf);
   return value;
 }
 
 /**
  * @param {string} name
  * @param {ArrayElement} element
- * @param {() => ArrayBuffer} getBuffer
- * @param {number} [byteStride]
+ * @param {Buffer} buf
  */
-function makeArrayDescriptor(name, element, getBuffer, byteStride = elementByteLength(element)) {
+function makeArrayDescriptor(name, element, buf) {
   const
     { array: type } = element,
     arrayType = componentTypedArray(type);
   return makeCompoundDescriptor(name,
     /** @returns {constructedArray<arrayType>} */
     el => {
-      // NOTE important to call getBuffer() AFTER $index access which may invalidate buffer
+      // NOTE important to call buf.buffer AFTER $index access which may invalidate buffer
       const
         { $index } = el,
         { shape } = element,
+        { buffer, byteStride } = buf,
         arrayStride = typeof shape == 'number' ? shape : shape[0] * shape[1];
-      return new arrayType(getBuffer(), $index * byteStride, arrayStride);
+      return new arrayType(buffer, $index * byteStride, arrayStride);
     },
 
     (ar, values) => ar.set(values));
@@ -969,16 +972,16 @@ function makeArrayDescriptor(name, element, getBuffer, byteStride = elementByteL
 /**
  * @param {string} name
  * @param {StructElement} element
- * @param {() => ArrayBuffer} getBuffer
- * @param {number} [byteStride]
+ * @param {Buffer} buf
  */
-function makeStruct(name, element, getBuffer, byteStride = elementByteLength(element)) {
+function makeStruct(name, element, buf) {
   /** @param {ThatElement} el */
   const getThatStruct = el => el._cache.get(`${name}$ThatStruct`, () => {
-    // NOTE important to call getBuffer() AFTER $index access which may invalidate buffer
-    const { $index, _cache } = el;
+    // NOTE important to call buf.buffer AFTER $index access which may invalidate buffer
+    const
+      { $index, _cache } = el,
+      { buffer, byteStride } = buf;
     const $offset = $index * byteStride, $end = $offset + byteStride;
-    const buffer = getBuffer();
     const $dataView = (isNaN($offset) || $end > buffer.byteLength) ? undefined
       : new DataView(buffer, $index * byteStride, byteStride);
     return { $dataView, _cache };

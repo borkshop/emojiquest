@@ -307,7 +307,7 @@ test('basic dataframe', t => {
   t.deepEqual(new Uint8Array(
     df.aspects.light.buffer,
     0,
-    df.aspects.light.byteLength
+    df.aspects.light.buffer.byteLength
   ), Uint8Array.of(
     193,
     176,
@@ -357,7 +357,7 @@ test('basic dataframe', t => {
   t.deepEqual(new Uint8Array(
     df.aspects.colors.buffer,
     0,
-    df.aspects.colors.byteLength,
+    df.aspects.colors.buffer.byteLength,
   ), Uint8Array.of(
     0x00, 0x00, 0x00, 0xff,
     0x10, 0x10, 0x10,
@@ -418,7 +418,7 @@ test('basic dataframe', t => {
   t.deepEqual(new Uint8Array(
     df.aspects.stats.buffer,
     0,
-    df.aspects.stats.byteLength
+    df.aspects.stats.buffer.byteLength
   ), Uint8Array.of(
     ...toHostOrder(0, 50),
     5,
@@ -440,7 +440,7 @@ test('basic dataframe', t => {
   t.deepEqual(new Uint8Array(
     df.aspects.could.buffer,
     0,
-    df.aspects.could.byteLength
+    df.aspects.could.buffer.byteLength
   ), Uint8Array.of(
     1, 0, 1, 1, 0,
     1, 1, 0, 0, 0,
