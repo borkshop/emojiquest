@@ -39,10 +39,14 @@
  * - struct, a named compound of scalar/vector/matrix field values
  *
  * @typedef {(
+ * | Datum
+ * )} Element */
+
+/** @typedef {(
  * | Component
  * | ArrayElement
  * | StructElement
- * )} Element */
+ * )} Datum */
 
 /** Specifies typed array element data, starting with scaslar elements (Size=1),
  * common vectors (Size=2,3,4), or larger "bag of numbers" types like matrices.
@@ -609,7 +613,7 @@ export function makeDataFrame(
 /**
  * @template IndexRef
  * @template {PropertyDescriptorMap} IndexPropMap
- * @template {Element} D
+ * @template {Datum} D
  * @param {string} name
  * @param {Index<IndexRef, IndexPropMap>} index
  * @param {D} dat
@@ -617,7 +621,7 @@ export function makeDataFrame(
  */
 function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
   const
-    byteStride = elementByteLength(dat);
+    byteStride = datumByteLength(dat);
 
   let
     length = initialLength,
@@ -638,7 +642,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
       },
     }));
 
-    const $ref = /** @type {ThatDenseValue<E, IndexPropMap>} */ (Object.defineProperties(makeIndexed(index, $el), propMap));
+    const $ref = /** @type {ThatDenseValue<D, IndexPropMap>} */ (Object.defineProperties(makeIndexed(index, $el), propMap));
 
     return Object.seal($ref);
   };
@@ -684,9 +688,10 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
     [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
   };
 
-  const
-    elementDescriptor = makeElementDescriptor(name, dat, self),
-    propMap = makeWrappedDescriptorMap(name, dat, self);
+  const {
+    element: elementDescriptor,
+    props: propMap,
+  } = makeDatumDescriptors(name, dat, self);
 
   return self;
 }
@@ -711,14 +716,14 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
  */
 
 /**
- * @template {Element} D
+ * @template {Datum} D
  * @param {string} name
  * @param {D} dat
  * @returns {SparseAspect<D>}
  */
 function makeSparseDatumAspect(name, dat, initialLength = 0) {
   const
-    byteStride = elementByteLength(dat);
+    byteStride = datumByteLength(dat);
 
   let
     length = 0,
@@ -901,9 +906,10 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
 
   };
 
-  const
-    innerDescriptor = makeElementDescriptor(name, dat, self),
-    propMap = makeWrappedDescriptorMap(name, dat, self);
+  const {
+    element: innerDescriptor,
+    props: propMap,
+  } = makeDatumDescriptors(name, dat, self);
 
   return self;
 }
@@ -1022,64 +1028,34 @@ export function scalarGLType(gl, scalar) {
 
 /**
  * @param {string} name
- * @param {Element} element
+ * @param {Datum} dat
  * @param {Buffer} buf
- */
-function makeElementDescriptor(name, element, buf) {
-  if (typeof element == 'string') {
-    const type = scalarType(element);
-    const shape = componentShape(element);
-    if (typeof shape == 'number' && shape == 1)
-      return makeScalarDescriptor(`${name}$`, type, buf);
-    element = { array: type, shape };
-  }
-
-  if ('array' in element)
-    return makeArrayDescriptor(`${name}@`, element, buf);
-
-  else if ('struct' in element)
-    return makeStruct(`${name}.`, element, buf).compoundDescriptor;
-
-  else unreachable(element);
-}
-
-/**
- * @param {string} name
- * @param {Element} element
- * @param {Buffer} buf
- * @returns {PropertyDescriptorMap}
+ * @returns {{ element: GetSetProp, props: GetSetPropMap }}
  * TODO map each value types more narrowly
  */
-function makeWrappedDescriptorMap(name, element, buf) {
-  if (typeof element == 'string') {
-    const type = scalarType(element);
-    const shape = componentShape(element);
-    if (typeof shape == 'number' && shape == 1)
-      return {
-        value: makeScalarDescriptor(`${name}$`, type, buf),
-      };
-    element = { array: type, shape };
+function makeDatumDescriptors(name, dat, buf) {
+  if (typeof dat == 'string') {
+    const type = scalarType(dat);
+    const shape = componentShape(dat);
+    if (typeof shape == 'number' && shape == 1) {
+      const { propMap: props } = makeStruct(`${name}$`, { struct: { value: type } }, buf);
+      const { value: element } = props;
+      return { props, element };
+    }
+    dat = { array: type, shape };
   }
 
-  if ('array' in element)
-    return {
-      value: makeArrayDescriptor(`${name}@`, element, buf),
-    };
+  if ('array' in dat) {
+    const element = makeArrayDescriptor(`${name}@`, dat, buf);
+    return { props: { value: element }, element };
+  }
 
-  if ('struct' in element)
-    return makeStruct(`${name}.`, element, buf).propMap;
+  if ('struct' in dat) {
+    const { compoundDescriptor: element, propMap: props } = makeStruct(`${name}.`, dat, buf);
+    return { props, element };
+  }
 
-  else unreachable(element);
-}
-
-/**
- * @param {string} name
- * @param {Scalar} type
- * @param {Buffer} buf
- */
-function makeScalarDescriptor(name, type, buf) {
-  const { propMap: { value } } = makeStruct(name, { struct: { value: type } }, buf);
-  return value;
+  else unreachable(dat);
 }
 
 /**
@@ -1201,6 +1177,8 @@ function makeFieldDescriptorMap(name, element) {
 
 /** @typedef {Required<Pick<PropertyDescriptor, "enumerable"|"get"|"set">>} GetSetProp */
 
+/** @typedef {{[key: string]: GetSetProp}} GetSetPropMap */
+
 /**
  * @param {string} name
  * @param {StructElement} element
@@ -1210,7 +1188,7 @@ function* fieldDescriptorEntries(name, element) {
   const { struct } = element;
   let byteOffset = 0;
   for (const [field, type] of Object.entries(struct)) {
-    const byteLength = elementByteLength(type);
+    const byteLength = datumByteLength(type);
     yield [field, makeFieldDescriptor(`${name}.${field}`, type, byteOffset)];
     byteOffset += byteLength;
   }
@@ -1315,29 +1293,29 @@ function makeFieldDescriptor(name, type, byteOffset = 0) {
   }
 }
 
-/** @param {Element} element */
-function elementByteLength(element) {
-  if (typeof element == 'string')
-    return componentByteLength(element);
+/** @param {Datum} dat */
+function datumByteLength(dat) {
+  if (typeof dat == 'string')
+    return componentByteLength(dat);
 
-  if ('array' in element) {
-    const { array: component, shape } = element;
+  if ('array' in dat) {
+    const { array: component, shape } = dat;
     return componentByteLength(component, shape);
   }
 
-  if ('struct' in element) {
+  if ('struct' in dat) {
     const
-      { struct } = element,
+      { struct } = dat,
       fields = Object.values(struct);
     let n = 0;
     for (const field of fields) {
       if (typeof field == 'string') n += componentByteLength(field);
-      else n += elementByteLength(field);
+      else n += datumByteLength(field);
     }
     return n;
   }
 
-  unreachable(element);
+  unreachable(dat);
 }
 
 /** @typedef {object} FieldInfo
@@ -1358,7 +1336,7 @@ function* elementFieldInfo(element) {
     yield {
       name: 'value',
       byteOffset: 0,
-      get byteLength() { return elementByteLength(element) },
+      get byteLength() { return datumByteLength(element) },
       typeSpec: element,
       get type() { return scalarType(element) },
       get shape() { return componentShape(element) },
@@ -1370,7 +1348,7 @@ function* elementFieldInfo(element) {
     yield {
       name: 'value',
       byteOffset: 0,
-      get byteLength() { return elementByteLength(element) },
+      get byteLength() { return datumByteLength(element) },
       typeSpec: element,
       type: array,
       shape,
@@ -1380,7 +1358,7 @@ function* elementFieldInfo(element) {
   else if ('struct' in element) {
     let byteOffset = 0;
     for (const [name, field] of Object.entries(element.struct)) {
-      const byteLength = elementByteLength(field);
+      const byteLength = datumByteLength(field);
 
       if (typeof field == 'string') {
         yield {
