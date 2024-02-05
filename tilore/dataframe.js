@@ -489,12 +489,25 @@ export function makeDataFrame(
   const initialLength = typeof initialRes == 'number' ? initialRes : initialRes.newLength;
 
   const
-    aspects = Object.entries(aspectSpecs).map(([name, spec]) =>
-      typeof spec == 'string'
-        ? makeDenseAspect(name, index, spec, initialLength)
-        : 'sparse' in spec
-          ? makeSparseAspect(name, spec.sparse, initialLength)
-          : makeDenseAspect(name, index, spec, initialLength)),
+    aspects = Object.entries(aspectSpecs).map(([name, spec]) => {
+      if (typeof spec == 'object') {
+        if (!spec)
+          throw new Error('invalid dense aspect element spec');
+
+        if ('sparse' in spec) {
+          const { sparse } = spec;
+
+          if (typeof sparse == 'object') {
+            if (!sparse)
+              throw new Error('invalid sparse aspect element spec');
+          }
+
+          return makeSparseDatumAspect(name, sparse, initialLength);
+        }
+      }
+
+      return makeDenseDatumAspect(name, index, spec, initialLength);
+    }),
 
     aspectPropMap = Object.fromEntries(aspectNames.map(
       /** @returns {[name: string, desc: PropertyDescriptor]} */
@@ -596,19 +609,19 @@ export function makeDataFrame(
 /**
  * @template IndexRef
  * @template {PropertyDescriptorMap} IndexPropMap
- * @template {Element} E
+ * @template {Element} D
  * @param {string} name
  * @param {Index<IndexRef, IndexPropMap>} index
- * @param {E} element
- * @returns {DenseAspect<E, IndexRef, IndexPropMap>}
+ * @param {D} dat
+ * @returns {DenseAspect<D, IndexRef, IndexPropMap>}
  */
-export function makeDenseAspect(name, index, element, initialLength = 0) {
-  if (typeof element != 'string' && typeof element != 'object')
-    throw new Error('invalid aspect element spec');
+function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
+  const
+    byteStride = elementByteLength(dat);
 
   let
     length = initialLength,
-    buffer = new ArrayBuffer(initialLength * elementByteLength(element));
+    buffer = new ArrayBuffer(initialLength * byteStride);
 
   /** @param {number} $index */
   const get = $index => {
@@ -630,14 +643,14 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
     return Object.seal($ref);
   };
 
-  /** @type {DenseAspect<E, IndexRef, IndexPropMap>} */
+  /** @type {DenseAspect<D, IndexRef, IndexPropMap>} */
   const self = {
     get name() { return name },
     get buffer() { return buffer },
-    get byteStride() { return elementByteLength(element) },
+    get byteStride() { return byteStride },
     get length() { return length },
     get elementDescriptor() { return elementDescriptor },
-    fieldInfo: () => elementFieldInfo(element),
+    fieldInfo: () => elementFieldInfo(dat),
 
     clear() {
       new Uint8Array(buffer).fill(0);
@@ -645,7 +658,6 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
     },
 
     resize(newLength, remap) {
-      const { byteStride } = self;
       const newBuffer = new ArrayBuffer(byteStride * newLength);
 
       const nu8 = new Uint8Array(newBuffer);
@@ -673,8 +685,8 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
   };
 
   const
-    elementDescriptor = makeElementDescriptor(name, element, self),
-    propMap = makeWrappedDescriptorMap(name, element, self);
+    elementDescriptor = makeElementDescriptor(name, dat, self),
+    propMap = makeWrappedDescriptorMap(name, dat, self);
 
   return self;
 }
@@ -699,18 +711,18 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
  */
 
 /**
- * @template {Element} E
+ * @template {Element} D
  * @param {string} name
- * @param {E} element
- * @returns {SparseAspect<E>}
+ * @param {D} dat
+ * @returns {SparseAspect<D>}
  */
-export function makeSparseAspect(name, element, initialLength = 0) {
-  if (typeof element != 'string' && typeof element != 'object')
-    throw new Error('invalid aspect element spec');
+function makeSparseDatumAspect(name, dat, initialLength = 0) {
+  const
+    byteStride = elementByteLength(dat);
 
   let
     length = 0,
-    buffer = new ArrayBuffer(initialLength * elementByteLength(element)),
+    buffer = new ArrayBuffer(initialLength * byteStride),
 
     used = makeBitVector(initialLength),
     /** @type Map<number, number> */
@@ -728,7 +740,6 @@ export function makeSparseAspect(name, element, initialLength = 0) {
   };
 
   const alloc = () => {
-    const { byteStride } = self;
     const $index = length++;
 
     let capacity = buffer.byteLength / byteStride;
@@ -789,7 +800,7 @@ export function makeSparseAspect(name, element, initialLength = 0) {
       },
     }));
 
-    const $ref = /** @type {ThatSparseValue<E>} */ (Object.defineProperties($el, propMap));
+    const $ref = /** @type {ThatSparseValue<D>} */ (Object.defineProperties($el, propMap));
 
     return Object.seal($ref);
   };
@@ -829,21 +840,21 @@ export function makeSparseAspect(name, element, initialLength = 0) {
     },
   };
 
-  /** @type {SparseAspect<E>} */
+  /** @type {SparseAspect<D>} */
   const self = {
     get name() { return name },
     get buffer() { return buffer },
-    get byteStride() { return elementByteLength(element) },
+    get byteStride() { return byteStride },
     get length() { return length },
     get elementDescriptor() { return outerDescriptor },
-    fieldInfo: () => elementFieldInfo(element),
+    fieldInfo: () => elementFieldInfo(dat),
 
     clear() {
       indexMap.clear();
       reverseMap.clear();
       length = 0;
       used.clear();
-      buffer = new ArrayBuffer(initialLength);
+      buffer = new ArrayBuffer(initialLength * byteStride);
       used.length = initialLength;
     },
 
@@ -891,8 +902,8 @@ export function makeSparseAspect(name, element, initialLength = 0) {
   };
 
   const
-    innerDescriptor = makeElementDescriptor(name, element, self),
-    propMap = makeWrappedDescriptorMap(name, element, self);
+    innerDescriptor = makeElementDescriptor(name, dat, self),
+    propMap = makeWrappedDescriptorMap(name, dat, self);
 
   return self;
 }
