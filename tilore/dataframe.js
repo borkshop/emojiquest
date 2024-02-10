@@ -712,6 +712,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
  *   getFor: ($frameIndex: number) => ThatSparseValue<E>|undefined,
  *   [Symbol.iterator]: () => Iterator<ThatSparseValue<E>>,
  *   all: () => Iterator<ThatSparseValue<E>>,
+ *   compact: () => void,
  * } } SparseAspect
  */
 
@@ -726,6 +727,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
  * @param {object} options
  * @param {(capacity: number) => void} options.grow
  * @param {() => void} options.clear
+ * @param {(i: number, j: number) => void} [options.swap]
  * @param {SparseReverseIndex} [options.reverse]
  * @param {number} [options.initialLength]
  */
@@ -735,6 +737,7 @@ function makeSparseIndex(name, {
   // TODO can we unify grow and clear into realloc(N, shouldCopy)?
   grow,
   clear,
+  swap,
   reverse,
 }) {
   let
@@ -913,7 +916,34 @@ function makeSparseIndex(name, {
       reverseUpdate(newIndexMap);
     },
 
-    // TODO compact
+    compact() {
+      if (!swap)
+        throw new Error(`sparse aspect "${name}" does not support compaction`);
+
+      // TODO evolve to relocate entire contiguous ranges when possible
+      let $holeIndex = 0, $nextIndex = 0;
+      for (; $nextIndex < length; $nextIndex++) {
+        if (!used.is($nextIndex)) continue;
+
+        const $frameIndex = reverseGet($nextIndex);
+        if ($frameIndex == undefined) continue;
+
+        while ($holeIndex < $nextIndex && used.is($holeIndex))
+          $holeIndex++;
+        if ($holeIndex >= $nextIndex) continue;
+
+        swap($holeIndex, $nextIndex);
+        used.set($holeIndex);
+        used.unset($nextIndex);
+
+        indexMap.set($frameIndex, $holeIndex);
+
+        reverseSet($holeIndex, $frameIndex);
+        reverseSet($nextIndex, undefined);
+      }
+
+      length = used.is($holeIndex) ? $holeIndex + 1 : $holeIndex;
+    },
 
     ref: makeElement,
 
@@ -981,20 +1011,39 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
     grow(capacity) {
       const newByteLength = capacity * byteStride;
       if (newByteLength > buffer.byteLength) {
+        // TODO use buffer.transfer someday
         const newBuffer = new ArrayBuffer(newByteLength);
         new Uint8Array(newBuffer).set(new Uint8Array(buffer));
         buffer = newBuffer;
+        u8 = new Uint8Array(buffer);
       }
     },
 
     clear() {
       buffer = new ArrayBuffer(index.capacity * byteStride);
+      u8 = new Uint8Array(buffer);
+    },
+
+    swap(i, j) {
+      const a = u8.subarray(byteStride * i, byteStride * (i + 1));
+      const b = u8.subarray(byteStride * j, byteStride * (j + 1));
+      tmp.set(a);
+      // a.set(b);
+      u8.copyWithin(
+        byteStride * j,
+        byteStride * i, byteStride * (i + 1));
+      b.set(tmp);
     },
 
   }),
-    byteStride = datumByteLength(dat);
+    byteStride = datumByteLength(dat),
+    tmp = new Uint8Array(byteStride)
+    ;
 
-  let buffer = new ArrayBuffer(index.capacity * byteStride);
+  let
+    buffer = new ArrayBuffer(index.capacity * byteStride),
+    u8 = new Uint8Array(buffer)
+    ;
 
   /**
    * @param {number} $index
@@ -1012,6 +1061,8 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
     clear() { index.clear() },
 
     resize(newLength, remap) { index.resize(newLength, remap) },
+
+    compact() { index.compact() },
 
     get buffer() { return buffer },
     get byteStride() { return byteStride },
