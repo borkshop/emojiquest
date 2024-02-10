@@ -658,7 +658,6 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
 
     clear() {
       new Uint8Array(buffer).fill(0);
-      // TODO specific default value?
     },
 
     resize(newLength, remap) {
