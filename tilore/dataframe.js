@@ -847,7 +847,7 @@ function makeSparseIndex(name, {
         get() { return $index },
         set: indexReadonly ? undefined : i => {
           theCache.clear();
-          $index = Math.min(length, Math.max(0, i));
+          $index = Math.min(capacity, Math.max(0, i));
         },
       },
 
@@ -926,7 +926,7 @@ function makeSparseIndex(name, {
 
       // TODO evolve to relocate entire contiguous ranges when possible
       let $holeIndex = 0, $nextIndex = 0;
-      for (; $nextIndex < length; $nextIndex++) {
+      for (; $nextIndex < capacity; $nextIndex++) {
         if (!used.is($nextIndex)) continue;
 
         const $frameIndex = reverseGet($nextIndex);
@@ -992,7 +992,7 @@ function makeSparseIndex(name, {
             innerSet.call($element, value);
           } else if ($index !== undefined) {
             _cache.delete(`${name}$element`);
-            del($index, $frameIndex);
+            del($frameIndex, $index);
           }
         },
 
@@ -1034,8 +1034,8 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
       tmp.set(a);
       // a.set(b);
       u8.copyWithin(
-        byteStride * j,
-        byteStride * i, byteStride * (i + 1));
+        byteStride * i,
+        byteStride * j, byteStride * (j + 1));
       b.set(tmp);
     },
 
@@ -1080,10 +1080,10 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
     },
 
     [Symbol.iterator]: () => iterateCursor(ref(-1),
-      () => index.length,
+      () => index.capacity,
       ({ $index }) => index.used($index)),
 
-    all: () => iterateCursor(ref(-1), () => index.length),
+    all: () => iterateCursor(ref(-1), () => index.capacity),
 
   };
 
