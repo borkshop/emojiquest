@@ -1075,10 +1075,10 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
     },
 
     [Symbol.iterator]: () => iterateCursor(ref(-1),
-      () => length,
+      () => index.length,
       ({ $index }) => index.used($index)),
 
-    all: () => iterateCursor(ref(-1), () => length),
+    all: () => iterateCursor(ref(-1), () => index.length),
 
   };
 
