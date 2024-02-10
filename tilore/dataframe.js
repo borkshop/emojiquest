@@ -673,7 +673,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
     get byteStride() { return byteStride },
     get length() { return length },
     get elementDescriptor() { return elementDescriptor },
-    fieldInfo() { return elementFieldInfo(dat, this) },
+    fieldInfo() { return datumFieldInfo(dat) },
 
     clear() {
       new Uint8Array(buffer).fill(0);
@@ -1084,7 +1084,7 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
 
     get buffer() { return buffer },
     get byteStride() { return byteStride },
-    fieldInfo() { return elementFieldInfo(dat, this) },
+    fieldInfo() { return datumFieldInfo(dat) },
 
     get: $index => ref($index),
 
@@ -1225,7 +1225,7 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
 
     get buffer() { return buffer },
     get byteStride() { return byteStride },
-    fieldInfo() { return elementFieldInfo(order, this) },
+    fieldInfo() { return datumFieldInfo(datType) },
 
     get: $index => ref($index),
 
@@ -1679,37 +1679,36 @@ function datumByteLength(dat) {
  */
 
 /**
- * @param {Element} element
- * @param {{length: number}} ctx
+ * @param {Datum} dat
  * @returns {Generator<FieldInfo>}
  */
-function* elementFieldInfo(element, ctx) {
-  if (typeof element == 'string') {
+function* datumFieldInfo(dat) {
+  if (typeof dat == 'string') {
     yield {
       name: 'value',
       byteOffset: 0,
-      get byteLength() { return datumByteLength(element) },
-      typeSpec: element,
-      get type() { return scalarType(element) },
-      get shape() { return componentShape(element) },
+      get byteLength() { return datumByteLength(dat) },
+      typeSpec: dat,
+      get type() { return scalarType(dat) },
+      get shape() { return componentShape(dat) },
     };
   }
 
-  else if ('array' in element) {
-    const { array, shape } = element;
+  else if ('array' in dat) {
+    const { array, shape } = dat;
     yield {
       name: 'value',
       byteOffset: 0,
-      get byteLength() { return datumByteLength(element) },
-      typeSpec: element,
+      get byteLength() { return datumByteLength(dat) },
+      typeSpec: dat,
       type: array,
       shape,
     };
   }
 
-  else if ('struct' in element) {
+  else if ('struct' in dat) {
     let byteOffset = 0;
-    for (const [name, field] of Object.entries(element.struct)) {
+    for (const [name, field] of Object.entries(dat.struct)) {
       const byteLength = datumByteLength(field);
 
       if (typeof field == 'string') {
@@ -1739,19 +1738,7 @@ function* elementFieldInfo(element, ctx) {
     }
   }
 
-  else if ('order' in element) {
-    const type = orderType(element, ctx);
-    yield {
-      name: 'order',
-      byteOffset: 0,
-      get byteLength() { return componentByteLength(type) },
-      typeSpec: type,
-      get type() { return type },
-      get shape() { return 1 },
-    };
-  }
-
-  else unreachable(element);
+  else unreachable(dat);
 }
 
 /** @param {Component} component */
