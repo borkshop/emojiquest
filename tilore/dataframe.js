@@ -514,7 +514,7 @@ export function makeDataFrame(
             if (!sparse)
               throw new Error('invalid sparse aspect element spec');
             if ('order' in sparse)
-              throw new Error('sparse order aspect not implemented');
+              return makeSparseOrderAspect(name, sparse, initialLength);
           }
 
           return makeSparseDatumAspect(name, sparse, initialLength);
@@ -1076,13 +1076,10 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
     get name() { return name },
 
     get capacity() { return index.capacity },
-
     get length() { return index.length },
     get elementDescriptor() { return index.wrapDescriptor(innerDescriptor) },
     clear() { index.clear() },
-
     resize(newLength, remap) { index.resize(newLength, remap) },
-
     compact() { index.compact() },
 
     get buffer() { return buffer },
@@ -1110,6 +1107,139 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
   } = makeDatumDescriptors(name, dat, self);
 
   return self;
+}
+
+/**
+ * @template {Order} O
+ * @param {string} name
+ * @param {O} order
+ * @returns {SparseAspect<O>}
+ */
+function makeSparseOrderAspect(name, order, initialLength = 0) {
+  const index = makeSparseIndex(name, {
+    initialLength,
+
+    grow(capacity) {
+      // TODO use buffer.transfer someday
+      const newBuffer = new ArrayBuffer(capacity * byteStride);
+      new Uint8Array(newBuffer).set(new Uint8Array(buffer));
+      buffer = newBuffer;
+      array = new ArrayType(buffer);
+    },
+
+    clear() {
+      buffer = new ArrayBuffer(index.capacity * byteStride);
+      array = new ArrayType(buffer);
+    },
+
+    swap(i, j) {
+      const tmp = array[i];
+      array[i] = array[j];
+      array[j] = tmp;
+    },
+
+    reverse: {
+      get($index) { return array[$index] },
+      set($index, $frameIndex) {
+        if ($frameIndex != undefined)
+          array[$index] = $frameIndex;
+        else
+          array[$index] = index.frameLength;
+      },
+      update(entries) {
+        const { capacity, frameLength } = index;
+        const newDatType = orderType(order, { length: frameLength });
+        const realloc = capacity != array.length || newDatType != datType;
+
+        if (newDatType != datType) {
+          datType = newDatType;
+          byteStride = datumByteLength(datType);
+          ArrayType = componentTypedArray(datType);
+        }
+
+        if (realloc) {
+          buffer = new ArrayBuffer(capacity * byteStride);
+          array = new ArrayType(buffer);
+        }
+
+        for (const [$frameIndex, $index] of entries)
+          array[$index] = $frameIndex;
+      },
+    },
+
+  });
+
+  let
+    datType = orderType(order, { length: index.frameLength }),
+    byteStride = datumByteLength(datType),
+    ArrayType = componentTypedArray(datType),
+    buffer = new ArrayBuffer(index.capacity * byteStride),
+    array = new ArrayType(buffer);
+
+  /** @type {GetSetProp} */
+  const orderDesc = {
+    enumerable: true,
+
+    /** @this {ThatElement} */
+    get() {
+      const { $index: $frameIndex } = this;
+      const $index = index.get($frameIndex);
+      return $index;
+    },
+
+    /** @this {ThatElement} */
+    set($index) {
+      const { $index: $frameIndex } = this;
+
+      if ($index == undefined) {
+        index.set($frameIndex, undefined);
+        return;
+      }
+
+      if (typeof $index != 'number' || Math.floor($index) != $index || $index < 0)
+        throw new TypeError('order index value must be an ordinal number');
+
+      index.set($frameIndex, $index < index.capacity ? $index : index.alloc());
+    },
+  },
+    propMap = { order: orderDesc };
+
+  /**
+   * @param {number} $index
+   * @param {Cache} [cache]
+   * @returns {ThatSparseValue<O>}
+   */
+  const ref = ($index, cache) => Object.seal(Object.create(index.ref($index, cache), propMap));
+
+  return {
+    get name() { return name },
+
+    get capacity() { return index.capacity },
+    get length() { return index.length },
+    get elementDescriptor() { return index.wrapDescriptor(orderDesc) },
+    clear() { index.clear() },
+
+    resize(newLength, remap) { index.resize(newLength, remap) },
+
+    compact() { index.compact() },
+
+    get buffer() { return buffer },
+    get byteStride() { return byteStride },
+    fieldInfo() { return elementFieldInfo(order, this) },
+
+    get: $index => ref($index),
+
+    getFor($frameIndex) {
+      const $index = index.get($frameIndex);
+      return $index === undefined ? undefined : ref($index, makeCache());
+    },
+
+    all: () => iterateCursor(ref(-1), () => index.capacity),
+
+    [Symbol.iterator]: () => iterateCursor(ref(-1),
+      () => index.capacity,
+      ({ $index }) => index.used($index)),
+  };
 }
 
 /** @typedef {object} GLAttribSpec
