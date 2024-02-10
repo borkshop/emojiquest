@@ -711,6 +711,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
 
 /** @template {Element} E
  * @typedef { AspectCore & {
+ *   capacity: number,
  *   elementDescriptor: PropertyDescriptor, // TODO type specialize get(T)/set()=>T ?
  *   get: ($index: number) => ThatSparseValue<E>,
  *   getFor: ($frameIndex: number) => ThatSparseValue<E>|undefined,
@@ -1059,6 +1060,8 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
   /** @type {SparseAspect<D>} */
   const self = {
     get name() { return name },
+
+    get capacity() { return index.capacity },
 
     get length() { return index.length },
     get elementDescriptor() { return index.wrapDescriptor(innerDescriptor) },
