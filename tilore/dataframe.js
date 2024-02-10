@@ -1903,6 +1903,16 @@ function makeBitVector(length) {
       }
       return undefined;
     },
+
+    *[Symbol.iterator]() {
+      for (let el = 0; el < vec.length; el++) {
+        const val = vec[el];
+        for (let bit = 0, i = el * 8; bit < 8 && i < length; bit++, i++) {
+          const mask = 1 << bit;
+          yield (val & mask) != 0 ? true : false;
+        }
+      }
+    },
   };
 }
 
