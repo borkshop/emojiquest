@@ -715,26 +715,35 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
  * } } SparseAspect
  */
 
-/**
- * @template {Datum} D
- * @param {string} name
- * @param {D} dat
- * @returns {SparseAspect<D>}
+/** @typedef {object} SparseReverseIndex
+ * @prop {($index: number) => number|undefined} get
+ * @prop {($index: number, $frameIndex: number|undefined) => void} set
+ * @prop {(entries: Iterable<[$frameIndex: number, $index: number]>) => void} update
  */
-function makeSparseDatumAspect(name, dat, initialLength = 0) {
-  const
-    byteStride = datumByteLength(dat);
 
+/**
+ * @param {string} name
+ * @param {object} options
+ * @param {(capacity: number) => void} options.grow
+ * @param {() => void} options.clear
+ * @param {SparseReverseIndex} [options.reverse]
+ * @param {number} [options.initialLength]
+ */
+function makeSparseIndex(name, {
+  initialLength = 0,
+
+  // TODO can we unify grow and clear into realloc(N, shouldCopy)?
+  grow,
+  clear,
+  reverse,
+}) {
   let
+    frameLength = 0,
     length = 0,
-    buffer = new ArrayBuffer(initialLength * byteStride),
-
-    used = makeBitVector(initialLength),
-    /** @type Map<number, number> */
-    indexMap = new Map(), // maps DataFrame index -> Aspect index
-    /** @type Map<number, number> */
-    reverseMap = new Map() // maps Aspect index -> DataFrame index
+    capacity = initialLength
     ;
+
+  const used = makeBitVector(capacity);
 
   const reuse = () => {
     const $index = used.claim();
@@ -746,32 +755,80 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
 
   const alloc = () => {
     const $index = length++;
-
-    let capacity = buffer.byteLength / byteStride;
     while (capacity < length)
       capacity = capacity == 0 ? 2 * length
         : capacity < 1024 ? capacity * 2
           : capacity + capacity / 4;
-
-    const newByteLength = capacity * byteStride;
-    if (newByteLength > buffer.byteLength) {
-      const newBuffer = new ArrayBuffer(newByteLength);
-      new Uint8Array(newBuffer).set(new Uint8Array(buffer));
-      buffer = newBuffer;
+    if (used.length < capacity) {
       used.length = capacity;
+      grow(capacity);
     }
-
     used.set($index);
     return $index;
   };
 
-  // TODO compaction wen
+  let
+    /** @type Map<number, number> */
+    indexMap = new Map(); // maps DataFrame index -> Aspect index
+
+  if (!reverse) {
+    /** @type Map<number, number> */
+    const reverseMap = new Map(); // maps Aspect index -> DataFrame index
+    reverse = {
+      get($index) { return reverseMap.get($index) },
+      set($index, $frameIndex) {
+        if ($frameIndex == undefined)
+          reverseMap.delete($index);
+        else
+          reverseMap.set($index, $frameIndex);
+      },
+      update(entries) {
+        reverseMap.clear();
+        for (const [$frameIndex, $index] of entries)
+          reverseMap.set($index, $frameIndex);
+      },
+    };
+  }
+  const {
+    get: reverseGet,
+    set: reverseSet,
+    update: reverseUpdate,
+  } = reverse;
+
+  /**
+   * @param {number} $frameIndex
+   * @param {number|undefined} [$index]
+   */
+  const del = ($frameIndex, $index) => {
+    if ($index == undefined)
+      $index = indexMap.get($frameIndex);
+    if ($index == undefined) return;
+    indexMap.delete($frameIndex);
+    used.unset($index);
+    length = indexMap.size;
+    reverseSet($index, undefined);
+  };
+
+  /**
+   * @param {number} $frameIndex
+   * @param {number|undefined} $index
+   */
+  const set = ($frameIndex, $index) => {
+    if ($index == undefined) {
+      del($frameIndex);
+    } else {
+      used.set($index);
+      indexMap.set($frameIndex, $index);
+      length = indexMap.size;
+      reverseSet($index, $frameIndex);
+    }
+  };
 
   /**
    * @param {number} $index
    * @param {Cache} [cache]
    */
-  const ref = ($index, cache) => {
+  const makeElement = ($index, cache) => {
     const indexReadonly = cache ? true : false;
     const theCache = cache ? cache : makeCache();
 
@@ -789,85 +846,52 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
 
       $frameIndex: {
         enumerable: true,
-        get() { return reverseMap.get($index) },
+
+        /** @this {ThatElement} */
+        get() { return reverseGet(this.$index) },
+
+        /** @this {ThatElement} */
         set($frameIndex) {
+          const { $index } = this;
           if ($frameIndex == undefined) {
-            const prior = reverseMap.get($index);
-            if (prior != undefined) indexMap.delete(prior);
-            reverseMap.delete($index);
-            used.unset($index);
-          } else {
-            used.set($index);
-            indexMap.set($frameIndex, $index);
-            reverseMap.set($index, $frameIndex);
+            const $priorFrameIndex = reverseGet($index);
+            if ($priorFrameIndex != undefined)
+              del($priorFrameIndex, $index);
+          } else if (typeof $frameIndex == 'number') {
+            set($frameIndex, $index);
           }
         },
       },
     }));
 
-    const $ref = /** @type {ThatSparseValue<D>} */ (Object.defineProperties($el, propMap));
-
-    return Object.seal($ref);
+    return $el;
   };
 
-  const outerDescriptor = {
-    enumerable: true,
+  return {
+    get frameLength() { return frameLength },
 
-    /** @this {ThatElement} */
-    get() {
-      const { $index: $frameIndex, _cache } = this;
-      const $index = indexMap.get($frameIndex);
-      if ($index == undefined) return undefined;
-      const $ref = _cache.get(`${name}$ref`, () => ref($index, _cache));
-      return innerDescriptor.get.call($ref);
-    },
+    get capacity() { return capacity },
+    // TODO set capacity(n) for prune and explicit pre-alloc?
 
-    /** @this {ThatElement} @param {any} value */
-    set(value) {
-      const { $index: $frameIndex, _cache } = this;
-      let $index = indexMap.get($frameIndex);
-      if (value !== null && value !== undefined) {
-        if ($index === undefined) {
-          $index = reuse();
-          if ($index === undefined) $index = alloc();
-          indexMap.set($frameIndex, $index);
-          reverseMap.set($index, $frameIndex);
-        }
-        const $mustIndex = $index;
-        const $ref = _cache.get(`${name}$ref`, () => ref($mustIndex, _cache));
-        innerDescriptor.set.call($ref, value);
-      } else if ($index !== undefined) {
-        _cache.delete(`${name}$ref`);
-        indexMap.delete($frameIndex);
-        reverseMap.delete($index);
-        used.unset($index);
-      }
-    },
-  };
-
-  /** @type {SparseAspect<D>} */
-  const self = {
-    get name() { return name },
-    get buffer() { return buffer },
-    get byteStride() { return byteStride },
     get length() { return length },
-    get elementDescriptor() { return outerDescriptor },
-    fieldInfo: () => elementFieldInfo(dat),
+
+    reuse,
+    alloc,
 
     clear() {
-      indexMap.clear();
-      reverseMap.clear();
+      capacity = initialLength;
       length = 0;
+      indexMap.clear();
+      used.length = capacity;
       used.clear();
-      buffer = new ArrayBuffer(initialLength * byteStride);
-      used.length = initialLength;
+      reverseUpdate([]);
+      clear();
     },
 
-    resize(_newLength, remap) {
+    /** @type {AspectCore["resize"]} */
+    resize(newLength, remap) {
       /** @type Map<number, number> */
       const newIndexMap = new Map();
-      /** @type Map<number, number> */
-      const newReverseMap = new Map();
 
       for (const { oldOffset, oldUpto, newOffset } of remap()) {
         for (
@@ -878,29 +902,131 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
           const $index = indexMap.get($oldFrameIndex);
           if ($index == undefined) continue;
           newIndexMap.set($newFrameIndex, $index);
-          newReverseMap.set($index, $newFrameIndex);
         }
       }
 
-      used.clear();
-      for (const $index of newReverseMap.keys()) {
-        used.set($index);
-      }
-
       indexMap = newIndexMap;
-      reverseMap = newReverseMap;
-      // TODO when to trigger compaction after shrink?
+      frameLength = newLength;
+      used.clear();
+      for (const $index of newIndexMap.values())
+        used.set($index);
+      reverseUpdate(newIndexMap);
     },
+
+    // TODO compact
+
+    ref: makeElement,
+
+    /** @param {number} $frameIndex */
+    get($frameIndex) { return indexMap.get($frameIndex) },
+
+    /** @param {number} $frameIndex */
+    has($frameIndex) { return indexMap.has($frameIndex) },
+
+    /** @param {number} $index */
+    used($index) { return used.is($index) },
+
+    set,
+
+    /** @param {GetSetProp} inner @returns {GetSetProp} */
+    wrapDescriptor(inner) {
+      const { enumerable, get: innerGet, set: innerSet } = inner;
+      return Object.freeze({
+        enumerable,
+
+        /** @this {ThatElement} */
+        get() {
+          const { $index: $frameIndex, _cache } = this;
+          const $index = indexMap.get($frameIndex);
+          if ($index == undefined) return undefined;
+          const $element = _cache.get(`${name}$element`, () => makeElement($index, _cache));
+          return innerGet.call($element);
+        },
+
+        /** @this {ThatElement} @param {any} value */
+        set(value) {
+          const { $index: $frameIndex, _cache } = this;
+          let $index = indexMap.get($frameIndex);
+          if (value !== null && value !== undefined) {
+            if ($index === undefined) {
+              $index = reuse();
+              if ($index === undefined) $index = alloc();
+              set($frameIndex, $index);
+            }
+            const $mustIndex = $index;
+            const $element = _cache.get(`${name}$element`, () => makeElement($mustIndex, _cache));
+            innerSet.call($element, value);
+          } else if ($index !== undefined) {
+            _cache.delete(`${name}$element`);
+            del($index, $frameIndex);
+          }
+        },
+
+      });
+    },
+
+  };
+}
+
+/**
+ * @template {Datum} D
+ * @param {string} name
+ * @param {D} dat
+ * @returns {SparseAspect<D>}
+ */
+function makeSparseDatumAspect(name, dat, initialLength = 0) {
+  const index = makeSparseIndex(name, {
+    initialLength,
+
+    grow(capacity) {
+      const newByteLength = capacity * byteStride;
+      if (newByteLength > buffer.byteLength) {
+        const newBuffer = new ArrayBuffer(newByteLength);
+        new Uint8Array(newBuffer).set(new Uint8Array(buffer));
+        buffer = newBuffer;
+      }
+    },
+
+    clear() {
+      buffer = new ArrayBuffer(index.capacity * byteStride);
+    },
+
+  }),
+    byteStride = datumByteLength(dat);
+
+  let buffer = new ArrayBuffer(index.capacity * byteStride);
+
+  /**
+   * @param {number} $index
+   * @param {Cache} [cache]
+   * @returns {ThatSparseValue<D>}
+   */
+  const ref = ($index, cache) => Object.seal(Object.create(index.ref($index, cache), propMap));
+
+  /** @type {SparseAspect<D>} */
+  const self = {
+    get name() { return name },
+
+    get length() { return index.length },
+    get elementDescriptor() { return index.wrapDescriptor(innerDescriptor) },
+    clear() { index.clear() },
+
+    resize(newLength, remap) { index.resize(newLength, remap) },
+
+    get buffer() { return buffer },
+    get byteStride() { return byteStride },
+    fieldInfo: () => elementFieldInfo(dat),
 
     get: $index => ref($index),
 
     getFor($frameIndex) {
-      const $index = indexMap.get($frameIndex);
+      const $index = index.get($frameIndex);
       return $index === undefined ? undefined : ref($index, makeCache());
     },
 
-    [Symbol.iterator]: () => iterateCursor(ref(-1), () => length,
-      cur => reverseMap.get(cur.$index) !== undefined),
+    [Symbol.iterator]: () => iterateCursor(ref(-1),
+      () => length,
+      ({ $index }) => index.used($index)),
 
     all: () => iterateCursor(ref(-1), () => length),
 
