@@ -684,6 +684,157 @@ test('xy spatial dataframe', t => {
   ]);
 });
 
+test('sparse data compaction', t => {
+  const df = makeDataFrame(MonotonicIndex, { dat: { sparse: 'uint8' } }, 4);
+
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: undefined },
+    { $id: 3, dat: undefined },
+    { $id: 4, dat: undefined },
+  ]);
+  t.deepEqual(copiedFrom(df.aspects.dat), []);
+
+  df.get(1).dat = 7;
+  df.get(3).dat = 21;
+  df.get(0).dat = 0;
+  df.get(2).dat = 14;
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: 0 },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: 21 },
+  ]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $index }) => $index)), [0, 1, 2, 3]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $frameIndex }) => $frameIndex)), [1, 3, 0, 2]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ value }) => value)), [7, 21, 0, 14]);
+
+  {
+    const ref = df.aspects.dat.getFor(0);
+    if (!ref) {
+      t.fail('must have dat ref for $frameIndex:0');
+      return;
+    }
+
+    t.is(ref.value, 0);
+    t.is(ref.$frameIndex, 0);
+    t.is(ref.$index, 2);
+
+    t.is(df.aspects.dat.capacity, 4);
+    t.is(df.aspects.dat.length, 4);
+    ref.$frameIndex = undefined;
+    t.is(df.aspects.dat.capacity, 4);
+    t.is(df.aspects.dat.length, 3);
+  }
+
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: 21 },
+  ]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $index }) => $index)), [0, 1, 3]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $frameIndex }) => $frameIndex)), [1, 3, 2]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ value }) => value)), [7, 21, 14]);
+
+  df.get(3).dat = undefined;
+
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: undefined },
+  ]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $index }) => $index)), [0, 3]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $frameIndex }) => $frameIndex)), [1, 2]);
+  t.deepEqual(copiedFrom(df.aspects.dat).map(({ value }) => value), [7, 14]);
+
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 21, 0, 14));
+  df.aspects.dat.compact();
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 14, 0, 21));
+
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: undefined },
+  ]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $index }) => $index)), [0, 1]);
+  t.deepEqual(Array.from(imap(df.aspects.dat, ({ $frameIndex }) => $frameIndex)), [1, 2]);
+  t.deepEqual(copiedFrom(df.aspects.dat).map(({ value }) => value), [7, 14]);
+
+  df.resize(6);
+
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: undefined },
+    { $id: 5, dat: undefined },
+    { $id: 6, dat: undefined },
+  ]);
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 14, 0, 21));
+
+  df.get(5).dat = 35;
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: undefined },
+    { $id: 5, dat: undefined },
+    { $id: 6, dat: 35 },
+  ]);
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 14, 35, 21));
+
+  df.get(0).dat = 0;
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: 0 },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: undefined },
+    { $id: 5, dat: undefined },
+    { $id: 6, dat: 35 },
+  ]);
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 14, 35, 0));
+
+  df.get(4).dat = 28;
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: 0 },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: undefined },
+    { $id: 5, dat: 28 },
+    { $id: 6, dat: 35 },
+  ]);
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 14, 35, 0, 28, 0, 0, 0));
+
+  df.get(0).dat = undefined;
+  df.get(3).dat = 21;
+  t.deepEqual(copiedFrom(df), [
+    { $id: 1, dat: undefined },
+    { $id: 2, dat: 7 },
+    { $id: 3, dat: 14 },
+    { $id: 4, dat: 21 },
+    { $id: 5, dat: 28 },
+    { $id: 6, dat: 35 },
+  ]);
+  t.deepEqual(
+    new Uint8Array(df.aspects.dat.buffer),
+    Uint8Array.of(7, 14, 35, 21, 28, 0, 0, 0));
+});
+
 /** @template T, U
  * @param {Iterable<T>|Iterator<T>} things
  * @param {(t: T) => U} fn
