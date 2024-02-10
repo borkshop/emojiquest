@@ -40,6 +40,7 @@
  *
  * @typedef {(
  * | Datum
+ * | Order
  * )} Element */
 
 /** @typedef {(
@@ -47,6 +48,12 @@
  * | ArrayElement
  * | StructElement
  * )} Datum */
+
+/** Specifies an aspect whose data stores an ordering of $index values.
+ *
+ * @typedef {object} Order
+ * @prop {"self"} order
+ */
 
 /** Specifies typed array element data, starting with scaslar elements (Size=1),
  * common vectors (Size=2,3,4), or larger "bag of numbers" types like matrices.
@@ -103,6 +110,7 @@
  * E extends Component ? ThatComponent<E>
  * : E extends ArrayElement ? ThatArrayValue<E["array"]>
  * : E extends StructElement ? ThatStructValue<E["struct"]>
+ * : E extends Order ? number
  * : never
  * )} ThatValue */
 
@@ -111,6 +119,7 @@
  * E extends Component ? {value: ThatComponent<E>}
  * : E extends ArrayElement ? {value: ThatArrayValue<E["array"]>}
  * : E extends StructElement ? ThatStructValue<E["struct"]>
+ * : E extends Order ? {order: number}
  * : never
  * )} ThatWrappedValue */
 
@@ -504,10 +513,15 @@ export function makeDataFrame(
           if (typeof sparse == 'object') {
             if (!sparse)
               throw new Error('invalid sparse aspect element spec');
+            if ('order' in sparse)
+              throw new Error('sparse order aspect not implemented');
           }
 
           return makeSparseDatumAspect(name, sparse, initialLength);
         }
+
+        if ('order' in spec)
+          throw new Error('dense order aspect not implemented');
       }
 
       return makeDenseDatumAspect(name, index, spec, initialLength);
@@ -659,7 +673,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
     get byteStride() { return byteStride },
     get length() { return length },
     get elementDescriptor() { return elementDescriptor },
-    fieldInfo: () => elementFieldInfo(dat),
+    fieldInfo() { return elementFieldInfo(dat, this) },
 
     clear() {
       new Uint8Array(buffer).fill(0);
@@ -1073,7 +1087,7 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
 
     get buffer() { return buffer },
     get byteStride() { return byteStride },
-    fieldInfo: () => elementFieldInfo(dat),
+    fieldInfo() { return elementFieldInfo(dat, this) },
 
     get: $index => ref($index),
 
@@ -1477,6 +1491,29 @@ function makeFieldDescriptor(name, type, byteOffset = 0) {
   }
 }
 
+/**
+ * @param {Order} element
+ * @param {{length: number}} ctx
+ * @returns {'uint8'|'uint16'|'uint32'}
+ */
+function orderType(element, ctx) {
+  const { order } = element;
+  switch (order) {
+    case 'self':
+      const { length } = ctx;
+      const nBytes = Math.ceil(Math.log(length) / Math.log(2) / 8);
+      switch (nBytes) {
+        case 0:
+        case 1: return 'uint8';
+        case 2: return 'uint16';
+        case 3:
+        case 4: return 'uint32';
+        default: throw new Error(`unsupported order index range ${length}`);
+      }
+    default: unreachable(order);
+  }
+}
+
 /** @param {Datum} dat */
 function datumByteLength(dat) {
   if (typeof dat == 'string')
@@ -1513,9 +1550,10 @@ function datumByteLength(dat) {
 
 /**
  * @param {Element} element
+ * @param {{length: number}} ctx
  * @returns {Generator<FieldInfo>}
  */
-function* elementFieldInfo(element) {
+function* elementFieldInfo(element, ctx) {
   if (typeof element == 'string') {
     yield {
       name: 'value',
@@ -1569,6 +1607,18 @@ function* elementFieldInfo(element) {
 
       byteOffset += byteLength;
     }
+  }
+
+  else if ('order' in element) {
+    const type = orderType(element, ctx);
+    yield {
+      name: 'order',
+      byteOffset: 0,
+      get byteLength() { return componentByteLength(type) },
+      typeSpec: type,
+      get type() { return type },
+      get shape() { return 1 },
+    };
   }
 
   else unreachable(element);
