@@ -839,6 +839,23 @@ function makeSparseIndex(name, {
     if ($index == undefined) {
       del($frameIndex);
     } else {
+      const $priorIndex = indexMap.get($frameIndex);
+      if ($priorIndex != undefined) {
+        used.unset($priorIndex);
+        indexMap.delete($frameIndex);
+        length = indexMap.size;
+        reverseSet($priorIndex, $frameIndex);
+      }
+
+      const $priorFrameIndex = used.is($index) ? reverseGet($index) : undefined;
+      if ($priorFrameIndex != undefined) {
+        const $newIndex = $priorIndex == undefined ? alloc() : $priorIndex;
+        used.set($newIndex);
+        indexMap.set($priorFrameIndex, $newIndex);
+        length = indexMap.size;
+        reverseSet($newIndex, $priorFrameIndex);
+      }
+
       used.set($index);
       indexMap.set($frameIndex, $index);
       length = indexMap.size;
@@ -899,6 +916,11 @@ function makeSparseIndex(name, {
 
     reuse,
     alloc,
+    allocHole() {
+      const $index = alloc();
+      used.unset($index);
+      return $index;
+    },
 
     clear() {
       capacity = initialLength;
@@ -939,17 +961,19 @@ function makeSparseIndex(name, {
       if (!swap)
         throw new Error(`sparse aspect "${name}" does not support compaction`);
 
+      if (!used.anyFree()) return;
+
       // TODO evolve to relocate entire contiguous ranges when possible
       let $holeIndex = 0, $nextIndex = 0;
       for (; $nextIndex < capacity; $nextIndex++) {
         if (!used.is($nextIndex)) continue;
 
-        const $frameIndex = reverseGet($nextIndex);
-        if ($frameIndex == undefined) continue;
-
         while ($holeIndex < $nextIndex && used.is($holeIndex))
           $holeIndex++;
         if ($holeIndex >= $nextIndex) continue;
+
+        const $frameIndex = reverseGet($nextIndex);
+        if ($frameIndex == undefined) continue;
 
         swap($holeIndex, $nextIndex);
         used.set($holeIndex);
@@ -1000,6 +1024,7 @@ function makeSparseIndex(name, {
             if ($index === undefined) {
               $index = reuse();
               if ($index === undefined) $index = alloc();
+              used.unset($index); // TODO refactor used.set outa reuse and alloc, leave marking upto caller
               set($frameIndex, $index);
             }
             const $mustIndex = $index;
@@ -1180,26 +1205,36 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
   const orderDesc = {
     enumerable: true,
 
-    /** @this {ThatElement} */
+    /** @this {ThatSparseElement} */
     get() {
-      const { $index: $frameIndex } = this;
-      const $index = index.get($frameIndex);
+      const { $frameIndex } = this;
+      const $index = $frameIndex == undefined ? undefined : index.get($frameIndex);
       return $index;
     },
 
-    /** @this {ThatElement} */
-    set($index) {
-      const { $index: $frameIndex } = this;
+    /** @this {ThatSparseElement} */
+    set($reqIndex) {
+      const { $frameIndex } = this;
+      if ($frameIndex == undefined) return;
 
-      if ($index == undefined) {
+      if ($reqIndex == undefined) {
         index.set($frameIndex, undefined);
         return;
       }
 
-      if (typeof $index != 'number' || Math.floor($index) != $index || $index < 0)
+      if (typeof $reqIndex != 'number' || Math.floor($reqIndex) != $reqIndex || $reqIndex < 0)
         throw new TypeError('order index value must be an ordinal number');
 
-      index.set($frameIndex, $index < index.capacity ? $index : index.alloc());
+      // TODO would be nice to test for noop without compacting first: does idnex have any used after $index?
+      index.compact();
+      const $index = index.get($frameIndex);
+
+      if ($reqIndex < index.length) {
+        if ($reqIndex != $index)
+          index.set($frameIndex, $reqIndex);
+      } else if ($index != index.length - 1) {
+        index.set($frameIndex, index.allocHole());
+      }
     },
   },
     propMap = { order: orderDesc };
@@ -1631,6 +1666,7 @@ function orderType(element, ctx) {
   switch (order) {
     case 'self':
       const { length } = ctx;
+      if (length == 0) return 'uint8';
       const nBytes = Math.ceil(Math.log(length) / Math.log(2) / 8);
       switch (nBytes) {
         case 0:
@@ -2029,6 +2065,20 @@ function makeBitVector(length) {
         vec = newVec;
         length = newLength;
       }
+    },
+
+    anyFree(under = length) {
+      const upto = (under + 1) / 8;
+      for (let el = 0; el < vec.length && el < upto; el++) {
+        const val = vec[el];
+        if (val == 0xff) continue;
+        for (let bit = 0, i = el * 8; bit < 8 && i < length && i < under; bit++, i++) {
+          const mask = 1 << bit;
+          if ((val & mask) != 0) continue;
+          return true;
+        }
+      }
+      return false;
     },
 
     clear() { vec.fill(0) },
