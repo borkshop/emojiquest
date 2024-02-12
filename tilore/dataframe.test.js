@@ -835,6 +835,71 @@ test('sparse data compaction', t => {
     Uint8Array.of(7, 14, 35, 21, 28, 0, 0, 0));
 });
 
+test('sparse order', t => {
+  const df = makeDataFrame(MonotonicIndex, {
+    draw: { sparse: { order: 'self' } },
+  }, 8);
+
+  /** @param {number[]} data */
+  const expect = (...data) => {
+    const
+      order = df.aspects.draw,
+      { length, byteStride, buffer } = order;
+
+    t.is(length, data.length);
+    t.deepEqual(Array.from(imap(order,
+      ({ $frameIndex }) => $frameIndex)), [...data]);
+
+    // need to compact to stabilize byte representation...
+    order.compact();
+
+    // ...but we then also recheck formal length and accessor data
+    t.is(length, data.length);
+    t.deepEqual(Array.from(imap(order,
+      ({ $frameIndex }) => $frameIndex)), [...data]);
+
+    // ... before finally checking the compacted byte representation
+    t.deepEqual(
+      new Uint8Array(buffer).subarray(0, length * byteStride),
+      Uint8Array.of(...data));
+  };
+
+  expect();
+
+  df.get(1).draw = Infinity;
+  expect(1);
+
+  df.get(2).draw = Infinity;
+  expect(1, 2);
+
+  df.get(3).draw = Infinity;
+  expect(1, 2, 3);
+
+  df.get(7).draw = 1;
+  expect(1, 7, 3, 2);
+
+  t.deepEqual(Array.from(imap(df, ({ $id, draw }) => ({ $id, draw }))), [
+    { $id: 1, draw: undefined },
+    { $id: 2, draw: 0 },
+    { $id: 3, draw: 3 },
+    { $id: 4, draw: 2 },
+    { $id: 5, draw: undefined },
+    { $id: 6, draw: undefined },
+    { $id: 7, draw: undefined },
+    { $id: 8, draw: 1 },
+  ]);
+
+  df.get(3).draw = undefined;
+  expect(1, 7, 2);
+
+  df.get(5).draw = Infinity;
+  expect(1, 7, 2, 5);
+
+  df.get(2).draw = undefined;
+  df.get(6).draw = Infinity;
+  expect(1, 7, 5, 6);
+});
+
 /** @template T, U
  * @param {Iterable<T>|Iterator<T>} things
  * @param {(t: T) => U} fn
