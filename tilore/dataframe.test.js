@@ -835,6 +835,32 @@ test('sparse data compaction', t => {
     Uint8Array.of(7, 14, 35, 21, 28, 0, 0, 0));
 });
 
+test('dense order', t => {
+  const df = makeDataFrame(MonotonicIndex, {
+    draw: { order: 'self' },
+  }, 8);
+
+  t.is(df.aspects.draw.length, 8);
+
+  /** @param {number[]} orders */
+  const expect = (...orders) => {
+    const { length } = orders;
+    const elements = new Uint8Array(length);
+    for (let i = 0; i < length; i++)
+      elements[orders[i]] = i;
+    t.deepEqual(Array.from(imap(df, ({ draw }) => draw)), [...orders]);
+    t.deepEqual(new Uint8Array(df.aspects.draw.buffer), elements);
+  };
+
+  expect(0, 1, 2, 3, 4, 5, 6, 7);
+
+  df.get(3).draw = 6;
+  expect(0, 1, 2, 6, 4, 5, 3, 7);
+
+  df.get(3).draw = 5;
+  expect(0, 1, 2, 5, 4, 6, 3, 7);
+});
+
 test('sparse order', t => {
   const df = makeDataFrame(MonotonicIndex, {
     draw: { sparse: { order: 'self' } },
