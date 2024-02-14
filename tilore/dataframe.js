@@ -521,7 +521,7 @@ export function makeDataFrame(
         }
 
         if ('order' in spec)
-          throw new Error('dense order aspect not implemented');
+          return makeDenseOrderAspect(name, index, spec, initialLength);
       }
 
       return makeDenseDatumAspect(name, index, spec, initialLength);
@@ -710,6 +710,139 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
     element: elementDescriptor,
     props: propMap,
   } = makeDatumDescriptors(name, dat, self);
+
+  return self;
+}
+
+/**
+ * @template IndexRef
+ * @template {PropertyDescriptorMap} IndexPropMap
+ * @template {Order} O
+ * @param {string} name
+ * @param {Index<IndexRef, IndexPropMap>} index
+ * @param {O} order
+ * @returns {DenseAspect<O, IndexRef, IndexPropMap>}
+ */
+function makeDenseOrderAspect(name, index, order, initialLength = 0) {
+  let
+    length = initialLength,
+    datType = orderType(order, { length }),
+    byteStride = datumByteLength(datType),
+    ArrayType = componentTypedArray(datType),
+
+    buffer = new ArrayBuffer(length * byteStride),
+    coBuffer = new ArrayBuffer(length * byteStride),
+
+    array = new ArrayType(buffer),
+    coArray = new ArrayType(coBuffer);
+
+  for (let i = 0; i < length; i++) {
+    array[i] = i;
+    coArray[i] = i;
+  }
+
+  /** @param {number} $index */
+  const get = $index => {
+    const _cache = makeCache();
+
+    // TODO needs to be a cast because makeDatumDescriptors doesn't narrow down its return type to a specific mapped extension of PropertyDescriptorMap
+    return /** @type {ThatDenseValue<O, IndexPropMap>} */ (Object.seal(makeIndexed(index, {
+      _cache,
+
+      get $index() { return $index },
+      set $index(i) {
+        _cache.clear();
+        $index = Math.min(length, Math.max(0, i));
+      },
+    }, propMap)));
+  };
+
+  /** @type {DenseAspect<O, IndexRef, IndexPropMap>} */
+  const self = {
+    get name() { return name },
+    get buffer() { return buffer },
+    get byteStride() { return byteStride },
+    get length() { return length },
+    get elementDescriptor() { return orderDesc },
+    fieldInfo: () => datumFieldInfo(datType),
+
+    // TODO expose array? coArray? coBuffer
+
+    clear() {
+      for (let i = 0; i < length; i++) {
+        array[i] = i;
+        coArray[i] = i;
+      }
+    },
+
+    resize(newLength/* TODO use remap */) {
+      const newDatType = orderType(order, { length: newLength });
+      const newByteStride = datumByteLength(newDatType);
+      const newArrayType = componentTypedArray(newDatType);
+      const newBuffer = new ArrayBuffer(newLength * newByteStride);
+      const newCoBuffer = new ArrayBuffer(newLength * newByteStride);
+      const newArray = new newArrayType(newBuffer);
+      const newCoArray = new newArrayType(newCoBuffer);
+
+      for (let i = 0; i < newLength; i++) {
+        newArray[i] = i;
+        newCoArray[i] = i;
+      }
+
+      buffer = newBuffer;
+      coBuffer = newCoBuffer;
+      array = newArray;
+      coArray = newCoArray;
+      length = newLength;
+
+      if (datType != newDatType) {
+        datType = newDatType;
+        byteStride = newByteStride;
+        ArrayType = newArrayType;
+      }
+    },
+
+    get,
+
+    /** @param {IndexRef} ref */
+    ref(ref) {
+      const $index = index.refToIndex(ref);
+      return $index >= 0 && $index < length ? get($index) : undefined;
+    },
+
+    [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
+  };
+
+  /** @type {GetSetProp} */
+  const orderDesc = {
+    enumerable: true,
+
+    /** @this {ThatElement} */
+    get() {
+      const { $index } = this;
+      const order = coArray[$index];
+      return order;
+    },
+
+    /** @this {ThatElement} */
+    set(order) {
+      if (typeof order != 'number' || Math.floor(order) != order || order < 0)
+        throw new TypeError('order value must be an ordinal number');
+      if (order >= length)
+        throw new TypeError('order value out of range');
+      const { $index } = this;
+      const $otherIndex = array[order];
+      if ($otherIndex != $index) {
+        const priorOrder = coArray[$index];
+        array[priorOrder] = $otherIndex;
+        array[order] = $index;
+        coArray[$otherIndex] = priorOrder;
+        coArray[$index] = order;
+      }
+    },
+  };
+
+  const propMap = { order: orderDesc };
 
   return self;
 }
@@ -1223,7 +1356,7 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
       }
 
       if (typeof $reqIndex != 'number' || Math.floor($reqIndex) != $reqIndex || $reqIndex < 0)
-        throw new TypeError('order index value must be an ordinal number');
+        throw new TypeError('order value must be an ordinal number');
 
       // TODO would be nice to test for noop without compacting first: does idnex have any used after $index?
       index.compact();
