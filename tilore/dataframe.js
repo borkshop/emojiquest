@@ -1439,8 +1439,10 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
  */
 export function makeWebGLAspect(gl, aspect, options = {}) {
   const
+    aspectSpec = aspect.spec,
     {
-      target = gl.ARRAY_BUFFER,
+      target = (typeof aspectSpec == 'object' && 'order' in aspectSpec)
+        ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER,
       usage = gl.STATIC_DRAW,
     } = options,
 
