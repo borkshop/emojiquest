@@ -1423,50 +1423,41 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
  * @prop {boolean} [asInt]
  */
 
+/** @typedef {{[name: string]: GLAttribSpec}} GLAttribMap */
+
 /**
  * @param {WebGL2RenderingContext} gl
  * @param {AspectCore} aspect
- * @param {object} [options]
- * @param {number} [options.target]
- * @param {number} [options.usage]
- * @param {{[name: string]: GLAttribSpec}} [options.attribMap]
+ * @param {{
+ *   target?: number,
+ *   usage?: number,
+ * } & (WebGLAttribMapperOptions | {})} [options]
  */
-export function makeWebGLAspect(gl, aspect, {
-  target = gl.ARRAY_BUFFER,
-  usage = gl.STATIC_DRAW,
-  attribMap = {},
-} = {}) {
-  const aspectFields = Array.from(aspect.fieldInfo());
-  const attribEntries = Object.entries(attribMap);
+export function makeWebGLAspect(gl, aspect, options = {}) {
+  const
+    {
+      target = gl.ARRAY_BUFFER,
+      usage = gl.STATIC_DRAW,
+    } = options,
 
-  if (target == gl.ELEMENT_ARRAY_BUFFER && aspectFields.length > 1)
-    throw new Error('element array buffer only supports mapping a single field');
+    mapper = (() => {
+      if (target == gl.ARRAY_BUFFER) {
+        if (!('attribMap' in options))
+          throw new Error('missing attribMap for WebGL ARRAY_BUFFER');
+        return makeWebGLAttribMapper(gl, aspect, options);
+      }
+      if ('attribMap' in options)
+        throw new Error('attribute mapping is only supported for WebGL ARRAY_BUFFER targets');
 
-  if (target != gl.ARRAY_BUFFER && attribEntries.length > 0)
-    throw new Error('attribute mapping is only supported for ARRAY_BUFFER targets');
+      if (target == gl.ELEMENT_ARRAY_BUFFER)
+        return makeWebGLElementsMapper(gl, aspect);
 
-  const { byteStride } = aspect;
-  if (attribEntries.length > 0 && byteStride > 255)
-    throw new Error('aspect byteStride may not exceed 255 fo ARRAY_BUFFER attrib targets');
-
-  const aspectFieldMap = Object.fromEntries(aspectFields.map(field => [field.name, field]));
-  const attribs = attribEntries.map(
-    ([name, { attrib, normalized = false, asInt = false }]) => {
-      const field = aspectFieldMap[name];
-      if (!field)
-        throw new Error(`no such aspect field "${name}"`);
-      const { type: fieldType, byteOffset, shape } = field;
-      const size = Math.ceil(typeof shape == 'number' ? shape : shape[0] * shape[1]);
-      const glType = scalarGLType(gl, fieldType);
+      // noop mapper until we need other implementations, e.g. transform feedback
       return {
-        attrib,
-        normalized,
-        asInt,
-        glType,
-        size,
-        byteOffset,
+        bind() { },
+        unbind() { },
       };
-    });
+    })();
 
   /** @type {WebGLBuffer|null} */
   let buffer = null;
@@ -1491,6 +1482,61 @@ export function makeWebGLAspect(gl, aspect, {
 
     bind() {
       gl.bindBuffer(target, buffer)
+      mapper.bind();
+      gl.bindBuffer(target, null)
+    },
+
+    unbind() {
+      mapper.unbind();
+    },
+  };
+}
+
+/**
+ * @typedef {object} WebGLMapper
+ * @prop {() => void} bind
+ * @prop {() => void} unbind
+ */
+
+/** @typedef {(
+ * | {attribMap: GLAttribMap}
+ * )} WebGLAttribMapperOptions */
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {AspectCore} aspect
+ * @param {WebGLAttribMapperOptions} options
+ * @returns {WebGLMapper}
+ */
+function makeWebGLAttribMapper(gl, aspect, options) {
+  if (aspect.byteStride > 255)
+    throw new Error('aspect byteStride may not exceed 255 fo ARRAY_BUFFER attrib targets');
+
+  const { attribMap } = options;
+
+  const aspectFieldMap = Object.fromEntries(imap(aspect.fieldInfo(), field => [field.name, field]));
+
+  const attribs = Object.entries(attribMap).map(
+    ([name, { attrib, normalized = false, asInt = false }]) => {
+      const field = aspectFieldMap[name];
+      if (!field)
+        throw new Error(`no such aspect field "${name}"`);
+      const { type: fieldType, byteOffset, shape } = field;
+      const size = Math.ceil(typeof shape == 'number' ? shape : shape[0] * shape[1]);
+      const glType = scalarGLType(gl, fieldType);
+      return {
+        attrib,
+        normalized,
+        asInt,
+        glType,
+        size,
+        byteOffset,
+      };
+    });
+
+  return {
+    bind() {
+      const { byteStride } = aspect;
       for (const { attrib, glType, size, normalized, asInt, byteOffset } of attribs) {
         gl.enableVertexAttribArray(attrib);
         if (asInt) {
@@ -1499,14 +1545,29 @@ export function makeWebGLAspect(gl, aspect, {
           gl.vertexAttribPointer(attrib, size, glType, normalized, byteStride, byteOffset);
         }
       }
-      gl.bindBuffer(target, null)
     },
 
     unbind() {
       for (const { attrib } of attribs)
         gl.disableVertexAttribArray(attrib);
     },
+  };
+}
 
+/**
+ * @param {WebGL2RenderingContext} _gl
+ * @param {AspectCore} aspect
+ * @returns {WebGLMapper}
+ */
+function makeWebGLElementsMapper(_gl, aspect) {
+  const aspectFields = Array.from(aspect.fieldInfo());
+  if (aspectFields.length > 1)
+    throw new Error('WebGL ELEMENT_ARRAY_BUFFER targets only support mapping a single field');
+
+  return {
+    // TODO anything useful?
+    bind() { },
+    unbind() { },
   };
 }
 
@@ -2014,17 +2075,6 @@ function componentStride(component, shape = componentShape(component)) {
  * | Int8ArrayConstructor
  * )} TypedArrayConstructor */
 
-/** @typedef {(
- * | Float32Array
- * | Uint32Array
- * | Uint16Array
- * | Uint8Array
- * | Uint8ClampedArray
- * | Int32Array
- * | Int16Array
- * | Int8Array
- * )} TypedArray
-
 /**
  * @param {ArrayElement|Component} component
  * @returns {Scalar}
@@ -2320,4 +2370,14 @@ function dropProperties(o, b, ...propNames) {
 /** @param {never} nope @returns {never} */
 function unreachable(nope, mess = `inconceivable ${nope}`) {
   throw new Error(mess);
+}
+
+/** @template T, U
+ * @param {Iterable<T>|Iterator<T>} things
+ * @param {(t: T) => U} fn
+ */
+function* imap(things, fn) {
+  const it = 'next' in things ? things : things[Symbol.iterator]();
+  for (let res = it.next(); !res.done; res = it.next())
+    yield fn(res.value);
 }
