@@ -1,5 +1,9 @@
 // @ts-check
 
+import {
+  typeInfo as glTypeInfo,
+} from './glkit.js';
+
 /* TODO
  * - $used logic for indexes similar to how SparseAspect works,
  *   but for pre-allocated frames, and with reuse
@@ -1442,11 +1446,11 @@ export function makeWebGLAspect(gl, aspect, options = {}) {
 
     mapper = (() => {
       if (target == gl.ARRAY_BUFFER) {
-        if (!('attribMap' in options))
-          throw new Error('missing attribMap for WebGL ARRAY_BUFFER');
+        if (!('program' in options || 'attribMap' in options))
+          throw new Error('missing attribMap for WebGL ARRAY_BUFFER; provide one, or pass a WebGLProgram to inspect');
         return makeWebGLAttribMapper(gl, aspect, options);
       }
-      if ('attribMap' in options)
+      if ('program' in options || 'attribMap' in options)
         throw new Error('attribute mapping is only supported for WebGL ARRAY_BUFFER targets');
 
       if (target == gl.ELEMENT_ARRAY_BUFFER)
@@ -1499,6 +1503,7 @@ export function makeWebGLAspect(gl, aspect, options = {}) {
  */
 
 /** @typedef {(
+ * | {program: WebGLProgram, attribSpecs?: {[name: string]: Partial<GLAttribSpec>}}
  * | {attribMap: GLAttribMap}
  * )} WebGLAttribMapperOptions */
 
@@ -1512,7 +1517,9 @@ function makeWebGLAttribMapper(gl, aspect, options) {
   if (aspect.byteStride > 255)
     throw new Error('aspect byteStride may not exceed 255 fo ARRAY_BUFFER attrib targets');
 
-  const { attribMap } = options;
+  const attribMap = ('attribMap' in options)
+    ? options.attribMap
+    : mapActiveWebGLAttribs(gl, options.program, aspect, options.attribSpecs);
 
   const aspectFieldMap = Object.fromEntries(imap(aspect.fieldInfo(), field => [field.name, field]));
 
@@ -1552,6 +1559,143 @@ function makeWebGLAttribMapper(gl, aspect, options) {
         gl.disableVertexAttribArray(attrib);
     },
   };
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {WebGLProgram} prog
+ * @param {AspectCore} aspect
+ * @param {{[name: string]: Partial<GLAttribSpec>}} [specifics]
+ * @returns {GLAttribMap}
+ */
+export function mapActiveWebGLAttribs(gl, prog, aspect, specifics = {}) {
+  const aspectFieldMap = Object.fromEntries(imap(aspect.fieldInfo(), field => [field.name, field]));
+
+  const numActiveAttribs = gl.getProgramParameter(prog, gl.ACTIVE_ATTRIBUTES);
+  if (typeof numActiveAttribs != 'number' || numActiveAttribs < 0) {
+    console.warn('unable to get WebGL ACTIVE_ATTRIBUTES program parameter');
+    return {};
+  }
+
+  /** @type {[name: string, spec: GLAttribSpec][]} */
+  const attribEntries = [];
+
+  for (let attribIndex = 0; attribIndex < numActiveAttribs; attribIndex++) {
+    const attribInfo = gl.getActiveAttrib(prog, attribIndex);
+    if (!attribInfo) {
+      console.warn(`unable to get WebGL active attribute ${attribIndex} info`);
+      continue;
+    }
+
+    const {
+      name: attribName,
+      type: attribType,
+      // TODO size: attribSize, useful for what?
+    } = attribInfo;
+
+    const aspectFieldInfo = aspectFieldMap[attribName];
+    if (!aspectFieldInfo) continue;
+
+    const attribTypeInfo = glTypeInfo(gl, attribType);
+    if (!attribTypeInfo) {
+      console.warn('unknown WebGL attribute type', attribInfo);
+      continue;
+    }
+
+    const {
+      name: fieldName,
+      type: fieldType,
+      typeSpec: fieldSpec,
+      shape: fieldShape,
+    } = aspectFieldInfo;
+
+    let {
+      attrib: attribLoc,
+      normalized = false,
+      asInt = false,
+    } = specifics[fieldName] || {};
+
+    const {
+      name: attribNominalType,
+      shape: attribShape,
+      scalarType: attribScalarType,
+    } = attribTypeInfo;
+    switch (attribScalarType) {
+
+      case 'bool':
+        switch (fieldType) {
+          case 'uint8':
+          case 'uint8Clamped':
+          case 'uint16':
+          case 'uint32':
+            // TODO allow int scalars too?
+            break;
+          default:
+            throw new Error(`incompatible field ${aspect.name}.${fieldName} type [${fieldShape}]${fieldType} for WebGL attribute ${attribName} ${attribNominalType}`);
+        }
+        asInt = true;
+        break;
+
+      case 'int':
+        switch (fieldType) {
+          case 'int8':
+          case 'int16':
+          case 'int32':
+            break;
+          default:
+            throw new Error(`incompatible field ${aspect.name}.${fieldName} type [${fieldShape}]${fieldType} for WebGL attribute ${attribName} ${attribNominalType}`);
+        }
+        asInt = true;
+        break;
+
+      case 'uint':
+        switch (fieldType) {
+          case 'uint8':
+          case 'uint8Clamped':
+          case 'uint16':
+          case 'uint32':
+            break;
+          default:
+            throw new Error(`incompatible field ${aspect.name}.${fieldName} type [${fieldShape}]${fieldType} for WebGL attribute ${attribName} ${attribNominalType}`);
+        }
+        asInt = true;
+        break;
+
+      case 'float':
+        switch (fieldType) {
+          case 'float32':
+            // TODO allow integer data too?
+            break;
+          default:
+            throw new Error(`incompatible field ${aspect.name}.${fieldName} type [${fieldShape}]${fieldType} for WebGL attribute ${attribName} ${attribNominalType}`);
+        }
+        if (fieldSpec === 'rgb' || fieldSpec === 'rgba') {
+          normalized = true;
+        }
+        break;
+
+      default: unreachable(attribScalarType);
+    }
+
+    if (!equalShapes(attribShape, fieldShape))
+      throw new Error(`incompatible field ${aspect.name}.${fieldName} shape [${fieldShape}]${fieldType} for WebGL attribute ${attribName} ${attribNominalType} (as [${attribShape}]${attribScalarType})`);
+
+    if (attribLoc === undefined) {
+      attribLoc = gl.getAttribLocation(prog, attribName);
+      if (attribLoc < 0) {
+        console.warn(`unable to get location for WebGL attribute ${attribName} ${attribNominalType} -- would map to ${aspect.name}.${fieldName} [${fieldShape}]${fieldType}`);
+        continue;
+      }
+    }
+
+    attribEntries.push([fieldName, {
+      attrib: attribLoc,
+      normalized,
+      asInt,
+    }]);
+  }
+
+  return Object.fromEntries(attribEntries);
 }
 
 /**
@@ -2240,6 +2384,16 @@ function componentShape(component) {
     default:
       unreachable(component);
   }
+}
+
+/**
+ * @param {ArrayShape} a
+ * @param {ArrayShape} b
+ */
+function equalShapes(a, b) {
+  return typeof a == 'number'
+    ? typeof b == 'number' && a === b
+    : Array.isArray(b) && a[0] === b[0] && a[1] === b[1];
 }
 
 /** @param {number} length */
