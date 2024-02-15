@@ -607,6 +607,7 @@ export function makeDataFrame(
 
 /** @typedef { Buffer & {
  *   name: string,
+ *   spec: Element,
  *   length: number,
  *   clear: () => void,
  *   resize: (newLength: number, remap: () => Iterable<RemapEntry>) => void,
@@ -622,6 +623,7 @@ export function makeDataFrame(
  * @template IndexRef
  * @template {PropertyDescriptorMap} IndexPropMap
  * @typedef { AspectCore & {
+ *   spec: E,
  *   elementDescriptor: PropertyDescriptor, // TODO type specialize get(T)/set()=>T ?
  *   ref: (ref: IndexRef) => ThatDenseValue<E, IndexPropMap>|undefined,
  *   get: ($index: number) => ThatDenseValue<E, IndexPropMap>,
@@ -669,6 +671,7 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
   /** @type {DenseAspect<D, IndexRef, IndexPropMap>} */
   const self = {
     get name() { return name },
+    get spec() { return dat },
     get buffer() { return buffer },
     get byteStride() { return byteStride },
     get length() { return length },
@@ -760,6 +763,7 @@ function makeDenseOrderAspect(name, index, order, initialLength = 0) {
   /** @type {DenseAspect<O, IndexRef, IndexPropMap>} */
   const self = {
     get name() { return name },
+    get spec() { return order },
     get buffer() { return buffer },
     get byteStride() { return byteStride },
     get length() { return length },
@@ -858,6 +862,7 @@ function makeDenseOrderAspect(name, index, order, initialLength = 0) {
 
 /** @template {Element} E
  * @typedef { AspectCore & {
+ *   spec: E,
  *   capacity: number,
  *   elementDescriptor: PropertyDescriptor, // TODO type specialize get(T)/set()=>T ?
  *   get: ($index: number) => ThatSparseValue<E>,
@@ -1232,6 +1237,7 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
   /** @type {SparseAspect<D>} */
   const self = {
     get name() { return name },
+    get spec() { return dat },
 
     get capacity() { return index.capacity },
     get length() { return index.length },
@@ -1381,6 +1387,7 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
 
   return {
     get name() { return name },
+    get spec() { return order },
 
     get capacity() { return index.capacity },
     get length() { return index.length },
