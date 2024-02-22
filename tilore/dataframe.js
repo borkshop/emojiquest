@@ -884,6 +884,113 @@ function makeDenseOrderAspect(name, index, order, initialLength = 0) {
  */
 
 /**
+ * @param {(capacity: number) => void} grow
+ */
+function makeSparseAllocator(
+  grow,
+  initialLength = 0,
+) {
+  let length = 0, capacity = initialLength;
+  const used = makeBitVector(capacity);
+
+  const alloc = () => {
+    while (capacity <= length)
+      capacity = capacity < 1024
+        ? 2 * (capacity == 0 ? 1 : capacity)
+        : capacity + capacity / 4;
+    if (used.length < capacity) {
+      used.length = capacity;
+      grow(capacity);
+    }
+    return length;
+  };
+
+  /** @param {number} $index */
+  const getUsed = $index => used.is($index);
+
+  /**
+   * @param {number} $index
+   * @param {boolean} is
+   */
+  const setUsed = ($index, is) => {
+    if (is && used.set($index)) {
+      length++;
+      return true;
+    }
+    else if (!is && used.unset($index)) {
+      length--;
+      return true;
+    }
+    return false;
+  };
+
+  return {
+    get length() { return length },
+
+    get capacity() { return capacity },
+    // TODO set capacity(n) for prune and explicit pre-alloc?
+
+    allocHole: alloc,
+    alloc() {
+      const $index = alloc();
+      if (used.set($index)) length++;
+      return $index;
+    },
+
+    /** @param {number} $index */
+    free($index) {
+      if (used.unset($index)) length--;
+    },
+
+    mayReuse: () => used.claim(false),
+    reuse() {
+      const $index = used.claim();
+      if ($index != undefined && $index >= length)
+        length = $index + 1;
+      return $index;
+    },
+
+    isUsed: getUsed,
+    setUsed,
+
+    clear() {
+      length = 0;
+      capacity = initialLength;
+      used.length = capacity;
+      used.clear();
+    },
+
+    /** @param {Iterable<number>} usedIndices */
+    update(usedIndices) {
+      length = 0;
+      used.clear();
+      for (const $index of usedIndices)
+        if (used.set($index)) length++;
+    },
+
+    /**
+     * @param {($holeIndex: number, $usedIndex: number) => boolean} swap
+     */
+    compact(swap) {
+      if (!used.anyFree()) return;
+      let $holeIndex = 0, $nextIndex = 0;
+      for (; $nextIndex < capacity; $nextIndex++) {
+        if (!used.is($nextIndex)) continue;
+        while ($holeIndex < $nextIndex && used.is($holeIndex))
+          $holeIndex++;
+        if ($holeIndex >= $nextIndex) continue;
+        if (swap($holeIndex, $nextIndex)) {
+          used.set($holeIndex);
+          used.unset($nextIndex);
+        }
+      }
+      length = used.is($holeIndex) ? $holeIndex + 1 : $holeIndex;
+    },
+
+  };
+}
+
+/**
  * @param {string} name
  * @param {object} options
  * @param {(capacity: number) => void} options.grow
@@ -901,35 +1008,7 @@ function makeSparseIndex(name, {
   swap,
   reverse,
 }) {
-  let
-    frameLength = 0,
-    length = 0,
-    capacity = initialLength
-    ;
-
-  const used = makeBitVector(capacity);
-
-  const reuse = () => {
-    const $index = used.claim();
-    if ($index != undefined && $index >= length) {
-      length = $index + 1;
-    }
-    return $index;
-  };
-
-  const alloc = () => {
-    const $index = length++;
-    while (capacity < length)
-      capacity = capacity == 0 ? 2 * length
-        : capacity < 1024 ? capacity * 2
-          : capacity + capacity / 4;
-    if (used.length < capacity) {
-      used.length = capacity;
-      grow(capacity);
-    }
-    used.set($index);
-    return $index;
-  };
+  const spal = makeSparseAllocator(grow, initialLength);
 
   let
     /** @type Map<number, number> */
@@ -967,42 +1046,41 @@ function makeSparseIndex(name, {
     if ($index == undefined)
       $index = indexMap.get($frameIndex);
     if ($index == undefined) return;
+    spal.free($index);
     indexMap.delete($frameIndex);
-    used.unset($index);
-    length = indexMap.size;
     reverseSet($index, undefined);
   };
 
   /**
    * @param {number} $frameIndex
-   * @param {number|undefined} $index
+   * @param {number|undefined} $reqIndex
    */
-  const set = ($frameIndex, $index) => {
-    if ($index == undefined) {
+  const set = ($frameIndex, $reqIndex) => {
+    if ($reqIndex == undefined) {
       del($frameIndex);
-    } else {
-      const $priorIndex = indexMap.get($frameIndex);
-      if ($priorIndex != undefined) {
-        used.unset($priorIndex);
-        indexMap.delete($frameIndex);
-        length = indexMap.size;
-        reverseSet($priorIndex, $frameIndex);
-      }
-
-      const $priorFrameIndex = used.is($index) ? reverseGet($index) : undefined;
-      if ($priorFrameIndex != undefined) {
-        const $newIndex = $priorIndex == undefined ? alloc() : $priorIndex;
-        used.set($newIndex);
-        indexMap.set($priorFrameIndex, $newIndex);
-        length = indexMap.size;
-        reverseSet($newIndex, $priorFrameIndex);
-      }
-
-      used.set($index);
-      indexMap.set($frameIndex, $index);
-      length = indexMap.size;
-      reverseSet($index, $frameIndex);
+      return;
     }
+
+    const $index = $reqIndex >= spal.length ? spal.allocHole() : $reqIndex;
+
+    const $priorIndex = indexMap.get($frameIndex);
+    if ($priorIndex != undefined) {
+      spal.free($priorIndex);
+      indexMap.delete($frameIndex);
+      reverseSet($priorIndex, $frameIndex);
+    }
+
+    const $priorFrameIndex = spal.isUsed($index) ? reverseGet($index) : undefined;
+    if ($priorFrameIndex != undefined) {
+      const $newIndex = $priorIndex == undefined ? spal.allocHole() : $priorIndex;
+      spal.setUsed($newIndex, true);
+      indexMap.set($priorFrameIndex, $newIndex);
+      reverseSet($newIndex, $priorFrameIndex);
+    }
+
+    spal.setUsed($index, true);
+    indexMap.set($frameIndex, $index);
+    reverseSet($index, $frameIndex);
   };
 
   /**
@@ -1021,7 +1099,7 @@ function makeSparseIndex(name, {
         get() { return $index },
         set: indexReadonly ? undefined : i => {
           theCache.clear();
-          $index = Math.min(capacity, Math.max(0, i));
+          $index = Math.min(spal.capacity, Math.max(0, i));
         },
       },
 
@@ -1048,28 +1126,16 @@ function makeSparseIndex(name, {
     return $el;
   };
 
+  let frameLength = initialLength;
+
   return {
+    get length() { return spal.length },
+    get capacity() { return spal.capacity },
     get frameLength() { return frameLength },
 
-    get capacity() { return capacity },
-    // TODO set capacity(n) for prune and explicit pre-alloc?
-
-    get length() { return length },
-
-    reuse,
-    alloc,
-    allocHole() {
-      const $index = alloc();
-      used.unset($index);
-      return $index;
-    },
-
     clear() {
-      capacity = initialLength;
-      length = 0;
+      spal.clear();
       indexMap.clear();
-      used.length = capacity;
-      used.clear();
       reverseUpdate([]);
       clear();
     },
@@ -1093,41 +1159,24 @@ function makeSparseIndex(name, {
 
       indexMap = newIndexMap;
       frameLength = newLength;
-      used.clear();
-      for (const $index of newIndexMap.values())
-        used.set($index);
+      spal.update(newIndexMap.values())
       reverseUpdate(newIndexMap);
     },
 
     compact() {
+      // TODO evolve to relocate entire contiguous ranges when possible
       if (!swap)
         throw new Error(`sparse aspect "${name}" does not support compaction`);
+      spal.compact(($holeIndex, $usedIndex) => {
+        const $frameIndex = reverseGet($usedIndex);
+        if ($frameIndex == undefined) return false;
 
-      if (!used.anyFree()) return;
-
-      // TODO evolve to relocate entire contiguous ranges when possible
-      let $holeIndex = 0, $nextIndex = 0;
-      for (; $nextIndex < capacity; $nextIndex++) {
-        if (!used.is($nextIndex)) continue;
-
-        while ($holeIndex < $nextIndex && used.is($holeIndex))
-          $holeIndex++;
-        if ($holeIndex >= $nextIndex) continue;
-
-        const $frameIndex = reverseGet($nextIndex);
-        if ($frameIndex == undefined) continue;
-
-        swap($holeIndex, $nextIndex);
-        used.set($holeIndex);
-        used.unset($nextIndex);
-
+        swap($holeIndex, $usedIndex);
         indexMap.set($frameIndex, $holeIndex);
-
         reverseSet($holeIndex, $frameIndex);
-        reverseSet($nextIndex, undefined);
-      }
-
-      length = used.is($holeIndex) ? $holeIndex + 1 : $holeIndex;
+        reverseSet($usedIndex, undefined);
+        return true;
+      });
     },
 
     ref: makeElement,
@@ -1139,7 +1188,7 @@ function makeSparseIndex(name, {
     has($frameIndex) { return indexMap.has($frameIndex) },
 
     /** @param {number} $index */
-    used($index) { return used.is($index) },
+    used($index) { return spal.isUsed($index) },
 
     set,
 
@@ -1164,9 +1213,8 @@ function makeSparseIndex(name, {
           let $index = indexMap.get($frameIndex);
           if (value !== null && value !== undefined) {
             if ($index === undefined) {
-              $index = reuse();
-              if ($index === undefined) $index = alloc();
-              used.unset($index); // TODO refactor used.set outa reuse and alloc, leave marking upto caller
+              $index = spal.mayReuse();
+              if ($index === undefined) $index = spal.allocHole();
               set($frameIndex, $index);
             }
             const $mustIndex = $index;
@@ -1372,12 +1420,8 @@ function makeSparseOrderAspect(name, order, initialLength = 0) {
       index.compact();
       const $index = index.get($frameIndex);
 
-      if ($reqIndex < index.length) {
-        if ($reqIndex != $index)
-          index.set($frameIndex, $reqIndex);
-      } else if ($index != index.length - 1) {
-        index.set($frameIndex, index.allocHole());
-      }
+      if ($reqIndex != $index)
+        index.set($frameIndex, $reqIndex);
     },
   },
     propMap = { order: orderDesc };
@@ -2440,30 +2484,34 @@ function makeBitVector(length) {
 
     /** @param {number} i */
     unset(i) {
-      if (i < length) {
-        const el = Math.floor(i / 8);
-        const bit = i % 8;
-        const mask = 1 << bit;
-        vec[el] &= 0xff & ~mask;
-      }
+      if (i >= length) return false;
+      const el = Math.floor(i / 8);
+      const bit = i % 8;
+      const mask = 1 << bit;
+      const prior = vec[el] & mask;
+      vec[el] &= 0xff & ~mask;
+      return prior != 0;
     },
 
     /** @param {number} i */
     set(i) {
-      if (i < length) {
-        const el = Math.floor(i / 8);
-        vec[el] |= 1 << i % 8;
-      }
+      if (i >= length) return false;
+      const el = Math.floor(i / 8);
+      const bit = i % 8;
+      const mask = 1 << bit;
+      const prior = vec[el] & mask;
+      vec[el] |= mask;
+      return prior == 0;
     },
 
-    claim() {
+    claim(mark = true) {
       for (let el = 0; el < vec.length; el++) {
         const val = vec[el];
         if (val == 0xff) continue;
         for (let bit = 0, i = el * 8; bit < 8 && i < length; bit++, i++) {
           const mask = 1 << bit;
           if ((val & mask) != 0) continue;
-          vec[el] = val | mask;
+          if (mark) vec[el] = val | mask;
           return i;
         }
       }

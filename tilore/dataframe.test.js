@@ -872,39 +872,47 @@ test('sparse order', t => {
       order = df.aspects.draw,
       { length, byteStride, buffer } = order;
 
-    t.is(length, data.length);
-    t.deepEqual(Array.from(imap(order,
-      ({ $frameIndex }) => $frameIndex)), [...data]);
+    if (!t.is(length, data.length))
+      return false;
+
+    if (!t.deepEqual(Array.from(imap(order,
+      ({ $frameIndex }) => $frameIndex)), [...data]))
+      return false;
 
     // need to compact to stabilize byte representation...
     order.compact();
 
     // ...but we then also recheck formal length and accessor data
-    t.is(length, data.length);
-    t.deepEqual(Array.from(imap(order,
-      ({ $frameIndex }) => $frameIndex)), [...data]);
+    if (!t.is(length, data.length))
+      return false;
+    if (!t.deepEqual(Array.from(imap(order,
+      ({ $frameIndex }) => $frameIndex)), [...data]))
+      return false;
 
     // ... before finally checking the compacted byte representation
-    t.deepEqual(
+    if (!t.deepEqual(
       new Uint8Array(buffer).subarray(0, length * byteStride),
-      Uint8Array.of(...data));
+      Uint8Array.of(...data)))
+      return false;
+
+    return true;
   };
 
   expect();
 
   df.get(1).draw = Infinity;
-  expect(1);
+  if (!expect(1)) return;
 
   df.get(2).draw = Infinity;
-  expect(1, 2);
+  if (!expect(1, 2)) return;
 
   df.get(3).draw = Infinity;
-  expect(1, 2, 3);
+  if (!expect(1, 2, 3)) return;
 
   df.get(7).draw = 1;
-  expect(1, 7, 3, 2);
+  if (!expect(1, 7, 3, 2)) return;
 
-  t.deepEqual(Array.from(imap(df, ({ $id, draw }) => ({ $id, draw }))), [
+  if (!t.deepEqual(Array.from(imap(df, ({ $id, draw }) => ({ $id, draw }))), [
     { $id: 1, draw: undefined },
     { $id: 2, draw: 0 },
     { $id: 3, draw: 3 },
@@ -913,17 +921,17 @@ test('sparse order', t => {
     { $id: 6, draw: undefined },
     { $id: 7, draw: undefined },
     { $id: 8, draw: 1 },
-  ]);
+  ])) return;
 
   df.get(3).draw = undefined;
-  expect(1, 7, 2);
+  if (!expect(1, 7, 2)) return;
 
   df.get(5).draw = Infinity;
-  expect(1, 7, 2, 5);
+  if (!expect(1, 7, 2, 5)) return;
 
   df.get(2).draw = undefined;
   df.get(6).draw = Infinity;
-  expect(1, 7, 5, 6);
+  if (!expect(1, 7, 5, 6)) return;
 });
 
 /** @template T, U
