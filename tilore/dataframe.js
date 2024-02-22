@@ -928,7 +928,15 @@ function makeSparseAllocator(
     get length() { return length },
 
     get capacity() { return capacity },
-    // TODO set capacity(n) for prune and explicit pre-alloc?
+    set capacity(cap) {
+      if (cap < capacity)
+        throw new Error('SparseAllocator truncation not supported'); // TODO should it be?
+      if (cap > capacity) {
+        capacity = cap;
+        used.length = capacity;
+        grow(capacity);
+      }
+    },
 
     allocHole: alloc,
     alloc() {
