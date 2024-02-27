@@ -505,30 +505,8 @@ export function makeDataFrame(
     initialRes = index.resize(initialUpto, 0),
     initialLength = typeof initialRes == 'number' ? initialRes : initialRes.newLength,
 
-    aspects = Object.entries(aspectSpecs).map(([name, spec]) => {
-      if (typeof spec == 'object') {
-        if (!spec)
-          throw new Error('invalid dense aspect element spec');
-
-        if ('sparse' in spec) {
-          const { sparse } = spec;
-
-          if (typeof sparse == 'object') {
-            if (!sparse)
-              throw new Error('invalid sparse aspect element spec');
-            if ('order' in sparse)
-              return makeSparseOrderAspect(name, sparse, initialLength);
-          }
-
-          return makeSparseDatumAspect(name, sparse, initialLength);
-        }
-
-        if ('order' in spec)
-          return makeDenseOrderAspect(name, index, spec, initialLength);
-      }
-
-      return makeDenseDatumAspect(name, index, spec, initialLength);
-    }),
+    aspects = Object.entries(aspectSpecs).map(([name, spec]) =>
+      makeAspect(name, index, spec, { initialLength })),
 
     aspectExports = /** @type {ThemExports} */ (Object.fromEntries(aspects.map(aspect =>
       [aspect.name, dropProperties({}, aspect, 'resize', 'clear', 'elementDescriptor')]
@@ -598,6 +576,46 @@ export function makeDataFrame(
   };
 }
 
+/** @typedef {object} AspectOptions
+ * @prop {number} [initialLength]
+ */
+
+/**
+ * @template IndexRef
+ * @template {PropertyDescriptorMap} IndexPropMap
+ * @template {Aspect} A
+ * @param {string} name
+ * @param {Index<IndexRef, IndexPropMap>} index
+ * @param {A} spec
+ * @param {AspectOptions} [opts]
+ * @returns {ThatAspect<A, IndexRef, IndexPropMap>}
+ */
+function makeAspect(name, index, spec, opts) {
+  /** @typedef {ThatAspect<A, IndexRef, IndexPropMap>} TA */
+  if (typeof spec == 'object') {
+    if (!spec)
+      throw new Error('invalid dense aspect element spec');
+
+    if ('sparse' in spec) {
+      const { sparse } = spec;
+
+      if (typeof sparse == 'object') {
+        if (!sparse)
+          throw new Error('invalid sparse aspect element spec');
+        if ('order' in sparse)
+          return /** @type {TA} */ (makeSparseOrderAspect(name, sparse, opts));
+      }
+
+      return /** @type {TA} */ (makeSparseDatumAspect(name, sparse, opts));
+    }
+
+    if ('order' in spec)
+      return /** @type {TA} */ (makeDenseOrderAspect(name, index, spec, opts));
+  }
+
+  return /** @type {TA} */ (makeDenseDatumAspect(name, index, spec, opts));
+}
+
 /** @typedef { {
  *   buffer: ArrayBuffer,
  *   byteStride: number,
@@ -636,9 +654,12 @@ export function makeDataFrame(
  * @param {string} name
  * @param {Index<IndexRef, IndexPropMap>} index
  * @param {D} dat
+ * @param {AspectOptions} [options]
  * @returns {DenseAspect<D, IndexRef, IndexPropMap>}
  */
-function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
+function makeDenseDatumAspect(name, index, dat, {
+  initialLength = 0,
+} = {}) {
   const
     byteStride = datumByteLength(dat);
 
@@ -722,9 +743,12 @@ function makeDenseDatumAspect(name, index, dat, initialLength = 0) {
  * @param {string} name
  * @param {Index<IndexRef, IndexPropMap>} index
  * @param {O} order
+ * @param {AspectOptions} [options]
  * @returns {DenseAspect<O, IndexRef, IndexPropMap>}
  */
-function makeDenseOrderAspect(name, index, order, initialLength = 0) {
+function makeDenseOrderAspect(name, index, order, {
+  initialLength = 0,
+} = {}) {
   let
     length = initialLength,
     datType = orderType(order, { length }),
@@ -1238,9 +1262,12 @@ function makeSparseIndex(name, {
  * @template {Datum} D
  * @param {string} name
  * @param {D} dat
+ * @param {AspectOptions} [options]
  * @returns {SparseAspect<D>}
  */
-function makeSparseDatumAspect(name, dat, initialLength = 0) {
+function makeSparseDatumAspect(name, dat, {
+  initialLength = 0,
+} = {}) {
   const index = makeSparseIndex(name, {
     initialLength,
 
@@ -1331,9 +1358,12 @@ function makeSparseDatumAspect(name, dat, initialLength = 0) {
  * @template {Order} O
  * @param {string} name
  * @param {O} order
+ * @param {AspectOptions} [options]
  * @returns {SparseAspect<O>}
  */
-function makeSparseOrderAspect(name, order, initialLength = 0) {
+function makeSparseOrderAspect(name, order, {
+  initialLength = 0,
+} = {}) {
   const index = makeSparseIndex(name, {
     initialLength,
 
