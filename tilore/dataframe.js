@@ -490,8 +490,7 @@ export function makeDataFrame(
   aspectSpecs,
   initialUpto = 0,
 ) {
-  const aspectNames = Object.keys(aspectSpecs);
-  for (const name of aspectNames)
+  for (const name of Object.keys(aspectSpecs))
     if (name.startsWith('$'))
       throw new Error('DataFrame aspect name may not begin with $');
 
@@ -502,10 +501,10 @@ export function makeDataFrame(
   /** @typedef {ThatElement & Created<IndexPropMap>} ThatIndex */
   /** @typedef {ThatIndex & ThoseElements<Aspects>} ThatRecord */
 
-  const initialRes = index.resize(initialUpto, 0);
-  const initialLength = typeof initialRes == 'number' ? initialRes : initialRes.newLength;
-
   const
+    initialRes = index.resize(initialUpto, 0),
+    initialLength = typeof initialRes == 'number' ? initialRes : initialRes.newLength,
+
     aspects = Object.entries(aspectSpecs).map(([name, spec]) => {
       if (typeof spec == 'object') {
         if (!spec)
@@ -531,9 +530,12 @@ export function makeDataFrame(
       return makeDenseDatumAspect(name, index, spec, initialLength);
     }),
 
-    aspectPropMap = Object.fromEntries(aspectNames.map(
-      /** @returns {[name: string, desc: PropertyDescriptor]} */
-      (name, i) => [name, aspects[i].elementDescriptor]));
+    aspectExports = /** @type {ThemExports} */ (Object.fromEntries(aspects.map(aspect =>
+      [aspect.name, dropProperties({}, aspect, 'resize', 'clear', 'elementDescriptor')]
+    ))),
+
+    aspectPropMap = Object.fromEntries(aspects.map(
+      ({ name, elementDescriptor }) => [name, elementDescriptor]));
 
   let length = initialLength;
 
@@ -566,10 +568,17 @@ export function makeDataFrame(
 
     toIndex: index.refToIndex,
 
-    /** @param {number} $index */
-    toRef($index) {
-      return Object.seal(makeIndexRef($index));
+    /** @param {IndexRef} ref */
+    ref(ref) {
+      const $index = index.refToIndex(ref);
+      return $index >= 0 && $index < length ? get($index) : undefined;
     },
+
+    get,
+
+    [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
+
+    aspects: aspectExports,
 
     clear() {
       index.clear();
@@ -585,21 +594,6 @@ export function makeDataFrame(
       for (let i = 0; i < aspects.length; i++)
         aspects[i].resize(length, remap);
     },
-
-    /** @param {IndexRef} ref */
-    ref(ref) {
-      const $index = index.refToIndex(ref);
-      return $index >= 0 && $index < length ? get($index) : undefined;
-    },
-
-    get,
-
-    [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
-
-    aspects: /** @type {ThemExports} */ (
-      Object.fromEntries(aspectNames.map((name, i) => [name,
-        dropProperties({}, aspects[i], 'resize', 'clear', 'elementDescriptor')
-      ]))),
 
   };
 }
