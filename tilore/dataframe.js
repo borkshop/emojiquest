@@ -901,12 +901,14 @@ function makeDenseOrderAspect(name, index, order, {
  */
 
 /**
- * @param {(capacity: number) => void} grow
+ * @param {object} options
+ * @param {(capacity: number) => void} options.grow
+ * @param {number} [options.initialLength]
  */
-function makeSparseAllocator(
+function makeSparseAllocator({
   grow,
   initialLength = 0,
-) {
+}) {
   let length = 0, capacity = initialLength;
   const used = makeBitVector(capacity);
 
@@ -1033,7 +1035,10 @@ function makeSparseIndex(name, {
   swap,
   reverse,
 }) {
-  const spal = makeSparseAllocator(grow, initialLength);
+  const spal = makeSparseAllocator({
+    grow,
+    initialLength,
+  });
 
   let
     /** @type Map<number, number> */
