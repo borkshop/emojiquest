@@ -890,7 +890,6 @@ function makeDenseOrderAspect(name, index, order, {
  *   get: ($index: number) => ThatSparseValue<E>,
  *   getFor: ($frameIndex: number) => ThatSparseValue<E>|undefined,
  *   [Symbol.iterator]: () => Iterator<ThatSparseValue<E>>,
- *   all: () => Iterator<ThatSparseValue<E>>,
  *   compact: () => void,
  * } } SparseAspect
  */
@@ -1342,8 +1341,6 @@ function makeSparseDatumAspect(name, dat, {
       () => index.capacity,
       ({ $index }) => index.used($index)),
 
-    all: () => iterateCursor(ref(-1), () => index.capacity),
-
   };
 
   const {
@@ -1488,8 +1485,6 @@ function makeSparseOrderAspect(name, order, {
       const $index = index.get($frameIndex);
       return $index === undefined ? undefined : ref($index, makeCache());
     },
-
-    all: () => iterateCursor(ref(-1), () => index.capacity),
 
     [Symbol.iterator]: () => iterateCursor(ref(-1),
       () => index.capacity,
