@@ -918,7 +918,7 @@ function makeDenseOrderAspect(name, index, order, {
 
 /**
  * @param {object} options
- * @param {(capacity: number) => void} options.grow
+ * @param {(capacity: number, oldCapacity: number) => void} options.grow
  * @param {number} [options.initialLength]
  */
 function makeSparseAllocator({
@@ -928,15 +928,21 @@ function makeSparseAllocator({
   let length = 0, capacity = initialLength;
   const used = makeBitVector(capacity);
 
-  const alloc = () => {
-    while (capacity <= length)
+  /** @param {number} atLeast */
+  const ensure = atLeast => {
+    while (capacity < atLeast)
       capacity = capacity < 1024
         ? 2 * (capacity == 0 ? 1 : capacity)
         : capacity + capacity / 4;
     if (used.length < capacity) {
+      const oldCapacity = used.length;
       used.length = capacity;
-      grow(capacity);
+      grow(capacity, oldCapacity);
     }
+  };
+
+  const alloc = () => {
+    ensure(length + 1);
     return length;
   };
 
@@ -966,11 +972,7 @@ function makeSparseAllocator({
     set capacity(cap) {
       if (cap < capacity)
         throw new Error('SparseAllocator truncation not supported'); // TODO should it be?
-      if (cap > capacity) {
-        capacity = cap;
-        used.length = capacity;
-        grow(capacity);
-      }
+      ensure(cap);
     },
 
     allocHole: alloc,
