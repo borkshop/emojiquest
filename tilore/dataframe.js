@@ -249,6 +249,7 @@ function makeCache() {
 
 /** @typedef {object} ThatElement
  * @prop {number} $index
+ * @prop {number} $capacity -- limit value for $index iteration
  * @prop {Cache} _cache
  */
 
@@ -522,6 +523,7 @@ export function makeDataFrame(
     const _cache = makeCache();
     const $el = /** @type {ThatElement} */ (Object.create({
       get _cache() { return _cache },
+      get $capacity() { return length },
     }, {
       $index: {
         get() { return $index },
@@ -554,7 +556,7 @@ export function makeDataFrame(
 
     get,
 
-    [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
+    [Symbol.iterator]: () => iterateCursor(get(-1)),
 
     aspects: aspectExports,
 
@@ -676,9 +678,9 @@ function makeDenseDatumAspect(name, index, dat, {
     const _cache = makeCache();
     const $el = /** @type {ThatElement} */ (Object.create({
       get _cache() { return _cache },
+      get $capacity() { return length },
     }, {
       $index: {
-        get() { return $index },
         set(i) {
           _cache.clear();
           $index = Math.min(length, Math.max(0, i));
@@ -733,7 +735,7 @@ function makeDenseDatumAspect(name, index, dat, {
 
     get,
 
-    [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
+    [Symbol.iterator]: () => iterateCursor(get(-1)),
   };
 
   const {
@@ -780,7 +782,10 @@ function makeDenseOrderAspect(name, index, order, {
 
     // TODO needs to be a cast because makeDatumDescriptors doesn't narrow down its return type to a specific mapped extension of PropertyDescriptorMap
     return /** @type {ThatDenseValue<O, IndexPropMap>} */ (Object.seal(makeIndexed(index, {
+
+      // TODO stratify
       _cache,
+      get $capacity() { return length },
 
       get $index() { return $index },
       set $index(i) {
@@ -848,7 +853,7 @@ function makeDenseOrderAspect(name, index, order, {
       return $index >= 0 && $index < length ? get($index) : undefined;
     },
 
-    [Symbol.iterator]: () => iterateCursor(get(-1), () => length),
+    [Symbol.iterator]: () => iterateCursor(get(-1)),
   };
 
   /** @type {GetSetProp} */
@@ -1134,6 +1139,7 @@ function makeSparseAspectIndex(name, {
 
     const $el = /** @type {ThatSparseElement} */ (Object.create({
       get _cache() { return theCache },
+      get $capacity() { return spal.capacity },
     }, {
       $index: {
         enumerable: true,
@@ -1354,9 +1360,7 @@ function makeSparseDatumAspect(name, dat, {
       return $index === undefined ? undefined : ref($index, makeCache());
     },
 
-    [Symbol.iterator]: () => iterateCursor(ref(-1),
-      () => index.capacity,
-      ({ $index }) => index.used($index)),
+    [Symbol.iterator]: () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
 
     compact() { index.compact() },
 
@@ -1504,9 +1508,7 @@ function makeSparseOrderAspect(name, order, {
       return $index === undefined ? undefined : ref($index, makeCache());
     },
 
-    [Symbol.iterator]: () => iterateCursor(ref(-1),
-      () => index.capacity,
-      ({ $index }) => index.used($index)),
+    [Symbol.iterator]: () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
 
     compact() { index.compact() },
   };
@@ -2578,26 +2580,25 @@ function makeBitVector(length) {
 }
 
 /**
- * @template {{$index: number}} Cursor
+ * @template {{$index: number, $capacity: number}} Cursor
  * @param {Cursor} cur
- * @param {() => number} getLength
  * @param {(cur: Cursor) => boolean} [filter]
  * @returns {Iterator<Cursor>}
  */
-function iterateCursor(cur, getLength, filter) {
+function iterateCursor(cur, filter) {
   return {
     next: filter ? () => {
-      const length = getLength();
-      while (cur.$index < length) {
-        if (++cur.$index >= length) break;
+      let { $index, $capacity } = cur;
+      while ($index < $capacity) {
+        if ((cur.$index = ++$index) >= $capacity) break;
         if (filter(cur))
           return { done: false, value: cur };
       }
       return { done: true, value: undefined };
     } : () => {
-      const length = getLength();
-      if (cur.$index < length) cur.$index++;
-      if (cur.$index >= length)
+      let { $index, $capacity } = cur;
+      if ($index < $capacity) cur.$index = ++$index;
+      if ($index >= $capacity)
         return { done: true, value: undefined };
       return { done: false, value: cur };
     }
