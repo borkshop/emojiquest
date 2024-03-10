@@ -1037,7 +1037,7 @@ function makeSparseAllocator({
  * @param {SparseReverseIndex} [options.reverse]
  * @param {number} [options.initialLength]
  */
-function makeSparseIndex(name, {
+function makeSparseAspectIndex(name, {
   initialLength = 0,
 
   // TODO can we unify grow and clear into realloc(N, shouldCopy)?
@@ -1283,7 +1283,7 @@ function makeSparseIndex(name, {
 function makeSparseDatumAspect(name, dat, {
   initialLength = 0,
 } = {}) {
-  const index = makeSparseIndex(name, {
+  const index = makeSparseAspectIndex(name, {
     initialLength,
 
     grow(capacity) {
@@ -1380,7 +1380,7 @@ function makeSparseDatumAspect(name, dat, {
 function makeSparseOrderAspect(name, order, {
   initialLength = 0,
 } = {}) {
-  const index = makeSparseIndex(name, {
+  const index = makeSparseAspectIndex(name, {
     initialLength,
 
     grow(capacity) {
