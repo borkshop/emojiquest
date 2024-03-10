@@ -580,6 +580,7 @@ export function makeDataFrame(
 
 /** @typedef {object} AspectOptions
  * @prop {number} [initialLength]
+ * @prop {($frameIndex: number) => boolean} [alive]
  */
 
 /**
@@ -665,6 +666,7 @@ function makeAspect(name, index, spec, opts) {
  */
 function makeDenseDatumAspect(name, index, dat, {
   initialLength = 0,
+  alive,
 } = {}) {
   const
     byteStride = datumByteLength(dat);
@@ -730,12 +732,16 @@ function makeDenseDatumAspect(name, index, dat, {
     /** @param {IndexRef} ref */
     ref(ref) {
       const $index = index.refToIndex(ref);
-      return $index >= 0 && $index < length ? get($index) : undefined;
+      if ($index < 0 || $index >= length) return undefined;
+      if (alive && !alive($index)) return undefined;
+      return get($index);
     },
 
     get,
 
-    [Symbol.iterator]: () => iterateCursor(get(-1)),
+    [Symbol.iterator]: alive
+      ? () => iterateCursor(get(-1), ({ $index }) => alive($index))
+      : () => iterateCursor(get(-1)),
   };
 
   const {
@@ -758,6 +764,7 @@ function makeDenseDatumAspect(name, index, dat, {
  */
 function makeDenseOrderAspect(name, index, order, {
   initialLength = 0,
+  alive
 } = {}) {
   let
     length = initialLength,
@@ -809,8 +816,6 @@ function makeDenseOrderAspect(name, index, order, {
     get elementDescriptor() { return orderDesc },
     fieldInfo: () => datumFieldInfo(datType),
 
-    // TODO expose array? coArray? coBuffer
-
     clear() {
       for (let i = 0; i < length; i++) {
         array[i] = i;
@@ -850,10 +855,14 @@ function makeDenseOrderAspect(name, index, order, {
     /** @param {IndexRef} ref */
     ref(ref) {
       const $index = index.refToIndex(ref);
-      return $index >= 0 && $index < length ? get($index) : undefined;
+      if ($index < 0 || $index >= length) return undefined;
+      if (alive && !alive($index)) return undefined;
+      return get($index);
     },
 
-    [Symbol.iterator]: () => iterateCursor(get(-1)),
+    [Symbol.iterator]: alive
+      ? () => iterateCursor(get(-1), ({ $index }) => alive($index))
+      : () => iterateCursor(get(-1)),
   };
 
   /** @type {GetSetProp} */
@@ -1040,6 +1049,7 @@ function makeSparseAllocator({
  * @param {object} options
  * @param {(capacity: number) => void} options.grow
  * @param {() => void} options.clear
+ * @param {($frameIndex: number) => boolean} [options.alive]
  * @param {(i: number, j: number) => void} [options.swap]
  * @param {SparseReverseIndex} [options.reverse]
  * @param {number} [options.initialLength]
@@ -1050,6 +1060,7 @@ function makeSparseAspectIndex(name, {
   // TODO can we unify grow and clear into realloc(N, shouldCopy)?
   grow,
   clear,
+  alive,
   swap,
   reverse,
 }) {
@@ -1110,12 +1121,13 @@ function makeSparseAspectIndex(name, {
     }
 
     const $index = $reqIndex >= spal.length ? spal.allocHole() : $reqIndex;
+    const $dead = alive && !alive($frameIndex);
 
     const $priorIndex = indexMap.get($frameIndex);
     if ($priorIndex != undefined) {
       spal.free($priorIndex);
       indexMap.delete($frameIndex);
-      reverseSet($priorIndex, $frameIndex);
+      if (!$dead) reverseSet($priorIndex, $frameIndex);
     }
 
     const $priorFrameIndex = spal.isUsed($index) ? reverseGet($index) : undefined;
@@ -1126,9 +1138,11 @@ function makeSparseAspectIndex(name, {
       reverseSet($newIndex, $priorFrameIndex);
     }
 
-    spal.setUsed($index, true);
-    indexMap.set($frameIndex, $index);
-    reverseSet($index, $frameIndex);
+    if (!$dead) {
+      spal.setUsed($index, true);
+      indexMap.set($frameIndex, $index);
+      reverseSet($index, $frameIndex);
+    }
   };
 
   /**
@@ -1156,10 +1170,20 @@ function makeSparseAspectIndex(name, {
         enumerable: true,
 
         /** @this {ThatElement} */
-        get() { return reverseGet(this.$index) },
+        get() {
+          const { $index } = this;
+          const $frameIndex = reverseGet($index);
+          if (alive && $frameIndex != undefined && !alive($frameIndex)) {
+            reverseSet($index, undefined);
+            return undefined;
+          }
+          return $frameIndex;
+        },
 
         /** @this {ThatElement} */
         set($frameIndex) {
+          if (alive && $frameIndex != undefined && !alive($frameIndex))
+            $frameIndex = undefined;
           const { $index } = this;
           if ($frameIndex == undefined) {
             const $priorFrameIndex = reverseGet($index);
@@ -1219,6 +1243,11 @@ function makeSparseAspectIndex(name, {
       spal.compact(($holeIndex, $usedIndex) => {
         const $frameIndex = reverseGet($usedIndex);
         if ($frameIndex == undefined) return false;
+        if (alive && !alive($frameIndex)) {
+          indexMap.delete($frameIndex);
+          reverseSet($usedIndex, undefined);
+          return false;
+        }
 
         swap($holeIndex, $usedIndex);
         indexMap.set($frameIndex, $holeIndex);
@@ -1231,10 +1260,22 @@ function makeSparseAspectIndex(name, {
     ref: makeElement,
 
     /** @param {number} $frameIndex */
-    get($frameIndex) { return indexMap.get($frameIndex) },
+    get($frameIndex) {
+      if (alive && !alive($frameIndex)) {
+        indexMap.delete($frameIndex);
+        return undefined;
+      }
+      return indexMap.get($frameIndex);
+    },
 
     /** @param {number} $frameIndex */
-    has($frameIndex) { return indexMap.has($frameIndex) },
+    has($frameIndex) {
+      if (alive && !alive($frameIndex)) {
+        indexMap.delete($frameIndex);
+        return false;
+      }
+      return indexMap.has($frameIndex);
+    },
 
     /** @param {number} $index */
     used($index) { return spal.isUsed($index) },
@@ -1250,8 +1291,11 @@ function makeSparseAspectIndex(name, {
         /** @this {ThatElement} */
         get() {
           const { $index: $frameIndex, _cache } = this;
+          if (alive && !alive($frameIndex)) return undefined;
+
           const $index = indexMap.get($frameIndex);
           if ($index == undefined) return undefined;
+
           const $element = _cache.get(`${name}$element`, () => makeElement($index, _cache));
           return innerGet.call($element);
         },
@@ -1259,6 +1303,8 @@ function makeSparseAspectIndex(name, {
         /** @this {ThatElement} @param {any} value */
         set(value) {
           const { $index: $frameIndex, _cache } = this;
+          if (alive && !alive($frameIndex)) return;
+
           let $index = indexMap.get($frameIndex);
           if (value !== null && value !== undefined) {
             if ($index === undefined) {
@@ -1290,18 +1336,21 @@ function makeSparseAspectIndex(name, {
  */
 function makeSparseDatumAspect(name, dat, {
   initialLength = 0,
+  alive,
 } = {}) {
   const index = makeSparseAspectIndex(name, {
     initialLength,
+    alive,
 
     grow(capacity) {
       const newByteLength = capacity * byteStride;
       if (newByteLength > buffer.byteLength) {
         // TODO use buffer.transfer someday
         const newBuffer = new ArrayBuffer(newByteLength);
-        new Uint8Array(newBuffer).set(new Uint8Array(buffer));
+        const nu8 = new Uint8Array(newBuffer);
+        nu8.set(u8);
         buffer = newBuffer;
-        u8 = new Uint8Array(buffer);
+        u8 = nu8;
       }
     },
 
@@ -1358,11 +1407,14 @@ function makeSparseDatumAspect(name, dat, {
     get: $index => ref($index),
 
     getFor($frameIndex) {
+      if (alive && !alive($frameIndex)) return undefined;
       const $index = index.get($frameIndex);
       return $index === undefined ? undefined : ref($index, makeCache());
     },
 
-    [Symbol.iterator]: () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
+    [Symbol.iterator]: alive
+      ? () => iterateCursor(ref(-1), ({ $index, $frameIndex }) => index.used($index) && $frameIndex !== undefined && alive($frameIndex))
+      : () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
 
     compact() { index.compact() },
 
@@ -1385,9 +1437,11 @@ function makeSparseDatumAspect(name, dat, {
  */
 function makeSparseOrderAspect(name, order, {
   initialLength = 0,
+  alive,
 } = {}) {
   const index = makeSparseAspectIndex(name, {
     initialLength,
+    alive,
 
     grow(capacity) {
       // TODO use buffer.transfer someday
@@ -1453,8 +1507,8 @@ function makeSparseOrderAspect(name, order, {
     /** @this {ThatSparseElement} */
     get() {
       const { $frameIndex } = this;
-      const $index = $frameIndex == undefined ? undefined : index.get($frameIndex);
-      return $index;
+      if ($frameIndex == undefined) return undefined;
+      return index.get($frameIndex);
     },
 
     /** @this {ThatSparseElement} */
@@ -1506,11 +1560,14 @@ function makeSparseOrderAspect(name, order, {
     get: $index => ref($index),
 
     getFor($frameIndex) {
+      if (alive && !alive($frameIndex)) return undefined;
       const $index = index.get($frameIndex);
       return $index === undefined ? undefined : ref($index, makeCache());
     },
 
-    [Symbol.iterator]: () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
+    [Symbol.iterator]: alive
+      ? () => iterateCursor(ref(-1), ({ $index, $frameIndex }) => index.used($index) && $frameIndex !== undefined && alive($frameIndex))
+      : () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
 
     compact() { index.compact() },
   };
