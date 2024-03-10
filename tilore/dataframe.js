@@ -622,9 +622,13 @@ function makeAspect(name, index, spec, opts) {
  * } } Buffer */
 
 /** @typedef { Buffer & {
+ *   length: number,
+ *   capacity: number,
+ * } } BufferElements */
+
+/** @typedef { BufferElements & {
  *   name: string,
  *   spec: Element,
- *   length: number,
  *   clear: () => void,
  *   resize: (newLength: number, remap: () => Iterable<RemapEntry>) => void,
  *   fieldInfo: () => Iterable<FieldInfo>,
@@ -640,7 +644,7 @@ function makeAspect(name, index, spec, opts) {
  * @template {PropertyDescriptorMap} IndexPropMap
  * @typedef { AspectCore & {
  *   spec: E,
- *   elementDescriptor: PropertyDescriptor, // TODO type specialize get(T)/set()=>T ?
+ *   elementDescriptor: GetSetProp, // TODO type specialize get(T)/set()=>T ?
  *   ref: (ref: IndexRef) => ThatDenseValue<E, IndexPropMap>|undefined,
  *   get: ($index: number) => ThatDenseValue<E, IndexPropMap>,
  *   [Symbol.iterator]: () => Iterator<ThatDenseValue<E, IndexPropMap>>,
@@ -691,9 +695,13 @@ function makeDenseDatumAspect(name, index, dat, {
   const self = {
     get name() { return name },
     get spec() { return dat },
+
     get buffer() { return buffer },
     get byteStride() { return byteStride },
+
+    get capacity() { return length },
     get length() { return length },
+
     get elementDescriptor() { return elementDescriptor },
     fieldInfo() { return datumFieldInfo(dat) },
 
@@ -786,9 +794,13 @@ function makeDenseOrderAspect(name, index, order, {
   const self = {
     get name() { return name },
     get spec() { return order },
+
     get buffer() { return buffer },
     get byteStride() { return byteStride },
+
+    get capacity() { return length },
     get length() { return length },
+
     get elementDescriptor() { return orderDesc },
     fieldInfo: () => datumFieldInfo(datType),
 
@@ -885,8 +897,7 @@ function makeDenseOrderAspect(name, index, order, {
 /** @template {Element} E
  * @typedef { AspectCore & {
  *   spec: E,
- *   capacity: number,
- *   elementDescriptor: PropertyDescriptor, // TODO type specialize get(T)/set()=>T ?
+ *   elementDescriptor: GetSetProp, // TODO type specialize get(T)/set()=>T ?
  *   get: ($index: number) => ThatSparseValue<E>,
  *   getFor: ($frameIndex: number) => ThatSparseValue<E>|undefined,
  *   [Symbol.iterator]: () => Iterator<ThatSparseValue<E>>,
@@ -1324,16 +1335,17 @@ function makeSparseDatumAspect(name, dat, {
     get name() { return name },
     get spec() { return dat },
 
-    get capacity() { return index.capacity },
-    get length() { return index.length },
-    get elementDescriptor() { return index.wrapDescriptor(innerDescriptor) },
-    clear() { index.clear() },
-    resize(newLength, remap) { index.resize(newLength, remap) },
-    compact() { index.compact() },
-
     get buffer() { return buffer },
     get byteStride() { return byteStride },
+
+    get capacity() { return index.capacity },
+    get length() { return index.length },
+
+    get elementDescriptor() { return index.wrapDescriptor(innerDescriptor) },
     fieldInfo() { return datumFieldInfo(dat) },
+
+    clear() { index.clear() },
+    resize(newLength, remap) { index.resize(newLength, remap) },
 
     get: $index => ref($index),
 
@@ -1345,6 +1357,8 @@ function makeSparseDatumAspect(name, dat, {
     [Symbol.iterator]: () => iterateCursor(ref(-1),
       () => index.capacity,
       ({ $index }) => index.used($index)),
+
+    compact() { index.compact() },
 
   };
 
@@ -1471,18 +1485,17 @@ function makeSparseOrderAspect(name, order, {
     get name() { return name },
     get spec() { return order },
 
-    get capacity() { return index.capacity },
-    get length() { return index.length },
-    get elementDescriptor() { return index.wrapDescriptor(orderDesc) },
-    clear() { index.clear() },
-
-    resize(newLength, remap) { index.resize(newLength, remap) },
-
-    compact() { index.compact() },
-
     get buffer() { return buffer },
     get byteStride() { return byteStride },
+
+    get capacity() { return index.capacity },
+    get length() { return index.length },
+
+    get elementDescriptor() { return index.wrapDescriptor(orderDesc) },
     fieldInfo() { return datumFieldInfo(datType) },
+
+    clear() { index.clear() },
+    resize(newLength, remap) { index.resize(newLength, remap) },
 
     get: $index => ref($index),
 
@@ -1494,6 +1507,8 @@ function makeSparseOrderAspect(name, order, {
     [Symbol.iterator]: () => iterateCursor(ref(-1),
       () => index.capacity,
       ({ $index }) => index.used($index)),
+
+    compact() { index.compact() },
   };
 }
 
