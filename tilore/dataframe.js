@@ -497,7 +497,7 @@ export function makeDataFrame(
 
   /** @typedef {ThoseAspects<Aspects, IndexRef, IndexPropMap>} ThemAspects */
   /** @typedef {{ [name in keyof Aspects]:
-   *     Omit<ThemAspects[name], "resize"|"clear"|"elementDescriptor">
+   *     Omit<ThemAspects[name], "permute"|"resize"|"clear"|"elementDescriptor">
    * }} ThemExports */
   /** @typedef {ThatElement & Created<IndexPropMap>} ThatIndex */
   /** @typedef {ThatIndex & ThoseElements<Aspects>} ThatRecord */
@@ -510,7 +510,7 @@ export function makeDataFrame(
       makeAspect(name, index, spec, { initialLength })),
 
     aspectExports = /** @type {ThemExports} */ (Object.fromEntries(aspects.map(aspect =>
-      [aspect.name, dropProperties({}, aspect, 'resize', 'clear', 'elementDescriptor')]
+      [aspect.name, dropProperties({}, aspect, 'permute', 'resize', 'clear', 'elementDescriptor')]
     ))),
 
     aspectPropMap = Object.fromEntries(aspects.map(
@@ -634,6 +634,7 @@ function makeAspect(name, index, spec, opts) {
  *   spec: Element,
  *   clear: () => void,
  *   resize: (newLength: number, remap: () => Iterable<RemapEntry>) => void,
+ *   permute: (perm: Iterable<[i: number, j: number]>, newLength?: number) => void, // TODO unify with resize?
  *   fieldInfo: () => Iterable<FieldInfo>,
  * } } AspectCore */
 
@@ -742,6 +743,24 @@ function makeDenseDatumAspect(name, index, dat, {
     [Symbol.iterator]: alive
       ? () => iterateCursor(get(-1), ({ $index }) => alive($index))
       : () => iterateCursor(get(-1)),
+
+    permute(perm, newLength) {
+      const tmp = new Uint8Array(byteStride);
+      const u8 = new Uint8Array(buffer);
+      for (const [i, j] of perm) {
+        const a = u8.subarray(byteStride * i, byteStride * (i + 1));
+        const b = u8.subarray(byteStride * j, byteStride * (j + 1));
+        tmp.set(a);
+        // a.set(b);
+        u8.copyWithin(
+          byteStride * i,
+          byteStride * j, byteStride * (j + 1));
+        b.set(tmp);
+      }
+      if (newLength !== undefined)
+        length = newLength;
+    },
+
   };
 
   const {
@@ -848,6 +867,18 @@ function makeDenseOrderAspect(name, index, order, {
         byteStride = newByteStride;
         ArrayType = newArrayType;
       }
+    },
+
+    permute(perm, newLength) {
+      for (const [i, j] of perm) {
+        const iOrder = coArray[i], jOrder = coArray[j];
+        coArray[i] = jOrder;
+        coArray[j] = iOrder;
+        array[iOrder] = j;
+        array[jOrder] = i;
+      }
+      if (newLength !== undefined)
+        length = newLength;
     },
 
     get,
@@ -1236,6 +1267,33 @@ function makeSparseAspectIndex(name, {
       reverseUpdate(newIndexMap);
     },
 
+    /** @type {AspectCore["permute"]} */
+    permute(perm, newLength) {
+      if (newLength !== undefined)
+        frameLength = newLength;
+      for (const [i, j] of perm) {
+        const indexI = indexMap.get(i), indexJ = indexMap.get(j);
+        if (indexI != undefined) {
+          if (j < frameLength) {
+            indexMap.set(j, indexI);
+            reverseSet(indexI, j);
+          } else {
+            indexMap.delete(j);
+            reverseSet(indexI, undefined);
+          }
+        } else indexMap.delete(j);
+        if (indexJ != undefined) {
+          if (i < frameLength) {
+            indexMap.set(i, indexJ);
+            reverseSet(indexJ, i);
+          } else {
+            indexMap.delete(i);
+            reverseSet(indexJ, undefined);
+          }
+        } else indexMap.delete(i);
+      }
+    },
+
     compact() {
       // TODO evolve to relocate entire contiguous ranges when possible
       if (!swap)
@@ -1403,6 +1461,7 @@ function makeSparseDatumAspect(name, dat, {
 
     clear() { index.clear() },
     resize(newLength, remap) { index.resize(newLength, remap) },
+    permute(perm, newLength) { index.permute(perm, newLength) },
 
     get: $index => ref($index),
 
@@ -1570,6 +1629,9 @@ function makeSparseOrderAspect(name, order, {
       : () => iterateCursor(ref(-1), ({ $index }) => index.used($index)),
 
     compact() { index.compact() },
+
+    permute(perm, newLength) { index.permute(perm, newLength) },
+
   };
 }
 
