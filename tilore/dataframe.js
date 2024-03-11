@@ -578,6 +578,140 @@ export function makeDataFrame(
   };
 }
 
+/**
+ * @template IndexRef
+ * @template {PropertyDescriptorMap} IndexPropMap
+ * @template {AspectMap} Aspects
+ * @param {Index<IndexRef, IndexPropMap>} index
+ * @param {Aspects} aspectSpecs
+ * @param {number} [initialLength]
+ */
+export function makeSparseDataFrame(
+  index,
+  aspectSpecs,
+  initialLength = 0,
+) {
+  for (const name of Object.keys(aspectSpecs))
+    if (name.startsWith('$'))
+      throw new Error('DataFrame aspect name may not begin with $');
+
+  /** @typedef {ThoseAspects<Aspects, IndexRef, IndexPropMap>} ThemAspects */
+  /** @typedef {{ [name in keyof Aspects]:
+   *     Omit<ThemAspects[name], "permute"|"resize"|"clear"|"elementDescriptor">
+   * }} ThemExports */
+
+  const spal = makeSparseAllocator({
+    grow(length, oldLength) {
+      for (const aspect of aspects)
+        aspect.resize(length, () => [{
+          newOffset: 0,
+          oldOffset: 0,
+          oldUpto: oldLength,
+        }]);
+    },
+    initialLength,
+  });
+
+  const
+    aspects = Object.entries(aspectSpecs).map(([name, spec]) =>
+      makeAspect(name, index, spec, {
+        initialLength,
+        alive: $index => spal.isUsed($index),
+      })),
+
+    aspectExports = /** @type {ThemExports} */ (Object.fromEntries(aspects.map(aspect =>
+      [aspect.name, dropProperties({}, aspect, 'permute', 'resize', 'clear', 'elementDescriptor')]
+    ))),
+
+    aspectPropMap = Object.fromEntries(aspects.map(
+      ({ name, elementDescriptor }) => [name, elementDescriptor]));
+
+  /**
+   * @param {number} $index
+   * @returns {ThatElement & {$used: boolean} & Created<IndexPropMap> & ThoseElements<Aspects>}
+   */
+  const get = $index => {
+    const _cache = makeCache();
+
+    return Object.seal(makeIndexed(index, {
+      _cache,
+
+      get $capacity() { return spal.capacity },
+
+      get $index() { return $index },
+      set $index(i) {
+        _cache.clear();
+        $index = Math.min(spal.capacity, Math.max(0, i));
+      },
+
+      get $used() { return spal.isUsed(this.$index) },
+      set $used(is) { spal.setUsed(this.$index, is) },
+
+    }, aspectPropMap));
+  };
+
+  return {
+    get length() { return spal.length },
+
+    get capacity() { return spal.capacity },
+    set capacity(cap) {
+      cap -= spal.freeCount;
+      if (cap > spal.capacity)
+        spal.capacity = cap;
+    },
+
+    toIndex: index.refToIndex,
+
+    alloc() {
+      let $index = spal.reuse();
+      if ($index == undefined)
+        $index = spal.alloc();
+      return get($index);
+    },
+
+    /** @param {number} $index */
+    free($index) {
+      spal.free($index);
+    },
+
+    get,
+
+    /** @param {IndexRef} ref */
+    ref(ref) {
+      const $index = index.refToIndex(ref);
+      if ($index < 0) return undefined;
+      if (!spal.isUsed($index)) return undefined;
+      return get($index);
+    },
+
+    [Symbol.iterator]: () => iterateCursor(get(-1), ({ $index }) => spal.isUsed($index)),
+
+    aspects: aspectExports,
+
+    clear() {
+      spal.clear();
+      index.clear();
+      for (let i = 0; i < aspects.length; i++)
+        aspects[i].clear();
+    },
+
+    compact() {
+      const perm = makePermutation(spal.capacity);
+      spal.compact(($holeIndex, $usedIndex) => {
+        const tmp = perm[$holeIndex];
+        perm[$holeIndex] = perm[$usedIndex];
+        perm[$usedIndex] = tmp;
+        return true;
+      });
+      const newLength = spal.length;
+      const swaps = Array.from(permutationSwaps(perm));
+      for (const aspect of aspects)
+        aspect.permute(swaps, newLength);
+    },
+
+  };
+}
+
 /** @typedef {object} AspectOptions
  * @prop {number} [initialLength]
  * @prop {($frameIndex: number) => boolean} [alive]
@@ -1014,6 +1148,8 @@ function makeSparseAllocator({
         throw new Error('SparseAllocator truncation not supported'); // TODO should it be?
       ensure(cap);
     },
+
+    get freeCount() { return used.countFree() },
 
     allocHole: alloc,
     alloc() {
@@ -2662,6 +2798,17 @@ function equalShapes(a, b) {
     : Array.isArray(b) && a[0] === b[0] && a[1] === b[1];
 }
 
+// LUT to count set/unset bits in a byte
+const byteZeroCount = new Uint8Array(256);
+const byteOneCount = new Uint8Array(256);
+for (let i = 0; i < 256; i++) {
+  let n = 0;
+  for (let j = 0; j < 8; j++)
+    if ((i & (1 << j)) != 0) n++;
+  byteZeroCount[i] = 8 - n;
+  byteOneCount[i] = n;
+}
+
 /** @param {number} length */
 function makeBitVector(length) {
   let vec = new Uint8Array(Math.ceil(length / 8));
@@ -2675,6 +2822,14 @@ function makeBitVector(length) {
         vec = newVec;
         length = newLength;
       }
+    },
+
+    countFree(under = length) {
+      let n = 0;
+      const upto = (under + 1) / 8;
+      for (let el = 0; el < vec.length && el < upto; el++)
+        n += byteZeroCount[vec[el]];
+      return n;
     },
 
     anyFree(under = length) {
@@ -2774,6 +2929,22 @@ function iterateCursor(cur, filter) {
       return { done: false, value: cur };
     }
   };
+}
+
+/**
+ * @template {{$index: number, $capacity: number}} Cursor
+ * @template V
+ * @param {Cursor} cur
+ * @param {(cur: Cursor) => V} [mapfn]
+ */
+export function* icur(cur, mapfn) {
+  if (mapfn) {
+    for (; cur.$index < cur.$capacity; cur.$index++)
+      yield mapfn(cur);
+  } else {
+    for (; cur.$index < cur.$capacity; cur.$index++)
+      yield cur;
+  }
 }
 
 /**

@@ -4,10 +4,12 @@ import test from 'ava';
 
 import {
   makeDataFrame,
+  makeSparseDataFrame,
   MonotonicIndex,
   makeXYIndex,
   makePermutation,
   permutationSwaps,
+  icur,
 } from './dataframe.js';
 
 function getHostLittleEndian() {
@@ -934,6 +936,192 @@ test('sparse order', t => {
   df.get(2).draw = undefined;
   df.get(6).draw = Infinity;
   if (!expect(1, 7, 5, 6)) return;
+});
+
+test('sparse dataframe', t => {
+  const df = makeSparseDataFrame(MonotonicIndex, {
+    dat: 'uint8',
+    sat: { sparse: 'uint8' },
+    total: { order: 'self' },
+    partial: { sparse: { order: 'self' } },
+  });
+
+  /**
+   * @template {{[key: string]: any}} T
+   * @param {T[]} data
+   */
+  const load = (...data) => {
+    t.log(`*** LOAD ${data.length} entries ***`);
+    /** @type {number[]} */
+    const loaded = [];
+
+    const validate = () => {
+      for (let i = 0; i < loaded.length; i++) {
+        const $id = loaded[i];
+        const ref = df.ref($id);
+        if (!t.like(ref, data[i], `validate loaded[${i}] $id:${$id}`))
+          return false;
+      }
+      return true;
+    };
+
+    df.capacity = df.length + data.length;
+    for (const datum of data) {
+      const ref = df.alloc();
+      if (!validate()) {
+        t.log(`alloc #${ref.$id} invalidated`);
+        return false;
+      }
+
+      Object.assign(ref, datum);
+      if (!t.like(ref, datum)) {
+        t.log(`load failed $id:${ref.$id}`);
+        return;
+      }
+
+      t.log(`loaded $id:${ref.$id} <- ${JSON.stringify(datum)}`);
+
+      loaded.push(ref.$id);
+      if (!validate()) return false;
+    }
+
+    return true;
+  };
+
+  /** @param {({[key: string]: any} & {$id: number})[]} records */
+  const expect = (...records) => {
+    let ok = true;
+    t.log(`*** EXPECT ${records.length} records ***`);
+    const byID = new Map(records.map(({ $id, ...rest }) => [$id, rest]));
+    for (const rec of df) {
+      const { $id, ...rest } = rec;
+      const expect = byID.get($id);
+      if (expect == undefined) {
+        t.log(`unexpected $id:${$id}`, rest);
+        t.fail(`unexpected $id:${$id}`);
+        ok = false;
+      } else {
+        byID.delete($id);
+        if (!t.deepEqual(rest, expect, `expected data for $id:${$id}`))
+          ok = false;
+      }
+    }
+
+    if (byID.size > 0) {
+      for (const [$id, expect] of byID)
+        t.log(`missing $id:${$id}`, expect);
+      t.fail(`missing ${byID.size} records`);
+      ok = false;
+    }
+
+    return ok;
+  };
+
+  t.is(df.length, 0);
+  t.is(df.capacity, 0);
+
+  if (!load(
+    { dat: 3, sat: 2 },
+    { dat: 5, sat: 11 },
+    { dat: 7 },
+    { dat: 15, sat: 22 },
+    { dat: 21, sat: 4 },
+    { dat: 35 },
+  )) return;
+  t.is(df.length, 6);
+  t.is(df.capacity, 8);
+  expect(
+    { $id: 1, dat: 3, sat: 2, total: 0, partial: undefined },
+    { $id: 2, dat: 5, sat: 11, total: 1, partial: undefined },
+    { $id: 3, dat: 7, sat: undefined, total: 2, partial: undefined },
+    { $id: 4, dat: 15, sat: 22, total: 3, partial: undefined },
+    { $id: 5, dat: 21, sat: 4, total: 4, partial: undefined },
+    { $id: 6, dat: 35, sat: undefined, total: 5, partial: undefined },
+  );
+
+  // TODO reorder total
+
+  t.log('*** FREE [1] ***');
+  df.free(1);
+  t.is(df.length, 5);
+  t.is(df.capacity, 8);
+  expect(
+    { $id: 1, dat: 3, sat: 2, total: 0, partial: undefined },
+    { $id: 3, dat: 7, sat: undefined, total: 2, partial: undefined },
+    { $id: 4, dat: 15, sat: 22, total: 3, partial: undefined },
+    { $id: 5, dat: 21, sat: 4, total: 4, partial: undefined },
+    { $id: 6, dat: 35, sat: undefined, total: 5, partial: undefined },
+  );
+
+  if (!load(
+    { dat: 9, sat: 8 },
+    { dat: 14 },
+    { dat: 27, sat: 16 },
+    { dat: 28 },
+  )) return;
+  t.is(df.length, 9);
+  t.is(df.capacity, 16);
+  expect(
+    { $id: 1, dat: 3, sat: 2, total: 0, partial: undefined },
+    { $id: 2, dat: 9, sat: 8, total: 1, partial: undefined },
+    { $id: 3, dat: 7, sat: undefined, total: 2, partial: undefined },
+    { $id: 4, dat: 15, sat: 22, total: 3, partial: undefined },
+    { $id: 5, dat: 21, sat: 4, total: 4, partial: undefined },
+    { $id: 6, dat: 35, sat: undefined, total: 5, partial: undefined },
+    { $id: 7, dat: 14, sat: undefined, total: 6, partial: undefined },
+    { $id: 8, dat: 27, sat: 16, total: 7, partial: undefined },
+    { $id: 9, dat: 28, sat: undefined, total: 8, partial: undefined },
+  );
+
+  // TODO test df.aspects.sparse.getFor more broadly
+  t.is(df.aspects.sat.getFor(3)?.value, 22);
+  t.is(df.aspects.sat.getFor(4)?.value, 4);
+
+  // TODO use icur more broadly
+
+  t.deepEqual(Array.from(icur(df.get(0), cur => cur.$used)), [
+    true, true, true, true,
+    true, true, true, true,
+    true, false, false, false,
+    false, false, false, false,
+  ]);
+
+  t.log('*** FREE [2, 4, 8] ***');
+  df.free(2); // $id:3
+  df.free(4); // $id:5
+  df.free(8); // $id:9
+  t.deepEqual(Array.from(icur(df.get(0), cur => cur.$used)), [
+    true, true, false, true,
+    false, true, true, true,
+    false, false, false, false,
+    false, false, false, false,
+  ]);
+  expect(
+    { $id: 1, dat: 3, sat: 2, total: 0, partial: undefined },
+    { $id: 2, dat: 9, sat: 8, total: 1, partial: undefined },
+    { $id: 4, dat: 15, sat: 22, total: 3, partial: undefined },
+    { $id: 6, dat: 35, sat: undefined, total: 5, partial: undefined },
+    { $id: 7, dat: 14, sat: undefined, total: 6, partial: undefined },
+    { $id: 8, dat: 27, sat: 16, total: 7, partial: undefined },
+  );
+
+  t.log('*** COMPACT ***');
+  df.compact();
+  t.deepEqual(Array.from(icur(df.get(0), cur => cur.$used)), [
+    true, true, true, true,
+    true, true, false, false,
+    false, false, false, false,
+    false, false, false, false,
+  ]);
+  expect(
+    { $id: 1, dat: 3, sat: 2, total: 0, partial: undefined },
+    { $id: 2, dat: 9, sat: 8, total: 1, partial: undefined },
+    { $id: 3, dat: 15, sat: 22, total: 3, partial: undefined },
+    { $id: 4, dat: 35, sat: undefined, total: 5, partial: undefined },
+    { $id: 5, dat: 14, sat: undefined, total: 6, partial: undefined },
+    { $id: 6, dat: 27, sat: 16, total: 7, partial: undefined },
+  );
+
 });
 
 test('perm swaps', t => {
