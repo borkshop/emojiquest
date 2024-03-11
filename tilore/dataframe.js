@@ -2246,6 +2246,51 @@ function lengthType(length) {
   }
 }
 
+/** @param {number} length */
+export function makePermutation(length) {
+  const datType = lengthType(length);
+  const ArrayType = componentTypedArray(datType);
+  const perm = new ArrayType(length);
+  for (let i = 0; i < perm.length; i++) perm[i] = i;
+  return perm;
+}
+
+/**
+ * Yields an operational stream of index transpositions to reproduce the given
+ * permutation's cycle structure; in other words:
+ *
+ *     for (const [i, j] of permutationSwaps(perm))
+ *         swap(data, i j) // however you implement this
+ *     // now data has been reordered according to perm's index reordering
+ *
+ * @param {ArrayLike<number>} perm
+ * @returns {Generator<[i: number, j: number]>}
+ */
+export function* permutationSwaps(perm) {
+  // NOTE this emits each cycle contiguously,
+  //      which will skip arbitrarily through both read and write space.
+  //      for example:
+  //          (1 2 3 4)
+  //          (2 3 4)·(1 2)
+  //          (3 4)·(2 3)·(1 2)
+  //      where the · operator is rtl applicative ala `f·g = f(g(...))`
+  //
+  // TODO is it possible to generate transpositions that provide better read/write locality?
+  const touched = makeBitVector(perm.length);
+  for (let i = 0; i < perm.length; i++) {
+    let j = perm[i];
+    if (j == i) continue; // fixed element
+    if (touched.is(i)) continue; // already handled this cycle
+    touched.set(i);
+    let last = i;
+    while (j != i) {
+      touched.set(j);
+      yield [last, j];
+      last = j, j = perm[j];
+    }
+  }
+}
+
 /** @param {Datum} dat */
 function datumByteLength(dat) {
   if (typeof dat == 'string')

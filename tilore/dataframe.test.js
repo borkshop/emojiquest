@@ -6,6 +6,8 @@ import {
   makeDataFrame,
   MonotonicIndex,
   makeXYIndex,
+  makePermutation,
+  permutationSwaps,
 } from './dataframe.js';
 
 function getHostLittleEndian() {
@@ -932,6 +934,90 @@ test('sparse order', t => {
   df.get(2).draw = undefined;
   df.get(6).draw = Infinity;
   if (!expect(1, 7, 5, 6)) return;
+});
+
+test('perm swaps', t => {
+  for (const N of [3, 5, 7]) { // TODO moar?
+    const data = makePermutation(N);
+    for (const perm of allPermutations(N)) {
+      for (let i = 0; i < N; i++) data[i] = i;
+      for (const [i, j] of permutationSwaps(perm)) {
+        const tmp = data[i];
+        data[i] = data[j];
+        data[j] = tmp;
+      }
+      if (!t.deepEqual([...data], [...perm])) {
+        t.log(`failed for [${[...perm]}]`);
+        for (const [i, j] of permutationSwaps(perm))
+          t.log(`... (${i} ${j})`);
+        t.log(`actual ${describePermutation(data)}`);
+        t.log(`expected ${describePermutation(perm)}`);
+        return;
+      }
+    }
+  }
+
+  /** @param {ArrayLike<number>} perm */
+  function describePermutation(perm) {
+    return Array
+      .from(permutationCycles(perm))
+      .map(cycle => `(${cycle.map(x => `${x}`).join(' ')})`)
+      .join('·');
+  }
+
+  /** @param {ArrayLike<number>} perm */
+  function* permutationCycles(perm) {
+    /** @type {Set<number>} */
+    const seen = new Set();
+    for (let i = 0; i < perm.length; i++) {
+      let j = perm[i];
+      if (i == j) continue;
+      if (seen.has(i)) continue;
+      seen.add(i);
+      const cycle = [i];
+      while (j != i) {
+        cycle.push(j)
+        seen.add(j);
+        j = perm[j];
+      }
+      yield cycle;
+    }
+  }
+
+  /** @param {number} N */
+  function* allPermutations(N) {
+    // adapted from <https://rosettacode.org/wiki/Permutations#version_2>
+    // generates all permutation on N
+    // without resorting to recursion or temporary array slice/dicing
+
+    let NBang = 1; // factorial
+    for (let p = N; p > 1; p--) NBang *= p;
+
+    // init permutation in descending order
+    const perm = makePermutation(N);
+    for (let i = 1; i <= N; i++) perm[i - 1] = N - i;
+
+    while (NBang-- > 0) {
+      yield perm.slice(0);
+
+      let i = 1;
+      while (perm[i] > perm[i - 1]) i++;
+
+      let j = 0;
+      while (perm[j] < perm[i]) j++;
+
+      const tmp = perm[j];
+      perm[j] = perm[i];
+      perm[i] = tmp;
+
+      i--;
+      for (j = 0; j < i; i--, j++) {
+        const tmp = perm[i];
+        perm[i] = perm[j];
+        perm[j] = tmp;
+      }
+    }
+  }
 });
 
 /** @template T, U
