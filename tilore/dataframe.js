@@ -2227,17 +2227,22 @@ function orderType(element, ctx) {
   switch (order) {
     case 'self':
       const { length } = ctx;
-      if (length == 0) return 'uint8';
-      const nBytes = Math.ceil(Math.log(length) / Math.log(2) / 8);
-      switch (nBytes) {
-        case 0:
-        case 1: return 'uint8';
-        case 2: return 'uint16';
-        case 3:
-        case 4: return 'uint32';
-        default: throw new Error(`unsupported order index range ${length}`);
-      }
+      return lengthType(length);
     default: unreachable(order);
+  }
+}
+
+/** @param {number} length */
+function lengthType(length) {
+  if (length == 0) return 'uint8';
+  const nBytes = Math.ceil(Math.log(length) / Math.log(2) / 8);
+  switch (nBytes) {
+    case 0:
+    case 1: return 'uint8';
+    case 2: return 'uint16';
+    case 3:
+    case 4: return 'uint32';
+    default: throw new Error(`unsupported order index range ${length}`);
   }
 }
 
