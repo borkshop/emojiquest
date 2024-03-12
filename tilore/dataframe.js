@@ -575,6 +575,12 @@ export function makeDataFrame(
         aspects[i].resize(length, remap);
     },
 
+    compact() {
+      for (const aspect of aspects)
+        if ('compact' in aspect)
+          aspect.compact();
+    },
+
   };
 }
 
@@ -696,17 +702,31 @@ export function makeSparseDataFrame(
     },
 
     compact() {
-      const perm = makePermutation(spal.capacity);
+      /** @type {null|ReturnType<makePermutation>} */
+      let perm = null;
       spal.compact(($holeIndex, $usedIndex) => {
+        if (!perm)
+          perm = makePermutation(spal.capacity);
         const tmp = perm[$holeIndex];
         perm[$holeIndex] = perm[$usedIndex];
         perm[$usedIndex] = tmp;
         return true;
       });
-      const newLength = spal.length;
-      const swaps = Array.from(permutationSwaps(perm));
-      for (const aspect of aspects)
-        aspect.permute(swaps, newLength);
+
+      if (perm != null) {
+        const swaps = Array.from(permutationSwaps(perm));
+        const newLength = spal.length;
+        for (const aspect of aspects) {
+          aspect.permute(swaps, newLength);
+          if ('compact' in aspect)
+            aspect.compact();
+        }
+      } else {
+        for (const aspect of aspects)
+          if ('compact' in aspect)
+            aspect.compact();
+      }
+
     },
 
   };
