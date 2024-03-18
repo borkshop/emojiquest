@@ -227,7 +227,7 @@ function makeCache() {
  * @param {object} methods
  * @param {(ref: Ref) => number} methods.refToIndex
  * @param {() => void} [methods.clear]
- * @param {(upto: Ref|number) => number} [methods.resize]
+ * @param {(upto: Ref|number, oldLength: number) => number|IndexResize} [methods.resize]
  * @param {PropMap} propMap
  * @returns {Index<Ref, PropMap>}
  */
@@ -283,7 +283,18 @@ function makeIndexed(index, val, extraProps) {
  * @prop {(ref: Ref) => number} refToIndex -- resolves packed reference data into DataFrame ordinal index number
  * @prop {PropMap} propMap -- all keys MUST begin with $, unpacks reference compoenent data, descriptors called with this:{$index:number}
  * @prop {() => void} clear
- * @prop {(upto: Ref|number) => number} resize
+ * @prop {(upto: Ref|number, oldLength: number) => number|IndexResize} resize
+ */
+
+/** @typedef {object} IndexResize
+ * @prop {number} newLength
+ * @prop {() => Iterable<RemapEntry>} remap
+ */
+
+/** @typedef {object} RemapEntry
+ * @prop {number} oldOffset
+ * @prop {number} oldUpto
+ * @prop {number} newOffset
  */
 
 export const MonotonicIndex = Object.freeze(makeIndex({
@@ -414,7 +425,8 @@ export function makeDataFrame(
   /** @typedef {ThatElement & Created<IndexPropMap>} ThatIndex */
   /** @typedef {ThatIndex & ThoseElements<Aspects>} ThatRecord */
 
-  const initialLength = index.resize(initialUpto);
+  const initialRes = index.resize(initialUpto, 0);
+  const initialLength = typeof initialRes == 'number' ? initialRes : initialRes.newLength;
 
   const
     aspects = Object.entries(aspectSpecs).map(([name, spec]) =>
@@ -467,10 +479,11 @@ export function makeDataFrame(
 
     /** @param {number|IndexRef} upto */
     resize(upto) {
-      const newLength = index.resize(upto);
-      length = newLength;
+      const res = index.resize(upto, length);
+      const remap = typeof res == 'number' ? () => [] : res.remap;
+      length = typeof res == 'number' ? res : res.newLength;
       for (let i = 0; i < aspects.length; i++)
-        aspects[i].resize(length);
+        aspects[i].resize(length, remap);
     },
 
     /** @param {IndexRef} ref */
@@ -498,7 +511,7 @@ export function makeDataFrame(
  * @prop {number} byteStride
  * @prop {number} length
  * @prop {() => void} clear
- * @prop {(newLength: number) => void} resize
+ * @prop {(newLength: number, remap: () => Iterable<RemapEntry>) => void} resize
  * @prop {() => Iterable<FieldInfo>} fieldInfo
  */
 
