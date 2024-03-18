@@ -299,6 +299,18 @@ function makeIndexed(index, val, extraProps) {
 
 export const MonotonicIndex = Object.freeze(makeIndex({
   refToIndex(id) { return id - 1 },
+  resize(upto, oldLength) {
+    return {
+      newLength: upto,
+      *remap() {
+        yield {
+          oldOffset: 0,
+          oldUpto: Math.min(oldLength, upto),
+          newOffset: 0,
+        };
+      },
+    };
+  },
 }, {
   $id: {
     enumerable: true,
