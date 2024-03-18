@@ -545,27 +545,6 @@ test('basic dataframe', t => {
 
   // resize grow again, old data still valid, new itmes avail
   df.resize(6);
-
-  allExpected[0].light = 0;
-  allExpected[1].light = 0;
-  allExpected[2].light = 0;
-  allExpected[3].light = 0;
-
-  allExpected[0].pos = [0, 0];
-  allExpected[1].pos = [0, 0];
-  allExpected[2].pos = [0, 0];
-  allExpected[3].pos = [0, 0];
-
-  allExpected[0].transform = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,];
-  allExpected[1].transform = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,];
-  allExpected[2].transform = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,];
-  allExpected[3].transform = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,];
-
-  allExpected[0].colors = { bg: [0, 0, 0, 0], fg: [0, 0, 0], };
-  allExpected[1].colors = { bg: [0, 0, 0, 0], fg: [0, 0, 0], };
-  allExpected[2].colors = { bg: [0, 0, 0, 0], fg: [0, 0, 0], };
-  allExpected[3].colors = { bg: [0, 0, 0, 0], fg: [0, 0, 0], };
-
   allExpected.push(
     {
       $id: 5,

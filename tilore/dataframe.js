@@ -599,10 +599,19 @@ export function makeDenseAspect(name, index, element, initialLength = 0) {
       // TODO specific default value?
     },
 
-    resize(newLength) {
+    resize(newLength, remap) {
+      const newBuffer = new ArrayBuffer(byteStride * newLength);
+
+      const nu8 = new Uint8Array(newBuffer);
+      const ou8 = new Uint8Array(buffer);
+      for (const { oldOffset, oldUpto, newOffset } of remap()) {
+        const n = nu8.subarray(byteStride * newOffset);
+        const o = ou8.subarray(byteStride * oldOffset, byteStride * oldUpto);
+        n.set(o);
+      }
+
       // TODO fill new with specific default value?
-      // TODO copy old data over; use index to inform topology
-      buffer = new ArrayBuffer(byteStride * newLength);
+      buffer = newBuffer;
       length = newLength;
     },
 
