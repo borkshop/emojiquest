@@ -321,7 +321,7 @@ export const MonotonicIndex = Object.freeze(makeIndex({
 
 /**
  * @typedef {object} XYTopology
- * @prop {(x: number, y: number) => number} resize
+ * @prop {(oldLength: number, x: number, y: number) => number|IndexResize} resize
  * @prop {(x: number, y: number) => number} at
  * @prop {($index: number) => number} getX
  * @prop {($index: number) => number} getY
@@ -340,9 +340,26 @@ export function makeXYIndex(shape = { width: 0 }) {
           if (x >= width) return NaN;
           return y * width + x;
         },
-        resize(x, y) {
-          width = x;
-          return x * y;
+        resize(oldLength, newWidth, newHeight) {
+          const oldWidth = width;
+          const oldHeight = Math.ceil(oldLength / oldWidth);
+          const newLength = newWidth * newHeight;
+          width = newWidth;
+          return {
+            newLength,
+            *remap() {
+              const coWidth = Math.min(newWidth, oldWidth);
+              const coHeight = Math.min(newHeight, oldHeight);
+              for (let y = 0; y < coHeight; y++) {
+                const oldOffset = y * oldWidth;
+                yield {
+                  oldOffset,
+                  oldUpto: Math.min(oldLength, oldOffset + coWidth),
+                  newOffset: y * newWidth,
+                };
+              }
+            },
+          };
         },
         getX($index) { return $index % width },
         getY($index) { return Math.floor($index / width) },
@@ -357,9 +374,26 @@ export function makeXYIndex(shape = { width: 0 }) {
           if (y >= height) return NaN;
           return x * height + y;
         },
-        resize(x, y) {
-          height = y;
-          return x * y;
+        resize(oldLength, newWidth, newHeight) {
+          const oldHeight = height;
+          const oldWidth = Math.ceil(oldLength / oldHeight);
+          const newLength = newWidth * newHeight;
+          height = newHeight;
+          return {
+            newLength,
+            *remap() {
+              const coWidth = Math.min(newWidth, oldWidth);
+              const coHeight = Math.min(newHeight, oldHeight);
+              for (let x = 0; x < coWidth; x++) {
+                const oldOffset = x * oldHeight;
+                yield {
+                  oldOffset,
+                  oldUpto: Math.min(oldLength, oldOffset + coHeight),
+                  newOffset: x * newHeight,
+                };
+              }
+            },
+          };
         },
         getX($index) { return Math.floor($index / height) },
         getY($index) { return $index % height },
@@ -377,8 +411,8 @@ export function makeXYIndex(shape = { width: 0 }) {
       const $index = (x < 0 || y < 0) ? NaN : topo.at(x, y);
       return $index;
     },
-    resize(upto) {
-      return typeof upto == 'number' ? upto : topo.resize(...upto);
+    resize(upto, oldLength) {
+      return typeof upto == 'number' ? upto : topo.resize(oldLength, ...upto);
     },
   }, {
     $x: {
