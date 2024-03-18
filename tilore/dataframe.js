@@ -548,6 +548,11 @@ export function makeDataFrame(
 
     toIndex: index.refToIndex,
 
+    /** @param {number} $index */
+    toRef($index) {
+      return Object.seal(makeIndexRef($index));
+    },
+
     clear() {
       index.clear();
       for (let i = 0; i < aspects.length; i++)
