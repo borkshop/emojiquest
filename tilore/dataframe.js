@@ -663,9 +663,8 @@ export function makeSparseAspect(name, element, initialLength = 0) {
 
   let
     length = 0,
-    buffer = new ArrayBuffer(initialLength * byteStride);
+    buffer = new ArrayBuffer(initialLength * byteStride),
 
-  const
     used = makeBitVector(initialLength),
     /** @type Map<number, number> */
     indexMap = new Map(), // maps DataFrame index -> Aspect index
@@ -800,17 +799,33 @@ export function makeSparseAspect(name, element, initialLength = 0) {
       used.length = initialLength;
     },
 
-    resize(newLength) {
-      for (const [$frameIndex, $index] of indexMap) {
-        if ($frameIndex >= newLength) {
-          indexMap.delete($frameIndex);
-          reverseMap.delete($index);
-          used.unset($index);
+    resize(_newLength, remap) {
+      /** @type Map<number, number> */
+      const newIndexMap = new Map();
+      /** @type Map<number, number> */
+      const newReverseMap = new Map();
+
+      for (const { oldOffset, oldUpto, newOffset } of remap()) {
+        for (
+          let $oldFrameIndex = oldOffset, $newFrameIndex = newOffset;
+          $oldFrameIndex < oldUpto;
+          $oldFrameIndex++, $newFrameIndex++
+        ) {
+          const $index = indexMap.get($oldFrameIndex);
+          if ($index == undefined) continue;
+          newIndexMap.set($newFrameIndex, $index);
+          newReverseMap.set($index, $newFrameIndex);
         }
       }
-      // TODO when to trigger compaction after shrink?
 
-      // TODO remap moved ids if necessary (e.g. sparse reference to spatially indexed data)
+      used.clear();
+      for (const $index of newReverseMap.keys()) {
+        used.set($index);
+      }
+
+      indexMap = newIndexMap;
+      reverseMap = newReverseMap;
+      // TODO when to trigger compaction after shrink?
     },
 
     get: $index => ref($index),
