@@ -334,10 +334,6 @@ select {
   max-width: 90%;
 }
 
-input[type='number']::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-}
-
 input[type='color'] {
   height: calc(var(--tileSizePx) * 1px);
   width: calc(var(--tileSizePx) * 1px);

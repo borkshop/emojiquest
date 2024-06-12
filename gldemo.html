@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" type="text/css" href="index.css" />
+  <title>Cube</title>
+</head>
+
+<body>
+
+  <div style="position: absolute; right: 0">
+
+    <div title="Foreground tile set">
+      <select id="fore_tiles">
+        <option>1️⃣ 2️⃣ 3️⃣ 4️⃣</option>
+        <option selected>🧚 🍵 🫖 ⛵</option>
+        <option>🐦 🔥 🐦‍🔥</option>
+        <option>🏳️ 🌈 🏳️‍🌈</option>
+        <option value"   ă">PUA 0-3</option>
+        <option>@ o $ B</option>
+      </select>
+    </div>
+
+    <div
+      title="Key[C] Whether to draw using a derived 'curved tile' layer whose cells are computed at the 4-corners of the base land-vs-water layer">
+      <input id="show_curves" type="checkbox" checked />
+      <label for="show_curves">Use Curved Tiles</label>
+    </div>
+
+    <div
+      title="Key[X] Whether tile curves should extend past edge of world, or clip as if surrounded by land on all sides">
+      <input id="extend_curves" type="checkbox" checked />
+      <label for="extend_curves">Extend Tile Curves</label>
+    </div>
+
+    <div title="Key[- +] Size of each world tile in pixels">
+      <label for="cell_size">Cell Size</label>
+      <input id="cell_size" value="100" type="number" min="2" max="256" step="2" />
+    </div>
+
+    <div title="Key[A D] World width in cells">
+      <label for="world_width">World Width</label>
+      <input id="world_width" value="8" type="number" min="1" max="2048" step="1" />
+    </div>
+
+    <div title="Key[W S] World height in cells">
+      <label for="world_height">World Height</label>
+      <input id="world_height" value="8" type="number" min="1" max="2048" step="1" />
+    </div>
+
+  </div>
+
+  <canvas id="world" style="width: 100%; height: 100%"></canvas>
+
+  <script type="module">
+    import runDemo from './gldemo.js';
+
+    const $world = document.querySelector('canvas#world');
+    if (!$world) throw new Error('unable to find world canvas');
+
+    let halt = true;
+    let demo = null;
+
+    const $showCurves = document.querySelector('#show_curves');
+    if (!$showCurves) throw new Error('unable to find #show_curves');
+
+    const $extendCurves = document.querySelector('#extend_curves');
+    if (!$extendCurves) throw new Error('unable to find #extend_curves');
+
+    const $cellSize = document.querySelector('#cell_size');
+    if (!$cellSize) throw new Error('unable to find #cell_size');
+
+    const $worldWidth = document.querySelector('#world_width');
+    if (!$worldWidth) throw new Error('unable to find #world_width');
+
+    const $worldHeight = document.querySelector('#world_height');
+    if (!$worldHeight) throw new Error('unable to find #world_height');
+
+    const $foreTiles = document.querySelector('#fore_tiles');
+    if (!$foreTiles) throw new Error('unable to find #fore_tiles');
+
+    const updateCellSize = () => {
+      if (demo)
+        demo.cellSize = $cellSize.valueAsNumber;
+    };
+    const updateWorldSize = () => {
+      demo?.resizeWorld(
+        $worldWidth.valueAsNumber,
+        $worldHeight.valueAsNumber,
+      );
+    };
+
+    $cellSize.addEventListener('change', updateCellSize);
+    $foreTiles.addEventListener('change', () => {demo?.stop()});
+
+    window.addEventListener('keypress', e => {
+      switch (e.key) {
+        case 'q':
+        case 'Q':
+          if (halt) {
+            run();
+          } else {
+            halt = true;
+            demo?.stop();
+          }
+          break;
+
+        case '.':
+          demo?.stop();
+          break;
+
+        case 'c':
+        case 'C':
+          $showCurves.checked = !$showCurves.checked;
+          break;
+
+        case 'x':
+        case 'X':
+          $extendCurves.checked = !$extendCurves.checked;
+          break;
+
+        case '+':
+          $cellSize.stepUp();
+          updateCellSize();
+          break;
+
+        case '-':
+          $cellSize.stepDown();
+          updateCellSize();
+          break;
+
+        case 'a':
+        case 'A':
+          $worldWidth.stepDown();
+          updateWorldSize();
+          break;
+
+        case 'd':
+        case 'D':
+          $worldWidth.stepUp();
+          updateWorldSize();
+          break;
+
+        case 's':
+        case 'S':
+          $worldHeight.stepDown();
+          updateWorldSize();
+          break;
+
+        case 'w':
+        case 'W':
+          $worldHeight.stepUp();
+          updateWorldSize();
+          break;
+
+        // NOTE this is here only to provide a test path for layer movement,
+        //      the more normative thing to do here would be to transalte the perspective,
+        //      not every world layer transform
+        case 'h':
+          demo?.moveWorldBy(-1, 0);
+          break;
+        case 'j':
+          demo?.moveWorldBy(0, 1);
+          break;
+        case 'k':
+          demo?.moveWorldBy(0, -1);
+          break;
+        case 'l':
+          demo?.moveWorldBy(1, 0);
+          break;
+
+      }
+    });
+
+    async function run() {
+      if (!halt) return;
+      halt = false;
+      for (
+        let count = 0, backoff = 0, now = Date.now(), then = now;
+        !halt;
+        then = now,
+        backoff = Math.min(200, Math.pow(1.5, ++count))
+      ) {
+        const since = now - then;
+        const wait = backoff - since;
+        if (wait > 0)
+          await new Promise(resolve => setTimeout(resolve, wait));
+        count = 0;
+
+        const foreTiles = $foreTiles.value.trim().split(/\s+/).map(glyph => ({glyph}));
+
+        demo = await runDemo({
+          $world,
+          cellSize: $cellSize.valueAsNumber,
+          tileSize: 256,
+
+          worldWidth: $worldWidth.valueAsNumber,
+          worldHeight: $worldHeight.valueAsNumber,
+
+          showCurvyTiles() {return $showCurves.checked},
+          clipCurvyTiles() {return !$extendCurves.checked},
+
+          foreTiles,
+        });
+        await demo.done;
+      }
+    }
+
+    run();
+  </script>
+</body>
+
+</html>
