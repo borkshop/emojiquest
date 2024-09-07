@@ -231,27 +231,25 @@ function init(s, seed) {
   if (s.length != 4)
     throw new Error('xoshiro256+ generator state must have 4 bigints');
 
+  s.fill(0n);
+
   if (typeof seed == 'string') {
-    if (!fromString(s, seed)) {
-      s.fill(0n);
-      if (!mixin(s, codePointParts(seed))) init(s, 0);
-    }
+    if (!fromString(s, seed) && !mixin(s, codePointParts(seed)))
+      fillSplitmix(s, 0n);
   }
 
   else if (seed instanceof ArrayBuffer) {
-    if (seed.byteLength == s.buffer.byteLength) {
+    if (seed.byteLength == s.buffer.byteLength)
       new Uint8Array(s.buffer).set(new Uint8Array(seed));
-    } else {
-      s.fill(0n);
-      if (!mixin(s, byteParts(seed))) init(s, 0);
-    }
+    else if (!mixin(s, byteParts(seed)))
+      fillSplitmix(s, 0n);
   }
 
-  else if (typeof seed == 'number' || typeof seed == 'bigint') {
+  else if (typeof seed == 'number' || typeof seed == 'bigint')
     fillSplitmix(s, seed);
-  }
 
-  else assertNever(seed, 'invalid xoshiro256+ seed, expected a number, string, or ArrayBuffer');
+  else
+    assertNever(seed, 'invalid xoshiro256+ seed, expected a number, string, or ArrayBuffer');
 }
 
 /** This returns a 64-character hex string containing all 256 bits of a generator's state.
