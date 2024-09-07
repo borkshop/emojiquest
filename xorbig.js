@@ -391,6 +391,24 @@ function mixin(s, parts) {
   return n;
 }
 
+/** If the given number is already an integer, we simply recast it as BigInt(n).
+ * Otherwise we recast the float64 bits as a uint64,
+ * this extracts slightly more entropy than doing 2^53 based rounding maths.
+ *
+ * This way if the user passes something like `0` or `0xDEAD_BEEF`,
+ * we'll just do the basic thing, and make it as if they wrote `0n` or `0xDEAD_BEEFn`.
+ *
+ * But if they pass `Math.random()` we'll do a better thing,
+ * and extract as many bits from standard random as we can.
+ *
+ * @param {number} n
+ */
+function floatToUint64(n) {
+  return Math.trunc(n) === n
+    ? BigInt(n)
+    : new BigUint64Array(Float64Array.of(n).buffer)[0];
+}
+
 /** This is the splitmix64 seeding routine alluded to in upstream commentary.
  * It is used to seed a new xoshiro256+ generator from a single 32-bit or 64-bit number
  *
@@ -400,7 +418,7 @@ function mixin(s, parts) {
  * @param {number|bigint} seed
  */
 function fillSplitmix(s, seed) {
-  let n = typeof seed == 'bigint' ? seed : BigInt(seed);
+  let n = typeof seed == 'bigint' ? seed : floatToUint64(seed);
   [n, s[0]] = splitmix(n);
   [n, s[1]] = splitmix(n);
   [n, s[2]] = splitmix(n);
